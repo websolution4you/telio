@@ -163,13 +163,7 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* Scroll indicator */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-        style={{ color: "var(--text-muted)", fontSize: "0.7rem" }}>
-        <span style={{ letterSpacing: "0.1em" }}>{t.hero.scroll}</span>
-        <div className="w-px h-8 animate-pulse-glow"
-          style={{ background: "linear-gradient(to bottom, var(--cyan), transparent)" }} />
-      </div>
+
 
       <style>{`
         @keyframes fadeInUp {
