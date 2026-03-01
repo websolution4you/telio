@@ -235,6 +235,10 @@ body {
   min-width: unset;
 }
 
+.btn-nav.btn-primary {
+  background: linear-gradient(135deg, #00FFD1, #7B61FF);
+}
+
 .btn-ghost:hover {
   border-color: rgba(0, 255, 209, 0.3);
   background: rgba(0, 255, 209, 0.04);
