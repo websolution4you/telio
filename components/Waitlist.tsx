@@ -31,7 +31,7 @@ export default function Waitlist() {
   };
 
   return (
-    <section id="waitlist" ref={sectionRef} className="relative py-36 overflow-hidden">
+    <section id="waitlist" ref={sectionRef} className="relative overflow-hidden" style={{ paddingTop: "var(--sp-section-py)", paddingBottom: "var(--sp-section-py)" }}>
       <div className="absolute inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0,255,209,0.06) 0%, rgba(123,97,255,0.04) 40%, transparent 70%)" }} />
       <div className="absolute inset-0 grid-bg opacity-40 pointer-events-none" />
@@ -40,7 +40,7 @@ export default function Waitlist() {
         {/* Badge */}
         <div
           className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-medium transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
-          style={{ borderColor: "rgba(0,255,209,0.25)", background: "rgba(0,255,209,0.05)", color: "var(--cyan)", marginBottom: "60px" }}>
+          style={{ borderColor: "rgba(0,255,209,0.25)", background: "rgba(0,255,209,0.05)", color: "var(--cyan)", marginBottom: "var(--sp-badge-mb)" }}>
           <span className="w-1.5 h-1.5 rounded-full animate-pulse-glow" style={{ background: "var(--cyan)" }} />
           {t.waitlist.badge}
         </div>
@@ -48,7 +48,7 @@ export default function Waitlist() {
         {/* Headline */}
         <h2
           className={`font-extrabold text-white transition-all duration-700 delay-100 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
-          style={{ fontSize: "clamp(2.2rem, 5.5vw, 4rem)", letterSpacing: "-0.04em", lineHeight: 1.0, marginBottom: "40px" }}>
+          style={{ fontSize: "clamp(2.2rem, 5.5vw, 4rem)", letterSpacing: "-0.04em", lineHeight: 1.0, marginBottom: "var(--sp-badge-mb)" }}>
           {t.waitlist.h2a}
           <br />
           <span className="text-gradient">{t.waitlist.h2b}</span>
@@ -56,7 +56,7 @@ export default function Waitlist() {
 
         <p
           className={`leading-relaxed transition-all duration-700 delay-200 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
-          style={{ color: "var(--text-muted)", fontSize: "1.1rem", lineHeight: 1.7, marginBottom: "64px" }}>
+          style={{ color: "var(--text-muted)", fontSize: "1.1rem", lineHeight: 1.7, marginBottom: "var(--sp-header-mb)" }}>
           {t.waitlist.sub}
         </p>
 
@@ -64,7 +64,7 @@ export default function Waitlist() {
         {!submitted && (
           <div
             className={`flex flex-wrap justify-center gap-2 transition-all duration-700 delay-250 ${inView ? "opacity-100" : "opacity-0"}`}
-            style={{ marginBottom: "48px" }}
+            style={{ marginBottom: "var(--sp-badge-mb)" }}
           >
             {t.waitlist.businesses.map((b) => (
               <button key={b} type="button" onClick={() => setBusiness(b)}
@@ -84,7 +84,7 @@ export default function Waitlist() {
         {!submitted ? (
           <form onSubmit={handleSubmit}
             className={`flex flex-col sm:flex-row gap-3 transition-all duration-700 delay-300 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
-            style={{ maxWidth: "36rem", margin: "0 auto", marginBottom: "60px" }}>
+            style={{ maxWidth: "36rem", margin: "0 auto", marginBottom: "var(--sp-badge-mb)" }}>
             <input
               type="email" required
               placeholder={t.waitlist.placeholder}

@@ -25,7 +25,7 @@ export default function UseCases() {
   const current = cases[active];
 
   return (
-    <section id="use-cases" ref={sectionRef} className="relative overflow-hidden" style={{ paddingTop: "9rem", paddingBottom: "9rem" }}>
+    <section id="use-cases" ref={sectionRef} className="relative overflow-hidden" style={{ paddingTop: "var(--sp-section-py)", paddingBottom: "var(--sp-section-py)" }}>
       <div className="absolute left-0 top-0 w-1/2 h-full pointer-events-none"
         style={{ background: "radial-gradient(ellipse 60% 80% at 0% 50%, rgba(0,255,209,0.04) 0%, transparent 70%)" }} />
 
@@ -34,11 +34,11 @@ export default function UseCases() {
         {/* Section Header — centered */}
         <div
           className={`flex flex-col items-center text-center transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
-          style={{ marginBottom: "120px" }}
+          style={{ marginBottom: "var(--sp-header-mb)" }}
         >
           <div
             className="inline-block text-xs font-semibold tracking-widest uppercase px-4 py-2 rounded"
-            style={{ color: "#7B61FF", background: "rgba(123,97,255,0.07)", border: "1px solid rgba(123,97,255,0.15)", marginBottom: "40px" }}
+            style={{ color: "#7B61FF", background: "rgba(123,97,255,0.07)", border: "1px solid rgba(123,97,255,0.15)", marginBottom: "var(--sp-badge-mb)" }}
           >
             {t.useCases.badge}
           </div>
@@ -55,7 +55,7 @@ export default function UseCases() {
         {/* Tabs — centered */}
         <div
           className={`flex flex-wrap justify-center gap-3 transition-all duration-700 delay-100 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
-          style={{ marginBottom: "100px" }}
+          style={{ marginBottom: "var(--sp-header-mb)" }}
         >
           {cases.map((c, i) => (
             <button
@@ -84,23 +84,23 @@ export default function UseCases() {
           <div className="flex flex-col justify-center py-6">
             <div
               className="w-16 h-16 flex items-center justify-center rounded-2xl"
-              style={{ background: "rgba(12,12,20,0.8)", border: "1px solid var(--border)", fontSize: "1.8rem", marginBottom: "50px" }}
+              style={{ background: "rgba(12,12,20,0.8)", border: "1px solid var(--border)", fontSize: "1.8rem", marginBottom: "var(--sp-badge-mb)" }}
             >
               {current.emoji}
             </div>
             <h3
               className="font-bold text-white"
-              style={{ fontSize: "1.75rem", letterSpacing: "-0.02em", lineHeight: 1.2, marginBottom: "40px" }}
+              style={{ fontSize: "1.75rem", letterSpacing: "-0.02em", lineHeight: 1.2, marginBottom: "var(--sp-badge-mb)" }}
             >
               {current.title}
             </h3>
             <p
               className="leading-relaxed"
-              style={{ color: "var(--text-muted)", fontSize: "1.05rem", lineHeight: 1.75, marginBottom: "60px" }}
+              style={{ color: "var(--text-muted)", fontSize: "1.05rem", lineHeight: 1.75, marginBottom: "var(--sp-badge-mb)" }}
             >
               {current.description}
             </p>
-            <ul className="flex flex-col" style={{ gap: "32px" }}>
+            <ul className="flex flex-col" style={{ gap: "var(--sp-item-gap)" }}>
               {current.features.map((f, i) => (
                 <li key={i} className="flex items-start gap-4 text-sm" style={{ color: "var(--text)" }}>
                   <span
@@ -122,14 +122,14 @@ export default function UseCases() {
             className="rounded-2xl p-8 flex flex-col gap-2"
             style={{ background: "rgba(8,8,14,0.9)", border: "1px solid var(--border)", backdropFilter: "blur(20px)" }}
           >
-            <div className="flex items-center gap-2" style={{ marginBottom: "40px", paddingBottom: "30px", borderBottom: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2" style={{ marginBottom: "var(--sp-badge-mb)", paddingBottom: "24px", borderBottom: "1px solid var(--border)" }}>
               <div className="w-2 h-2 rounded-full animate-pulse-glow" style={{ background: "var(--cyan)" }} />
               <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
                 {t.useCases.liveLabel}
               </span>
             </div>
             {current.callSample.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === "ai" ? "justify-start" : "justify-end"}`} style={{ marginBottom: "32px" }}>
+              <div key={i} className={`flex ${msg.role === "ai" ? "justify-start" : "justify-end"}`} style={{ marginBottom: "var(--sp-item-gap)" }}>
                 {msg.role === "ai" && (
                   <div className="flex items-start gap-3" style={{ maxWidth: "20rem" }}>
                     <div
@@ -154,7 +154,7 @@ export default function UseCases() {
                 )}
               </div>
             ))}
-            <div className="flex items-center gap-2.5" style={{ marginTop: "40px", paddingTop: "30px", borderTop: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2.5" style={{ marginTop: "var(--sp-badge-mb)", paddingTop: "24px", borderTop: "1px solid var(--border)" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
               </svg>

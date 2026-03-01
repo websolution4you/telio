@@ -31,7 +31,7 @@ export default function HowItWorks() {
   }, []);
 
   return (
-    <section id="how-it-works" ref={sectionRef} className="relative overflow-hidden" style={{ paddingTop: "9rem", paddingBottom: "9rem" }}>
+    <section id="how-it-works" ref={sectionRef} className="relative overflow-hidden" style={{ paddingTop: "var(--sp-section-py)", paddingBottom: "var(--sp-section-py)" }}>
       <div className="absolute right-0 top-0 w-1/2 h-full pointer-events-none"
         style={{ background: "radial-gradient(ellipse 60% 80% at 100% 50%, rgba(123,97,255,0.05) 0%, transparent 70%)" }} />
 
@@ -40,11 +40,11 @@ export default function HowItWorks() {
         {/* Section Header — fully centered */}
         <div
           className={`flex flex-col items-center text-center transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
-          style={{ marginBottom: "110px" }}
+          style={{ marginBottom: "var(--sp-header-mb)" }}
         >
           <div
             className="inline-block text-xs font-semibold tracking-widest uppercase px-4 py-2 rounded"
-            style={{ color: "var(--cyan)", background: "rgba(0,255,209,0.07)", border: "1px solid rgba(0,255,209,0.15)", marginBottom: "60px" }}
+            style={{ color: "var(--cyan)", background: "rgba(0,255,209,0.07)", border: "1px solid rgba(0,255,209,0.15)", marginBottom: "var(--sp-badge-mb)" }}
           >
             {t.howItWorks.badge}
           </div>
@@ -83,7 +83,7 @@ export default function HowItWorks() {
               {/* Icon */}
               <div
                 className="relative w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0"
-                style={{ background: "rgba(12,12,20,0.9)", border: "1px solid var(--border)", marginBottom: "120px" }}
+                style={{ background: "rgba(12,12,20,0.9)", border: "1px solid var(--border)", marginBottom: "var(--sp-icon-mb)" }}
               >
                 <div style={{ color: "var(--cyan)" }}>{ICONS[i]}</div>
                 <div className="absolute inset-0 rounded-2xl pointer-events-none"
@@ -96,7 +96,7 @@ export default function HowItWorks() {
               </div>
 
               {/* Content */}
-              <div className="flex flex-col items-center" style={{ gap: "60px" }}>
+              <div className="flex flex-col items-center" style={{ gap: "var(--sp-item-gap)" }}>
                 <div className="text-xs font-bold tracking-widest" style={{ color: "var(--text-muted)" }}>
                   {t.howItWorks.step} {step.number}
                 </div>
@@ -108,7 +108,7 @@ export default function HowItWorks() {
                 </p>
                 <div
                   className="inline-flex items-center justify-center gap-2 text-xs px-4 py-2 rounded-md w-fit"
-                  style={{ background: "rgba(0,255,209,0.05)", border: "1px solid rgba(0,255,209,0.12)", color: "var(--cyan)", marginTop: "60px" }}
+                  style={{ background: "rgba(0,255,209,0.05)", border: "1px solid rgba(0,255,209,0.12)", color: "var(--cyan)", marginTop: "var(--sp-item-gap)" }}
                 >
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--cyan)" }} />
                   {step.detail}

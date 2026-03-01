@@ -18,7 +18,7 @@ export default function Pricing() {
   }, []);
 
   return (
-    <section id="pricing" ref={sectionRef} className="relative py-40 overflow-hidden">
+    <section id="pricing" ref={sectionRef} className="relative overflow-hidden" style={{ paddingTop: "var(--sp-section-py)", paddingBottom: "var(--sp-section-py)" }}>
       <div className="absolute inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse 60% 50% at 50% 100%, rgba(123,97,255,0.06) 0%, transparent 70%)" }} />
 
@@ -26,14 +26,14 @@ export default function Pricing() {
         {/* Header */}
         <div
           className={`flex flex-col items-center text-center transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
-          style={{ marginBottom: "120px" }}
+          style={{ marginBottom: "var(--sp-header-mb)" }}
         >
           <div className="inline-block text-xs font-semibold tracking-widest uppercase px-4 py-2 rounded"
-            style={{ color: "#7B61FF", background: "rgba(123,97,255,0.07)", border: "1px solid rgba(123,97,255,0.15)", marginBottom: "40px" }}>
+            style={{ color: "#7B61FF", background: "rgba(123,97,255,0.07)", border: "1px solid rgba(123,97,255,0.15)", marginBottom: "var(--sp-badge-mb)" }}>
             {t.pricing.badge}
           </div>
           <h2 className="font-extrabold text-white"
-            style={{ fontSize: "clamp(2.2rem, 4.5vw, 3.5rem)", letterSpacing: "-0.03em", lineHeight: 1.1, marginBottom: "32px" }}>
+            style={{ fontSize: "clamp(2.2rem, 4.5vw, 3.5rem)", letterSpacing: "-0.03em", lineHeight: 1.1, marginBottom: "var(--sp-badge-mb)" }}>
             {t.pricing.h2a}
             <br />
             <span className="text-gradient">{t.pricing.h2b}</span>
@@ -46,8 +46,9 @@ export default function Pricing() {
           {t.pricing.plans.map((plan, i) => (
             <div
               key={plan.name}
-              className={`relative flex flex-col rounded-2xl p-8 xl:p-10 transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+              className={`relative flex flex-col rounded-2xl transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
               style={{
+                padding: "var(--sp-card-p)",
                 transitionDelay: `${i * 120}ms`,
                 background: plan.highlighted
                   ? "linear-gradient(135deg, rgba(0,255,209,0.07), rgba(123,97,255,0.07))"
@@ -71,7 +72,7 @@ export default function Pricing() {
               )}
 
               {/* Plan header */}
-              <div style={{ marginBottom: "60px" }}>
+              <div style={{ marginBottom: "var(--sp-item-gap)" }}>
                 <div className="text-xs font-bold tracking-widest uppercase mb-6"
                   style={{ color: plan.highlighted ? "var(--cyan)" : "var(--text-muted)" }}>
                   {plan.name}
@@ -94,10 +95,10 @@ export default function Pricing() {
               </div>
 
               {/* Divider */}
-              <div className="mb-8 h-px w-full" style={{ background: "var(--border)" }} />
+              <div className="mb-6 h-px w-full" style={{ background: "var(--border)" }} />
 
               {/* Features */}
-              <ul className="flex flex-col flex-1" style={{ gap: "24px", marginBottom: "50px" }}>
+              <ul className="flex flex-col flex-1" style={{ gap: "var(--sp-item-gap)", marginBottom: "var(--sp-item-gap)" }}>
                 {plan.features.map((f, j) => (
                   <li key={j} className="flex items-start gap-3 text-sm" style={{ color: "var(--text)" }}>
                     <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
@@ -119,7 +120,7 @@ export default function Pricing() {
               {/* CTA */}
               <a href="#waitlist"
                 className={`text-center py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 ${plan.highlighted ? "btn-primary" : "btn-ghost"}`}
-                style={{ marginTop: "40px" }}
+                style={{ marginTop: "var(--sp-badge-mb)" }}
               >
                 {plan.cta} →
               </a>
@@ -130,7 +131,7 @@ export default function Pricing() {
         {/* Footer note */}
         <div
           className={`text-center transition-all duration-700 delay-500 ${inView ? "opacity-100" : "opacity-0"}`}
-          style={{ marginTop: "100px" }}
+          style={{ marginTop: "var(--sp-header-mb)" }}
         >
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>
             {t.pricing.trialNote}{" "}

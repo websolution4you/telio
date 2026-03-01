@@ -51,15 +51,15 @@ export default function Integrations() {
   }, []);
 
   return (
-    <section id="integrations" ref={sectionRef} className="relative py-24 overflow-hidden">
+    <section id="integrations" ref={sectionRef} className="relative overflow-hidden" style={{ paddingTop: "var(--sp-section-py)", paddingBottom: "var(--sp-section-py)" }}>
       <div style={{ maxWidth: "80rem", margin: "0 auto", padding: "0 2rem" }}>
         <div
           className={`transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
-          style={{ textAlign: "center", marginBottom: "120px" }}
+          style={{ textAlign: "center", marginBottom: "var(--sp-header-mb)" }}
         >
           <p
             className="text-xs font-semibold tracking-widest uppercase"
-            style={{ color: "var(--text-muted)", marginBottom: "30px" }}
+            style={{ color: "var(--text-muted)", marginBottom: "var(--sp-badge-mb)" }}
           >
             {t.integrations.sub}
           </p>
@@ -73,7 +73,7 @@ export default function Integrations() {
           {INTEGRATIONS.map((integ, i) => (
             <div key={i}
               className="card-hover flex flex-col items-center rounded-2xl text-center"
-              style={{ padding: "3rem 1.5rem", background: "rgba(12,12,20,0.7)", border: "1px solid var(--border)", transitionDelay: `${i * 60}ms`, gap: "30px" }}>
+              style={{ padding: "var(--sp-card-p)", background: "rgba(12,12,20,0.7)", border: "1px solid var(--border)", transitionDelay: `${i * 60}ms`, gap: "var(--sp-item-gap)" }}>
               <div style={{ color: "var(--text-muted)" }} className="opacity-60 hover:opacity-100 transition-opacity">
                 {integ.svg}
               </div>
@@ -87,7 +87,7 @@ export default function Integrations() {
 
         <div
           className={`text-center transition-all duration-700 delay-300 ${inView ? "opacity-100" : "opacity-0"}`}
-          style={{ marginTop: "80px" }}
+          style={{ marginTop: "var(--sp-header-mb)" }}
         >
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>
             {t.integrations.note}{" "}

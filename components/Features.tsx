@@ -31,7 +31,7 @@ export default function Features() {
   }, []);
 
   return (
-    <section id="features" ref={sectionRef} className="relative grid-bg overflow-hidden" style={{ paddingTop: "9rem", paddingBottom: "9rem" }}>
+    <section id="features" ref={sectionRef} className="relative grid-bg overflow-hidden" style={{ paddingTop: "var(--sp-section-py)", paddingBottom: "var(--sp-section-py)" }}>
       <div className="absolute inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(0,255,209,0.04) 0%, transparent 70%)" }} />
 
@@ -40,17 +40,17 @@ export default function Features() {
         {/* Section Header — centered */}
         <div
           className={`flex flex-col items-center text-center transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
-          style={{ marginBottom: "140px" }}
+          style={{ marginBottom: "var(--sp-header-mb)" }}
         >
           <div
             className="inline-block text-xs font-semibold tracking-widest uppercase px-4 py-2 rounded"
-            style={{ color: "var(--cyan)", background: "rgba(0,255,209,0.07)", border: "1px solid rgba(0,255,209,0.15)", marginBottom: "40px" }}
+            style={{ color: "var(--cyan)", background: "rgba(0,255,209,0.07)", border: "1px solid rgba(0,255,209,0.15)", marginBottom: "var(--sp-badge-mb)" }}
           >
             {t.features.badge}
           </div>
           <h2
             className="font-extrabold text-white"
-            style={{ fontSize: "clamp(2.2rem, 4.5vw, 3.5rem)", letterSpacing: "-0.03em", lineHeight: 1.1, marginBottom: "32px" }}
+            style={{ fontSize: "clamp(2.2rem, 4.5vw, 3.5rem)", letterSpacing: "-0.03em", lineHeight: 1.1, marginBottom: "var(--sp-badge-mb)" }}
           >
             {t.features.h2a}
             <br />
@@ -67,15 +67,15 @@ export default function Features() {
             <div
               key={i}
               className={`card-hover relative rounded-2xl flex flex-col items-center text-center transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
-              style={{ padding: "3rem 2rem", transitionDelay: `${i * 60}ms`, background: "rgba(12,12,20,0.8)", border: "1px solid var(--border)" }}
+              style={{ padding: "var(--sp-card-p)", transitionDelay: `${i * 60}ms`, background: "rgba(12,12,20,0.8)", border: "1px solid var(--border)" }}
             >
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: "rgba(0,255,209,0.07)", border: "1px solid rgba(0,255,209,0.12)", color: COLORS[i], marginBottom: "32px" }}
+                style={{ background: "rgba(0,255,209,0.07)", border: "1px solid rgba(0,255,209,0.12)", color: COLORS[i], marginBottom: "var(--sp-icon-mb)" }}
               >
                 {ICONS[i]}
               </div>
-              <div className="flex flex-col items-center flex-1" style={{ gap: "20px" }}>
+              <div className="flex flex-col items-center flex-1" style={{ gap: "var(--sp-item-gap)" }}>
                 <h3 className="font-semibold text-white leading-snug" style={{ fontSize: "1.1rem" }}>
                   {f.title}
                 </h3>
@@ -85,7 +85,7 @@ export default function Features() {
               </div>
               <div
                 className="text-xs px-3 py-1.5 rounded font-mono w-fit"
-                style={{ background: "rgba(0,0,0,0.4)", color: COLORS[i], border: `1px solid ${COLORS[i]}22`, marginTop: "40px" }}
+                style={{ background: "rgba(0,0,0,0.4)", color: COLORS[i], border: `1px solid ${COLORS[i]}22`, marginTop: "var(--sp-badge-mb)" }}
               >
                 {f.badge}
               </div>
