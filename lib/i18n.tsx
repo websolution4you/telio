@@ -408,7 +408,7 @@ export const translations = {
       badge: "Beta verzia 1.0 · Obmedzený počet miest",
       h2a: "Buďte prví, ktorí automatizujú",
       h2b: "svoju prevádzku.",
-      sub: "Pridajte sa k firmám, ktoré sú už na čakacom zozname. Onboardujeme po skupinách — zaregistrujte sa skoro pre prioritný prístup a zavádzaciu cenu.",
+      sub: "Pridajte sa k firmám, ktoré sú už na čakacom zozname. Produkčnú verziu zavádzame po skupinách — zaregistrujte sa skoro pre prioritný prístup a zavádzaciu cenu.",
       placeholder: "vas@email.sk",
       cta: "Pridať sa na čakací zoznam →",
       successTitle: "Ste na zozname!",
