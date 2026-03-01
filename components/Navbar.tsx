@@ -84,7 +84,7 @@ export default function Navbar() {
             </button>
           </div>
 
-          <a href="#waitlist" className="btn-primary text-sm font-semibold">
+          <a href="#waitlist" className="btn-primary text-sm font-semibold" style={{ padding: "1rem 2.6rem" }}>
             {t.nav.cta}
           </a>
         </div>
@@ -146,6 +146,7 @@ export default function Navbar() {
           ))}
           <a href="#waitlist"
             className="btn-primary block text-center text-sm font-semibold mt-5"
+            style={{ padding: "1rem 2.6rem" }}
             onClick={() => setMenuOpen(false)}>
             {t.nav.cta}
           </a>
