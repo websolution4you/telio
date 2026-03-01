@@ -97,7 +97,7 @@ export default function Waitlist() {
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
             />
             <button type="submit" disabled={loading}
-              className="btn-primary text-sm font-bold whitespace-nowrap flex items-center justify-center gap-2 rounded-xl">
+              className="btn-primary btn-xl text-sm font-bold whitespace-nowrap flex items-center justify-center gap-2">
               {loading
                 ? <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                 : t.waitlist.cta}

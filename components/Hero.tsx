@@ -120,10 +120,10 @@ export default function Hero() {
           className={`flex flex-col sm:flex-row items-center justify-center gap-4 transition-all duration-700 delay-300 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
           style={{ marginBottom: "2rem" }}
         >
-          <a href="#waitlist" className="btn-primary text-base font-bold w-full sm:w-auto">
+          <a href="#waitlist" className="btn-primary btn-xl w-full sm:w-auto">
             {t.hero.cta1}
           </a>
-          <a href="#how-it-works" className="btn-ghost text-base font-medium w-full sm:w-auto">
+          <a href="#how-it-works" className="btn-ghost btn-xl w-full sm:w-auto">
             {t.hero.cta2}
           </a>
         </div>

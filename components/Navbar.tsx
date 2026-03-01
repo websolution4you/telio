@@ -84,7 +84,7 @@ export default function Navbar() {
             </button>
           </div>
 
-          <a href="#waitlist" className="btn-primary text-sm font-semibold" style={{ padding: "1rem 2.6rem" }}>
+          <a href="#waitlist" className="btn-primary btn-nav font-semibold">
             {t.nav.cta}
           </a>
         </div>
@@ -97,7 +97,7 @@ export default function Navbar() {
           >
             <button
               onClick={() => setLang("sk")}
-              className="px-8 py-4 text-xs font-bold transition-all duration-150"
+              className="px-4 py-2 text-xs font-bold transition-all duration-150"
               style={{
                 background: lang === "sk" ? "rgba(0,255,209,0.12)" : "transparent",
                 color: lang === "sk" ? "var(--cyan)" : "var(--text-muted)",
@@ -105,10 +105,10 @@ export default function Navbar() {
             >
               SK
             </button>
-            <div className="w-px h-4" style={{ background: "var(--border)" }} />
+            <div className="w-px h-3" style={{ background: "var(--border)" }} />
             <button
               onClick={() => setLang("en")}
-              className="px-8 py-4 text-xs font-bold transition-all duration-150"
+              className="px-4 py-2 text-xs font-bold transition-all duration-150"
               style={{
                 background: lang === "en" ? "rgba(0,255,209,0.12)" : "transparent",
                 color: lang === "en" ? "var(--cyan)" : "var(--text-muted)",
@@ -145,8 +145,7 @@ export default function Navbar() {
             </a>
           ))}
           <a href="#waitlist"
-            className="btn-primary block text-center text-sm font-semibold mt-5"
-            style={{ padding: "1rem 2.6rem" }}
+            className="btn-primary btn-nav block text-center font-semibold mt-5"
             onClick={() => setMenuOpen(false)}>
             {t.nav.cta}
           </a>

@@ -119,7 +119,7 @@ export default function Pricing() {
 
               {/* CTA */}
               <a href="#waitlist"
-                className={`text-center rounded-xl text-sm font-semibold transition-all duration-200 ${plan.highlighted ? "btn-primary" : "btn-ghost"}`}
+                className={`text-center btn-xl transition-all duration-200 ${plan.highlighted ? "btn-primary" : "btn-ghost"}`}
                 style={{ marginTop: "var(--sp-badge-mb)" }}
               >
                 {plan.cta} →
