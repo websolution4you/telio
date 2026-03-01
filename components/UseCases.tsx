@@ -81,7 +81,7 @@ export default function UseCases() {
           style={{ animation: "fadeInUp 0.35s ease" }}
         >
           {/* Left — text */}
-          <div className="flex flex-col justify-center py-6">
+          <div className="flex flex-col items-center text-center lg:items-start lg:text-left justify-center py-6">
             <div
               className="w-16 h-16 flex items-center justify-center rounded-2xl"
               style={{ background: "rgba(12,12,20,0.8)", border: "1px solid var(--border)", fontSize: "1.8rem", marginBottom: "var(--sp-badge-mb)" }}
