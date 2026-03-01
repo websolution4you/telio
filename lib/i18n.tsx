@@ -354,9 +354,9 @@ export const translations = {
     },
     features: {
       badge: "Funkcie",
-      h2a: "Stvorené pre reálny svet.",
-      h2b: "Skonštruované pre spoľahlivosť.",
-      sub: "Každá funkcia je testovaná v produkčnom prostredí — žiadne dema, žiadne triky. Telio dnes vybavuje skutočné hovory pre skutočné prevádzky.",
+      h2a: "Vyvorené pre reálny svet.",
+      h2b: "Využívané pre spoľahlivosť.",
+      sub: "Každá funkcia je testovaná v produkčnom prostredí — žiadne demá. Telio dnes vybavuje skutočné hovory pre skutočné prevádzky.",
       items: [
         { title: "Odozva pod sekundu", description: "AI začne hovoriť skôr, než dokončíte myšlienku. Okamžitý výplňový zvuk hrá, kým model spracúva — nula nepríjemného ticha.", badge: "< 1s latencia" },
         { title: "Prirodzený slovenský hlas", description: 'Poháňané OpenAI TTS s hlasom "nova". Znie ako skutočný človek — priateľský, profesionálny, rodný Slovák.', badge: "OpenAI TTS" },
@@ -373,12 +373,12 @@ export const translations = {
       h2a: "Integrácie svetovej triedy,",
       h2b: "hneď v balíku.",
       note: "Všetky integrácie sú produkčné a overené v praxi.",
-      noteHighlight: "Žiadne mocks. Žiadne demá.",
+      noteHighlight: "Žiadne demá.",
     },
     pricing: {
       badge: "Cenník",
-      h2a: "Jednoduché, transparentné",
-      h2b: "ceny.",
+      h2a: "Prehľadný, transparentný",
+      h2b: "cenník.",
       sub: "Žiadne skryté poplatky. Žiadne účtovanie za hovor. Jeden paušálny mesačný poplatok.",
       trialNote: "Všetky plány zahŕňajú",
       trialBold: "14-dňovú skúšobnú dobu zdarma",
