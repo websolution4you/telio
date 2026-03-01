@@ -220,7 +220,7 @@ export const translations = {
   sk: {
     nav: {
       howItWorks: "Ako to funguje",
-      useCases: "Prípady použitia",
+      useCases: "Možnosti použitia",
       features: "Funkcie",
       pricing: "Cenník",
       cta: "Získať prístup",
@@ -279,7 +279,7 @@ export const translations = {
       step: "KROK",
     },
     useCases: {
-      badge: "Prípady použitia",
+      badge: "Možnosti použitia",
       h2a: "Jeden AI agent.",
       h2b: "Akákoľvek prevádzka.",
       actionLine: "Akcia dokončená · Google Calendar aktualizovaný · Vodič notifikovaný",
@@ -422,7 +422,7 @@ export const translations = {
       product: "Produkt",
       industries: "Odvetvia",
       company: "Spoločnosť",
-      productLinks: ["Funkcie", "Prípady použitia", "Cenník", "Zmeny"],
+      productLinks: ["Funkcie", "Možnosti použitia", "Cenník", "Zmeny"],
       industryLinks: ["Reštaurácia", "Taxi & doprava", "Zdravotníctvo", "Rozvoz jedla", "Salóny"],
       companyLinks: ["O nás", "Ochrana súkromia", "Podmienky služby", "Kontakt"],
       copyright: "© 2025 Telio. Všetky práva vyhradené. Vyrobené s ♥ na Slovensku.",
@@ -442,7 +442,7 @@ interface LangContextType {
 
 const LangContext = createContext<LangContextType>({
   lang: "sk",
-  setLang: () => {},
+  setLang: () => { },
   t: translations.sk,
 });
 
