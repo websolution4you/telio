@@ -61,14 +61,14 @@ export default function UseCases() {
             <button
               key={c.id}
               onClick={() => setActive(i)}
-              className="flex items-center gap-2 px-6 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200"
+              className="flex items-center gap-3 px-8 py-4 rounded-2xl text-sm font-bold transition-all duration-200"
               style={{
                 background: active === i ? "rgba(0,255,209,0.08)" : "rgba(12,12,20,0.8)",
                 border: `1px solid ${active === i ? "rgba(0,255,209,0.3)" : "var(--border)"}`,
                 color: active === i ? "var(--cyan)" : "var(--text-muted)",
               }}
             >
-              <span>{c.emoji}</span>
+              <span className="text-xl">{c.emoji}</span>
               <span>{c.label}</span>
             </button>
           ))}

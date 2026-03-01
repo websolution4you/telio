@@ -84,7 +84,7 @@ export default function Features() {
                 </p>
               </div>
               <div
-                className="text-xs px-3 py-1.5 rounded font-mono w-fit"
+                className="text-xs px-8 py-3.5 rounded-full font-bold tracking-wide w-fit"
                 style={{ background: "rgba(0,0,0,0.4)", color: COLORS[i], border: `1px solid ${COLORS[i]}22`, marginTop: "var(--sp-badge-mb)" }}
               >
                 {f.badge}

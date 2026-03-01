@@ -195,9 +195,14 @@ body {
 .btn-primary {
   background: linear-gradient(135deg, #00FFD1, #00c9a7);
   color: #050508;
-  font-weight: 700;
-  padding: 0.8rem 1.8rem;
-  border-radius: 12px;
+  font-weight: 800;
+  padding: 1.5rem 4rem !important;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  min-width: max-content;
   transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 0 20px rgba(0, 255, 209, 0.3);
 }
@@ -211,8 +216,13 @@ body {
 .btn-ghost {
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 0.8rem 1.8rem;
-  border-radius: 12px;
+  padding: 1.5rem 4rem !important;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  min-width: max-content;
   transition: border-color 0.2s, background 0.2s;
 }
 

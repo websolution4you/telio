@@ -68,9 +68,10 @@ export default function Waitlist() {
           >
             {t.waitlist.businesses.map((b) => (
               <button key={b} type="button" onClick={() => setBusiness(b)}
-                className="px-6 py-3 rounded-xl text-xs font-semibold transition-all duration-200"
+                className="rounded-2xl text-xs font-bold transition-all duration-200"
                 style={{
-                  background: business === b ? "rgba(0,255,209,0.08)" : "rgba(12,12,20,0.6)",
+                  padding: "1.25rem 2.5rem",
+                  background: business === b ? "rgba(0,255,209,0.1)" : "rgba(12,12,20,0.6)",
                   border: `1px solid ${business === b ? "rgba(0,255,209,0.3)" : "var(--border)"}`,
                   color: business === b ? "var(--cyan)" : "var(--text-muted)",
                 }}>
@@ -96,7 +97,7 @@ export default function Waitlist() {
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
             />
             <button type="submit" disabled={loading}
-              className="btn-primary px-7 py-3.5 text-sm font-bold whitespace-nowrap flex items-center justify-center gap-2 rounded-xl">
+              className="btn-primary text-sm font-bold whitespace-nowrap flex items-center justify-center gap-2 rounded-xl">
               {loading
                 ? <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                 : t.waitlist.cta}

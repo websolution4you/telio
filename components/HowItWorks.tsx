@@ -107,7 +107,7 @@ export default function HowItWorks() {
                   {step.description}
                 </p>
                 <div
-                  className="inline-flex items-center justify-center gap-2 text-xs px-4 py-2 rounded-md w-fit"
+                  className="inline-flex items-center justify-center gap-3 text-xs px-10 py-4 rounded-full w-fit font-bold"
                   style={{ background: "rgba(0,255,209,0.05)", border: "1px solid rgba(0,255,209,0.12)", color: "var(--cyan)", marginTop: "var(--sp-item-gap)" }}
                 >
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--cyan)" }} />

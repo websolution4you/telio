@@ -84,7 +84,7 @@ export default function Navbar() {
             </button>
           </div>
 
-          <a href="#waitlist" className="btn-primary text-sm px-5 py-2 font-semibold">
+          <a href="#waitlist" className="btn-primary text-sm font-semibold">
             {t.nav.cta}
           </a>
         </div>
@@ -97,15 +97,25 @@ export default function Navbar() {
           >
             <button
               onClick={() => setLang("sk")}
-              className="px-4 py-2.5 text-xs font-semibold"
-              style={{ color: lang === "sk" ? "var(--cyan)" : "var(--text-muted)", background: lang === "sk" ? "rgba(0,255,209,0.1)" : "transparent" }}
-            >SK</button>
-            <div className="w-px h-3" style={{ background: "var(--border)" }} />
+              className="px-8 py-4 text-xs font-bold transition-all duration-150"
+              style={{
+                background: lang === "sk" ? "rgba(0,255,209,0.12)" : "transparent",
+                color: lang === "sk" ? "var(--cyan)" : "var(--text-muted)",
+              }}
+            >
+              SK
+            </button>
+            <div className="w-px h-4" style={{ background: "var(--border)" }} />
             <button
               onClick={() => setLang("en")}
-              className="px-4 py-2.5 text-xs font-semibold"
-              style={{ color: lang === "en" ? "var(--cyan)" : "var(--text-muted)", background: lang === "en" ? "rgba(0,255,209,0.1)" : "transparent" }}
-            >EN</button>
+              className="px-8 py-4 text-xs font-bold transition-all duration-150"
+              style={{
+                background: lang === "en" ? "rgba(0,255,209,0.12)" : "transparent",
+                color: lang === "en" ? "var(--cyan)" : "var(--text-muted)",
+              }}
+            >
+              EN
+            </button>
           </div>
           <button
             className="flex flex-col gap-1.5 p-2"
@@ -135,7 +145,7 @@ export default function Navbar() {
             </a>
           ))}
           <a href="#waitlist"
-            className="btn-primary block text-center text-sm px-5 py-3 font-semibold mt-5"
+            className="btn-primary block text-center text-sm font-semibold mt-5"
             onClick={() => setMenuOpen(false)}>
             {t.nav.cta}
           </a>

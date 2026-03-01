@@ -84,10 +84,16 @@ export default function Hero() {
       <div className="relative z-10 w-full text-center" style={{ maxWidth: "64rem", margin: "0 auto", padding: "0 2rem" }}>
         {/* Badge */}
         <div
-          className={`inline-flex items-center gap-3 px-6 py-3 rounded-full border text-xs font-medium transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
-          style={{ borderColor: "rgba(0,255,209,0.25)", background: "rgba(0,255,209,0.05)", color: "var(--cyan)", marginBottom: "4rem" }}
+          className={`inline-flex items-center gap-4 rounded-full border text-xs font-bold tracking-wide transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+          style={{
+            padding: "1.25rem 2.5rem",
+            borderColor: "rgba(0,255,209,0.25)",
+            background: "rgba(0,255,209,0.05)",
+            color: "var(--cyan)",
+            marginBottom: "4rem"
+          }}
         >
-          <span className="w-1.5 h-1.5 rounded-full animate-pulse-glow" style={{ background: "var(--cyan)" }} />
+          <span className="w-2 h-2 rounded-full animate-pulse-glow" style={{ background: "var(--cyan)" }} />
           {t.hero.badge}
         </div>
 
@@ -114,10 +120,10 @@ export default function Hero() {
           className={`flex flex-col sm:flex-row items-center justify-center gap-4 transition-all duration-700 delay-300 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
           style={{ marginBottom: "2rem" }}
         >
-          <a href="#waitlist" className="btn-primary px-10 py-4 text-base font-bold w-full sm:w-auto text-center">
+          <a href="#waitlist" className="btn-primary text-base font-bold w-full sm:w-auto">
             {t.hero.cta1}
           </a>
-          <a href="#how-it-works" className="btn-ghost px-10 py-4 text-base font-medium w-full sm:w-auto text-center">
+          <a href="#how-it-works" className="btn-ghost text-base font-medium w-full sm:w-auto">
             {t.hero.cta2}
           </a>
         </div>
@@ -138,11 +144,11 @@ export default function Hero() {
           </div>
           <div className="absolute right-6 top-1/2 -translate-y-1/2">
             <div key={activeEvent}
-              className="flex items-center gap-2 text-xs px-5 py-2.5 rounded-lg"
+              className="flex items-center gap-2 text-xs px-8 py-4 rounded-xl"
               style={{ background: "rgba(0,0,0,0.5)", border: "1px solid var(--border)", animation: "fadeInUp 0.4s ease" }}
             >
-              <span>{ev.emoji}</span>
-              <span style={{ color: activeEvent % 2 === 0 ? "var(--cyan)" : "#7B61FF", fontWeight: 600 }}>{ev.text}</span>
+              <span className="text-sm">{ev.emoji}</span>
+              <span style={{ color: activeEvent % 2 === 0 ? "var(--cyan)" : "#7B61FF", fontWeight: 700 }}>{ev.text}</span>
               <span style={{ color: "var(--text-muted)" }}>{ev.time}</span>
             </div>
           </div>
