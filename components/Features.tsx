@@ -1,0 +1,102 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useLang } from "@/lib/i18n";
+
+const ICONS = [
+  <svg key="0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>,
+  <svg key="1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>,
+  <svg key="2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>,
+  <svg key="3" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>,
+  <svg key="4" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>,
+  <svg key="5" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
+  <svg key="6" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>,
+  <svg key="7" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>,
+];
+
+const COLORS = ["var(--cyan)", "#7B61FF", "var(--cyan)", "#7B61FF", "#25D366", "var(--cyan)", "#7B61FF", "var(--cyan)"];
+
+export default function Features() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  const { t } = useLang();
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) setInView(true); },
+      { threshold: 0.04 }
+    );
+    if (sectionRef.current) obs.observe(sectionRef.current);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <section id="features" ref={sectionRef} className="relative grid-bg overflow-hidden" style={{ paddingTop: "9rem", paddingBottom: "9rem" }}>
+      <div className="absolute inset-0 pointer-events-none"
+        style={{ background: "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(0,255,209,0.04) 0%, transparent 70%)" }} />
+
+      <div className="relative" style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 2rem" }}>
+
+        {/* Section Header — centered */}
+        <div
+          className={`flex flex-col items-center text-center transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+          style={{ marginBottom: "140px" }}
+        >
+          <div
+            className="inline-block text-xs font-semibold tracking-widest uppercase px-4 py-2 rounded"
+            style={{ color: "var(--cyan)", background: "rgba(0,255,209,0.07)", border: "1px solid rgba(0,255,209,0.15)", marginBottom: "40px" }}
+          >
+            {t.features.badge}
+          </div>
+          <h2
+            className="font-extrabold text-white"
+            style={{ fontSize: "clamp(2.2rem, 4.5vw, 3.5rem)", letterSpacing: "-0.03em", lineHeight: 1.1, marginBottom: "32px" }}
+          >
+            {t.features.h2a}
+            <br />
+            <span className="text-gradient">{t.features.h2b}</span>
+          </h2>
+          <p style={{ color: "var(--text-muted)", lineHeight: 1.8, fontSize: "1.05rem", maxWidth: "32rem" }}>
+            {t.features.sub}
+          </p>
+        </div>
+
+        {/* Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {t.features.items.map((f, i) => (
+            <div
+              key={i}
+              className={`card-hover relative rounded-2xl flex flex-col items-center text-center transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+              style={{ padding: "3rem 2rem", transitionDelay: `${i * 60}ms`, background: "rgba(12,12,20,0.8)", border: "1px solid var(--border)" }}
+            >
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: "rgba(0,255,209,0.07)", border: "1px solid rgba(0,255,209,0.12)", color: COLORS[i], marginBottom: "32px" }}
+              >
+                {ICONS[i]}
+              </div>
+              <div className="flex flex-col items-center flex-1" style={{ gap: "20px" }}>
+                <h3 className="font-semibold text-white leading-snug" style={{ fontSize: "1.1rem" }}>
+                  {f.title}
+                </h3>
+                <p className="text-sm" style={{ color: "var(--text-muted)", lineHeight: 1.75 }}>
+                  {f.description}
+                </p>
+              </div>
+              <div
+                className="text-xs px-3 py-1.5 rounded font-mono w-fit"
+                style={{ background: "rgba(0,0,0,0.4)", color: COLORS[i], border: `1px solid ${COLORS[i]}22`, marginTop: "40px" }}
+              >
+                {f.badge}
+              </div>
+              <div className="absolute top-0 right-0 w-12 h-12 rounded-tr-2xl pointer-events-none overflow-hidden">
+                <div className="absolute -top-6 -right-6 w-12 h-12 rounded-full opacity-15"
+                  style={{ background: COLORS[i] }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
