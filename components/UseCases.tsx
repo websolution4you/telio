@@ -119,10 +119,15 @@ export default function UseCases() {
 
           {/* Right — mock call */}
           <div
-            className="rounded-2xl p-8 flex flex-col gap-2"
-            style={{ background: "rgba(8,8,14,0.9)", border: "1px solid var(--border)", backdropFilter: "blur(20px)" }}
+            className="rounded-2xl flex flex-col gap-2"
+            style={{
+              padding: "clamp(2rem, 5vw, 3.5rem) clamp(1.5rem, 4vw, 3rem)",
+              background: "rgba(8,8,14,0.9)",
+              border: "1px solid var(--border)",
+              backdropFilter: "blur(20px)"
+            }}
           >
-            <div className="flex items-center gap-2" style={{ marginBottom: "var(--sp-badge-mb)", paddingBottom: "24px", borderBottom: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2" style={{ marginBottom: "var(--sp-badge-mb)", paddingBottom: "var(--sp-item-gap)", borderBottom: "1px solid var(--border)" }}>
               <div className="w-2 h-2 rounded-full animate-pulse-glow" style={{ background: "var(--cyan)" }} />
               <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
                 {t.useCases.liveLabel}
@@ -154,7 +159,7 @@ export default function UseCases() {
                 )}
               </div>
             ))}
-            <div className="flex items-center gap-2.5" style={{ marginTop: "var(--sp-badge-mb)", paddingTop: "24px", borderTop: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2.5" style={{ marginTop: "var(--sp-badge-mb)", paddingTop: "var(--sp-item-gap)", borderTop: "1px solid var(--border)" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
               </svg>
