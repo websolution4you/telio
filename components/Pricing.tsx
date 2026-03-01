@@ -28,7 +28,7 @@ export default function Pricing() {
           className={`flex flex-col items-center text-center transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
           style={{ marginBottom: "var(--sp-header-mb)" }}
         >
-          <div className="inline-block text-xs font-semibold tracking-widest uppercase px-4 py-2 rounded"
+          <div className="inline-block text-xs font-semibold tracking-widest uppercase px-6 py-3 rounded-lg"
             style={{ color: "#7B61FF", background: "rgba(123,97,255,0.07)", border: "1px solid rgba(123,97,255,0.15)", marginBottom: "var(--sp-badge-mb)" }}>
             {t.pricing.badge}
           </div>
@@ -65,7 +65,7 @@ export default function Pricing() {
             >
               {/* Badge */}
               {plan.badge && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-xs font-bold px-5 py-1.5 rounded-full whitespace-nowrap"
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-xs font-bold px-6 py-2 rounded-full whitespace-nowrap"
                   style={{ background: "linear-gradient(135deg, var(--cyan), #7B61FF)", color: "#050508" }}>
                   {plan.badge}
                 </div>

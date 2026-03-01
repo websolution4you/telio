@@ -97,13 +97,13 @@ export default function Navbar() {
           >
             <button
               onClick={() => setLang("sk")}
-              className="px-2.5 py-1 text-xs font-semibold"
+              className="px-4 py-2.5 text-xs font-semibold"
               style={{ color: lang === "sk" ? "var(--cyan)" : "var(--text-muted)", background: lang === "sk" ? "rgba(0,255,209,0.1)" : "transparent" }}
             >SK</button>
             <div className="w-px h-3" style={{ background: "var(--border)" }} />
             <button
               onClick={() => setLang("en")}
-              className="px-2.5 py-1 text-xs font-semibold"
+              className="px-4 py-2.5 text-xs font-semibold"
               style={{ color: lang === "en" ? "var(--cyan)" : "var(--text-muted)", background: lang === "en" ? "rgba(0,255,209,0.1)" : "transparent" }}
             >EN</button>
           </div>

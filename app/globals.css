@@ -196,7 +196,8 @@ body {
   background: linear-gradient(135deg, #00FFD1, #00c9a7);
   color: #050508;
   font-weight: 700;
-  border-radius: 6px;
+  padding: 0.8rem 1.8rem;
+  border-radius: 12px;
   transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 0 20px rgba(0, 255, 209, 0.3);
 }
@@ -210,7 +211,8 @@ body {
 .btn-ghost {
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: 6px;
+  padding: 0.8rem 1.8rem;
+  border-radius: 12px;
   transition: border-color 0.2s, background 0.2s;
 }
 

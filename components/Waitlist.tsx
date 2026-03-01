@@ -39,7 +39,7 @@ export default function Waitlist() {
       <div className="relative text-center" style={{ maxWidth: "48rem", margin: "0 auto", padding: "0 2rem" }}>
         {/* Badge */}
         <div
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-medium transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+          className={`inline-flex items-center gap-3 px-6 py-3 rounded-full border text-xs font-medium transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
           style={{ borderColor: "rgba(0,255,209,0.25)", background: "rgba(0,255,209,0.05)", color: "var(--cyan)", marginBottom: "var(--sp-badge-mb)" }}>
           <span className="w-1.5 h-1.5 rounded-full animate-pulse-glow" style={{ background: "var(--cyan)" }} />
           {t.waitlist.badge}
@@ -68,7 +68,7 @@ export default function Waitlist() {
           >
             {t.waitlist.businesses.map((b) => (
               <button key={b} type="button" onClick={() => setBusiness(b)}
-                className="px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200"
+                className="px-6 py-3 rounded-xl text-xs font-semibold transition-all duration-200"
                 style={{
                   background: business === b ? "rgba(0,255,209,0.08)" : "rgba(12,12,20,0.6)",
                   border: `1px solid ${business === b ? "rgba(0,255,209,0.3)" : "var(--border)"}`,

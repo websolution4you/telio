@@ -61,7 +61,7 @@ export default function UseCases() {
             <button
               key={c.id}
               onClick={() => setActive(i)}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-medium transition-all duration-200"
+              className="flex items-center gap-2 px-6 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200"
               style={{
                 background: active === i ? "rgba(0,255,209,0.08)" : "rgba(12,12,20,0.8)",
                 border: `1px solid ${active === i ? "rgba(0,255,209,0.3)" : "var(--border)"}`,
@@ -83,8 +83,8 @@ export default function UseCases() {
           {/* Left — text */}
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left justify-center py-6">
             <div
-              className="w-16 h-16 flex items-center justify-center rounded-2xl"
-              style={{ background: "rgba(12,12,20,0.8)", border: "1px solid var(--border)", fontSize: "1.8rem", marginBottom: "var(--sp-badge-mb)" }}
+              className="w-20 h-20 flex items-center justify-center rounded-2xl"
+              style={{ background: "rgba(12,12,20,0.8)", border: "1px solid var(--border)", fontSize: "2.2rem", marginBottom: "var(--sp-badge-mb)" }}
             >
               {current.emoji}
             </div>

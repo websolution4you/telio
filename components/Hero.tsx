@@ -84,7 +84,7 @@ export default function Hero() {
       <div className="relative z-10 w-full text-center" style={{ maxWidth: "64rem", margin: "0 auto", padding: "0 2rem" }}>
         {/* Badge */}
         <div
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-medium transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+          className={`inline-flex items-center gap-3 px-6 py-3 rounded-full border text-xs font-medium transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
           style={{ borderColor: "rgba(0,255,209,0.25)", background: "rgba(0,255,209,0.05)", color: "var(--cyan)", marginBottom: "4rem" }}
         >
           <span className="w-1.5 h-1.5 rounded-full animate-pulse-glow" style={{ background: "var(--cyan)" }} />
@@ -138,7 +138,7 @@ export default function Hero() {
           </div>
           <div className="absolute right-6 top-1/2 -translate-y-1/2">
             <div key={activeEvent}
-              className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-md"
+              className="flex items-center gap-2 text-xs px-5 py-2.5 rounded-lg"
               style={{ background: "rgba(0,0,0,0.5)", border: "1px solid var(--border)", animation: "fadeInUp 0.4s ease" }}
             >
               <span>{ev.emoji}</span>
