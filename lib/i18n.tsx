@@ -226,10 +226,10 @@ export const translations = {
       cta: "Získať prístup",
     },
     hero: {
-      badge: "Privátna beta · Slovenské firmy",
+      badge: "Beta verzia 1.0",
       h1a: "Váš biznis",
       h1b: "nezaspí nikdy.",
-      sub: "Telio je váš AI hlasový agent 24/7. Zdvihne každý hovor, hovorí prirodzene po slovensky, rezervuje termíny, dispečuje taxíky — a nikdy si nezobrať voľno.",
+      sub: "Telio je váš AI hlasový agent 24/7. Zdvihne každý hovor, hovorí prirodzene po slovensky, rezervuje termíny, dispečuje taxíky — a nikdy si nevezme voľno.",
       cta1: "Získať prístup →",
       cta2: "Zistiť viac",
       statResponse: "Čas odozvy",
@@ -238,16 +238,16 @@ export const translations = {
       statLang: "Jazyky",
       live: "LIVE",
       events: [
-        { emoji: "📅", text: "Stôl pre 4 — rezervovaný", time: "práve teraz" },
-        { emoji: "🚕", text: "Taxi na Tesco — odoslané", time: "pred 2s" },
+        { emoji: "📅", text: "Stôl pre štyri osoby — rezervovaný", time: "práve teraz" },
+        { emoji: "🚕", text: "Taxi do Tesca — odoslané", time: "pred 2s" },
         { emoji: "🦷", text: "Termín potvrdený", time: "pred 15s" },
-        { emoji: "📅", text: "Stôl pre 2 — rezervovaný", time: "pred 32s" },
+        { emoji: "📅", text: "Stôl pre dvoch — rezervovaný", time: "pred 32s" },
         { emoji: "🚕", text: "Taxi do nemocnice — odoslané", time: "pred 1m" },
       ],
       scroll: "scroll",
     },
     stats: [
-      { value: "< 1s", label: "Priemerný čas odozvy", sub: "Od zvonenia po prvé slovo" },
+      { value: "< 2s", label: "Priemerný čas odozvy", sub: "Od zvonenia po prvé slovo" },
       { value: "24/7", label: "Vždy k dispozícii", sub: "Žiadne prestávky ani dni voľna" },
       { value: "100%", label: "Zodpovedané hovory", sub: "Nulová strata zákazníkov" },
       { value: "5+", label: "Typy prevádzok", sub: "Jedna platforma, všetky odvetvia" },
@@ -265,13 +265,13 @@ export const translations = {
         },
         {
           number: "02",
-          title: "AI rozumie a koná",
-          description: "Prirodzený slovenský rozhovor poháňaný OpenAI. Telio pochopí zámer, pýta sa doplňujúce otázky, overuje dostupnosť a vykoná akciu — všetko v reálnom čase.",
+          title: "AI rozumie a odpovedá",
+          description: "Prirodzený rozhovor poháňaný OpenAI. Telio pochopí zámer, pýta sa doplňujúce otázky, overuje dostupnosť a vykoná akciu — všetko v reálnom čase.",
           detail: "Poháňané GPT-4o + Whisper STT",
         },
         {
           number: "03",
-          title: "Dostanete okamžité upozornenie",
+          title: "Dostanete okamžité upozornenia",
           description: "WhatsApp správa vodičovi. Vytvorená udalosť v kalendári. Potvrdená rezervácia. Všetko zdokumentované — nulová námaha z vašej strany.",
           detail: "Google Calendar + WhatsApp + SMS",
         },
@@ -301,7 +301,7 @@ export const translations = {
         {
           id: "taxi", emoji: "🚕", label: "Taxislužba",
           title: "Okamžitý dispečing, nula zmeškaných jázd",
-          description: "Telio zozbiera adresu vyzdvihnutia a cieľ v prirodzenej reči, rozpozná slovenské ulice, vypočíta trasu cez Google Maps a pošle vodičovi WhatsApp so všetkými informáciami.",
+          description: "Telio zozbiera adresu vyzdvihnutia a cieľ v prirodzenej reči, rozpozná ulice podľa google máp, vypočíta trasu cez Google Maps a pošle vodičovi WhatsApp so všetkými informáciami.",
           features: ["Rozpoznávanie slovenských adries v prirodzenej reči", "Výpočet vzdialenosti a ETA cez Google Maps", "Okamžitý WhatsApp / SMS vodičovi s navigačným odkazom", "Zápis kompletného prepisu hovoru pre každú jazdu"],
           callSample: [
             { role: "caller", text: "Ahoj, potrebujem taxík od Tesca na stanicu." },
@@ -385,15 +385,15 @@ export const translations = {
       trialEnd: ". Platobná karta nie je potrebná.",
       plans: [
         {
-          name: "Starter", price: "€49", period: "/mesiac",
+          name: "Starter", price: "€99", period: "/mesiac",
           description: "Ideálne pre jednu prevádzku, ktorá chce začať s AI hlasovým agentom.",
-          features: ["1 prevádzka / telefónne číslo", "Až 300 hovorov / mesiac", "Režim reštaurácie ALEBO taxi", "Synchronizácia s Google Kalendárom", "SMS notifikácie", "Kompletné prepisy hovorov", "Emailová podpora"],
+          features: ["1 prevádzka / telefónne číslo", "Až 300 minút / mesiac", "Režim podľa prevádzky", "Synchronizácia s Google Kalendárom", "Kompletné prepisy hovorov", "Podpora do 24 hodín"],
           cta: "Začať zadarmo", highlighted: false, badge: null,
         },
         {
-          name: "Business", price: "€149", period: "/mesiac",
+          name: "Business", price: "€199", period: "/mesiac",
           description: "Pre rastúce prevádzky, ktoré potrebujú väčšiu kapacitu a výkon.",
-          features: ["Až 5 prevádzok", "Neobmedzené hovory", "Všetky obchodné režimy", "Google Calendar + Maps", "Dispečing cez WhatsApp + SMS", "Vlastné meno AI persony", "Kompletný analytický dashboard", "Prioritná podpora"],
+          features: ["700 minút / mesiac", "Všetky obchodné režimy", "Google Calendar + Maps", "Dispečing cez WhatsApp + SMS", "Vlastné meno AI persony", "Kompletný analytický dashboard", "Prioritná podpora 24/7"],
           cta: "Začať teraz", highlighted: true, badge: "Najpopulárnejší",
         },
         {
@@ -405,10 +405,10 @@ export const translations = {
       ],
     },
     waitlist: {
-      badge: "Privátna beta · Obmedzený počet miest",
+      badge: "Beta verzia 1.0 · Obmedzený počet miest",
       h2a: "Buďte prví, ktorí automatizujú",
       h2b: "svoju prevádzku.",
-      sub: "Pridajte sa k slovenským firmám, ktoré sú už na čakacom zozname. Onboardujeme po skupinách — zaregistrujte sa skoro pre prioritný prístup a zavádzaciu cenu.",
+      sub: "Pridajte sa k firmám, ktoré sú už na čakacom zozname. Onboardujeme po skupinách — zaregistrujte sa skoro pre prioritný prístup a zavádzaciu cenu.",
       placeholder: "vas@email.sk",
       cta: "Pridať sa na čakací zoznam →",
       successTitle: "Ste na zozname!",
