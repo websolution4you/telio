@@ -358,9 +358,9 @@ export const translations = {
       h2b: "Využívané pre spoľahlivosť.",
       sub: "Každá funkcia je testovaná v produkčnom prostredí — žiadne demá. Telio dnes vybavuje skutočné hovory pre skutočné prevádzky.",
       items: [
-        { title: "Odozva pod sekundu", description: "AI začne hovoriť skôr, než dokončíte myšlienku. Okamžitý výplňový zvuk hrá, kým model spracúva — nula nepríjemného ticha.", badge: "< 1s latencia" },
-        { title: "Prirodzený hlas", description: 'Poháňané OpenAI TTS s hlasom "nova". Znie ako skutočný človek — priateľský, profesionálny, rodný Slovák.', badge: "OpenAI TTS" },
-        { title: "Synchronizácia s Google Kalendárom", description: "Overuje dostupnosť v reálnom čase a automaticky vytvára udalosti. Zabezpečené OAuth2, izolácia kalendára pre každého nájomníka.", badge: "Google Calendar API" },
+        { title: "Odozva pod sekundu", description: "AI začne hovoriť skôr, než dokončíte myšlienku. Žiadne nepríjemné ticho.", badge: "< 1s latencia" },
+        { title: "Prirodzený hlas", description: 'Poháňané OpenAI TTS. Znie ako skutočný človek — priateľský, profesionálny.', badge: "OpenAI TTS" },
+        { title: "Synchronizácia s Google Kalendárom", description: "Overuje dostupnosť v reálnom čase a automaticky vytvára udalosti. Vlastný kalendár pre každú prevádzku.", badge: "Google Calendar API" },
         { title: "Smerovanie cez Google Maps", description: "Geokóduje hovorené adresy v reálnom čase, vypočíta presnú vzdialenosť a ETA. Ohraničené na vašu servisnú oblasť.", badge: "Geocoding + Directions" },
         { title: "Dispečing cez WhatsApp a SMS", description: "Okamžité upozornenie vodičovi alebo personálu cez Twilio. Obsahuje miesto vyzdvihnutia, cieľ, ETA, navigačný odkaz a prepis hovoru.", badge: "Twilio API" },
         { title: "Multifunkčná architektúra", description: "Jedna platforma, neobmedzené prevádzky. Každá s vlastným telefónnym číslom, personou, kalendárom a business logikou.", badge: "Neobmedzené prevádzky" },
