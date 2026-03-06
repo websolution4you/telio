@@ -14,7 +14,7 @@ export const translations = {
       cta: "Get Early Access",
     },
     hero: {
-      badge: "Beta version 1.0",
+      badge: "Online",
       h1a: "Your business,",
       h1b: "always on the line.",
       sub: "Telio is your 24/7 AI voice agent. It picks up every call, speaks naturally, books appointments, dispatches taxis — and never takes a day off.",
@@ -146,14 +146,10 @@ export const translations = {
       h2b: "Used for reliability.",
       sub: "Every feature is production-tested — no demos. Telio handles real calls for real businesses today.",
       items: [
-        { title: "Sub-second response", description: "AI starts speaking before you even finish thinking. Instant filler audio plays while the model processes — zero awkward silence.", badge: "< 1s latency" },
         { title: "Natural Slovak voice", description: 'Powered by OpenAI TTS with voice "nova". Sounds like a real person — warm, professional, native Slovak.', badge: "OpenAI TTS" },
         { title: "Google Calendar sync", description: "Checks real-time availability and creates events automatically. OAuth2 secured, per-tenant calendar isolation.", badge: "Google Calendar API" },
         { title: "Google Maps routing", description: "Geocodes spoken addresses in real time, calculates exact distance and ETA. Scoped to your service area.", badge: "Geocoding + Directions" },
         { title: "WhatsApp & SMS dispatch", description: "Instant driver or staff notification via Twilio. Includes pickup, dropoff, ETA, navigation link, and full call transcript.", badge: "Twilio API" },
-        { title: "Multi-tenant architecture", description: "One platform, unlimited businesses. Each with their own phone number, persona, calendar, and business logic.", badge: "Unlimited tenants" },
-        { title: "Barge-in detection", description: "When a caller speaks over the AI, Telio stops immediately and listens. Natural, human-like conversational rhythm.", badge: "RMS voice activity detection" },
-        { title: "Full call transcripts", description: "Every conversation stored, searchable, and auditable. GPT-4 post-call analysis extracts structured data as a safety net.", badge: "Supabase + PostgreSQL" },
       ],
     },
     integrations: {
@@ -231,7 +227,7 @@ export const translations = {
       cta: "Získať prístup",
     },
     hero: {
-      badge: "Beta verzia 1.0",
+      badge: "Online",
       h1a: "Váš biznis",
       h1b: "nezaspí nikdy.",
       sub: "Telio je váš AI hlasový agent 24/7. Zdvihne každý hovor, hovorí prirodzene po slovensky, rezervuje termíny, dispečuje taxíky — a nikdy si nevezme voľno.",
@@ -363,14 +359,10 @@ export const translations = {
       h2b: "Využívané pre spoľahlivosť.",
       sub: "Každá funkcia je testovaná v produkčnom prostredí — žiadne demá. Telio dnes vybavuje skutočné hovory pre skutočné prevádzky.",
       items: [
-        { title: "Odozva pod sekundu", description: "AI začne hovoriť skôr, než dokončíte myšlienku. Žiadne nepríjemné ticho.", badge: "< 1s latencia" },
         { title: "Prirodzený hlas", description: 'Poháňané OpenAI TTS. Znie ako skutočný človek — priateľský, profesionálny.', badge: "OpenAI TTS" },
         { title: "Synchronizácia s Google Kalendárom", description: "Overuje dostupnosť v reálnom čase a automaticky vytvára udalosti. Vlastný kalendár pre každú prevádzku.", badge: "Google Calendar API" },
         { title: "Smerovanie cez Google Maps", description: "Geokóduje hovorené adresy v reálnom čase, vypočíta presnú vzdialenosť a ETA. Ohraničené na vašu servisnú oblasť.", badge: "Geocoding + Directions" },
         { title: "Dispečing cez WhatsApp a SMS", description: "Okamžité upozornenie vodičovi alebo personálu cez Twilio. Obsahuje miesto vyzdvihnutia, cieľ, ETA, navigačný odkaz a prepis hovoru.", badge: "Twilio API" },
-        { title: "Multifunkčná architektúra", description: "Jedna platforma, neobmedzené prevádzky. Každá s vlastným telefónnym číslom, personou, kalendárom a business logikou.", badge: "Neobmedzené prevádzky" },
-        { title: "Detekcia prerušenia", description: "Keď volajúci hovorí cez AI, Telio okamžite zamlčí a počúva. Prirodzený, ľudský rytmus konverzácie.", badge: "RMS detekcia hlasovej aktivity" },
-        { title: "Kompletné prepisy hovorov", description: "Každý rozhovor uložený a dohľadateľný.", badge: "Supabase + PostgreSQL" },
       ],
     },
     integrations: {
