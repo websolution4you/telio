@@ -22,9 +22,12 @@ function normalizeStr(str: string) {
         .trim();
 }
 
-// Remove "Ulica" for display purposes
+// Remove "Ulica" for display purposes and normalize known distinct entries
 function displayStreetName(name: string) {
-    return name.replace(/^(Ulica |Ul\. )/i, "").trim();
+    const clean = name.replace(/^(Ulica |Ul\. )/i, "").trim();
+    if (clean === "Jána Francisciho") return "Francisciho";
+    if (clean === "Fraňa Kráľa") return "Kráľa";
+    return clean;
 }
 
 /**
@@ -33,8 +36,8 @@ function displayStreetName(name: string) {
  */
 const LEVOCA_CANONICAL_COORDS: Record<string, { x: number; y: number }> = {
     "námestie majstra pavla": { x: 50, y: 50 },
-    "ulica czauczika": { x: 55, y: 55 },
-    "ulica francisciho": { x: 38, y: 62 },
+    "czauczika": { x: 55, y: 55 },
+    "francisciho": { x: 38, y: 62 },
     "sídlisko západ": { x: 25, y: 50 },
     "košická": { x: 65, y: 48 },
     "ždiarska": { x: 75, y: 60 },
@@ -43,7 +46,11 @@ const LEVOCA_CANONICAL_COORDS: Record<string, { x: number; y: number }> = {
 
 function getStreetCoords(dbStreetName: string) {
     const key = dbStreetName.toLowerCase();
-    if (LEVOCA_CANONICAL_COORDS[key]) return LEVOCA_CANONICAL_COORDS[key];
+
+    for (const [canonical, coords] of Object.entries(LEVOCA_CANONICAL_COORDS)) {
+        if (key.includes(canonical)) return coords;
+    }
+
 
     // Hash for valid DB streets that don't have hardcoded coords
     let hash = 0;
@@ -109,7 +116,8 @@ export default function OrdersMap({ ordersToday, ordersWeek }: OrdersMapProps) {
 
             // Only plot if it matched an actual DB street
             if (bestMatch) {
-                counts[bestMatch] = (counts[bestMatch] || 0) + 1;
+                const groupKey = displayStreetName(bestMatch);
+                counts[groupKey] = (counts[groupKey] || 0) + 1;
             }
         });
 
@@ -160,18 +168,17 @@ export default function OrdersMap({ ordersToday, ordersWeek }: OrdersMapProps) {
                         {dbStreets.length === 0 ? "Nahrávam zoznam ulíc..." : "Žiadne známe objednávky"}
                     </div>
                 ) : (
-                    groupedStreets.map(([dbStreet, count]) => {
-                        const coords = getStreetCoords(dbStreet);
+                    groupedStreets.map(([groupName, count]) => {
+                        const coords = getStreetCoords(groupName);
                         const maxCount = groupedStreets[0][1];
                         const intensity = count / maxCount; // 0 to 1
 
                         const size = 10 + (intensity * 15);
                         const glowColor = intensity > 0.7 ? "rgba(0, 255, 209, 0.6)" : intensity > 0.3 ? "rgba(0, 255, 209, 0.3)" : "rgba(0, 255, 209, 0.1)";
                         const isMain = intensity > 0.5;
-                        const label = displayStreetName(dbStreet); // Strip "Ulica"
 
                         return (
-                            <div key={dbStreet} style={{ position: "absolute", left: `${coords.x}%`, top: `${coords.y}%`, transform: "translate(-50%, -50%)", display: "flex", flexDirection: "column", alignItems: "center", zIndex: Math.round(intensity * 100) }}>
+                            <div key={groupName} style={{ position: "absolute", left: `${coords.x}%`, top: `${coords.y}%`, transform: "translate(-50%, -50%)", display: "flex", flexDirection: "column", alignItems: "center", zIndex: Math.round(intensity * 100) }}>
                                 <div style={{
                                     background: isMain ? "var(--cyan)" : "rgba(13, 14, 18, 0.8)",
                                     color: isMain ? "#000" : "#fff",
@@ -185,7 +192,7 @@ export default function OrdersMap({ ordersToday, ordersWeek }: OrdersMapProps) {
                                     boxShadow: `0 0 ${size}px ${glowColor}`,
                                     transition: "all 0.3s"
                                 }}>
-                                    {label} <span style={{ opacity: 0.7 }}>{count}×</span>
+                                    {groupName} <span style={{ opacity: 0.7 }}>{count}×</span>
                                 </div>
                                 <div style={{
                                     width: size * 2.5,
@@ -212,8 +219,8 @@ export default function OrdersMap({ ordersToday, ordersWeek }: OrdersMapProps) {
 
             <div style={{ marginTop: "1rem", display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "var(--text-muted)" }}>
                 <div style={{ display: "flex", gap: "1rem" }}>
-                    <span>Celkom ulíc: <b style={{ color: "#fff" }}>{groupedStreets.length}</b></span>
-                    <span>Top lokalita: <b style={{ color: "var(--cyan)" }}>{groupedStreets[0] ? displayStreetName(groupedStreets[0][0]) : "-"}</b></span>
+                    <span>Celkom lokalít: <b style={{ color: "#fff" }}>{groupedStreets.length}</b></span>
+                    <span>Top lokalita: <b style={{ color: "var(--cyan)" }}>{groupedStreets[0]?.[0] || "-"}</b></span>
                 </div>
                 <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                     <span>Nižšia hustota</span>
