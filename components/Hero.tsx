@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/i18n";
+import DemoCallButton from "@/components/DemoCallButton";
 
 export default function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -123,6 +124,7 @@ export default function Hero() {
           <a href="#waitlist" className="btn-primary btn-xl w-full sm:w-auto">
             {t.hero.cta1}
           </a>
+          <DemoCallButton />
           <a href="#how-it-works" className="btn-ghost btn-xl w-full sm:w-auto">
             {t.hero.cta2}
           </a>

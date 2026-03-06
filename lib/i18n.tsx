@@ -215,6 +215,11 @@ export const translations = {
       companyLinks: ["About", "Privacy Policy", "Terms of Service", "Contact"],
       copyright: "© 2025 Telio. All rights reserved. Made with ♥ in Slovakia.",
     },
+    demoCall: {
+      tryDemo: "Try Demo Call",
+      connecting: "Connecting...",
+      endCall: "End Call",
+    },
   },
 
   sk: {
@@ -426,6 +431,11 @@ export const translations = {
       industryLinks: ["Reštaurácia", "Taxi & doprava", "Zdravotníctvo", "Rozvoz jedla", "Salóny"],
       companyLinks: ["O nás", "Ochrana súkromia", "Podmienky služby", "Kontakt"],
       copyright: "© 2025 Telio. Všetky práva vyhradené. Vyrobené s ♥ na Slovensku.",
+    },
+    demoCall: {
+      tryDemo: "Vyskúšať Demo Hovor",
+      connecting: "Pripájam...",
+      endCall: "Ukončiť hovor",
     },
   },
 } as const;
