@@ -1,24 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Device, Call } from "@twilio/voice-sdk";
 import { useLang } from "@/lib/i18n";
 import { Phone, PhoneOff, Loader2 } from "lucide-react";
 
 export default function DemoCallButton() {
     const { t } = useLang();
-    const [device, setDevice] = useState<Device | null>(null);
+    const deviceRef = useRef<Device | null>(null);
     const [call, setCall] = useState<Call | null>(null);
     const [status, setStatus] = useState<"idle" | "connecting" | "active" | "error">("idle");
     const [errorMsg, setErrorMsg] = useState("");
 
     useEffect(() => {
         return () => {
-            if (device) {
-                device.destroy();
+            if (deviceRef.current) {
+                deviceRef.current.destroy();
             }
         };
-    }, [device]);
+    }, []);
 
     const handleStartCall = async () => {
         try {
@@ -34,10 +34,7 @@ export default function DemoCallButton() {
 
             const newDevice = new Device(token, {
                 codecPreferences: [Call.Codec.Opus, Call.Codec.PCMU],
-            });
-
-            newDevice.on("registered", () => {
-                console.log("Twilio Voice Device registered");
+                edge: ["dublin", "frankfurt"],
             });
 
             newDevice.on("error", (error) => {
@@ -46,13 +43,26 @@ export default function DemoCallButton() {
                 setErrorMsg(error.message);
             });
 
-            await newDevice.register();
-            setDevice(newDevice);
+            // Rozdelenie register() a connect()
+            await new Promise<void>((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error("Registration timeout: nepodarilo sa pripojiť k sieti Twilio."));
+                }, 10000);
 
-            // Make the call
+                newDevice.once("registered", () => {
+                    clearTimeout(timeout);
+                    console.log("Twilio Voice Device registered");
+                    resolve();
+                });
+
+                newDevice.register();
+            });
+
+            deviceRef.current = newDevice;
+
+            // Zariadenie je teraz plne zaregistrované, môžeme spustiť hovor
             const newCall = await newDevice.connect({
                 params: {
-                    // Add any custom parameters you want to send to your TwiML app here
                     source: "web-demo",
                 },
             });
@@ -86,8 +96,8 @@ export default function DemoCallButton() {
     const handleEndCall = () => {
         if (call) {
             call.disconnect();
-        } else if (device) {
-            device.disconnectAll();
+        } else if (deviceRef.current) {
+            deviceRef.current.disconnectAll();
         }
         setStatus("idle");
         setCall(null);
