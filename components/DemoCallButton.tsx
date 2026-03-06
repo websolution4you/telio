@@ -25,7 +25,7 @@ export default function DemoCallButton() {
             setStatus("connecting");
             setErrorMsg("");
 
-            const response = await fetch("https://call-agent-65sb.onrender.com/token");
+            const response = await fetch("https://call-agent-o5sb.onrender.com/twilio/token");
             if (!response.ok) {
                 throw new Error("Failed to fetch token");
             }
