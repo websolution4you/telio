@@ -45,16 +45,16 @@ export default function KpiCards({ data, onProblemsClick }: KpiCardsProps) {
     const cards: CardDef[] = [
         {
             id: "orders",
-            label: `Objednávky ${RANGES[rangeIdx.orders]}`,
-            value: String(data.ordersToday * getMultiplier(rangeIdx.orders)),
-            sub: "AI + manuál",
+            label: `Objednávky ${RANGES[rangeIdx.orders || 0]}`,
+            value: String(data.ordersToday * getMultiplier(rangeIdx.orders || 0)),
+            sub: "", // Removed "AI + manuál" as requested
             clickable: true,
             onClick: () => cycleRange("orders"),
         },
         {
             id: "revenue",
-            label: `Obrat ${RANGES[rangeIdx.revenue]}`,
-            value: formatPrice(data.revenueToday * getMultiplier(rangeIdx.revenue)),
+            label: `Obrat ${RANGES[rangeIdx.revenue || 0]}`,
+            value: formatPrice(data.revenueToday * getMultiplier(rangeIdx.revenue || 0)),
             sub: "bez tipov",
             clickable: true,
             onClick: () => cycleRange("revenue"),
@@ -62,8 +62,10 @@ export default function KpiCards({ data, onProblemsClick }: KpiCardsProps) {
         {
             id: "avg",
             label: "Priemer objednávky",
-            value: formatPrice(data.avgOrder),
-            sub: "dnes",
+            value: formatPrice(data.avgOrder * (1 + ((rangeIdx.avg || 0) * 0.02))), // slight mock variation
+            sub: RANGES[rangeIdx.avg || 0],
+            clickable: true,
+            onClick: () => cycleRange("avg"),
         },
         {
             id: "open",

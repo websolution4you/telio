@@ -17,8 +17,8 @@ function normalizeStr(str: string) {
         .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
-        .replace(/\b(ulica|ul\.|sidlisko|\d+)\b/g, "")
-        .replace(/[^a-z0-9]/g, "")
+        .replace(/\b(ulica|ul\.|sidlisko|namestie)\b/g, "")
+        .replace(/[^a-z]/g, "")
         .trim();
 }
 
@@ -90,16 +90,16 @@ export default function OrdersMap({ ordersToday, ordersWeek }: OrdersMapProps) {
             const normAddr = normalizeStr(originalAddr);
             if (!normAddr || normAddr.length < 3) return;
 
-            let bestMatch = null;
+            let bestMatch: string | null = null;
             let bestScore = 0;
 
             for (const dbName of dbStreets) {
                 const normDb = normalizeStr(dbName);
                 if (normDb.length < 3) continue;
 
-                // Check if address matches the DB street word
-                if (normAddr.includes(normDb) || normDb.includes(normAddr)) {
-                    // Match longest possible valid street name
+                // Only match if the address contains the DB street name
+                if (normAddr === normDb || normAddr.includes(normDb)) {
+                    // Favor the longest matching database name
                     if (normDb.length > bestScore) {
                         bestMatch = dbName;
                         bestScore = normDb.length;
