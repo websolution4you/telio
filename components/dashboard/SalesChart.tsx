@@ -69,8 +69,8 @@ export default function SalesChart({ data }: SalesChartProps) {
                                 fontSize: "0.8rem",
                                 color: "#fff",
                             }}
-                            formatter={(value: number) => [
-                                `${value.toLocaleString("sk-SK", { minimumFractionDigits: 2 })} €`,
+                            formatter={(value: any) => [
+                                `${Number(value).toLocaleString("sk-SK", { minimumFractionDigits: 2 })} €`,
                                 "Obrat",
                             ]}
                             cursor={{ fill: "rgba(0,255,209,0.04)" }}
