@@ -85,10 +85,19 @@ function buildHeatmapData(orders: PizzaOrder[]): { data: HeatmapData[]; days: st
 // ── Main Dashboard ──────────────────────────────────────────
 
 export default function DashboardPage() {
-    const [orders, setOrders] = useState<PizzaOrder[]>(mockOrders);
+    const [orders, setOrders] = useState<PizzaOrder[]>([]);
     const [allWeekOrders, setAllWeekOrders] = useState<PizzaOrder[]>([]);
-    const [kpis, setKpis] = useState<KpiData>(computeKpis(mockOrders));
-    const [attentionItems] = useState<AttentionItem[]>(mockAttentionItems);
+    const [kpis, setKpis] = useState<KpiData>({
+        ordersToday: 0,
+        revenueToday: 0,
+        avgOrder: 0,
+        openOrders: 0,
+        upsellRevenue: 0,
+        upsellOffered: 0,
+        upsellAccepted: 0,
+        problems: 0,
+    });
+    const [attentionItems] = useState<AttentionItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [dataSource, setDataSource] = useState<"supabase" | "mock">("mock");
     const [realtimeConnected, setRealtimeConnected] = useState(false);
@@ -248,9 +257,20 @@ export default function DashboardPage() {
         };
     }, [updateOrdersAndKpis]);
 
-    // ── Chart data ──
     const salesData = buildSalesData(allWeekOrders.length > 0 ? allWeekOrders : orders);
     const heatmap = buildHeatmapData(allWeekOrders.length > 0 ? allWeekOrders : orders);
+
+    if (loading && orders.length === 0) {
+        return (
+            <div style={{ background: "var(--bg)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ color: "var(--text-muted)", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <div style={{ width: 14, height: 14, border: "2px solid var(--cyan)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                    Načítavam telio...
+                </div>
+                <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { to { transform: rotate(360deg); } }` }} />
+            </div>
+        );
+    }
 
     return (
         <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
