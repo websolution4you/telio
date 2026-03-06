@@ -44,12 +44,12 @@ function getStatusDisplay(order: PizzaOrder): {
     return { label: order.status, bg: "rgba(255,255,255,0.06)", text: "#aaa" };
 }
 
-const filterOptions: { value: "All" | OrderStatus; label: string }[] = [
+const filterOptions: { value: "All" | string; label: string }[] = [
     { value: "All", label: "Všetky" },
-    { value: "NEW", label: "Nová" },
-    { value: "CONFIRMED", label: "Potvrdená" },
-    { value: "DONE", label: "Vybavená" },
-    { value: "CANCELLED", label: "Zrušená" },
+    { value: "Nová", label: "Nová" },
+    { value: "Potvrdená", label: "Potvrdená" },
+    { value: "Vybavená", label: "Vybavená" },
+    { value: "Zrušená", label: "Zrušená" },
 ];
 
 // ── Detail panel ────────────────────────────────────────────
@@ -300,20 +300,23 @@ function ConfidenceBadge({ value, label }: { value: number; label: string }) {
 // ── Main table component ─────────────────────────────────────
 
 export default function OrdersTable({ orders }: OrdersTableProps) {
-    const [filter, setFilter] = useState<"All" | OrderStatus>("All");
+    const [filter, setFilter] = useState<"All" | string>("All");
     const [selectedId, setSelectedId] = useState<string | null>(null);
 
-    // Initial select first order
-    useEffect(() => {
-        if (!selectedId && orders.length > 0) {
-            setSelectedId(orders[0].id);
-        }
-    }, [orders, selectedId]);
-
     const filteredOrders =
-        filter === "All" ? orders : orders.filter((o) => o.status === filter);
+        filter === "All" ? orders : orders.filter((o) => getStatusDisplay(o).label === filter);
 
     const selectedOrder = orders.find((o) => o.id === selectedId) ?? null;
+
+    // Auto-select first visible order if none selected or current selection is hidden/missing
+    useEffect(() => {
+        if (filteredOrders.length > 0) {
+            const isVisible = filteredOrders.some(o => o.id === selectedId);
+            if (!selectedId || !isVisible) {
+                setSelectedId(filteredOrders[0].id);
+            }
+        }
+    }, [filteredOrders, selectedId]);
 
     function selectDetail(id: string) {
         setSelectedId(id);
@@ -346,7 +349,7 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
                     <div style={{ position: "relative" }}>
                         <select
                             value={filter}
-                            onChange={(e) => setFilter(e.target.value as "All" | OrderStatus)}
+                            onChange={(e) => setFilter(e.target.value)}
                             style={{
                                 background: "var(--bg)",
                                 border: "1px solid var(--border)",

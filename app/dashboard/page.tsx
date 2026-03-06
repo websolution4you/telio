@@ -11,6 +11,9 @@ import type { DaySalesData } from "@/components/dashboard/SalesChart";
 import OrdersHeatmap from "@/components/dashboard/OrdersHeatmap";
 import type { HeatmapData } from "@/components/dashboard/OrdersHeatmap";
 import { supabase } from "@/lib/supabase";
+import OrdersMap from "@/components/dashboard/OrdersMap";
+import MenuTable from "@/components/dashboard/MenuTable";
+
 import {
     mockOrders,
     mockAttentionItems,
@@ -157,7 +160,7 @@ export default function DashboardPage() {
 
             const { data, error } = await supabase
                 .from("pizza_orders")
-                .select("created_at, total_price, status")
+                .select("created_at, total_price, status, delivery_address")
                 .gte("created_at", weekAgo.toISOString())
                 .order("created_at", { ascending: false })
                 .limit(500);
@@ -176,6 +179,25 @@ export default function DashboardPage() {
         fetchWeekOrders();
     }, [fetchOrders, fetchWeekOrders]);
 
+    // ── Preload ding sound or definé it inline ──
+    const playDing = useCallback(() => {
+        try {
+            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.type = "sine";
+            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.5);
+        } catch (e) {
+            console.warn("Audio play failed", e);
+        }
+    }, []);
+
     // ── Supabase Realtime subscription ──
     useEffect(() => {
         const channel = supabase
@@ -185,6 +207,7 @@ export default function DashboardPage() {
                 { event: "INSERT", schema: "public", table: "pizza_orders" },
                 (payload) => {
                     console.log("🔔 Realtime INSERT:", payload.new);
+                    playDing();
                     const newOrder = payload.new as PizzaOrder;
                     const updated = [newOrder, ...ordersRef.current].slice(0, 50);
                     updateOrdersAndKpis(updated);
@@ -289,6 +312,20 @@ export default function DashboardPage() {
                         <SalesChart data={salesData} />
                     </div>
                     <OrdersHeatmap data={heatmap.data} days={heatmap.days} />
+                </div>
+
+                {/* Orders Map and Menu Table */}
+                <div
+                    className="charts-row"
+                    style={{
+                        display: "flex",
+                        gap: "1.5rem",
+                        marginTop: "1.5rem",
+                        alignItems: "flex-start",
+                    }}
+                >
+                    <OrdersMap ordersToday={orders} ordersWeek={allWeekOrders} />
+                    <MenuTable />
                 </div>
             </main>
 

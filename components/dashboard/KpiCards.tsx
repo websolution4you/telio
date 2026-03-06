@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { KpiData } from "@/lib/mockData";
 import { formatPrice } from "@/lib/mockData";
 
@@ -9,55 +10,92 @@ interface KpiCardsProps {
 }
 
 interface CardDef {
+    id: string;
     label: string;
     value: React.ReactNode;
     sub: React.ReactNode;
     accent?: string;
     clickable?: boolean;
+    onClick?: () => void;
 }
 
+const RANGES = ["dnes", "7 dní", "30 dní"];
+
+// Simple mock multipliers for 7d/30d UI demo
+const getMultiplier = (idx: number) => {
+    if (idx === 1) return 7;
+    if (idx === 2) return 30;
+    return 1;
+};
+
 export default function KpiCards({ data, onProblemsClick }: KpiCardsProps) {
+    const [rangeIdx, setRangeIdx] = useState<Record<string, number>>({
+        orders: 0,
+        revenue: 0,
+        upsell: 0,
+    });
+
+    const cycleRange = (key: string) => {
+        setRangeIdx((prev) => ({
+            ...prev,
+            [key]: ((prev[key] || 0) + 1) % 3,
+        }));
+    };
 
     const cards: CardDef[] = [
         {
-            label: "Objednávky dnes",
-            value: String(data.ordersToday),
+            id: "orders",
+            label: `Objednávky ${RANGES[rangeIdx.orders]}`,
+            value: String(data.ordersToday * getMultiplier(rangeIdx.orders)),
             sub: "AI + manuál",
+            clickable: true,
+            onClick: () => cycleRange("orders"),
         },
         {
-            label: "Obrat dnes",
-            value: formatPrice(data.revenueToday),
+            id: "revenue",
+            label: `Obrat ${RANGES[rangeIdx.revenue]}`,
+            value: formatPrice(data.revenueToday * getMultiplier(rangeIdx.revenue)),
             sub: "bez tipov",
+            clickable: true,
+            onClick: () => cycleRange("revenue"),
         },
         {
+            id: "avg",
             label: "Priemer objednávky",
             value: formatPrice(data.avgOrder),
             sub: "dnes",
         },
         {
+            id: "open",
             label: "Neuzavreté",
             value: String(data.openOrders),
             sub: "NOVÁ / POTVRDENÁ",
         },
         {
-            label: "Upsell dnes",
+            id: "upsell",
+            label: `Upsell ${RANGES[rangeIdx.upsell]}`,
             value: (
                 <span className="flex items-baseline gap-1" style={{ whiteSpace: "nowrap" }}>
-                    <span style={{ color: "#4ade80" }}>{data.upsellAccepted}</span>
-                    <span style={{ fontSize: "0.55em", color: "var(--text-muted)", fontWeight: 400 }}>/{data.upsellOffered}</span>
+                    <span style={{ color: "#4ade80" }}>
+                        {formatPrice(data.upsellRevenue * getMultiplier(rangeIdx.upsell))}
+                    </span>
                 </span>
             ),
-            sub: data.upsellAccepted > 0
-                ? <span style={{ color: "#4ade80", fontWeight: 600 }}>+{formatPrice(data.upsellRevenue)}</span>
-                : data.upsellOffered === 0 ? "žiadne" : "0% úspešnosť",
+            sub: data.upsellOffered > 0
+                ? `${data.upsellAccepted}/${data.upsellOffered} (${Math.round((data.upsellAccepted / data.upsellOffered) * 100)}% úspešnosť)`
+                : "žiadne",
             accent: data.upsellAccepted > 0 ? "#4ade80" : undefined,
+            clickable: true,
+            onClick: () => cycleRange("upsell"),
         },
         {
+            id: "problems",
             label: "Problémy",
             value: String(data.problems),
             sub: "vyžaduje kontrolu",
             accent: "#ff4d6a",
             clickable: true,
+            onClick: onProblemsClick,
         },
     ];
 
@@ -73,9 +111,9 @@ export default function KpiCards({ data, onProblemsClick }: KpiCardsProps) {
         >
             {cards.map((card) => (
                 <div
-                    key={card.label}
-                    onClick={card.clickable ? onProblemsClick : undefined}
-                    className="card-hover"
+                    key={card.id}
+                    onClick={card.onClick}
+                    className={card.clickable ? "card-hover" : ""}
                     style={{
                         background: "var(--bg-card)",
                         border: card.accent
@@ -86,6 +124,8 @@ export default function KpiCards({ data, onProblemsClick }: KpiCardsProps) {
                         position: "relative",
                         overflow: "hidden",
                         cursor: card.clickable ? "pointer" : "default",
+                        transition: "background 0.2s, border-color 0.2s",
+                        userSelect: card.clickable ? "none" : "auto",
                     }}
                 >
                     {card.accent && (
@@ -100,7 +140,7 @@ export default function KpiCards({ data, onProblemsClick }: KpiCardsProps) {
                             }}
                         />
                     )}
-                    <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: 8 }}>
+                    <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: 8, transition: "color 0.2s" }}>
                         {card.label}
                     </p>
                     <p

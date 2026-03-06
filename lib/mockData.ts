@@ -262,7 +262,7 @@ export function computeKpis(orders: PizzaOrder[]): KpiData {
     const totals = orders.map((o) => parseTotalPrice(o.total_price));
     const revenue = totals.reduce((a, b) => a + b, 0);
     const openOrders = orders.filter(
-        (o) => o.status === "NEW" || o.status === "CONFIRMED"
+        (o) => (o.status === "NEW" || o.status === "CONFIRMED") && isRecent(o)
     ).length;
     const problems = orders.filter(isUnclear).length;
 
