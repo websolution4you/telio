@@ -172,21 +172,25 @@ export default function Navbar() {
             </div>
 
             {/* Nav Links */}
-            <nav className="flex flex-col">
+            <nav className="flex flex-col gap-6">
               {navLinks.map((link, i) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  className={`group relative py-6 px-4 border-b border-white/5 transition-all duration-300 ${menuOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"}`}
+                  className={`group relative py-5 px-6 rounded-2xl transition-all duration-300 ${menuOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"}`}
                   style={{
                     color: "white",
                     transitionDelay: `${150 + i * 50}ms`,
-                    background: "transparent"
+                    background: "rgba(255, 255, 255, 0.03)",
+                    border: "1px solid rgba(255, 255, 255, 0.05)"
                   }}
                   onClick={() => setMenuOpen(false)}
                 >
-                  <span className="relative z-10 font-semibold tracking-tight group-hover:text-cyan-400 transition-colors uppercase text-sm">{link.label}</span>
-                  <div className="absolute inset-0 bg-white/[0.02] opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                  <div className="flex items-center justify-between">
+                    <span className="relative z-10 font-medium tracking-widest group-hover:text-cyan-400 transition-colors uppercase text-sm">{link.label}</span>
+                    <svg className="w-4 h-4 text-white/20 group-hover:text-cyan-400/50 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-all duration-500 rounded-2xl" />
                 </a>
               ))}
             </nav>
