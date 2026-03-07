@@ -15,6 +15,15 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => { document.body.style.overflow = "unset"; };
+  }, [menuOpen]);
+
   const navLinks = [
     { label: t.nav.howItWorks, href: "#how-it-works" },
     { label: t.nav.useCases, href: "#use-cases" },
@@ -133,25 +142,71 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
-      {menuOpen && (
-        <div className="md:hidden px-8 pb-6 pt-2"
-          style={{ background: "rgba(5,5,8,0.97)", borderBottom: "1px solid var(--border)" }}>
-          {navLinks.map((link) => (
-            <a key={link.href} href={link.href}
-              className="block py-3.5 text-sm border-b"
-              style={{ color: "var(--text-muted)", borderColor: "var(--border)" }}
-              onClick={() => setMenuOpen(false)}>
-              {link.label}
-            </a>
-          ))}
-          <a href="#waitlist"
-            className="btn-primary btn-nav block text-center font-semibold mt-5"
-            onClick={() => setMenuOpen(false)}>
-            {t.nav.cta}
-          </a>
+      {/* Mobile Side Menu */}
+      <div
+        className={`fixed inset-0 z-50 transition-all duration-500 ease-in-out md:hidden ${menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+      >
+        {/* Backdrop overlay */}
+        <div
+          className="absolute inset-0 bg-black/60 backdrop-blur-md"
+          onClick={() => setMenuOpen(false)}
+        />
+
+        {/* Side Panel */}
+        <div
+          className={`absolute left-0 top-0 bottom-0 w-[85%] max-w-[320px] bg-[#050508] border-r border-white/10 shadow-[20px_0_50px_rgba(0,0,0,0.5)] transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
+        >
+          <div className="flex flex-col h-full p-8 px-6">
+            {/* Menu Header with Logo */}
+            <div className="flex items-center justify-between mb-12">
+              <div className="flex items-center gap-2.5">
+                <TelioLogo />
+                <span className="text-xl font-bold text-white tracking-tight">TELIO</span>
+              </div>
+              <button
+                onClick={() => setMenuOpen(false)}
+                className="p-2 text-white/50 hover:text-white transition-colors"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            </div>
+
+            {/* Nav Links */}
+            <nav className="flex flex-col">
+              {navLinks.map((link, i) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className={`group relative py-6 px-4 border-b border-white/5 transition-all duration-300 ${menuOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"}`}
+                  style={{
+                    color: "white",
+                    transitionDelay: `${150 + i * 50}ms`,
+                    background: "transparent"
+                  }}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <span className="relative z-10 font-semibold tracking-tight group-hover:text-cyan-400 transition-colors uppercase text-sm">{link.label}</span>
+                  <div className="absolute inset-0 bg-white/[0.02] opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                </a>
+              ))}
+            </nav>
+
+            {/* Bottom Section */}
+            <div className={`mt-auto pt-8 border-t border-white/5 transition-all duration-500 delay-500 ${menuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
+              <a
+                href="#waitlist"
+                className="btn-primary w-full py-4 rounded-xl text-center font-bold text-lg shadow-[0_0_20px_rgba(0,255,209,0.15)]"
+                onClick={() => setMenuOpen(false)}
+              >
+                {t.nav.cta}
+              </a>
+              <p className="text-center text-xs mt-6 text-white/20 tracking-wide uppercase font-semibold">
+                © 2025 TELIO · SLOVAKIA
+              </p>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </header>
   );
 }
