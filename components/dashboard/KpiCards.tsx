@@ -90,22 +90,13 @@ export default function KpiCards({ data, onProblemsClick }: KpiCardsProps) {
             clickable: true,
             onClick: () => cycleRange("upsell"),
         },
-        {
-            id: "problems",
-            label: "Problémy",
-            value: String(data.problems),
-            sub: "vyžaduje kontrolu",
-            accent: "#ff4d6a",
-            clickable: true,
-            onClick: onProblemsClick,
-        },
     ];
 
     return (
         <div
             style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(6, 1fr)",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
                 gap: "1rem",
                 marginBottom: "2rem",
             }}

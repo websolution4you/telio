@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import type { PizzaOrder, OrderStatus } from "@/lib/mockData";
+import React, { useState } from "react";
+import type { PizzaOrder } from "@/lib/mockData";
 import {
     formatTime,
     formatPrice,
     parseTotalPrice,
     isRecent,
     isUnclear,
-    CONFIDENCE_THRESHOLD,
 } from "@/lib/mockData";
-import { Phone, MapPin, TrendingUp, FileText, AlertTriangle } from "lucide-react";
+import { MapPin, TrendingUp, FileText, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 
 interface OrdersTableProps {
     orders: PizzaOrder[];
@@ -52,208 +51,6 @@ const filterOptions: { value: "All" | string; label: string }[] = [
     { value: "Zrušená", label: "Zrušená" },
 ];
 
-// ── Detail panel ────────────────────────────────────────────
-
-function OrderDetail({ order }: { order: PizzaOrder | null }) {
-    const [showTranscript, setShowTranscript] = useState(false);
-
-    useEffect(() => {
-        setShowTranscript(false);
-    }, [order?.id]);
-
-    if (!order) {
-        return (
-            <div
-                style={{
-                    borderLeft: "1px solid var(--border)",
-                    width: 380,
-                    flexShrink: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "var(--text-muted)",
-                    fontSize: "0.85rem",
-                }}
-            >
-                Kliknite na objednávku pre detail
-            </div>
-        );
-    }
-
-    const sc = getStatusDisplay(order);
-    const unclear = isUnclear(order);
-    const price = parseTotalPrice(order.total_price);
-
-    return (
-        <div
-            style={{
-                borderLeft: "1px solid var(--border)",
-                padding: "1.5rem",
-                width: 380,
-                flexShrink: 0,
-                overflowY: "auto",
-                display: "flex",
-                flexDirection: "column",
-            }}
-        >
-            {/* Header row */}
-            <div className="flex items-center justify-between" style={{ marginBottom: "1.25rem" }}>
-                <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--cyan)" }}>
-                    Detail objednávky
-                </span>
-            </div>
-
-            <div className="flex items-center gap-2" style={{ marginBottom: "1.5rem" }}>
-                <span
-                    style={{
-                        background: sc.bg,
-                        color: sc.text,
-                        fontSize: "0.72rem",
-                        fontWeight: 700,
-                        padding: "3px 10px",
-                        borderRadius: 6,
-                    }}
-                >
-                    {sc.label}
-                </span>
-                {unclear && (
-                    <span
-                        className="flex items-center gap-1"
-                        style={{
-                            background: "rgba(251,191,36,0.12)",
-                            color: "#fbbf24",
-                            fontSize: "0.7rem",
-                            fontWeight: 700,
-                            padding: "3px 10px",
-                            borderRadius: 6,
-                        }}
-                    >
-                        <AlertTriangle size={11} /> Nejasná
-                    </span>
-                )}
-            </div>
-
-            <div className="flex flex-col gap-4">
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
-                    <DetailRow icon={<Phone size={14} />} label="Zákazník">
-                        <div>
-                            <span style={{ color: "#fff", fontWeight: 600, fontSize: "0.95rem" }}>
-                                {order.customer_name ?? "Neznámy"}
-                            </span>
-                            <span
-                                style={{ display: "block", fontSize: "0.8rem", color: "var(--text-muted)" }}
-                            >
-                                {order.customer_phone ?? "—"}
-                                {order.phone_confidence !== null && order.phone_confidence !== undefined && (
-                                    <ConfidenceBadge value={order.phone_confidence} label="istota" />
-                                )}
-                            </span>
-                        </div>
-                    </DetailRow>
-
-                    <DetailRow icon={<MapPin size={14} />} label="Adresa">
-                        <div>
-                            <span style={{ color: "#fff", fontWeight: 500, fontSize: "0.85rem" }}>{order.delivery_address}</span>
-                            {order.address_confidence !== null && order.address_confidence !== undefined && (
-                                <ConfidenceBadge value={order.address_confidence} label="istota" />
-                            )}
-                        </div>
-                    </DetailRow>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", padding: "1rem 0" }}>
-                    <div style={{ gridColumn: "1 / -1" }}>
-                        <DetailRow icon={<span style={{ fontSize: "0.85rem" }}>🍕</span>} label="Objednávka">
-                            <span style={{ color: "#fff", fontSize: "0.82rem" }}>{order.pizza_type}</span>
-                        </DetailRow>
-                    </div>
-
-                    <DetailRow icon={<span style={{ fontSize: "0.85rem" }}>💶</span>} label="Suma">
-                        <span style={{ color: "#fff", fontWeight: 600, fontSize: "0.82rem" }}>{formatPrice(price)}</span>
-                    </DetailRow>
-
-                    <DetailRow icon={<TrendingUp size={14} />} label="Upsell">
-                        {order.upsell_offered ? (
-                            <span style={{ fontSize: "0.82rem" }}>
-                                <span style={{ color: "#fff" }}>{order.upsell_item}</span>{" "}
-                                <span
-                                    style={{
-                                        fontSize: "0.7rem",
-                                        fontWeight: 700,
-                                        color: order.upsell_accepted ? "#4ade80" : "#f87171",
-                                    }}
-                                >
-                                    {order.upsell_accepted ? "✓" : "✗"}
-                                </span>
-                            </span>
-                        ) : (
-                            <span style={{ color: "var(--text-muted)", fontSize: "0.82rem" }}>Nie</span>
-                        )}
-                    </DetailRow>
-                </div>
-
-                {/* Info and Transcript */}
-                <div style={{ marginTop: "0.5rem", flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-                    <div
-                        className="flex items-center justify-between transition-colors"
-                        style={{
-                            marginBottom: 8,
-                            cursor: order.notes ? "pointer" : "default",
-                            padding: "4px 0"
-                        }}
-                        onClick={() => order.notes && setShowTranscript(!showTranscript)}
-                    >
-                        <div className="flex items-center gap-2">
-                            <FileText size={14} style={{ color: "var(--text-muted)" }} />
-                            <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-muted)" }}>
-                                Prepis hovoru
-                            </span>
-                        </div>
-                        {order.notes && (
-                            <span style={{ fontSize: "0.75rem", color: "var(--cyan)", fontWeight: 500 }}>
-                                {showTranscript ? "Skryť ▲" : "Zobraziť ▼"}
-                            </span>
-                        )}
-                    </div>
-
-                    {!order.notes ? (
-                        <div
-                            style={{
-                                background: "rgba(0,0,0,0.3)",
-                                border: "1px solid var(--border)",
-                                borderRadius: 8,
-                                padding: "1rem",
-                                fontSize: "0.82rem",
-                                color: "var(--text-muted)",
-                            }}
-                        >
-                            Prepis nie je dostupný.
-                        </div>
-                    ) : showTranscript ? (
-                        <div
-                            style={{
-                                background: "rgba(0,0,0,0.3)",
-                                border: "1px solid var(--border)",
-                                borderRadius: 8,
-                                padding: "1rem",
-                                fontSize: "0.82rem",
-                                color: "var(--text)",
-                                lineHeight: 1.65,
-                                flex: 1,
-                                overflowY: "auto",
-                                whiteSpace: "pre-wrap",
-                                animation: "fadeInDown 0.15s ease",
-                            }}
-                        >
-                            {order.notes}
-                        </div>
-                    ) : null}
-                </div>
-            </div>
-        </div>
-    );
-}
-
 function DetailRow({
     icon,
     label,
@@ -276,51 +73,14 @@ function DetailRow({
     );
 }
 
-function ConfidenceBadge({ value, label }: { value: number; label: string }) {
-    const pct = Math.round(value * 100);
-    const ok = value >= CONFIDENCE_THRESHOLD;
-    return (
-        <span
-            style={{
-                display: "inline-block",
-                marginLeft: 6,
-                fontSize: "0.65rem",
-                fontWeight: 700,
-                color: ok ? "#4ade80" : "#fbbf24",
-                background: ok ? "rgba(74,222,128,0.1)" : "rgba(251,191,36,0.12)",
-                padding: "1px 6px",
-                borderRadius: 4,
-            }}
-        >
-            {label} {pct}%
-        </span>
-    );
-}
-
 // ── Main table component ─────────────────────────────────────
 
 export default function OrdersTable({ orders }: OrdersTableProps) {
     const [filter, setFilter] = useState<"All" | string>("All");
-    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
     const filteredOrders =
         filter === "All" ? orders : orders.filter((o) => getStatusDisplay(o).label === filter);
-
-    const selectedOrder = orders.find((o) => o.id === selectedId) ?? null;
-
-    // Auto-select first visible order if none selected or current selection is hidden/missing
-    useEffect(() => {
-        if (filteredOrders.length > 0) {
-            const isVisible = filteredOrders.some(o => o.id === selectedId);
-            if (!selectedId || !isVisible) {
-                setSelectedId(filteredOrders[0].id);
-            }
-        }
-    }, [filteredOrders, selectedId]);
-
-    function selectDetail(id: string) {
-        setSelectedId(id);
-    }
 
     return (
         <div
@@ -330,117 +90,116 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
                 borderRadius: 12,
                 flex: 1,
                 minWidth: 0,
-                display: "flex",
-                alignItems: "stretch",
+                padding: "1rem",
+                overflowX: "auto"
             }}
         >
-            {/* Left side: Table */}
-            <div style={{ flex: 1, padding: "1.5rem", minWidth: 0, overflowX: "auto" }}>
-                {/* Header */}
-                <div className="flex items-start justify-between" style={{ marginBottom: "1.25rem" }}>
-                    <div>
-                        <h2 style={{ fontSize: "1.05rem", fontWeight: 600, color: "#fff" }}>
-                            Najnovšie objednávky
-                        </h2>
-                        <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2 }}>
-                            Posledných 20
-                        </p>
-                    </div>
-                    <div style={{ position: "relative" }}>
-                        <select
-                            value={filter}
-                            onChange={(e) => setFilter(e.target.value)}
-                            style={{
-                                background: "var(--bg)",
-                                border: "1px solid var(--border)",
-                                borderRadius: 8,
-                                color: "var(--text)",
-                                fontSize: "0.8rem",
-                                padding: "6px 28px 6px 12px",
-                                appearance: "none",
-                                cursor: "pointer",
-                                outline: "none",
-                            }}
-                        >
-                            {filterOptions.map((opt) => (
-                                <option key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                </option>
-                            ))}
-                        </select>
-                        <span
-                            style={{
-                                position: "absolute",
-                                right: 10,
-                                top: "50%",
-                                transform: "translateY(-50%)",
-                                pointerEvents: "none",
-                                color: "var(--text-muted)",
-                                fontSize: "0.65rem",
-                            }}
-                        >
-                            ▼
-                        </span>
-                    </div>
+            {/* Header */}
+            <div className="flex items-start justify-between" style={{ marginBottom: "1.25rem" }}>
+                <div>
+                    <h2 style={{ fontSize: "1.05rem", fontWeight: 600, color: "#fff" }}>
+                        Najnovšie objednávky
+                    </h2>
+                    <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2 }}>
+                        Posledných 20
+                    </p>
                 </div>
+                <div style={{ position: "relative" }}>
+                    <select
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                        style={{
+                            background: "var(--bg)",
+                            border: "1px solid var(--border)",
+                            borderRadius: 8,
+                            color: "var(--text)",
+                            fontSize: "0.8rem",
+                            padding: "6px 28px 6px 12px",
+                            appearance: "none",
+                            cursor: "pointer",
+                            outline: "none",
+                        }}
+                    >
+                        {filterOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </option>
+                        ))}
+                    </select>
+                    <span
+                        style={{
+                            position: "absolute",
+                            right: 10,
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            pointerEvents: "none",
+                            color: "var(--text-muted)",
+                            fontSize: "0.65rem",
+                        }}
+                    >
+                        ▼
+                    </span>
+                </div>
+            </div>
 
-                {/* Table */}
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                        <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                            {[
-                                "Čas",
-                                "Zákazník",
-                                "Pizza",
-                                "Suma",
-                                "Stav",
-                            ].map((h) => (
-                                <th
-                                    key={h}
-                                    style={{
-                                        textAlign: "left",
-                                        padding: "0 12px 12px",
-                                        fontSize: "0.75rem",
-                                        fontWeight: 600,
-                                        color: "var(--text-muted)",
-                                        whiteSpace: "nowrap",
-                                    }}
-                                >
-                                    {h}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredOrders.map((order) => {
-                            const sc = getStatusDisplay(order);
-                            const price = parseTotalPrice(order.total_price);
-                            const unclear = isUnclear(order);
-                            const isSelected = selectedId === order.id;
+            {/* Table */}
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                    <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                        {[
+                            "Čas",
+                            "Zákazník",
+                            "Pizza",
+                            "Suma",
+                            "Stav",
+                        ].map((h) => (
+                            <th
+                                key={h}
+                                style={{
+                                    textAlign: "left",
+                                    padding: "0 12px 12px",
+                                    fontSize: "0.75rem",
+                                    fontWeight: 600,
+                                    color: "var(--text-muted)",
+                                    whiteSpace: "nowrap",
+                                }}
+                            >
+                                {h}
+                            </th>
+                        ))}
+                        <th style={{ padding: "0 12px 12px", width: "40px" }}></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {filteredOrders.map((order) => {
+                        const sc = getStatusDisplay(order);
+                        const price = parseTotalPrice(order.total_price);
+                        const unclear = isUnclear(order);
+                        const isExpanded = expandedRowId === order.id;
 
-                            return (
+                        return (
+                            <React.Fragment key={order.id}>
                                 <tr
-                                    key={order.id}
-                                    onClick={() => selectDetail(order.id)}
+                                    onClick={() => setExpandedRowId(isExpanded ? null : order.id)}
                                     style={{
-                                        borderBottom: "1px solid var(--border)",
+                                        borderBottom: isExpanded ? "none" : "1px solid var(--border)",
                                         cursor: "pointer",
-                                        background: isSelected
-                                            ? "rgba(0,255,209,0.04)"
+                                        background: isExpanded
+                                            ? "rgba(255,255,255,0.02)"
                                             : "transparent",
                                         transition: "background 0.15s",
                                     }}
                                     onMouseEnter={(e) => {
-                                        if (!isSelected)
+                                        if (!isExpanded)
                                             e.currentTarget.style.background = "rgba(255,255,255,0.02)";
                                     }}
                                     onMouseLeave={(e) => {
-                                        if (!isSelected)
+                                        if (!isExpanded)
                                             e.currentTarget.style.background = "transparent";
                                     }}
                                 >
                                     {/* Čas */}
-                                    <td style={{ padding: "13px 12px", fontSize: "0.85rem", color: isSelected ? "var(--cyan)" : "var(--text)", whiteSpace: "nowrap" }}>
+                                    <td style={{ padding: "13px 12px", fontSize: "0.85rem", color: isExpanded ? "var(--cyan)" : "var(--text)", whiteSpace: "nowrap" }}>
                                         {formatTime(order.created_at)}
                                         {isRecent(order) && (
                                             <span
@@ -463,26 +222,28 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
                                         <div style={{ fontSize: "0.85rem", color: "#fff", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                             {order.customer_name ?? "—"}
                                         </div>
-                                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+                                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "4px" }}>
                                             {order.customer_phone ?? "—"}
                                             {unclear && (
-                                                <span title="Nejasné údaje" style={{ marginLeft: 4 }}>
-                                                    <AlertTriangle size={11} style={{ color: "#fbbf24", verticalAlign: "middle" }} />
+                                                <span title="Nejasné údaje">
+                                                    <AlertTriangle size={11} style={{ color: "#fbbf24" }} />
                                                 </span>
                                             )}
                                         </div>
                                     </td>
 
                                     {/* Pizza */}
-                                    <td style={{ padding: "13px 12px", maxWidth: 160 }}>
+                                    <td style={{ padding: "13px 12px", maxWidth: 300 }}>
                                         <div
                                             style={{
                                                 fontSize: "0.82rem",
                                                 color: "var(--text)",
+                                                display: "-webkit-box",
+                                                WebkitLineClamp: 2,
+                                                WebkitBoxOrient: "vertical",
                                                 overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                                whiteSpace: "nowrap",
-                                                maxWidth: 150,
+                                                lineHeight: "1.4",
+                                                maxWidth: "100%",
                                             }}
                                             title={order.pizza_type}
                                         >
@@ -511,30 +272,86 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
                                             {sc.label}
                                         </span>
                                     </td>
-                                </tr>
-                            );
-                        })}
-                        {filteredOrders.length === 0 && (
-                            <tr>
-                                <td
-                                    colSpan={5}
-                                    style={{
-                                        textAlign: "center",
-                                        padding: "2rem",
-                                        color: "var(--text-muted)",
-                                        fontSize: "0.85rem",
-                                    }}
-                                >
-                                    Žiadne objednávky.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
 
-            {/* Right side: Detail panel (Always rendered to maintain width) */}
-            <OrderDetail order={selectedOrder} />
+                                    {/* Chevron */}
+                                    <td style={{ padding: "13px 12px", textAlign: "right", color: "var(--text-muted)" }}>
+                                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                    </td>
+                                </tr>
+                                {isExpanded && (
+                                    <tr style={{ borderBottom: "1px solid var(--border)", background: "rgba(255, 255, 255, 0.02)" }}>
+                                        <td colSpan={6} style={{ padding: "0 12px 16px 12px", maxWidth: 0 }}>
+                                            <div style={{ padding: "16px", background: "rgba(0,0,0,0.2)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)", width: "100%", overflowX: "hidden" }}>
+                                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginBottom: "1.5rem" }}>
+                                                    <DetailRow icon={<MapPin size={14} />} label="Adresa">
+                                                        <span style={{ color: "#fff", fontWeight: 500, fontSize: "0.85rem" }}>{order.delivery_address}</span>
+                                                    </DetailRow>
+                                                    <DetailRow icon={<TrendingUp size={14} />} label="Upsell">
+                                                        {order.upsell_offered ? (
+                                                            <span style={{ fontSize: "0.82rem" }}>
+                                                                <span style={{ color: "#fff" }}>{order.upsell_item}</span>{" "}
+                                                                <span
+                                                                    style={{
+                                                                        fontSize: "0.7rem",
+                                                                        fontWeight: 700,
+                                                                        color: order.upsell_accepted ? "#4ade80" : "#f87171",
+                                                                    }}
+                                                                >
+                                                                    {order.upsell_accepted ? "✓" : "✗"}
+                                                                </span>
+                                                            </span>
+                                                        ) : (
+                                                            <span style={{ color: "var(--text-muted)", fontSize: "0.82rem" }}>Nie</span>
+                                                        )}
+                                                    </DetailRow>
+                                                    <DetailRow icon={<span style={{ fontSize: "0.85rem" }}>🍕</span>} label="Objednávka (Celá)">
+                                                        <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}>
+                                                            {order.pizza_type.split(",").map((item, idx) => {
+                                                                const s = item.trim();
+                                                                if (!s) return null;
+                                                                return (
+                                                                    <div key={idx} style={{ color: "#fff", fontSize: "0.82rem", background: "rgba(255,255,255,0.05)", padding: "4px 10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.05)", width: "fit-content" }}>
+                                                                        {s}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </DetailRow>
+                                                </div>
+
+                                                <div>
+                                                    <div className="flex items-center gap-2" style={{ marginBottom: "8px" }}>
+                                                        <FileText size={14} style={{ color: "var(--text-muted)" }} />
+                                                        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Prepis hovoru</span>
+                                                    </div>
+                                                    <div style={{ fontSize: "0.85rem", color: "#e2e8f0", lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                                                        {order.notes ? `„${order.notes}“` : "Pre tento hovor nie je k dispozícii prepis."}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
+                    {filteredOrders.length === 0 && (
+                        <tr>
+                            <td
+                                colSpan={6}
+                                style={{
+                                    textAlign: "center",
+                                    padding: "2rem",
+                                    color: "var(--text-muted)",
+                                    fontSize: "0.85rem",
+                                }}
+                            >
+                                Žiadne objednávky.
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
         </div>
     );
 }
