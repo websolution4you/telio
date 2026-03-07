@@ -172,12 +172,12 @@ export default function Navbar() {
             </div>
 
             {/* Nav Links */}
-            <nav className="flex flex-col gap-6" style={{ marginBottom: "60px" }}>
+            <nav className="flex flex-col gap-6">
               {navLinks.map((link, i) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  className={`group relative flex items-center px-6 rounded-xl transition-all duration-300 ${menuOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"}`}
+                  className={`group relative flex items-center justify-center px-6 rounded-xl transition-all duration-300 ${menuOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"}`}
                   style={{
                     color: "white",
                     transitionDelay: `${150 + i * 50}ms`,
@@ -187,25 +187,24 @@ export default function Navbar() {
                   }}
                   onClick={() => setMenuOpen(false)}
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="relative z-10 font-bold tracking-tight group-hover:text-cyan-400 transition-colors uppercase text-lg">{link.label}</span>
-                    <svg className="w-5 h-5 text-white/20 group-hover:text-cyan-400/50 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                  </div>
+                  <span className="relative z-10 font-semibold tracking-tight transition-colors uppercase text-lg">{link.label}</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-all duration-500 rounded-xl" />
                 </a>
               ))}
-            </nav>
 
-            {/* Bottom Section */}
-            <div className={`mt-auto border-t border-white/5 transition-all duration-500 delay-500 ${menuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`} style={{ paddingTop: "60px" }}>
+              {/* Získať prístup Button (Matches Nav Gap) */}
               <a
                 href="#waitlist"
-                className="btn-primary w-full rounded-xl text-center font-bold text-lg shadow-[0_0_20px_rgba(0,255,209,0.15)] flex items-center justify-center"
+                className="btn-primary w-full rounded-xl flex items-center justify-center font-semibold text-lg shadow-[0_0_20px_rgba(0,255,209,0.15)]"
                 style={{ height: "64px" }}
                 onClick={() => setMenuOpen(false)}
               >
                 {t.nav.cta}
               </a>
+            </nav>
+
+            {/* Bottom Copyright */}
+            <div className={`mt-auto transition-all duration-500 delay-500 ${menuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
               <p className="text-center text-xs text-white/20 tracking-wide uppercase font-semibold" style={{ marginTop: "80px" }}>
                 © 2025 TELIO · SLOVAKIA
               </p>
