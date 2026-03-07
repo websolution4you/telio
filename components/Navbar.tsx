@@ -158,7 +158,7 @@ export default function Navbar() {
         >
           <div className="flex flex-col h-full p-8 px-6">
             {/* Menu Header with Logo */}
-            <div className="flex items-center justify-between mb-12">
+            <div className="flex items-center justify-between" style={{ marginBottom: "80px" }}>
               <div className="flex items-center gap-2.5">
                 <TelioLogo />
                 <span className="text-xl font-bold text-white tracking-tight">TELIO</span>
@@ -177,12 +177,14 @@ export default function Navbar() {
                 <a
                   key={link.href}
                   href={link.href}
-                  className={`group relative py-8 px-6 rounded-2xl transition-all duration-300 ${menuOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"}`}
+                  className={`group relative px-6 rounded-xl transition-all duration-300 ${menuOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"}`}
                   style={{
                     color: "white",
                     transitionDelay: `${150 + i * 50}ms`,
                     background: "rgba(255, 255, 255, 0.03)",
-                    border: "1px solid rgba(255, 255, 255, 0.05)"
+                    border: "1px solid rgba(255, 255, 255, 0.05)",
+                    paddingTop: "18px",
+                    paddingBottom: "18px"
                   }}
                   onClick={() => setMenuOpen(false)}
                 >
@@ -204,7 +206,7 @@ export default function Navbar() {
               >
                 {t.nav.cta}
               </a>
-              <p className="text-center text-xs mt-12 text-white/20 tracking-wide uppercase font-semibold">
+              <p className="text-center text-xs text-white/20 tracking-wide uppercase font-semibold" style={{ marginTop: "80px" }}>
                 © 2025 TELIO · SLOVAKIA
               </p>
             </div>
