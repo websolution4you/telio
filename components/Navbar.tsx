@@ -172,12 +172,12 @@ export default function Navbar() {
             </div>
 
             {/* Nav Links */}
-            <nav className="flex flex-col gap-6">
+            <nav className="flex flex-col gap-5">
               {navLinks.map((link, i) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  className={`group relative py-5 px-6 rounded-2xl transition-all duration-300 ${menuOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"}`}
+                  className={`group relative py-8 px-6 rounded-2xl transition-all duration-300 ${menuOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"}`}
                   style={{
                     color: "white",
                     transitionDelay: `${150 + i * 50}ms`,
@@ -204,7 +204,7 @@ export default function Navbar() {
               >
                 {t.nav.cta}
               </a>
-              <p className="text-center text-xs mt-6 text-white/20 tracking-wide uppercase font-semibold">
+              <p className="text-center text-xs mt-12 text-white/20 tracking-wide uppercase font-semibold">
                 © 2025 TELIO · SLOVAKIA
               </p>
             </div>
