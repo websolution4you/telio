@@ -11,7 +11,7 @@ export default function Footer() {
   const companyHrefs = ["#", "#", "#", "#"];
 
   return (
-    <footer className="relative overflow-hidden" style={{ borderTop: "1px solid var(--border)", paddingTop: "9rem", paddingBottom: "2.5rem" }}>
+    <footer className="relative overflow-hidden" style={{ borderTop: "1px solid var(--border)", paddingTop: "var(--sp-section-py)", paddingBottom: "2.5rem" }}>
       <div className="absolute inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse 50% 60% at 50% 0%, rgba(0,255,209,0.03) 0%, transparent 70%)" }} />
 

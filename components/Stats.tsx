@@ -18,7 +18,7 @@ export default function Stats() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="relative py-24 overflow-hidden">
+    <section ref={sectionRef} className="relative overflow-hidden" style={{ paddingTop: "var(--sp-section-py)", paddingBottom: "var(--sp-section-py)" }}>
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-px pointer-events-none"
         style={{ background: "linear-gradient(90deg, transparent, var(--cyan), var(--purple), transparent)", opacity: 0.35 }} />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-96 h-px pointer-events-none"

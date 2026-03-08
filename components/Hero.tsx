@@ -72,7 +72,7 @@ export default function Hero() {
   return (
     <section
       className="relative min-h-screen flex flex-col items-center justify-center grid-bg overflow-hidden"
-      style={{ paddingTop: "68px" }}
+      style={{ paddingTop: "68px", paddingBottom: "var(--sp-section-py)" }}
     >
       <div className="absolute inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse 75% 55% at 50% 50%, rgba(0,255,209,0.07) 0%, transparent 70%)" }} />
