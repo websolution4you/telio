@@ -128,7 +128,7 @@ function TaxiRidesTable({ rides, calls }: { rides: TaxiRide[], calls?: any[] }) 
             return (callFrom.endsWith(caller || '---') || (caller && caller.endsWith(callFrom))) && timeDiff < 10 * 60000;
         });
 
-        return matchedCall?.transcript || matchedCall?.summary || r.transcript || r.notes;
+        return r.transcript || matchedCall?.transcript || matchedCall?.summary || r.notes;
     };
 
     // Limit na posledných 10 záznamov
