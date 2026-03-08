@@ -5,7 +5,8 @@ import type { KpiData } from "@/lib/mockData";
 import { formatPrice } from "@/lib/mockData";
 
 interface KpiCardsProps {
-    data: KpiData;
+    dataToday: KpiData;
+    dataWeek: KpiData;
     onProblemsClick?: () => void;
 }
 
@@ -21,14 +22,13 @@ interface CardDef {
 
 const RANGES = ["dnes", "7 dní", "30 dní"];
 
-// Simple mock multipliers for 7d/30d UI demo
-const getMultiplier = (idx: number) => {
-    if (idx === 1) return 7;
-    if (idx === 2) return 30;
-    return 1;
+// Get the corresponding kpi data object based on range index
+const getDataObj = (idx: number, dataToday: KpiData, dataWeek: KpiData) => {
+    if (idx === 1 || idx === 2) return dataWeek; // fallback 30d to week for now if missing
+    return dataToday;
 };
 
-export default function KpiCards({ data, onProblemsClick }: KpiCardsProps) {
+export default function KpiCards({ dataToday, dataWeek, onProblemsClick }: KpiCardsProps) {
     const [rangeIdx, setRangeIdx] = useState<Record<string, number>>({
         orders: 0,
         revenue: 0,
@@ -46,15 +46,15 @@ export default function KpiCards({ data, onProblemsClick }: KpiCardsProps) {
         {
             id: "orders",
             label: `Objednávky ${RANGES[rangeIdx.orders || 0]}`,
-            value: String(data.ordersToday * getMultiplier(rangeIdx.orders || 0)),
-            sub: "", // Removed "AI + manuál" as requested
+            value: String(getDataObj(rangeIdx.orders || 0, dataToday, dataWeek).ordersToday),
+            sub: "",
             clickable: true,
             onClick: () => cycleRange("orders"),
         },
         {
             id: "revenue",
             label: `Obrat ${RANGES[rangeIdx.revenue || 0]}`,
-            value: formatPrice(data.revenueToday * getMultiplier(rangeIdx.revenue || 0)),
+            value: formatPrice(getDataObj(rangeIdx.revenue || 0, dataToday, dataWeek).revenueToday),
             sub: "bez tipov",
             clickable: true,
             onClick: () => cycleRange("revenue"),
@@ -62,7 +62,7 @@ export default function KpiCards({ data, onProblemsClick }: KpiCardsProps) {
         {
             id: "avg",
             label: "Priemer objednávky",
-            value: formatPrice(data.avgOrder * (1 + ((rangeIdx.avg || 0) * 0.02))), // slight mock variation
+            value: formatPrice(getDataObj(rangeIdx.avg || 0, dataToday, dataWeek).avgOrder),
             sub: RANGES[rangeIdx.avg || 0],
             clickable: true,
             onClick: () => cycleRange("avg"),
@@ -70,23 +70,23 @@ export default function KpiCards({ data, onProblemsClick }: KpiCardsProps) {
         {
             id: "open",
             label: "Neuzavreté",
-            value: String(data.openOrders),
+            value: String(dataToday.openOrders), // open orders is always current
             sub: "NOVÁ / POTVRDENÁ",
         },
         {
             id: "upsell",
-            label: `Upsell ${RANGES[rangeIdx.upsell]}`,
+            label: `Upsell ${RANGES[rangeIdx.upsell || 0]}`,
             value: (
                 <span className="flex items-baseline gap-1" style={{ whiteSpace: "nowrap" }}>
                     <span style={{ color: "#4ade80" }}>
-                        {formatPrice(data.upsellRevenue * getMultiplier(rangeIdx.upsell))}
+                        {formatPrice(getDataObj(rangeIdx.upsell || 0, dataToday, dataWeek).upsellRevenue)}
                     </span>
                 </span>
             ),
-            sub: data.upsellOffered > 0
-                ? `${data.upsellAccepted}/${data.upsellOffered} (${Math.round((data.upsellAccepted / data.upsellOffered) * 100)}% úspešnosť)`
+            sub: getDataObj(rangeIdx.upsell || 0, dataToday, dataWeek).upsellOffered > 0
+                ? `${getDataObj(rangeIdx.upsell || 0, dataToday, dataWeek).upsellAccepted}/${getDataObj(rangeIdx.upsell || 0, dataToday, dataWeek).upsellOffered} (${Math.round((getDataObj(rangeIdx.upsell || 0, dataToday, dataWeek).upsellAccepted / getDataObj(rangeIdx.upsell || 0, dataToday, dataWeek).upsellOffered) * 100)}% úspešnosť)`
                 : "žiadne",
-            accent: data.upsellAccepted > 0 ? "#4ade80" : undefined,
+            accent: getDataObj(rangeIdx.upsell || 0, dataToday, dataWeek).upsellAccepted > 0 ? "#4ade80" : undefined,
             clickable: true,
             onClick: () => cycleRange("upsell"),
         },

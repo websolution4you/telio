@@ -64,7 +64,7 @@ function getStreetCoords(dbStreetName: string) {
 const RANGES = ["Dnes", "7 dní", "30 dní"];
 
 export default function OrdersMap({ ordersToday, ordersWeek, dbStreets = [] }: OrdersMapProps) {
-    const [rangeIdx, setRangeIdx] = useState(0);
+    const [rangeIdx, setRangeIdx] = useState(1);
 
     const filtered = useMemo(() => {
         if (rangeIdx === 0) {
