@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import type { PizzaOrder } from "@/lib/mockData";
 import { isRecent } from "@/lib/mockData";
 import { Clock } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 
 interface OrdersMapProps {
     ordersToday: PizzaOrder[];
     ordersWeek: PizzaOrder[];
+    dbStreets: string[];
 }
 
 function normalizeStr(str: string) {
@@ -63,18 +63,8 @@ function getStreetCoords(dbStreetName: string) {
 
 const RANGES = ["Dnes", "7 dní", "30 dní"];
 
-export default function OrdersMap({ ordersToday, ordersWeek }: OrdersMapProps) {
+export default function OrdersMap({ ordersToday, ordersWeek, dbStreets = [] }: OrdersMapProps) {
     const [rangeIdx, setRangeIdx] = useState(0);
-    const [dbStreets, setDbStreets] = useState<string[]>([]);
-
-    // Fetch valid street dictionary on mount
-    useEffect(() => {
-        supabase.from("streets").select("name").then(({ data }) => {
-            if (data && data.length > 0) {
-                setDbStreets(data.map(d => d.name));
-            }
-        });
-    }, []);
 
     const filtered = useMemo(() => {
         if (rangeIdx === 0) {
@@ -165,12 +155,13 @@ export default function OrdersMap({ ordersToday, ordersWeek }: OrdersMapProps) {
                 {groupedStreets.length === 0 ? (
                     <div className="flex flex-col items-center justify-center gap-2" style={{ width: "100%", height: "100%", color: "var(--text-muted)", fontSize: "0.8rem" }}>
                         <Clock size={20} style={{ opacity: 0.4 }} />
-                        {dbStreets.length === 0 ? "Nahrávam zoznam ulíc..." : "Žiadne známe objednávky"}
+                        {dbStreets.length === 0 ? "Žiadne mapové dáta (streets prázdne)" : "Žiadne známe objednávky"}
                     </div>
                 ) : (
                     groupedStreets.map(([groupName, count]) => {
                         const coords = getStreetCoords(groupName);
-                        const maxCount = groupedStreets[0][1];
+                        // Prevent index out of bounds if length === 0
+                        const maxCount = groupedStreets[0]?.[1] || 1;
                         const intensity = count / maxCount; // 0 to 1
 
                         const size = 10 + (intensity * 15);
@@ -211,11 +202,11 @@ export default function OrdersMap({ ordersToday, ordersWeek }: OrdersMapProps) {
                                         animation: "ripple 2s infinite ease-out"
                                     }} />}
                                 </div>
-                            </div>
+                            </div >
                         );
                     })
                 )}
-            </div>
+            </div >
 
             <div style={{ marginTop: "1rem", display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "var(--text-muted)" }}>
                 <div style={{ display: "flex", gap: "1rem" }}>
