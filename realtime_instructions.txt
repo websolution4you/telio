@@ -1,0 +1,34 @@
+const { createClient } = require("@supabase/supabase-js");
+const fs = require('fs');
+const env = fs.readFileSync('.env.local', 'utf8');
+
+function getVal(key) {
+    const line = env.split('\n').find(l => l.startsWith(key + '='));
+    return line ? line.split('=')[1].trim() : '';
+}
+
+async function enableRealtime(url, key, tables) {
+    const supabase = createClient(url, key);
+    console.log(`--- Enabling Realtime for ${url} ---`);
+    for (const table of tables) {
+        console.log(`Enabling for ${table}...`);
+        // This is a common way to enable realtime via SQL if using service role
+        const { error } = await supabase.rpc('exec_sql', { 
+            sql: `alter publication supabase_realtime add table ${table};` 
+        });
+        if (error) {
+            // Fallback: try raw query if rpc fails (most likely it will if exec_sql isn't defined)
+            console.log(`RPC failed for ${table}, might need manual setup:`, error.message);
+        } else {
+            console.log(`Enabled ${table} successfully via RPC.`);
+        }
+    }
+}
+
+// Since I don't know if exec_sql exists, I can't really do much more than this or just tell the user.
+// But I can at least try to run a query if I find a way.
+// Most secure way is to just inform the user.
+
+console.log("Realtime code implemented in frontend. Please ensure Realtime is enabled in Supabase UI for tables:");
+console.log("- Taxi DB: taxi_rides, calls");
+console.log("- Pizza DB: pizza_orders");

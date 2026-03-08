@@ -10,6 +10,31 @@ import OrdersHeatmap from "@/components/dashboard/OrdersHeatmap";
 import OrdersMap from "@/components/dashboard/OrdersMap";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { fetchTaxiDashboardAction, updateTaxiPriceAction } from "@/app/actions/dashboard";
+import { taxiSupabase } from "@/lib/supabase";
+
+// Funkcia na prehraný zvuk pri novej objednávke/jazde (pomocou Web Audio API)
+const playNotificationSound = () => {
+    try {
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Vyšší tón (A5)
+        oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5); // Klesanie k A4
+
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.5);
+    } catch (e) {
+        console.error("Audio play failed:", e);
+    }
+};
 
 // --- Pomocné funkcie pre Grafy (analogicky ako Pizza) ---
 
@@ -392,6 +417,46 @@ export default function TaxiDashboardPage() {
 
     useEffect(() => {
         fetchData();
+
+        // 1. Realtime odber zmien (okamžitá reakcia)
+        const ridesSub = taxiSupabase
+            .channel('taxi-rides-realtime')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'taxi_rides' }, () => {
+                console.log("Realtime: New ride inserted!");
+                fetchData();
+                playNotificationSound();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'taxi_rides' }, (payload) => {
+                console.log("Realtime: Ride change detected", payload.eventType);
+                if (payload.eventType !== 'INSERT') fetchData();
+            })
+            .subscribe((status) => {
+                console.log("Realtime (rides) status:", status);
+            });
+
+        const callsSub = taxiSupabase
+            .channel('taxi-calls-realtime')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'calls' }, () => {
+                console.log("Realtime: New call inserted!");
+                fetchData();
+                playNotificationSound();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'calls' }, (payload) => {
+                console.log("Realtime: Call change detected", payload.eventType);
+                if (payload.eventType !== 'INSERT') fetchData();
+            })
+            .subscribe((status) => {
+                console.log("Realtime (calls) status:", status);
+            });
+
+        // 2. Poistka - refresh každých 30 sekúnd
+        const interval = setInterval(fetchData, 30000);
+
+        return () => {
+            clearInterval(interval);
+            taxiSupabase.removeChannel(ridesSub);
+            taxiSupabase.removeChannel(callsSub);
+        };
     }, [fetchData]);
 
     const salesData = useMemo(() => buildTaxiSalesData(allWeekRides.length > 0 ? allWeekRides : ridesToday), [allWeekRides, ridesToday]);

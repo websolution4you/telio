@@ -15,6 +15,31 @@ import MenuTable from "@/components/dashboard/MenuTable";
 import type { MenuItem } from "@/components/dashboard/MenuTable";
 
 import { fetchPizzaDashboardAction } from "@/app/actions/dashboard";
+import { supabase } from "@/lib/supabase";
+
+// Funkcia na prehraný zvuk pri novej objednávke (pomocou Web Audio API)
+const playNotificationSound = () => {
+    try {
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Vyšší tón (A5)
+        oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5); // Klesanie k A4
+
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.5);
+    } catch (e) {
+        console.error("Audio play failed:", e);
+    }
+};
 
 import {
     mockOrders,
@@ -149,7 +174,30 @@ export default function DashboardPage() {
     // ── Initial fetch ──
     useEffect(() => {
         fetchData();
-        // Realtime bol dočasne vypnutý, kým je funkčný tento data flow.
+
+        // 1. Realtime odber zmien (okamžitá reakcia na nové objednávky)
+        const ordersSub = supabase
+            .channel('pizza-orders-realtime')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pizza_orders' }, () => {
+                console.log("Realtime (pizza): New order inserted!");
+                fetchData();
+                playNotificationSound();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'pizza_orders' }, (payload) => {
+                console.log("Realtime (pizza): Change detected", payload.eventType);
+                if (payload.eventType !== 'INSERT') fetchData();
+            })
+            .subscribe((status) => {
+                console.log("Realtime (pizza) status:", status);
+            });
+
+        // 2. Poistka - refresh každých 30 sekúnd
+        const interval = setInterval(fetchData, 30000);
+
+        return () => {
+            clearInterval(interval);
+            supabase.removeChannel(ordersSub);
+        };
     }, [fetchData]);
 
     const salesData = buildSalesData(allWeekOrders.length > 0 ? allWeekOrders : orders);
