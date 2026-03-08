@@ -2,7 +2,7 @@ export const TEST_TENANTS = {
     // Z pizza tenantu v zadaní
     PIZZA: 'ac3b439d-a446-4d67-abf7-5e04f58647fe',
     // Vymyslené ID pre zatiaľ nenapojený Taxi tenant
-    TAXI: 'taxi-placeholder-tenant-id-0000',
+    TAXI: '6076dbf2-8f14-432d-b27d-504ae30b94b2',
 };
 
 /**

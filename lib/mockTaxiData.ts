@@ -1,4 +1,4 @@
-export type TaxiRideStatus = "PENDING" | "EN_ROUTE" | "DONE" | "CANCELLED";
+export type TaxiRideStatus = "PENDING" | "EN_ROUTE" | "DONE" | "CANCELLED" | "CONFIRMED" | "COMPLETED";
 
 export interface TaxiRide {
     id: string;
@@ -6,15 +6,16 @@ export interface TaxiRide {
     customer_phone: string | null;
     pickup_address: string;
     dropoff_address: string;
-    price_estimate: number | null;
+    price_estimate?: number | null;
+    fare_amount?: number | null;
     status: TaxiRideStatus;
     notes: string | null;
     created_at: string;
-    transcript?: string;
+    transcript?: string | null;
 }
 
 export interface TaxiPrice {
-    id: number;
+    id: string;
     from_zone: string;
     to_zone: string;
     price_weekday: number;
@@ -23,12 +24,15 @@ export interface TaxiPrice {
 }
 
 export const mockTaxiPrices: TaxiPrice[] = [
-    { id: 1, from_zone: "Levoča", to_zone: "Levoča", price_weekday: 2.00, price_weekend: 2.50, is_active: true },
-    { id: 2, from_zone: "Levoča", to_zone: "Levočská Dolina", price_weekday: 4.00, price_weekend: 4.00, is_active: true },
-    { id: 3, from_zone: "Levoča", to_zone: "SNV", price_weekday: 10.00, price_weekend: 10.00, is_active: true },
+    { id: "1", from_zone: "Levoča", to_zone: "Levoča", price_weekday: 2.00, price_weekend: 2.50, is_active: true },
+    { id: "2", from_zone: "Levoča", to_zone: "Levočská Dolina", price_weekday: 4.00, price_weekend: 4.00, is_active: true },
+    { id: "3", from_zone: "Levoča", to_zone: "SNV", price_weekday: 10.00, price_weekend: 10.00, is_active: true },
 ];
 
-export function getRideStatus(createdAt: string): TaxiRideStatus {
+export function getRideStatus(createdAt: string, dbStatus?: TaxiRideStatus): TaxiRideStatus {
+    // Ak už je v databáze iný status ako PENDING (napr. COMPLETED, CANCELLED), použijeme ten.
+    if (dbStatus && dbStatus !== "PENDING") return dbStatus;
+
     const time = new Date(createdAt).getTime();
     const diffMins = (Date.now() - time) / 60000;
     if (diffMins < 5) return "PENDING";
@@ -103,7 +107,7 @@ export function computeTaxiKpis(rides: TaxiRide[], daysCount: number = 1): TaxiK
         return d.getTime() >= minDate.getTime();
     });
 
-    const revenue = filteredRides.reduce((acc, r) => acc + (r.price_estimate || 0), 0);
+    const revenue = filteredRides.reduce((acc, r) => acc + (r.fare_amount || r.price_estimate || 0), 0);
 
     return {
         ridesCount: filteredRides.length,

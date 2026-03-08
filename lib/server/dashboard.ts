@@ -1,4 +1,4 @@
-import { getCoreDb, getPizzaDb } from "./supabase";
+import { getCoreDb, getPizzaDb, getTaxiDb } from "./supabase";
 
 export async function getTenantDataSource(tenantId: string) {
     const coreDb = getCoreDb();
@@ -81,5 +81,75 @@ export async function getPizzaDashboardData(tenantId: string) {
         ordersWeek: ordersWeek || [],
         menuItems: menuItems || [],
         streets: (streets || []).map((s: any) => s.name)
+    };
+}
+
+export async function getTaxiDashboardData(tenantId: string) {
+    // 1. Získa routing informácie z Core DB (nepovinné pre data_source)
+    // Keďže nepoužívame data source zatial tak isto, len validujeme tenanta
+    const coreDb = getCoreDb();
+    const { data: tenant, error: tErr } = await coreDb
+        .from("tenants")
+        .select("*")
+        .eq("id", tenantId)
+        .single();
+    if (tErr || !tenant) {
+        throw new Error("Tenant not found.");
+    }
+
+    if (tenant.project_type !== "taxi") {
+        throw new Error("Tento tenant nemá projekt typu taxi.");
+    }
+
+    // 2. Načíta dáta z cieľovej (Taxi) DB pre dashboard
+    const taxiDb = getTaxiDb();
+
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setDate(endOfDay.getDate() + 1);
+
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    // Parallel fetching
+    const [
+        { data: ridesToday },
+        { data: ridesWeek },
+        { data: prices },
+        { data: calls }
+    ] = await Promise.all([
+        taxiDb
+            .from("taxi_rides")
+            .select("*")
+            .gte("created_at", startOfDay.toISOString())
+            .lt("created_at", endOfDay.toISOString())
+            .order("created_at", { ascending: false })
+            .limit(50),
+        taxiDb
+            .from("taxi_rides")
+            .select("*")
+            .gte("created_at", weekAgo.toISOString())
+            .order("created_at", { ascending: false })
+            .limit(500),
+        taxiDb
+            .from("taxi_rate_cards")
+            .select("*")
+            .order("id"),
+        taxiDb
+            .from("calls")
+            .select("*")
+            .gte("started_at", weekAgo.toISOString())
+            .order("started_at", { ascending: false })
+            .limit(100)
+    ]);
+
+    console.log(`[DEBUG] Taxi Dashboard: RidesToday=${ridesToday?.length}, RidesWeek=${ridesWeek?.length}, Calls=${calls?.length}`);
+
+    return {
+        ridesToday: ridesToday || [],
+        ridesWeek: ridesWeek || [],
+        prices: prices || [],
+        calls: calls || []
     };
 }

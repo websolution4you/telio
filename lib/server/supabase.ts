@@ -17,3 +17,12 @@ export function getPizzaDb() {
     }
     return createClient(url || "", key || "");
 }
+
+export function getTaxiDb() {
+    const url = process.env.TAXI_SUPABASE_URL!;
+    const key = process.env.TAXI_SUPABASE_SERVICE_ROLE_KEY!;
+    if (!url || !key) {
+        console.warn("TAXI_SUPABASE_URL or TAXI_SUPABASE_SERVICE_ROLE_KEY is missing");
+    }
+    return createClient(url || "", key || "");
+}
