@@ -1,7 +1,7 @@
 "use server";
 
-import { getPizzaDashboardData } from "@/lib/server/dashboard";
-import { getPizzaDb } from "@/lib/server/supabase";
+import { getPizzaDashboardData, getTaxiDashboardData } from "@/lib/server/dashboard";
+import { getPizzaDb, getTaxiDb } from "@/lib/server/supabase";
 import { getCurrentTenantId } from "@/lib/config/tenants";
 
 export async function fetchPizzaDashboardAction() {
@@ -15,6 +15,16 @@ export async function fetchPizzaDashboardAction() {
     }
 }
 
+export async function fetchTaxiDashboardAction() {
+    try {
+        const tenantId = await getCurrentTenantId('taxi');
+        const data = await getTaxiDashboardData(tenantId);
+        return { success: true, data };
+    } catch (error: any) {
+        console.error("fetchTaxiDashboardAction failed:", error);
+        return { success: false, error: error.message };
+    }
+}
 export async function updateMenuItemAction(itemId: number, updates: any) {
     try {
         // Zápis priamo do pizza DB
@@ -27,6 +37,20 @@ export async function updateMenuItemAction(itemId: number, updates: any) {
         return { success: true };
     } catch (error: any) {
         console.error("updateMenuItemAction failed:", error);
+        return { success: false, error: error.message };
+    }
+}
+export async function updateTaxiPriceAction(priceId: string, updates: any) {
+    try {
+        const taxiDb = getTaxiDb();
+        const { error } = await taxiDb.from("taxi_rate_cards").update(updates).eq("id", priceId);
+
+        if (error) {
+            return { success: false, error: error.message };
+        }
+        return { success: true };
+    } catch (error: any) {
+        console.error("updateTaxiPriceAction failed:", error);
         return { success: false, error: error.message };
     }
 }

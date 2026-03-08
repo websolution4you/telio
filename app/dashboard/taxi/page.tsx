@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import DashboardNav from "@/components/dashboard/DashboardNav";
 import { mockRides, mockTaxiPrices, computeTaxiKpis, getRideStatus, type TaxiRide, type TaxiPrice } from "@/lib/mockTaxiData";
 import { Navigation, MapPin, Phone, ChevronDown, ChevronUp } from "lucide-react";
@@ -8,6 +8,8 @@ import { Navigation, MapPin, Phone, ChevronDown, ChevronUp } from "lucide-react"
 import SalesChart from "@/components/dashboard/SalesChart";
 import OrdersHeatmap from "@/components/dashboard/OrdersHeatmap";
 import OrdersMap from "@/components/dashboard/OrdersMap";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import { fetchTaxiDashboardAction, updateTaxiPriceAction } from "@/app/actions/dashboard";
 
 // --- Pomocné funkcie pre Grafy (analogicky ako Pizza) ---
 
@@ -33,7 +35,7 @@ function buildTaxiSalesData(rides: TaxiRide[]) {
         const label = SK_DAY_NAMES[d.getDay()];
         if (buckets[label]) {
             buckets[label].orders += 1;
-            buckets[label].revenue += r.price_estimate || 0;
+            buckets[label].revenue += r.fare_amount || r.price_estimate || 0;
         }
     });
 
@@ -97,7 +99,7 @@ function TaxiKpiCards({ rides }: { rides: TaxiRide[] }) {
     );
 }
 
-function TaxiRidesTable({ rides }: { rides: TaxiRide[] }) {
+function TaxiRidesTable({ rides, calls }: { rides: TaxiRide[], calls?: any[] }) {
     // Rozbalovanie
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
@@ -108,13 +110,33 @@ function TaxiRidesTable({ rides }: { rides: TaxiRide[] }) {
         return () => clearInterval(interval);
     }, []);
 
-    // Filter na dnešné zobrazenie a limit na 15 záznamov (ako Pizza)
-    const todayStr = new Date().toDateString();
-    const displayRides = rides.filter(r => new Date(r.created_at).toDateString() === todayStr).slice(0, 15);
+    // Pomocná funkcia na nájdenie prepisu z tabuľky calls
+    const findTranscript = (r: TaxiRide) => {
+        if (!calls) return r.transcript || r.notes;
+
+        // Hľadáme hovor z rovnakého čísla, ktorý sa stal v približne rovnakom čase (+/- 10 minút)
+        const rideTime = new Date(r.created_at).getTime();
+        const caller = r.customer_phone?.replace(/\s+/g, '');
+
+        const matchedCall = calls.find(c => {
+            if (!c.from_number) return false;
+            const callFrom = c.from_number.replace(/\s+/g, '');
+            const callTime = new Date(c.started_at).getTime();
+            const timeDiff = Math.abs(rideTime - callTime);
+
+            // Zhoda čísla (aspoň koniec čísla ak by boli iné predvoľby) a časový rozdiel do 10 minút
+            return (callFrom.endsWith(caller || '---') || (caller && caller.endsWith(callFrom))) && timeDiff < 10 * 60000;
+        });
+
+        return matchedCall?.transcript || matchedCall?.summary || r.transcript || r.notes;
+    };
+
+    // Limit na posledných 10 záznamov
+    const displayRides = rides.slice(0, 10);
 
     return (
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "1.5rem", flex: 2, overflowX: "auto" }}>
-            <h2 style={{ fontSize: "1.05rem", fontWeight: 600, color: "#fff", marginBottom: "1rem" }}>Aktuálne jazdy (Dnes)</h2>
+            <h2 style={{ fontSize: "1.05rem", fontWeight: 600, color: "#fff", marginBottom: "1rem" }}>Najnovšie jazdy</h2>
             <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
                 <thead>
                     <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: "0.75rem" }}>
@@ -127,8 +149,8 @@ function TaxiRidesTable({ rides }: { rides: TaxiRide[] }) {
                 </thead>
                 <tbody>
                     {displayRides.map(r => {
-                        // Dynamicky stav pre fake live efekt
-                        const currentStatus = getRideStatus(r.created_at);
+                        // Kombinujeme reálny status s "fake live" efektom (v lib/mockTaxiData)
+                        const currentStatus = getRideStatus(r.created_at, r.status);
                         const isExpanded = expandedRowId === r.id;
 
                         return (
@@ -165,10 +187,10 @@ function TaxiRidesTable({ rides }: { rides: TaxiRide[] }) {
                                                 borderRadius: 6,
                                                 fontSize: "0.7rem",
                                                 fontWeight: 600,
-                                                background: currentStatus === "PENDING" ? "rgba(245, 158, 11, 0.15)" : currentStatus === "EN_ROUTE" ? "rgba(0, 255, 209, 0.15)" : "rgba(255,255,255,0.05)",
-                                                color: currentStatus === "PENDING" ? "#f59e0b" : currentStatus === "EN_ROUTE" ? "var(--cyan)" : "var(--text-muted)",
+                                                background: currentStatus === "PENDING" ? "rgba(245, 158, 11, 0.15)" : currentStatus === "CONFIRMED" || currentStatus === "EN_ROUTE" ? "rgba(0, 255, 209, 0.15)" : currentStatus === "COMPLETED" || currentStatus === "DONE" ? "rgba(74, 222, 128, 0.15)" : "rgba(255,255,255,0.05)",
+                                                color: currentStatus === "PENDING" ? "#f59e0b" : currentStatus === "CONFIRMED" || currentStatus === "EN_ROUTE" ? "var(--cyan)" : currentStatus === "COMPLETED" || currentStatus === "DONE" ? "#4ade80" : "var(--text-muted)",
                                             }}>
-                                                {currentStatus === "PENDING" ? "ČAKÁ (< 5m)" : currentStatus === "EN_ROUTE" ? "NA CESTE" : "VYBAVENÉ"}
+                                                {currentStatus === "PENDING" ? "ČAKÁ" : currentStatus === "CONFIRMED" ? "POTVRDENÉ" : currentStatus === "EN_ROUTE" ? "NA CESTE" : currentStatus === "COMPLETED" || currentStatus === "DONE" ? "VYBAVENÉ" : currentStatus}
                                             </span>
                                         </div>
                                     </td>
@@ -182,7 +204,7 @@ function TaxiRidesTable({ rides }: { rides: TaxiRide[] }) {
                                             <div style={{ padding: "12px", background: "rgba(0,0,0,0.2)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }}>
                                                 <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Prepis hovoru</div>
                                                 <div style={{ fontSize: "0.85rem", color: "#e2e8f0", lineHeight: 1.5 }}>
-                                                    {r.transcript ? `„${r.transcript}“` : "Pre tento hovor nie je k dispozícii prepis."}
+                                                    {findTranscript(r) ? `„${findTranscript(r)}“` : "Pre tento hovor nie je k dispozícii prepis."}
                                                 </div>
                                             </div>
                                         </td>
@@ -197,31 +219,127 @@ function TaxiRidesTable({ rides }: { rides: TaxiRide[] }) {
     );
 }
 
-function TaxiPricesTable({ prices }: { prices: TaxiPrice[] }) {
+function TaxiPricesTable({ prices, onRefresh }: { prices: TaxiPrice[], onRefresh: () => void }) {
+    const [editingItem, setEditingItem] = useState<TaxiPrice | null>(null);
+    const [editForm, setEditForm] = useState<Partial<TaxiPrice>>({});
+
+    const handleSave = async () => {
+        if (!editingItem) return;
+        try {
+            const res = await updateTaxiPriceAction(editingItem.id, editForm);
+            if (res.success) {
+                setEditingItem(null);
+                onRefresh();
+            } else {
+                alert("Chyba pri ukladaní tarifu: " + res.error);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Chyba pri ukladaní tarifu.");
+        }
+    };
+
     return (
-        <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "1.5rem", flex: 1, minWidth: "300px" }}>
+        <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "1.5rem", flex: 1, minWidth: "300px", position: "relative" }}>
             <h2 style={{ fontSize: "1.05rem", fontWeight: 600, color: "#fff", marginBottom: "0.5rem" }}>Cenník zón</h2>
-            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "1rem" }}>Aktívne nastavenie taríf pre AI agenta</p>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-                <thead>
-                    <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: "0.75rem" }}>
-                        <th style={{ padding: "0 0 8px 0" }}>Zóna Od &gt; Do</th>
-                        <th style={{ padding: "0 0 8px 0" }}>Cez deň</th>
-                        <th style={{ padding: "0 0 8px 0" }}>Cez víkend</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {prices.map(p => (
-                        <tr key={p.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                            <td style={{ padding: "10px 0", fontSize: "0.85rem", color: "#fff" }}>
-                                {p.from_zone} &gt; {p.to_zone}
-                            </td>
-                            <td style={{ padding: "10px 0", fontSize: "0.85rem", color: "var(--cyan)", fontWeight: 600 }}>{p.price_weekday.toFixed(2)} €</td>
-                            <td style={{ padding: "10px 0", fontSize: "0.85rem", color: "rgba(0, 255, 209, 0.6)", fontWeight: 600 }}>{p.price_weekend.toFixed(2)} €</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "1.25rem" }}>Aktívne nastavenie taríf pre AI agenta</p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                {prices.map((p) => (
+                    <div
+                        key={p.id}
+                        style={{
+                            background: "rgba(255,255,255,0.02)",
+                            border: "1px solid rgba(255,255,255,0.05)",
+                            borderRadius: 12,
+                            padding: "1rem",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "10px",
+                            transition: "background 0.2s"
+                        }}
+                    >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                            <div>
+                                <h3 style={{ color: "#fff", fontSize: "0.95rem", fontWeight: 600 }}>
+                                    {p.from_zone} &gt; {p.to_zone}
+                                </h3>
+                                <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
+                                    <span style={{ background: "rgba(0, 255, 209, 0.1)", color: "var(--cyan)", fontSize: "0.7rem", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>
+                                        DNI: {p.price_weekday.toFixed(2)} €
+                                    </span>
+                                    <span style={{ background: "rgba(255, 255, 255, 0.05)", color: "var(--text-muted)", fontSize: "0.7rem", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>
+                                        VÍK: {p.price_weekend.toFixed(2)} €
+                                    </span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => { setEditingItem(p); setEditForm(p); }}
+                                style={{ padding: "4px 12px", background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", borderRadius: 6, cursor: "pointer", fontSize: "0.75rem", transition: "all 0.2s" }}
+                                onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "var(--cyan)"; }}
+                                onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.borderColor = "var(--border)"; }}
+                            >
+                                Upraviť
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Edit Modal */}
+            {editingItem && (
+                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
+                    <div style={{ background: "var(--bg-card)", border: "1px solid var(--cyan)", borderRadius: 12, padding: "2rem", width: "100%", maxWidth: 450, boxShadow: "0 20px 40px rgba(0,0,0,0.6)" }}>
+                        <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#fff", marginBottom: "1.5rem" }}>Upraviť tarifu</h3>
+
+                        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                                <div>
+                                    <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Zóna OD</label>
+                                    <input className="edit-input" style={{ width: "100%" }} value={editForm.from_zone ?? ""} onChange={e => setEditForm({ ...editForm, from_zone: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Zóna DO</label>
+                                    <input className="edit-input" style={{ width: "100%" }} value={editForm.to_zone ?? ""} onChange={e => setEditForm({ ...editForm, to_zone: e.target.value })} />
+                                </div>
+                            </div>
+
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                                <div>
+                                    <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Cez deň (€)</label>
+                                    <input type="number" step="0.1" className="edit-input" style={{ width: "100%" }} value={editForm.price_weekday ?? 0} onChange={e => setEditForm({ ...editForm, price_weekday: parseFloat(e.target.value) })} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Cez víkend (€)</label>
+                                    <input type="number" step="0.1" className="edit-input" style={{ width: "100%" }} value={editForm.price_weekend ?? 0} onChange={e => setEditForm({ ...editForm, price_weekend: parseFloat(e.target.value) })} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 justify-end" style={{ marginTop: "2rem" }}>
+                            <button onClick={() => setEditingItem(null)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 8, cursor: "pointer", fontSize: "0.85rem" }}>Zrušiť</button>
+                            <button onClick={handleSave} style={{ padding: "8px 20px", background: "rgba(0, 255, 209, 0.15)", border: "1px solid var(--cyan)", color: "var(--cyan)", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: "0.85rem" }}>Uložiť zmeny</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                .edit-input {
+                    background: rgba(0,0,0,0.4);
+                    border: 1px solid var(--border);
+                    color: #fff;
+                    padding: 10px 12px;
+                    border-radius: 8px;
+                    outline: none;
+                    font-size: 0.9rem;
+                    transition: border-color 0.2s;
+                }
+                .edit-input:focus {
+                    border-color: var(--cyan);
+                }
+            `}} />
         </div>
     );
 }
@@ -230,22 +348,78 @@ function TaxiPricesTable({ prices }: { prices: TaxiPrice[] }) {
 // --- Main Page ---
 
 export default function TaxiDashboardPage() {
-    const salesData = useMemo(() => buildTaxiSalesData(mockRides), []);
-    const heatmap = useMemo(() => buildTaxiHeatmapData(mockRides), []);
+    const [ridesToday, setRidesToday] = useState<TaxiRide[]>([]);
+    const [allWeekRides, setAllWeekRides] = useState<TaxiRide[]>([]);
+    const [prices, setPrices] = useState<TaxiPrice[]>([]);
+    const [calls, setCalls] = useState<any[]>([]);
+
+    const [loading, setLoading] = useState(true);
+    const [dataSource, setDataSource] = useState<"server" | "mock">("mock");
+
+    const fetchData = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await fetchTaxiDashboardAction();
+            if (res.success && res.data) {
+                setRidesToday(res.data.ridesToday as TaxiRide[]);
+                setAllWeekRides(res.data.ridesWeek as TaxiRide[]);
+                setCalls(res.data.calls || []);
+
+                // Fallback na mock cenník ak by taxi_rate_cards neexistovala alebo bola úplne prázdna (aby "cennik nechybal uplne")
+                const fetchedPrices = res.data.prices as TaxiPrice[];
+                setPrices(fetchedPrices && fetchedPrices.length > 0 ? fetchedPrices : mockTaxiPrices);
+
+                setDataSource("server");
+            } else {
+                console.warn("Server action error, using mock:", res.error);
+                setRidesToday(mockRides.filter(r => new Date(r.created_at).toDateString() === new Date().toDateString()));
+                setAllWeekRides(mockRides);
+                setPrices(mockTaxiPrices);
+                setCalls([]);
+                setDataSource("mock");
+            }
+        } catch (err) {
+            console.error("fetchData exception:", err);
+            setRidesToday(mockRides.filter(r => new Date(r.created_at).toDateString() === new Date().toDateString()));
+            setAllWeekRides(mockRides);
+            setPrices(mockTaxiPrices);
+            setCalls([]);
+            setDataSource("mock");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    const salesData = useMemo(() => buildTaxiSalesData(allWeekRides.length > 0 ? allWeekRides : ridesToday), [allWeekRides, ridesToday]);
+    const heatmap = useMemo(() => buildTaxiHeatmapData(allWeekRides.length > 0 ? allWeekRides : ridesToday), [allWeekRides, ridesToday]);
 
     // Prispôsobenie mapových pípov pre OrdersMap (Očakáva pole s `delivery_address` a `created_at`)
     const todayStr = new Date().toDateString();
 
-    // Na mape chceme zobraziť miesto VÝSTUPU (dropoff_address), dá sa to zmeniť aj na pickup_address !
-    const mappedOrdersToday = mockRides
-        .filter(r => new Date(r.created_at).toDateString() === todayStr)
-        .map(r => ({ ...r, delivery_address: r.dropoff_address, total_price: String(r.price_estimate), status: getRideStatus(r.created_at) === "DONE" ? "DONE" : "NEW" } as any));
+    const mappedOrdersToday = ridesToday
+        .map(r => ({ ...r, delivery_address: r.dropoff_address, total_price: String(r.fare_amount || r.price_estimate || 0), status: (r.status === "DONE" || r.status === "COMPLETED") ? "DONE" : "NEW" } as any));
 
-    const mappedOrdersWeek = mockRides
-        .map(r => ({ ...r, delivery_address: r.dropoff_address, total_price: String(r.price_estimate), status: getRideStatus(r.created_at) === "DONE" ? "DONE" : "NEW" } as any));
+    const mappedOrdersWeek = allWeekRides
+        .map(r => ({ ...r, delivery_address: r.dropoff_address, total_price: String(r.fare_amount || r.price_estimate || 0), status: (r.status === "DONE" || r.status === "COMPLETED") ? "DONE" : "NEW" } as any));
 
     // Nastavenie pevných známych ulíc/zón (z Pizza modulu sú to Streets)
     const defaultStreets = ["Námestie majstra pavla", "Sídlisko Západ", "Košická", "Ždiarska", "Czausika", "Nemocnica", "Autobusová stanica"];
+
+    if (loading && allWeekRides.length === 0) {
+        return (
+            <div style={{ background: "var(--bg)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ color: "var(--text-muted)", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <div style={{ width: 14, height: 14, border: "2px solid var(--cyan)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                    Načítavam taxi dáta (server-side)...
+                </div>
+                <style dangerouslySetInnerHTML={{ __html: `@keyframes spin {to {transform: rotate(360deg); } }` }} />
+            </div>
+        );
+    }
 
     return (
         <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
@@ -254,19 +428,23 @@ export default function TaxiDashboardPage() {
             <main style={{ maxWidth: "90rem", margin: "0 auto", padding: "2rem" }}>
                 <div style={{ marginBottom: "1.5rem" }}>
                     <div className="flex items-center gap-2" style={{ marginBottom: "0.5rem" }}>
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f59e0b", display: "inline-block" }} />
-                        <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Mock Demo Dáta (Taxi)</span>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: dataSource === "server" ? "#4ade80" : "#f59e0b", display: "inline-block" }} />
+                        <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                            {dataSource === "server" ? "Live dáta zo Servera" : "Mock dáta (Server fallback)"}
+                        </span>
                     </div>
                     <div className="flex items-center justify-between">
                         <h1 style={{ fontSize: "1.8rem", fontWeight: 800, color: "#fff" }}>Taxi Dispečing</h1>
                     </div>
                 </div>
 
-                <TaxiKpiCards rides={mockRides} />
+                <DashboardHeader onRefresh={fetchData} />
+
+                <TaxiKpiCards rides={allWeekRides} />
 
                 {/* Tabuľka jázd */}
                 <div style={{ marginBottom: "1.5rem" }}>
-                    <TaxiRidesTable rides={mockRides} />
+                    <TaxiRidesTable rides={allWeekRides} calls={calls} />
                 </div>
 
                 {/* Predaj (7 dní) + Heatmapa objednávok */}
@@ -286,7 +464,7 @@ export default function TaxiDashboardPage() {
                     style={{ display: "flex", gap: "1.5rem", alignItems: "flex-start", flexWrap: "wrap" }}
                 >
                     <OrdersMap ordersToday={mappedOrdersToday} ordersWeek={mappedOrdersWeek} dbStreets={defaultStreets} />
-                    <TaxiPricesTable prices={mockTaxiPrices} />
+                    <TaxiPricesTable prices={prices} onRefresh={fetchData} />
                 </div>
             </main>
         </div>
