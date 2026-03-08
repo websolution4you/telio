@@ -91,7 +91,17 @@ export default function DashboardPage() {
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     const [dbStreets, setDbStreets] = useState<string[]>([]);
 
-    const [kpis, setKpis] = useState<KpiData>({
+    const [kpisToday, setKpisToday] = useState<KpiData>({
+        ordersToday: 0,
+        revenueToday: 0,
+        avgOrder: 0,
+        openOrders: 0,
+        upsellRevenue: 0,
+        upsellOffered: 0,
+        upsellAccepted: 0,
+        problems: 0,
+    });
+    const [kpisWeek, setKpisWeek] = useState<KpiData>({
         ordersToday: 0,
         revenueToday: 0,
         avgOrder: 0,
@@ -105,9 +115,11 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [dataSource, setDataSource] = useState<"server" | "mock">("mock");
 
-    const updateOrdersAndKpis = useCallback((newOrders: PizzaOrder[]) => {
+    const updateOrdersAndKpis = useCallback((newOrders: PizzaOrder[], weekOrders: PizzaOrder[]) => {
         setOrders(newOrders);
-        setKpis(computeKpis(newOrders));
+        setAllWeekOrders(weekOrders);
+        setKpisToday(computeKpis(newOrders));
+        setKpisWeek(computeKpis(weekOrders));
     }, []);
 
     // ── Fetch všetky dáta zo servera naraz ──
@@ -116,19 +128,18 @@ export default function DashboardPage() {
         try {
             const res = await fetchPizzaDashboardAction();
             if (res.success && res.data) {
-                updateOrdersAndKpis(res.data.ordersToday as PizzaOrder[]);
-                setAllWeekOrders(res.data.ordersWeek as PizzaOrder[]);
+                updateOrdersAndKpis(res.data.ordersToday as PizzaOrder[], res.data.ordersWeek as PizzaOrder[]);
                 setMenuItems(res.data.menuItems);
                 setDbStreets(res.data.streets);
                 setDataSource("server");
             } else {
                 console.warn("Server action error, using mock:", res.error);
-                updateOrdersAndKpis(mockOrders);
+                updateOrdersAndKpis(mockOrders, mockOrders);
                 setDataSource("mock");
             }
         } catch (err) {
             console.error("fetchData exception:", err);
-            updateOrdersAndKpis(mockOrders);
+            updateOrdersAndKpis(mockOrders, mockOrders);
             setDataSource("mock");
         } finally {
             setLoading(false);
@@ -188,11 +199,11 @@ export default function DashboardPage() {
                 </div>
 
                 <DashboardHeader onRefresh={fetchData} />
-                <KpiCards data={kpis} />
+                <KpiCards dataToday={kpisToday} dataWeek={kpisWeek} />
 
                 {/* Main: Orders Table */}
                 <div style={{ marginBottom: "1.5rem" }}>
-                    <OrdersTable orders={orders} />
+                    <OrdersTable orders={allWeekOrders.length > 0 ? allWeekOrders.slice(0, 20) : orders.slice(0, 20)} />
                 </div>
 
                 {/* Upsell + SalesChart + Heatmap row */}

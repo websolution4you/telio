@@ -63,7 +63,7 @@ export async function getPizzaDashboardData(tenantId: string) {
             .limit(50),
         pizzaDb
             .from("pizza_orders")
-            .select("created_at, total_price, status, delivery_address")
+            .select("*")
             .gte("created_at", weekAgo.toISOString())
             .order("created_at", { ascending: false })
             .limit(500),
