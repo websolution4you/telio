@@ -14,7 +14,7 @@ export const translations = {
       cta: "Get Early Access",
     },
     hero: {
-      badge: "Online",
+      badge: "Telio is online",
       h1a: "Your business,",
       h1b: "always on the line.",
       sub: "Telio is your 24/7 AI voice agent. It picks up every call, speaks naturally, books appointments, dispatches taxis — and never takes a day off.",
@@ -227,7 +227,7 @@ export const translations = {
       cta: "Získať prístup",
     },
     hero: {
-      badge: "Online",
+      badge: "Telio is online",
       h1a: "Váš biznis",
       h1b: "nezaspí nikdy.",
       sub: "Telio je váš AI hlasový agent 24/7. Zdvihne každý hovor, hovorí prirodzene po slovensky, rezervuje termíny, dispečuje taxíky — a nikdy si nevezme voľno.",
