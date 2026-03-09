@@ -43,15 +43,17 @@ export default function Navbar() {
     >
       <div className="h-18 flex items-center justify-between" style={{ maxWidth: "80rem", margin: "0 auto", padding: "0 2rem", height: "68px" }}>
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
-          <TelioLogo />
-          <span className="text-xl font-bold text-white" style={{ letterSpacing: "-0.02em" }}>
-            TELIO
-          </span>
-        </Link>
+        <div className="flex-1 flex items-center justify-start">
+          <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
+            <TelioLogo />
+            <span className="text-xl font-bold text-white" style={{ letterSpacing: "-0.02em" }}>
+              TELIO
+            </span>
+          </Link>
+        </div>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-10">
+        <nav className="hidden md:flex items-center justify-center gap-10 flex-shrink-0">
           {navLinks.map((link) => (
             <a
               key={link.href}
@@ -65,7 +67,7 @@ export default function Navbar() {
         </nav>
 
         {/* Right side: lang switcher + CTA */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex flex-1 items-center justify-end gap-4">
           {/* Language switcher */}
           <div
             className="flex items-center rounded-lg overflow-hidden"
@@ -81,7 +83,7 @@ export default function Navbar() {
             >
               SK
             </button>
-            <span className="text-white/30 font-light select-none text-xs">|</span>
+            <div className="w-[1px] h-[14px] bg-white/40" />
             <button
               onClick={() => setLang("en")}
               className="px-3 py-1.5 text-xs font-semibold transition-all duration-150"
@@ -100,7 +102,7 @@ export default function Navbar() {
         </div>
 
         {/* Mobile: lang + hamburger */}
-        <div className="md:hidden flex items-center gap-3">
+        <div className="md:hidden flex-1 flex items-center justify-end gap-3">
           <div
             className="flex items-center rounded-md overflow-hidden"
             style={{ border: "1px solid var(--border)" }}
@@ -115,7 +117,7 @@ export default function Navbar() {
             >
               SK
             </button>
-            <span className="text-white/30 font-light select-none text-xs">|</span>
+            <div className="w-[1px] h-[14px] bg-white/40" />
             <button
               onClick={() => setLang("en")}
               className="px-4 py-2 text-xs font-bold transition-all duration-150"
