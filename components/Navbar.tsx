@@ -83,7 +83,7 @@ export default function Navbar() {
             >
               SK
             </button>
-            <div className="w-[1px] h-[14px] bg-white/40" />
+            <div className="w-[1px] h-[14px] bg-white/40 mx-1" />
             <button
               onClick={() => setLang("en")}
               className="px-3 py-1.5 text-xs font-semibold transition-all duration-150"
@@ -117,7 +117,7 @@ export default function Navbar() {
             >
               SK
             </button>
-            <div className="w-[1px] h-[14px] bg-white/40" />
+            <div className="w-[1px] h-[14px] bg-white/40 mx-1" />
             <button
               onClick={() => setLang("en")}
               className="px-4 py-2 text-xs font-bold transition-all duration-150"
