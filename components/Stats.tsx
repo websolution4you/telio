@@ -34,7 +34,7 @@ export default function Stats() {
             >
               <div className="font-extrabold mb-2 text-gradient"
                 style={{ fontSize: "clamp(2.2rem, 4vw, 3.2rem)", letterSpacing: "-0.04em" }}>
-                {s.value}
+                {s.value === "∞" ? <span style={{ fontSize: "1.1em", lineHeight: 1 }}>{s.value}</span> : s.value}
               </div>
               <div className="font-semibold text-white text-sm mb-2">{s.label}</div>
               <div className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>{s.sub}</div>

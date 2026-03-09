@@ -38,7 +38,7 @@ export const translations = {
       { value: "< 2s", label: "Average response time", sub: "From ring to first word" },
       { value: "24/7", label: "Always available", sub: "No breaks, no sick days" },
       { value: "100%", label: "Calls answered", sub: "Zero missed opportunities" },
-      { value: "5+", label: "Business types", sub: "One platform, all industries" },
+      { value: "∞", label: "Business types", sub: "One platform, all industries" },
     ],
     howItWorks: {
       badge: "How it works",
@@ -251,7 +251,7 @@ export const translations = {
       { value: "< 2s", label: "Priemerný čas odozvy", sub: "Od zvonenia po prvé slovo" },
       { value: "24/7", label: "Vždy k dispozícii", sub: "Žiadne prestávky ani dni voľna" },
       { value: "100%", label: "Zodpovedané hovory", sub: "Nulová strata zákazníkov" },
-      { value: "5+", label: "Typy prevádzok", sub: "Jedna platforma, všetky odvetvia" },
+      { value: "∞", label: "Typy prevádzok", sub: "Jedna platforma, všetky odvetvia" },
     ],
     howItWorks: {
       badge: "Ako to funguje",
