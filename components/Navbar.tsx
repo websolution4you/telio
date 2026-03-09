@@ -81,7 +81,7 @@ export default function Navbar() {
             >
               SK
             </button>
-            <div className="w-px h-4" style={{ background: "var(--border)" }} />
+            <span className="text-white/30 font-light select-none text-xs">|</span>
             <button
               onClick={() => setLang("en")}
               className="px-3 py-1.5 text-xs font-semibold transition-all duration-150"
@@ -115,7 +115,7 @@ export default function Navbar() {
             >
               SK
             </button>
-            <div className="w-px h-3" style={{ background: "var(--border)" }} />
+            <span className="text-white/30 font-light select-none text-xs">|</span>
             <button
               onClick={() => setLang("en")}
               className="px-4 py-2 text-xs font-bold transition-all duration-150"
