@@ -52,9 +52,11 @@ export default function Features() {
             <br />
             <span className="text-gradient">{t.features.h2b}</span>
           </h2>
-          <p style={{ color: "var(--text-muted)", lineHeight: 1.8, fontSize: "1.05rem", maxWidth: "32rem" }}>
-            {t.features.sub}
-          </p>
+          {t.features.sub && (
+            <p style={{ color: "var(--text-muted)", lineHeight: 1.8, fontSize: "1.05rem", maxWidth: "32rem" }}>
+              {t.features.sub}
+            </p>
+          )}
         </div>
 
         {/* Grid */}
@@ -79,12 +81,14 @@ export default function Features() {
                   {f.description}
                 </p>
               </div>
-              <div
-                className="text-xs px-8 py-3.5 rounded-full font-bold tracking-wide w-fit"
-                style={{ background: "rgba(0,0,0,0.4)", color: COLORS[i], border: `1px solid ${COLORS[i]}22`, marginTop: "var(--sp-badge-mb)" }}
-              >
-                {f.badge}
-              </div>
+              {f.badge ? (
+                <div
+                  className="text-xs px-8 py-3.5 rounded-full font-bold tracking-wide w-fit"
+                  style={{ background: "rgba(0,0,0,0.4)", color: COLORS[i], border: `1px solid ${COLORS[i]}22`, marginTop: "var(--sp-badge-mb)" }}
+                >
+                  {f.badge}
+                </div>
+              ) : null}
               <div className="absolute top-0 right-0 w-12 h-12 rounded-tr-2xl pointer-events-none overflow-hidden">
                 <div className="absolute -top-6 -right-6 w-12 h-12 rounded-full opacity-15"
                   style={{ background: COLORS[i] }} />
