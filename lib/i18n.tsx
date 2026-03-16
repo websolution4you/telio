@@ -183,7 +183,7 @@ export const translations = {
         {
           name: "Enterprise",
           description: "For chains, franchises, and platforms that need scale.",
-          features: ["Unlimited businesses", "Unlimited calls", "Custom AI voice & persona", "SLA guarantee (99.9%)", "Custom integrations", "Onboarding & training", "Dedicated account manager"],
+          features: ["Unlimited businesses", "Unlimited calls", "Custom AI voice & persona", "Full analytics dashboard", "Priority support", "Maximum availability and stability (99.9%)", "Custom integrations", "Onboarding & training"],
           cta: "Contact us", highlighted: false, badge: null,
         },
       ],
@@ -396,7 +396,7 @@ export const translations = {
         {
           name: "Enterprise",
           description: "Pre siete, franšízy a platformy, ktoré potrebujú škálovanie.",
-          features: ["Neobmedzené prevádzky", "Neobmedzené hovory", "Vlastný AI hlas a persona", "SLA garancia (99,9 %)", "Vlastné integrácie", "Onboarding a školenie", "Dedikovaný account manager"],
+          features: ["Neobmedzené prevádzky", "Neobmedzené hovory", "Vlastný AI hlas a persona", "Kompletný analytický dashboard", "Prioritná podpora", "Maximálna dostupnosť a stabilita (99,9 %)", "Vlastné integrácie", "Onboarding a školenie"],
           cta: "Kontaktujte nás", highlighted: false, badge: null,
         },
       ],
