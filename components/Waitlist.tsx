@@ -76,7 +76,7 @@ export default function Waitlist() {
         {/* Form / Success */}
         {!submitted ? (
           <form onSubmit={handleSubmit}
-            className={`flex flex-col sm:flex-row gap-3 transition-all duration-700 delay-300 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+            className={`flex flex-col gap-3 transition-all duration-700 delay-300 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
             style={{ maxWidth: "36rem", margin: "0 auto", marginBottom: "var(--sp-badge-mb)", width: "100%" }}>
             <input
               type="email" required
@@ -99,7 +99,7 @@ export default function Waitlist() {
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
             />
             <button type="submit" disabled={loading}
-              className="btn-primary btn-xl w-full sm:w-auto text-sm font-bold whitespace-nowrap flex items-center justify-center gap-2"
+              className="btn-primary btn-xl w-full text-sm font-bold whitespace-nowrap flex items-center justify-center gap-2"
               style={{ height: "64px", minHeight: "64px", flexShrink: 0 }}>
               {loading
                 ? <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
