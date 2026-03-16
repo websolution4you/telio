@@ -177,7 +177,7 @@ export const translations = {
         {
           name: "Business",
           description: "For growing businesses that need more capacity and power.",
-          features: ["1 business / phone number", "700 minutes / month", "All business modes", "Google Calendar + Maps", "WhatsApp + SMS dispatch", "Custom AI persona name", "Full analytics dashboard", "Priority support"],
+          features: ["1 business / phone number", "700 minutes / month", "Mode according to business type", "Google Calendar + Maps", "WhatsApp + SMS dispatch", "Custom AI persona name", "Full analytics dashboard", "Priority support"],
           cta: "Contact us", highlighted: true, badge: "Most popular",
         },
         {
@@ -192,11 +192,11 @@ export const translations = {
       badge: "Beta version 1.0 · Limited spots",
       h2a: "Be among the first to automate",
       h2b: "your business.",
-      sub: "Join businesses already on the waitlist. We are rolling out the production version in groups — get in early for priority access and launch pricing.",
+      sub: "Join the companies already on the waitlist to scale their business. We are rolling out the production version in batches — register as soon as possible for priority access and introductory pricing.",
       placeholder: "your@email.com",
       cta: "Join Waitlist →",
       successTitle: "You're on the list!",
-      successSub: "We'll be in touch soon. Check your email for confirmation.",
+      successSub: "We will contact you within 48 hours. Please check your inbox.",
       businesses: ["Restaurant", "Taxi", "Dental / Clinic", "Pizzeria", "Salon", "Other"],
       trust: ["No credit card required", "14-day free trial", "Cancel anytime"],
     },
@@ -390,7 +390,7 @@ export const translations = {
         {
           name: "Business",
           description: "Pre rastúce prevádzky, ktoré potrebujú väčšiu kapacitu a výkon.",
-          features: ["1 prevádzka / telefónne číslo", "700 minút / mesiac", "Všetky obchodné režimy", "Google Calendar + Maps", "Dispečing cez WhatsApp + SMS", "Vlastné meno AI persony", "Kompletný analytický dashboard", "Prioritná podpora"],
+          features: ["1 prevádzka / telefónne číslo", "700 minút / mesiac", "Režim podľa prevádzky", "Google Calendar + Maps", "Dispečing cez WhatsApp + SMS", "Vlastné meno AI persony", "Kompletný analytický dashboard", "Prioritná podpora"],
           cta: "Kontaktujte nás", highlighted: true, badge: "Najpopulárnejší",
         },
         {
