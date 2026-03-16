@@ -42,7 +42,7 @@ export default function Pricing() {
         </div>
 
         {/* Plans grid — equal height, proper spacing */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 xl:gap-8 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 xl:gap-8 items-stretch">
           {t.pricing.plans.map((plan, i) => (
             <div
               key={plan.name}
@@ -59,8 +59,6 @@ export default function Pricing() {
                 boxShadow: plan.highlighted
                   ? "0 0 50px rgba(0,255,209,0.08), 0 0 100px rgba(123,97,255,0.06)"
                   : "none",
-                marginTop: plan.highlighted ? "-8px" : "0",
-                paddingTop: plan.highlighted ? "3rem" : undefined,
               }}
             >
               {/* Badge */}
@@ -72,22 +70,13 @@ export default function Pricing() {
               )}
 
               {/* Plan header */}
-              <div style={{ marginBottom: "var(--sp-item-gap)" }}>
-                <div className="text-xs font-bold tracking-widest uppercase mb-6"
-                  style={{ color: plan.highlighted ? "var(--cyan)" : "var(--text-muted)" }}>
+              <div className="text-center" style={{ marginBottom: "var(--sp-item-gap)" }}>
+                <div className="font-bold tracking-widest uppercase mb-12"
+                  style={{
+                    color: plan.highlighted ? "var(--cyan)" : "var(--text-muted)",
+                    fontSize: "1.1rem"
+                  }}>
                   {plan.name}
-                </div>
-                <div className="flex items-end gap-1.5 mb-6">
-                  <span className="font-extrabold leading-none"
-                    style={{
-                      fontSize: plan.price === "Custom" ? "2.2rem" : "3rem",
-                      color: plan.highlighted ? "var(--cyan)" : "white", letterSpacing: "-0.04em"
-                    }}>
-                    {plan.price}
-                  </span>
-                  {plan.period && (
-                    <span className="mb-1.5 text-sm" style={{ color: "var(--text-muted)" }}>{plan.period}</span>
-                  )}
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
                   {plan.description}
