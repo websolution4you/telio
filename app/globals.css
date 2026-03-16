@@ -210,6 +210,12 @@ body {
   border-radius: 16px;
 }
 
+.input-xl {
+  padding: 1.25rem 1.5rem;
+  border-radius: 16px;
+  line-height: normal;
+}
+
 .btn-primary:hover {
   opacity: 0.9;
   transform: translateY(-1px);

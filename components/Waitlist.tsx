@@ -77,19 +77,30 @@ export default function Waitlist() {
         {!submitted ? (
           <form onSubmit={handleSubmit}
             className={`flex flex-col sm:flex-row gap-3 transition-all duration-700 delay-300 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
-            style={{ maxWidth: "36rem", margin: "0 auto", marginBottom: "var(--sp-badge-mb)" }}>
+            style={{ maxWidth: "36rem", margin: "0 auto", marginBottom: "var(--sp-badge-mb)", width: "100%" }}>
             <input
               type="email" required
               placeholder={t.waitlist.placeholder}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="flex-1 px-5 py-3.5 rounded-xl text-sm outline-none transition-all duration-200"
-              style={{ background: "rgba(12,12,20,0.9)", border: "1px solid var(--border)", color: "var(--text)" }}
+              className="input-xl outline-none transition-all duration-200"
+              style={{
+                background: "rgba(12,12,20,0.9)",
+                border: "1px solid var(--border)",
+                color: "var(--text)",
+                width: "100%",
+                height: "64px",
+                minHeight: "64px",
+                flexShrink: 0,
+                padding: "0 1.5rem",
+                boxSizing: "border-box"
+              }}
               onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(0,255,209,0.4)")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
             />
             <button type="submit" disabled={loading}
-              className="btn-primary btn-xl text-sm font-bold whitespace-nowrap flex items-center justify-center gap-2">
+              className="btn-primary btn-xl w-full sm:w-auto text-sm font-bold whitespace-nowrap flex items-center justify-center gap-2"
+              style={{ height: "64px", minHeight: "64px", flexShrink: 0 }}>
               {loading
                 ? <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                 : t.waitlist.cta}
