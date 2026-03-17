@@ -39,8 +39,14 @@ export default function DemoCallButton() {
 
             newDevice.on("error", (error) => {
                 console.error("Twilio Device Error:", error);
-                setStatus("error");
-                setErrorMsg(error.message);
+                // Only show error status if we are NOT in an active call
+                setCall((currentCall) => {
+                    if (!currentCall || currentCall.status() === "closed") {
+                        setStatus("error");
+                        setErrorMsg(error.message);
+                    }
+                    return currentCall;
+                });
             });
 
             // Rozdelenie register() a connect()
@@ -73,16 +79,15 @@ export default function DemoCallButton() {
             });
 
             newCall.on("disconnect", () => {
-                setStatus("idle");
-                setCall(null);
-                console.log("Call disconnected");
+                console.log("Call disconnected event");
+                handleEndCall();
             });
 
             newCall.on("error", (error) => {
                 console.error("Call error:", error);
                 setStatus("error");
                 setErrorMsg(error.message);
-                setCall(null);
+                handleEndCall();
             });
 
             setCall(newCall);
@@ -96,8 +101,11 @@ export default function DemoCallButton() {
     const handleEndCall = () => {
         if (call) {
             call.disconnect();
-        } else if (deviceRef.current) {
+        } 
+        if (deviceRef.current) {
             deviceRef.current.disconnectAll();
+            // We keep the device registered for potential next calls, 
+            // but we reset the UI state.
         }
         setStatus("idle");
         setCall(null);
