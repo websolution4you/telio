@@ -34,7 +34,7 @@ export default function Navbar() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+      className={`fixed top-0 left-0 right-0 transition-all duration-300 ${menuOpen ? "z-[1001]" : "z-[100]"}`}
       style={{
         background: scrolled ? "rgba(5,5,8,0.92)" : "transparent",
         backdropFilter: scrolled ? "blur(24px)" : "none",
@@ -146,7 +146,7 @@ export default function Navbar() {
 
       {/* Mobile Side Menu */}
       <div
-        className={`fixed inset-0 z-50 transition-all duration-500 ease-in-out md:hidden ${menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        className={`fixed inset-0 z-[1001] transition-all duration-500 ease-in-out md:hidden ${menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
       >
         {/* Backdrop overlay */}
         <div
