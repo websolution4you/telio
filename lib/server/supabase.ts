@@ -1,28 +1,39 @@
 import { createClient } from "@supabase/supabase-js";
 
-export function getCoreDb() {
-    const url = process.env.CORE_SUPABASE_URL!;
-    const key = process.env.CORE_SUPABASE_SERVICE_ROLE_KEY!;
+function createNamedClient(url: string | undefined, key: string | undefined, label: string) {
     if (!url || !key) {
-        console.warn("CORE_SUPABASE_URL or CORE_SUPABASE_SERVICE_ROLE_KEY is missing");
+        console.warn(`${label} Supabase credentials are missing`);
     }
+
     return createClient(url || "", key || "");
+}
+
+export function hasSharedDbConfig() {
+    return Boolean(
+        process.env.SHARED_SUPABASE_URL && process.env.SHARED_SUPABASE_SERVICE_ROLE_KEY
+    );
+}
+
+export function getCoreDb() {
+    return createNamedClient(
+        process.env.CORE_SUPABASE_URL,
+        process.env.CORE_SUPABASE_SERVICE_ROLE_KEY,
+        "CORE"
+    );
+}
+
+export function getSharedDb() {
+    return createNamedClient(
+        process.env.SHARED_SUPABASE_URL,
+        process.env.SHARED_SUPABASE_SERVICE_ROLE_KEY,
+        "SHARED"
+    );
 }
 
 export function getPizzaDb() {
-    const url = process.env.PIZZA_SUPABASE_URL!;
-    const key = process.env.PIZZA_SUPABASE_SERVICE_ROLE_KEY!;
-    if (!url || !key) {
-        console.warn("PIZZA_SUPABASE_URL or PIZZA_SUPABASE_SERVICE_ROLE_KEY is missing");
-    }
-    return createClient(url || "", key || "");
+    return getCoreDb();
 }
 
 export function getTaxiDb() {
-    const url = process.env.TAXI_SUPABASE_URL!;
-    const key = process.env.TAXI_SUPABASE_SERVICE_ROLE_KEY!;
-    if (!url || !key) {
-        console.warn("TAXI_SUPABASE_URL or TAXI_SUPABASE_SERVICE_ROLE_KEY is missing");
-    }
-    return createClient(url || "", key || "");
+    return getCoreDb();
 }

@@ -139,6 +139,7 @@ export default function DashboardPage() {
 
     const [loading, setLoading] = useState(true);
     const [dataSource, setDataSource] = useState<"server" | "mock">("mock");
+    const [realtimeOrdersTable, setRealtimeOrdersTable] = useState("pizza_orders");
 
     const updateOrdersAndKpis = useCallback((newOrders: PizzaOrder[], weekOrders: PizzaOrder[]) => {
         setOrders(newOrders);
@@ -156,6 +157,9 @@ export default function DashboardPage() {
                 updateOrdersAndKpis(res.data.ordersToday as PizzaOrder[], res.data.ordersWeek as PizzaOrder[]);
                 setMenuItems(res.data.menuItems);
                 setDbStreets(res.data.streets);
+                if (res.data.tables?.orders) {
+                    setRealtimeOrdersTable(res.data.tables.orders);
+                }
                 setDataSource("server");
             } else {
                 console.warn("Server action error, using mock:", res.error);
@@ -175,15 +179,23 @@ export default function DashboardPage() {
     useEffect(() => {
         fetchData();
 
-        // 1. Realtime odber zmien (okamžitá reakcia na nové objednávky)
+        // 2. Poistka - refresh každých 30 sekúnd
+        const interval = setInterval(fetchData, 30000);
+
+        return () => {
+            clearInterval(interval);
+        };
+    }, [fetchData]);
+
+    useEffect(() => {
         const ordersSub = supabase
             .channel('pizza-orders-realtime')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pizza_orders' }, () => {
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: realtimeOrdersTable }, () => {
                 console.log("Realtime (pizza): New order inserted!");
                 fetchData();
                 playNotificationSound();
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'pizza_orders' }, (payload) => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: realtimeOrdersTable }, (payload) => {
                 console.log("Realtime (pizza): Change detected", payload.eventType);
                 if (payload.eventType !== 'INSERT') fetchData();
             })
@@ -191,14 +203,10 @@ export default function DashboardPage() {
                 console.log("Realtime (pizza) status:", status);
             });
 
-        // 2. Poistka - refresh každých 30 sekúnd
-        const interval = setInterval(fetchData, 30000);
-
         return () => {
-            clearInterval(interval);
             supabase.removeChannel(ordersSub);
         };
-    }, [fetchData]);
+    }, [fetchData, realtimeOrdersTable]);
 
     const salesData = buildSalesData(allWeekOrders.length > 0 ? allWeekOrders : orders);
     const heatmap = buildHeatmapData(allWeekOrders.length > 0 ? allWeekOrders : orders);

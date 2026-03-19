@@ -380,6 +380,7 @@ export default function TaxiDashboardPage() {
 
     const [loading, setLoading] = useState(true);
     const [dataSource, setDataSource] = useState<"server" | "mock">("mock");
+    const [realtimeTables, setRealtimeTables] = useState({ rides: "taxi_rides", calls: "calls" });
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -389,6 +390,17 @@ export default function TaxiDashboardPage() {
                 setRidesToday(res.data.ridesToday as TaxiRide[]);
                 setAllWeekRides(res.data.ridesWeek as TaxiRide[]);
                 setCalls(res.data.calls || []);
+                if (res.data.tables?.rides || res.data.tables?.calls) {
+                    const nextRealtimeTables = {
+                        rides: res.data.tables?.rides || "taxi_rides",
+                        calls: res.data.tables?.calls || "calls",
+                    };
+                    setRealtimeTables((current) =>
+                        current.rides === nextRealtimeTables.rides && current.calls === nextRealtimeTables.calls
+                            ? current
+                            : nextRealtimeTables
+                    );
+                }
 
                 // Fallback na mock cenník ak by taxi_rate_cards neexistovala alebo bola úplne prázdna (aby "cennik nechybal uplne")
                 const fetchedPrices = res.data.prices as TaxiPrice[];
@@ -418,15 +430,23 @@ export default function TaxiDashboardPage() {
     useEffect(() => {
         fetchData();
 
-        // 1. Realtime odber zmien (okamžitá reakcia)
+        // 2. Poistka - refresh každých 30 sekúnd
+        const interval = setInterval(fetchData, 30000);
+
+        return () => {
+            clearInterval(interval);
+        };
+    }, [fetchData]);
+
+    useEffect(() => {
         const ridesSub = taxiSupabase
             .channel('taxi-rides-realtime')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'taxi_rides' }, () => {
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: realtimeTables.rides }, () => {
                 console.log("Realtime: New ride inserted!");
                 fetchData();
                 playNotificationSound();
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'taxi_rides' }, (payload) => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: realtimeTables.rides }, (payload) => {
                 console.log("Realtime: Ride change detected", payload.eventType);
                 if (payload.eventType !== 'INSERT') fetchData();
             })
@@ -436,12 +456,12 @@ export default function TaxiDashboardPage() {
 
         const callsSub = taxiSupabase
             .channel('taxi-calls-realtime')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'calls' }, () => {
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: realtimeTables.calls }, () => {
                 console.log("Realtime: New call inserted!");
                 fetchData();
                 playNotificationSound();
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'calls' }, (payload) => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: realtimeTables.calls }, (payload) => {
                 console.log("Realtime: Call change detected", payload.eventType);
                 if (payload.eventType !== 'INSERT') fetchData();
             })
@@ -449,15 +469,11 @@ export default function TaxiDashboardPage() {
                 console.log("Realtime (calls) status:", status);
             });
 
-        // 2. Poistka - refresh každých 30 sekúnd
-        const interval = setInterval(fetchData, 30000);
-
         return () => {
-            clearInterval(interval);
             taxiSupabase.removeChannel(ridesSub);
             taxiSupabase.removeChannel(callsSub);
         };
-    }, [fetchData]);
+    }, [fetchData, realtimeTables]);
 
     const salesData = useMemo(() => buildTaxiSalesData(allWeekRides.length > 0 ? allWeekRides : ridesToday), [allWeekRides, ridesToday]);
     const heatmap = useMemo(() => buildTaxiHeatmapData(allWeekRides.length > 0 ? allWeekRides : ridesToday), [allWeekRides, ridesToday]);
