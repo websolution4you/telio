@@ -45,9 +45,9 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
                 </div>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))", gap: "1rem" }}>
                 {(!items || items.length === 0) ? (
-                    <div style={{ padding: "1rem", color: "var(--text-muted)", fontSize: "0.85rem", textAlign: "center" }}>
+                    <div style={{ padding: "1rem", color: "var(--text-muted)", fontSize: "0.85rem", textAlign: "center", gridColumn: "1 / -1" }}>
                         Zatiaľ nie sú pridané žiadne položky.
                     </div>
                 ) : items.map((item) => (
@@ -148,7 +148,7 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
             transition: border-color 0.2s;
                 }
             .edit-input:focus {
-                border - color: var(--cyan);
+                border-color: var(--cyan);
                 }
             `}} />
         </div>

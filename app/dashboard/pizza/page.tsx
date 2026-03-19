@@ -282,17 +282,13 @@ export default function DashboardPage() {
                     <OrdersHeatmap data={heatmap.data} days={heatmap.days} />
                 </div>
 
-                {/* Orders Map and Menu Table */}
-                <div
-                    className="charts-row"
-                    style={{
-                        display: "flex",
-                        gap: "1.5rem",
-                        marginTop: "1.5rem",
-                        alignItems: "flex-start",
-                    }}
-                >
+                {/* Full-width Orders Map */}
+                <div style={{ marginTop: "1.5rem" }}>
                     <OrdersMap ordersToday={orders} ordersWeek={allWeekOrders} dbStreets={dbStreets} />
+                </div>
+
+                {/* Menu Table below the map */}
+                <div style={{ marginTop: "1.5rem" }}>
                     <MenuTable items={menuItems} onRefresh={fetchData} />
                 </div>
             </main>
