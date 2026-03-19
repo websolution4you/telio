@@ -19,8 +19,9 @@ export default function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
                         const el = document.getElementById('menu-section');
                         if (el) el.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200"
+                    className="flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200"
                     style={{
+                        padding: "2px 7px",
                         border: "1px solid var(--border)",
                         color: "var(--text)",
                         background: "rgba(0,255,209,0.05)",
@@ -36,13 +37,13 @@ export default function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
                         e.currentTarget.style.color = "var(--text)";
                     }}
                 >
-                    <LayoutGrid size={16} />
                     Menu
                 </button>
                 <button
                     onClick={onRefresh}
-                    className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200"
+                    className="flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200"
                     style={{
+                        padding: "2px 7px",
                         border: "1px solid var(--border)",
                         color: "var(--text)",
                         background: "rgba(255,255,255,0.03)",
@@ -58,12 +59,12 @@ export default function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
                         e.currentTarget.style.color = "var(--text)";
                     }}
                 >
-                    <RefreshCw size={16} />
                     Refresh
                 </button>
                 <button
-                    className="flex items-center gap-2 px-8 py-3 rounded-lg text-sm font-bold transition-all duration-200 hover:scale-105 active:scale-95"
+                    className="flex items-center justify-center rounded-lg text-sm font-bold transition-all duration-200 hover:scale-105 active:scale-95"
                     style={{
+                        padding: "2px 7px",
                         background: "linear-gradient(135deg, #00FFD1, #00c9a7)",
                         color: "#050508",
                         boxShadow: "0 8px 16px rgba(0, 255, 209, 0.25)",
@@ -71,7 +72,6 @@ export default function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
                         cursor: "pointer"
                     }}
                 >
-                    <Download size={16} />
                     Export
                 </button>
             </div>
