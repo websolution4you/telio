@@ -256,7 +256,7 @@ export default function DashboardPage() {
 
                 {/* Main: Orders Table */}
                 <div style={{ marginBottom: "1.5rem" }}>
-                    <OrdersTable orders={allWeekOrders.length > 0 ? allWeekOrders.slice(0, 20) : orders.slice(0, 20)} />
+                    <OrdersTable orders={allWeekOrders.length > 0 ? allWeekOrders.slice(0, 10) : orders.slice(0, 10)} />
                 </div>
 
                 {/* Upsell + SalesChart + Heatmap row */}
@@ -288,7 +288,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Menu Table below the map */}
-                <div style={{ marginTop: "1.5rem" }}>
+                <div id="menu-section" style={{ marginTop: "1.5rem" }}>
                     <MenuTable items={menuItems} onRefresh={fetchData} />
                 </div>
             </main>
