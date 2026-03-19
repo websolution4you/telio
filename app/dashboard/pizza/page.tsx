@@ -154,6 +154,7 @@ export default function DashboardPage() {
         try {
             const res = await fetchPizzaDashboardAction();
             if (res.success && res.data) {
+                console.log(`[DEBUG] Dashboard fetched: Today=${res.data.ordersToday?.length}, Week=${res.data.ordersWeek?.length}, Streets=${res.data.streets?.length}`);
                 updateOrdersAndKpis(res.data.ordersToday as PizzaOrder[], res.data.ordersWeek as PizzaOrder[]);
                 setMenuItems(res.data.menuItems);
                 setDbStreets(res.data.streets);
