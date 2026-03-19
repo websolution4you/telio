@@ -430,11 +430,7 @@ export default function TaxiDashboardPage() {
     useEffect(() => {
         fetchData();
 
-        // 2. Poistka - refresh každých 30 sekúnd
-        const interval = setInterval(fetchData, 30000);
-
         return () => {
-            clearInterval(interval);
         };
     }, [fetchData]);
 
