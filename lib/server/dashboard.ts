@@ -21,6 +21,7 @@ export async function getPizzaDashboardData(tenantId: string) {
         db
             .from(tables.orders)
             .select("*")
+            .eq("tenant_id", tenantId)
             .gte("created_at", startOfDay.toISOString())
             .lt("created_at", endOfDay.toISOString())
             .order("created_at", { ascending: false })
@@ -70,6 +71,7 @@ export async function getTaxiDashboardData(tenantId: string) {
         db
             .from(tables.rides)
             .select("*")
+            .eq("tenant_id", tenantId)
             .gte("created_at", startOfDay.toISOString())
             .lt("created_at", endOfDay.toISOString())
             .order("created_at", { ascending: false })
