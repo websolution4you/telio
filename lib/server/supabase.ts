@@ -15,6 +15,9 @@ export function hasSharedDbConfig() {
 }
 
 export function getCoreDb() {
+    if (hasSharedDbConfig()) {
+        return getSharedDb();
+    }
     return createNamedClient(
         process.env.CORE_SUPABASE_URL,
         process.env.CORE_SUPABASE_SERVICE_ROLE_KEY,
@@ -31,9 +34,15 @@ export function getSharedDb() {
 }
 
 export function getPizzaDb() {
+    if (hasSharedDbConfig()) {
+        return getSharedDb();
+    }
     return getCoreDb();
 }
 
 export function getTaxiDb() {
+    if (hasSharedDbConfig()) {
+        return getSharedDb();
+    }
     return getCoreDb();
 }
