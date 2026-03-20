@@ -16,21 +16,29 @@ import { taxiSupabase } from "@/lib/supabase";
 const playNotificationSound = () => {
     try {
         const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
+        
+        const playTone = (freq: number, startTime: number, duration: number, volume: number) => {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(freq, startTime);
+            oscillator.frequency.exponentialRampToValueAtTime(freq * 0.8, startTime + duration);
+            
+            gainNode.gain.setValueAtTime(volume, startTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start(startTime);
+            oscillator.stop(startTime + duration);
+        };
 
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Vyšší tón (A5)
-        oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5); // Klesanie k A4
-
-        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.5);
+        const now = audioCtx.currentTime;
+        playTone(1046.50, now, 0.6, 0.1); 
+        playTone(1318.51, now + 0.05, 0.5, 0.07);
+        playTone(1567.98, now + 0.1, 0.4, 0.05);
     } catch (e) {
         console.error("Audio play failed:", e);
     }
