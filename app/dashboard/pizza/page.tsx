@@ -140,6 +140,7 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [dataSource, setDataSource] = useState<"server" | "mock">("mock");
     const [realtimeOrdersTable, setRealtimeOrdersTable] = useState("pizza_orders");
+    const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
     const updateOrdersAndKpis = useCallback((newOrders: PizzaOrder[], weekOrders: PizzaOrder[]) => {
         setOrders(newOrders);
@@ -161,6 +162,7 @@ export default function DashboardPage() {
                 if (res.data.tables?.orders) {
                     setRealtimeOrdersTable(res.data.tables.orders);
                 }
+                setLastUpdated(new Date());
                 setDataSource("server");
             } else {
                 console.warn("Server action error, using mock:", res.error);
@@ -246,7 +248,7 @@ export default function DashboardPage() {
                         {loading
                             ? "Načítavam dáta..."
                             : dataSource === "server"
-                                ? "Live dáta zo Servera"
+                                ? `Live dáta zo Servera • Naposledy: ${lastUpdated.toLocaleTimeString("sk-SK")}`
                                 : "Mock dáta (Server fallback)"}
                     </span>
                 </div>

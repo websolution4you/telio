@@ -1,7 +1,7 @@
 export const TEST_TENANTS = {
-    // Z pizza tenantu v zadaní
-    PIZZA: 'ac3b439d-a446-4d67-abf7-5e04f58647fe',
-    // Vymyslené ID pre zatiaľ nenapojený Taxi tenant
+    // Z pizza tenantu v zadaní (Pizza Levoča)
+    PIZZA: '3e803e21-3177-42ed-974c-a1a1b260b88b',
+    // Taxi Košice
     TAXI: '6076dbf2-8f14-432d-b27d-504ae30b94b2',
 };
 

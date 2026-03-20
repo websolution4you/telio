@@ -3,6 +3,7 @@
 import { getPizzaDashboardData, getTaxiDashboardData } from "@/lib/server/dashboard";
 import { getCurrentTenantId } from "@/lib/config/tenants";
 import { getProjectContext } from "@/lib/server/projectContext";
+import { revalidatePath } from "next/cache";
 
 type UpdatePayload = Record<string, unknown>;
 
@@ -14,6 +15,7 @@ export async function fetchPizzaDashboardAction() {
     try {
         const tenantId = await getCurrentTenantId("pizza");
         const data = await getPizzaDashboardData(tenantId);
+        revalidatePath("/dashboard/pizza");
         return { success: true, data };
     } catch (error: unknown) {
         console.error("fetchPizzaDashboardAction failed:", error);
@@ -25,6 +27,7 @@ export async function fetchTaxiDashboardAction() {
     try {
         const tenantId = await getCurrentTenantId("taxi");
         const data = await getTaxiDashboardData(tenantId);
+        revalidatePath("/dashboard/taxi");
         return { success: true, data };
     } catch (error: unknown) {
         console.error("fetchTaxiDashboardAction failed:", error);

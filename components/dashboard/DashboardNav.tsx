@@ -94,7 +94,7 @@ export default function DashboardNav() {
                                 outline: "none",
                             }}
                         >
-                            <option>Pizzeria Milano</option>
+                            <option>Všetky pobočky</option>
                         </select>
                         <span
                             style={{

@@ -381,6 +381,7 @@ export default function TaxiDashboardPage() {
     const [loading, setLoading] = useState(true);
     const [dataSource, setDataSource] = useState<"server" | "mock">("mock");
     const [realtimeTables, setRealtimeTables] = useState({ rides: "taxi_rides", calls: "calls" });
+    const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -406,6 +407,7 @@ export default function TaxiDashboardPage() {
                 const fetchedPrices = res.data.prices as TaxiPrice[];
                 setPrices(fetchedPrices && fetchedPrices.length > 0 ? fetchedPrices : mockTaxiPrices);
 
+                setLastUpdated(new Date());
                 setDataSource("server");
             } else {
                 console.warn("Server action error, using mock:", res.error);
@@ -507,7 +509,9 @@ export default function TaxiDashboardPage() {
                     <div className="flex items-center gap-2" style={{ marginBottom: "0.5rem" }}>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: dataSource === "server" ? "#4ade80" : "#f59e0b", display: "inline-block" }} />
                         <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                            {dataSource === "server" ? "Live dáta zo Servera" : "Mock dáta (Server fallback)"}
+                            {dataSource === "server" 
+                                ? `Live dáta zo Servera • Naposledy: ${lastUpdated.toLocaleTimeString("sk-SK")}` 
+                                : "Mock dáta (Server fallback)"}
                         </span>
                     </div>
                     <div className="flex items-center justify-between">
