@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/i18n";
 import DemoCallButton from "@/components/DemoCallButton";
+import { Car, Pizza } from "lucide-react";
 
 export default function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -124,7 +125,20 @@ export default function Hero() {
           <a href="#waitlist" className="btn-primary btn-xl w-full sm:w-auto">
             {t.hero.cta1}
           </a>
-          <DemoCallButton />
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            <DemoCallButton 
+              businessType="taxi" 
+              customLabel="Taxi Demo" 
+              icon={<Car className="w-5 h-5 relative z-10" />} 
+            />
+            <DemoCallButton 
+              businessType="pizzeria" 
+              customLabel="Pizzeria Demo" 
+              color="#FF6B35" 
+              icon={<Pizza className="w-5 h-5 relative z-10" />}
+              backendUrl="https://call-agent-65sb.onrender.com" 
+            />
+          </div>
           <a href="#how-it-works" className="btn-ghost btn-xl w-full sm:w-auto">
             {t.hero.cta2}
           </a>

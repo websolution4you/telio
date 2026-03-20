@@ -5,7 +5,21 @@ import { Device, Call } from "@twilio/voice-sdk";
 import { useLang } from "@/lib/i18n";
 import { Phone, PhoneOff, Loader2 } from "lucide-react";
 
-export default function DemoCallButton() {
+interface DemoCallButtonProps {
+    businessType?: string;
+    backendUrl?: string; // Optional custom backend URL (e.g. for Peto's branch)
+    customLabel?: string;
+    icon?: React.ReactNode;
+    color?: string;
+}
+
+export default function DemoCallButton({ 
+    businessType = "taxi", 
+    backendUrl = "https://call-agent-65sb.onrender.com",
+    customLabel,
+    icon,
+    color = "#7B61FF"
+}: DemoCallButtonProps) {
     const { t } = useLang();
     const deviceRef = useRef<Device | null>(null);
     const [call, setCall] = useState<Call | null>(null);
@@ -25,12 +39,14 @@ export default function DemoCallButton() {
             setStatus("connecting");
             setErrorMsg("");
 
-            const response = await fetch("https://call-agent-65sb.onrender.com/twilio/token");
+            // Use the provided backendUrl to fetch the Twilio token
+            const tokenUrl = `${backendUrl.replace(/\/$/, "")}/twilio/token`;
+            const response = await fetch(tokenUrl);
             if (!response.ok) {
-                throw new Error("Failed to fetch token");
+                throw new Error(`Failed to fetch token from ${tokenUrl}`);
             }
             const data = await response.json();
-            const token = data.token; // adjust if your backend returns { accessToken: ... } or similar
+            const token = data.token;
 
             const newDevice = new Device(token, {
                 codecPreferences: [Call.Codec.Opus, Call.Codec.PCMU],
@@ -39,7 +55,6 @@ export default function DemoCallButton() {
 
             newDevice.on("error", (error) => {
                 console.error("Twilio Device Error:", error);
-                // Only show error status if we are NOT in an active call
                 setCall((currentCall) => {
                     if (!currentCall || currentCall.status() === "closed") {
                         setStatus("error");
@@ -49,7 +64,6 @@ export default function DemoCallButton() {
                 });
             });
 
-            // Rozdelenie register() a connect()
             await new Promise<void>((resolve, reject) => {
                 const timeout = setTimeout(() => {
                     reject(new Error("Registration timeout: nepodarilo sa pripojiť k sieti Twilio."));
@@ -66,10 +80,11 @@ export default function DemoCallButton() {
 
             deviceRef.current = newDevice;
 
-            // Zariadenie je teraz plne zaregistrované, môžeme spustiť hovor
+            // Connect and pass the business_type as a parameter
             const newCall = await newDevice.connect({
                 params: {
                     source: "web-demo",
+                    business_type: businessType
                 },
             });
 
@@ -104,42 +119,42 @@ export default function DemoCallButton() {
         } 
         if (deviceRef.current) {
             deviceRef.current.disconnectAll();
-            // We keep the device registered for potential next calls, 
-            // but we reset the UI state.
         }
         setStatus("idle");
         setCall(null);
     };
 
+    const label = customLabel || t.demoCall.tryDemo;
+
     return (
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center w-full">
             {status === "idle" || status === "error" ? (
                 <button
                     onClick={handleStartCall}
-                    className="btn-primary btn-xl w-full sm:w-auto flex items-center justify-center gap-2 relative overflow-hidden group"
-                    style={{ background: "#7B61FF", borderColor: "#7B61FF" }}
+                    className="btn-primary btn-xl w-full flex items-center justify-center gap-2 relative overflow-hidden group"
+                    style={{ background: color, borderColor: color }}
                 >
                     <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out" />
-                    <Phone className="w-5 h-5 relative z-10" />
-                    <span className="relative z-10">{t.demoCall.tryDemo}</span>
+                    {icon || <Phone className="w-5 h-5 relative z-10" />}
+                    <span className="relative z-10 whitespace-nowrap">{label}</span>
                 </button>
             ) : status === "connecting" ? (
                 <button
                     disabled
-                    className="btn-primary btn-xl w-full sm:w-auto flex items-center justify-center gap-2 opacity-80 cursor-not-allowed"
-                    style={{ background: "#7B61FF", borderColor: "#7B61FF" }}
+                    className="btn-primary btn-xl w-full flex items-center justify-center gap-2 opacity-80 cursor-not-allowed"
+                    style={{ background: color, borderColor: color }}
                 >
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>{t.demoCall.connecting}</span>
+                    <span className="whitespace-nowrap">{t.demoCall.connecting}</span>
                 </button>
             ) : (
                 <button
                     onClick={handleEndCall}
-                    className="btn-xl w-full sm:w-auto flex items-center justify-center gap-2 rounded-full font-semibold transition-all shadow-lg active:scale-95"
+                    className="btn-xl w-full flex items-center justify-center gap-2 rounded-full font-semibold transition-all shadow-lg active:scale-95"
                     style={{ backgroundColor: "#ef4444", color: "white", padding: "0.875rem 2rem" }}
                 >
                     <PhoneOff className="w-5 h-5" />
-                    <span>{t.demoCall.endCall}</span>
+                    <span className="whitespace-nowrap">{t.demoCall.endCall}</span>
                     <div className="w-2 h-2 rounded-full bg-white animate-pulse-glow ml-2" />
                 </button>
             )}
