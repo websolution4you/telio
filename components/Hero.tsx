@@ -126,10 +126,11 @@ export default function Hero() {
             {t.hero.cta1}
           </a>
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <DemoCallButton
-              businessType="taxi"
-              customLabel="Taxi Demo"
-              icon={<Car className="w-5 h-5 relative z-10" />}
+            <DemoCallButton 
+              businessType="taxi" 
+              customLabel="Taxi Demo" 
+              icon={<Car className="w-5 h-5 relative z-10" />} 
+              backendUrl="https://call-agent-65sb.onrender.com"
             />
             <DemoCallButton
               businessType="pizzeria"
