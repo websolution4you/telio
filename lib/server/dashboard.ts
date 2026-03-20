@@ -1,155 +1,156 @@
-import { getCoreDb, getPizzaDb, getTaxiDb } from "./supabase";
-
-export async function getTenantDataSource(tenantId: string) {
-    const coreDb = getCoreDb();
-
-    // Načíta tenant konfiguráciu
-    const { data: tenant, error: tErr } = await coreDb
-        .from("tenants")
-        .select("*")
-        .eq("id", tenantId)
-        .single();
-
-    if (tErr || !tenant) {
-        throw new Error("Tenant not found or error loading tenant data.");
-    }
-
-    // Načíta data_source pre daný tenant
-    const { data: dataSource, error: dsErr } = await coreDb
-        .from("data_sources")
-        .select("*")
-        .eq("tenant_id", tenantId)
-        .single();
-
-    if (dsErr || !dataSource) {
-        throw new Error("Data source not found for this tenant.");
-    }
-
-    return { tenant, dataSource };
-}
+import { getProjectContext } from "./projectContext";
 
 export async function getPizzaDashboardData(tenantId: string) {
-    // 1. Získa routing informácie z Core DB
-    const { tenant, dataSource } = await getTenantDataSource(tenantId);
+    const context = await getProjectContext(tenantId, "pizza");
+    const { db, tables, realtimeTables } = context;
 
-    if (tenant.project_type !== "pizza") {
-        throw new Error("Tento tenant nemá projekt typu pizza (architektúra pripravená na ďalšie typy).");
-    }
-
-    // 2. Načíta dáta z cieľovej (Pizza) DB pre dashboard
-    const pizzaDb = getPizzaDb();
-
+    // Explicitly calculate start/end of day for Slovakia (UTC+1)
+    // To be safe, we calculate what "today" means in UTC for a UTC+1 observer
     const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const slovakiaNow = new Date(now.getTime() + (1 * 60 * 60 * 1000)); // Shift to UTC+1
+    const startOfDay = new Date(Date.UTC(slovakiaNow.getUTCFullYear(), slovakiaNow.getUTCMonth(), slovakiaNow.getUTCDate(), 0, 0, 0));
+    startOfDay.setTime(startOfDay.getTime() - (1 * 60 * 60 * 1000)); // Shift back to UTC for DB query
+    
     const endOfDay = new Date(startOfDay);
-    endOfDay.setDate(endOfDay.getDate() + 1);
+    endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
 
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
+    console.log(`[DEBUG] Dashboard Range (UTC): ${startOfDay.toISOString()} to ${endOfDay.toISOString()}`);
 
-    // Parallel fetching
     const [
         { data: ordersToday },
         { data: ordersWeek },
         { data: menuItems },
-        { data: streets }
+        { data: streets },
     ] = await Promise.all([
-        pizzaDb
-            .from("pizza_orders")
+        db
+            .from(tables.orders)
             .select("*")
+            // Odstránený tenant filter pre zobrazenie všetkých
             .gte("created_at", startOfDay.toISOString())
             .lt("created_at", endOfDay.toISOString())
             .order("created_at", { ascending: false })
-            .limit(50),
-        pizzaDb
-            .from("pizza_orders")
+            .limit(100),
+        db
+            .from(tables.orders)
             .select("*")
-            .gte("created_at", weekAgo.toISOString())
+            // Odstránený tenant filter pre zobrazenie všetkých
             .order("created_at", { ascending: false })
             .limit(500),
-        pizzaDb
-            .from("menu_items")
+        db
+            .from(tables.menuItems)
             .select("*")
             .order("id"),
-        pizzaDb
-            .from("streets")
-            .select("name")
+        db
+            .from(tables.streets)
+            .select("name"),
     ]);
+
+    const kpisToday = calculateKpis(ordersToday || []);
+    const kpisWeek = calculateKpis(ordersWeek || []);
 
     return {
         ordersToday: ordersToday || [],
         ordersWeek: ordersWeek || [],
+        kpisToday,
+        kpisWeek,
         menuItems: menuItems || [],
-        streets: (streets || []).map((s: any) => s.name)
+        streets: (streets || []).map((street: { name: string }) => street.name),
+        realtimeTables,
+        tables,
     };
 }
 
 export async function getTaxiDashboardData(tenantId: string) {
-    // 1. Získa routing informácie z Core DB (nepovinné pre data_source)
-    // Keďže nepoužívame data source zatial tak isto, len validujeme tenanta
-    const coreDb = getCoreDb();
-    const { data: tenant, error: tErr } = await coreDb
-        .from("tenants")
-        .select("*")
-        .eq("id", tenantId)
-        .single();
-    if (tErr || !tenant) {
-        throw new Error("Tenant not found.");
-    }
+    const context = await getProjectContext(tenantId, "taxi");
+    const { db, tables, realtimeTables } = context;
 
-    if (tenant.project_type !== "taxi") {
-        throw new Error("Tento tenant nemá projekt typu taxi.");
-    }
-
-    // 2. Načíta dáta z cieľovej (Taxi) DB pre dashboard
-    const taxiDb = getTaxiDb();
-
+    // Explicitly calculate start/end of day for Slovakia (UTC+1)
     const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const slovakiaNow = new Date(now.getTime() + (1 * 60 * 60 * 1000));
+    const startOfDay = new Date(Date.UTC(slovakiaNow.getUTCFullYear(), slovakiaNow.getUTCMonth(), slovakiaNow.getUTCDate(), 0, 0, 0));
+    startOfDay.setTime(startOfDay.getTime() - (1 * 60 * 60 * 1000));
+    
     const endOfDay = new Date(startOfDay);
-    endOfDay.setDate(endOfDay.getDate() + 1);
+    endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
 
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-
-    // Parallel fetching
     const [
         { data: ridesToday },
         { data: ridesWeek },
         { data: prices },
-        { data: calls }
+        { data: calls },
     ] = await Promise.all([
-        taxiDb
-            .from("taxi_rides")
+        db
+            .from(tables.rides)
             .select("*")
+            // Odstránený tenant filter pre zobrazenie všetkých
             .gte("created_at", startOfDay.toISOString())
             .lt("created_at", endOfDay.toISOString())
             .order("created_at", { ascending: false })
-            .limit(50),
-        taxiDb
-            .from("taxi_rides")
+            .limit(100),
+        db
+            .from(tables.rides)
             .select("*")
-            .gte("created_at", weekAgo.toISOString())
+            // Odstránený tenant filter pre zobrazenie všetkých
             .order("created_at", { ascending: false })
             .limit(500),
-        taxiDb
-            .from("taxi_rate_cards")
+        db
+            .from(tables.prices)
             .select("*")
             .order("id"),
-        taxiDb
-            .from("calls")
+        db
+            .from(tables.calls)
             .select("*")
-            .gte("started_at", weekAgo.toISOString())
             .order("started_at", { ascending: false })
-            .limit(100)
+            .limit(100),
     ]);
 
-    console.log(`[DEBUG] Taxi Dashboard: RidesToday=${ridesToday?.length}, RidesWeek=${ridesWeek?.length}, Calls=${calls?.length}`);
+    const kpisToday = calculateTaxiKpis(ridesToday || []);
+    const kpisWeek = calculateTaxiKpis(ridesWeek || []);
 
     return {
         ridesToday: ridesToday || [],
         ridesWeek: ridesWeek || [],
+        kpisToday,
+        kpisWeek,
         prices: prices || [],
-        calls: calls || []
+        calls: (calls || []).slice(0, 50),
+        realtimeTables,
+        tables,
+    };
+}
+
+function calculateKpis(orders: any[]) {
+    const totalOrders = orders.length;
+    let totalRevenue = 0;
+    
+    orders.forEach(order => {
+        const price = parseFloat(order.total_price);
+        if (!isNaN(price)) {
+            totalRevenue += price;
+        }
+    });
+
+    return {
+        totalOrders,
+        totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+        averageOrderValue: totalOrders > 0 ? parseFloat((totalRevenue / totalOrders).toFixed(2)) : 0
+    };
+}
+
+function calculateTaxiKpis(rides: any[]) {
+    const totalRides = rides.length;
+    let totalRevenue = 0;
+    
+    rides.forEach(ride => {
+        const price = parseFloat(ride.total_price);
+        if (!isNaN(price)) {
+            totalRevenue += price;
+        }
+    });
+
+    return {
+        totalRides,
+        totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+        averageRideValue: totalRides > 0 ? parseFloat((totalRevenue / totalRides).toFixed(2)) : 0
     };
 }

@@ -1,11 +1,50 @@
 import { createClient } from "@supabase/supabase-js";
 
-// General / Pizza Project
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-export const supabase = createClient(supabaseUrl, supabaseKey);
+function createNamedClient(url: string | undefined, key: string | undefined, label: string) {
+    if (!url || !key) {
+        console.warn(`${label} Supabase client credentials are missing`);
+    }
 
-// Taxi Project (potrebujeme NEXT_PUBLIC_ predponu pre client-side)
-const taxiUrl = process.env.NEXT_PUBLIC_TAXI_SUPABASE_URL || "https://tutzmgzznuiceqrcxxhw.supabase.co";
-const taxiKey = process.env.NEXT_PUBLIC_TAXI_SUPABASE_ANON_KEY || "";
-export const taxiSupabase = createClient(taxiUrl, taxiKey);
+    return createClient(url || "", key || "");
+}
+
+function hasSharedClientConfig() {
+    return Boolean(
+        process.env.NEXT_PUBLIC_SHARED_SUPABASE_URL && process.env.NEXT_PUBLIC_SHARED_SUPABASE_ANON_KEY
+    );
+}
+
+function getSharedClient() {
+    return createNamedClient(
+        process.env.NEXT_PUBLIC_SHARED_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SHARED_SUPABASE_ANON_KEY,
+        "SHARED"
+    );
+}
+
+function getPizzaClient() {
+    if (hasSharedClientConfig()) {
+        return getSharedClient();
+    }
+
+    return createNamedClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        "PIZZA"
+    );
+}
+
+function getTaxiClient() {
+    if (hasSharedClientConfig()) {
+        return getSharedClient();
+    }
+
+    return createNamedClient(
+        process.env.NEXT_PUBLIC_TAXI_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_TAXI_SUPABASE_ANON_KEY,
+        "TAXI"
+    );
+}
+
+export const supabase = getPizzaClient();
+export const taxiSupabase = getTaxiClient();

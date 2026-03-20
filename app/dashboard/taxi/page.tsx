@@ -16,21 +16,29 @@ import { taxiSupabase } from "@/lib/supabase";
 const playNotificationSound = () => {
     try {
         const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
+        
+        const playTone = (freq: number, startTime: number, duration: number, volume: number) => {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(freq, startTime);
+            oscillator.frequency.exponentialRampToValueAtTime(freq * 0.8, startTime + duration);
+            
+            gainNode.gain.setValueAtTime(volume, startTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start(startTime);
+            oscillator.stop(startTime + duration);
+        };
 
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Vyšší tón (A5)
-        oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5); // Klesanie k A4
-
-        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.5);
+        const now = audioCtx.currentTime;
+        playTone(1046.50, now, 0.6, 0.1); 
+        playTone(1318.51, now + 0.05, 0.5, 0.07);
+        playTone(1567.98, now + 0.1, 0.4, 0.05);
     } catch (e) {
         console.error("Audio play failed:", e);
     }
@@ -380,6 +388,8 @@ export default function TaxiDashboardPage() {
 
     const [loading, setLoading] = useState(true);
     const [dataSource, setDataSource] = useState<"server" | "mock">("mock");
+    const [realtimeTables, setRealtimeTables] = useState({ rides: "taxi_rides", calls: "calls" });
+    const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -389,11 +399,23 @@ export default function TaxiDashboardPage() {
                 setRidesToday(res.data.ridesToday as TaxiRide[]);
                 setAllWeekRides(res.data.ridesWeek as TaxiRide[]);
                 setCalls(res.data.calls || []);
+                if (res.data.tables?.rides || res.data.tables?.calls) {
+                    const nextRealtimeTables = {
+                        rides: res.data.tables?.rides || "taxi_rides",
+                        calls: res.data.tables?.calls || "calls",
+                    };
+                    setRealtimeTables((current) =>
+                        current.rides === nextRealtimeTables.rides && current.calls === nextRealtimeTables.calls
+                            ? current
+                            : nextRealtimeTables
+                    );
+                }
 
                 // Fallback na mock cenník ak by taxi_rate_cards neexistovala alebo bola úplne prázdna (aby "cennik nechybal uplne")
                 const fetchedPrices = res.data.prices as TaxiPrice[];
                 setPrices(fetchedPrices && fetchedPrices.length > 0 ? fetchedPrices : mockTaxiPrices);
 
+                setLastUpdated(new Date());
                 setDataSource("server");
             } else {
                 console.warn("Server action error, using mock:", res.error);
@@ -418,15 +440,19 @@ export default function TaxiDashboardPage() {
     useEffect(() => {
         fetchData();
 
-        // 1. Realtime odber zmien (okamžitá reakcia)
+        return () => {
+        };
+    }, [fetchData]);
+
+    useEffect(() => {
         const ridesSub = taxiSupabase
             .channel('taxi-rides-realtime')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'taxi_rides' }, () => {
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: realtimeTables.rides }, () => {
                 console.log("Realtime: New ride inserted!");
                 fetchData();
                 playNotificationSound();
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'taxi_rides' }, (payload) => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: realtimeTables.rides }, (payload) => {
                 console.log("Realtime: Ride change detected", payload.eventType);
                 if (payload.eventType !== 'INSERT') fetchData();
             })
@@ -436,12 +462,12 @@ export default function TaxiDashboardPage() {
 
         const callsSub = taxiSupabase
             .channel('taxi-calls-realtime')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'calls' }, () => {
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: realtimeTables.calls }, () => {
                 console.log("Realtime: New call inserted!");
                 fetchData();
                 playNotificationSound();
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'calls' }, (payload) => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: realtimeTables.calls }, (payload) => {
                 console.log("Realtime: Call change detected", payload.eventType);
                 if (payload.eventType !== 'INSERT') fetchData();
             })
@@ -449,15 +475,11 @@ export default function TaxiDashboardPage() {
                 console.log("Realtime (calls) status:", status);
             });
 
-        // 2. Poistka - refresh každých 30 sekúnd
-        const interval = setInterval(fetchData, 30000);
-
         return () => {
-            clearInterval(interval);
             taxiSupabase.removeChannel(ridesSub);
             taxiSupabase.removeChannel(callsSub);
         };
-    }, [fetchData]);
+    }, [fetchData, realtimeTables]);
 
     const salesData = useMemo(() => buildTaxiSalesData(allWeekRides.length > 0 ? allWeekRides : ridesToday), [allWeekRides, ridesToday]);
     const heatmap = useMemo(() => buildTaxiHeatmapData(allWeekRides.length > 0 ? allWeekRides : ridesToday), [allWeekRides, ridesToday]);
@@ -495,7 +517,9 @@ export default function TaxiDashboardPage() {
                     <div className="flex items-center gap-2" style={{ marginBottom: "0.5rem" }}>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: dataSource === "server" ? "#4ade80" : "#f59e0b", display: "inline-block" }} />
                         <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                            {dataSource === "server" ? "Live dáta zo Servera" : "Mock dáta (Server fallback)"}
+                            {dataSource === "server" 
+                                ? `Live dáta zo Servera • Naposledy: ${lastUpdated.toLocaleTimeString("sk-SK")}` 
+                                : "Mock dáta (Server fallback)"}
                         </span>
                     </div>
                     <div className="flex items-center justify-between">

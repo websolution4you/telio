@@ -21,21 +21,31 @@ import { supabase } from "@/lib/supabase";
 const playNotificationSound = () => {
     try {
         const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
+        
+        // Funkcia na vytvorenie tónu
+        const playTone = (freq: number, startTime: number, duration: number, volume: number) => {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(freq, startTime);
+            oscillator.frequency.exponentialRampToValueAtTime(freq * 0.8, startTime + duration);
+            
+            gainNode.gain.setValueAtTime(volume, startTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start(startTime);
+            oscillator.stop(startTime + duration);
+        };
 
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Vyšší tón (A5)
-        oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5); // Klesanie k A4
-
-        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.5);
+        const now = audioCtx.currentTime;
+        // Akord (C6, E6, G6) pre príjemnejší "cink"
+        playTone(1046.50, now, 0.6, 0.1); // C6
+        playTone(1318.51, now + 0.05, 0.5, 0.07); // E6
+        playTone(1567.98, now + 0.1, 0.4, 0.05); // G6
     } catch (e) {
         console.error("Audio play failed:", e);
     }
@@ -139,6 +149,8 @@ export default function DashboardPage() {
 
     const [loading, setLoading] = useState(true);
     const [dataSource, setDataSource] = useState<"server" | "mock">("mock");
+    const [realtimeOrdersTable, setRealtimeOrdersTable] = useState("pizza_orders");
+    const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
     const updateOrdersAndKpis = useCallback((newOrders: PizzaOrder[], weekOrders: PizzaOrder[]) => {
         setOrders(newOrders);
@@ -153,9 +165,14 @@ export default function DashboardPage() {
         try {
             const res = await fetchPizzaDashboardAction();
             if (res.success && res.data) {
+                console.log(`[DEBUG] Dashboard fetched: Today=${res.data.ordersToday?.length}, Week=${res.data.ordersWeek?.length}, Streets=${res.data.streets?.length}`);
                 updateOrdersAndKpis(res.data.ordersToday as PizzaOrder[], res.data.ordersWeek as PizzaOrder[]);
                 setMenuItems(res.data.menuItems);
                 setDbStreets(res.data.streets);
+                if (res.data.tables?.orders) {
+                    setRealtimeOrdersTable(res.data.tables.orders);
+                }
+                setLastUpdated(new Date());
                 setDataSource("server");
             } else {
                 console.warn("Server action error, using mock:", res.error);
@@ -175,15 +192,19 @@ export default function DashboardPage() {
     useEffect(() => {
         fetchData();
 
-        // 1. Realtime odber zmien (okamžitá reakcia na nové objednávky)
+        return () => {
+        };
+    }, [fetchData]);
+
+    useEffect(() => {
         const ordersSub = supabase
             .channel('pizza-orders-realtime')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pizza_orders' }, () => {
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: realtimeOrdersTable }, () => {
                 console.log("Realtime (pizza): New order inserted!");
                 fetchData();
                 playNotificationSound();
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'pizza_orders' }, (payload) => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: realtimeOrdersTable }, (payload) => {
                 console.log("Realtime (pizza): Change detected", payload.eventType);
                 if (payload.eventType !== 'INSERT') fetchData();
             })
@@ -191,14 +212,10 @@ export default function DashboardPage() {
                 console.log("Realtime (pizza) status:", status);
             });
 
-        // 2. Poistka - refresh každých 30 sekúnd
-        const interval = setInterval(fetchData, 30000);
-
         return () => {
-            clearInterval(interval);
             supabase.removeChannel(ordersSub);
         };
-    }, [fetchData]);
+    }, [fetchData, realtimeOrdersTable]);
 
     const salesData = buildSalesData(allWeekOrders.length > 0 ? allWeekOrders : orders);
     const heatmap = buildHeatmapData(allWeekOrders.length > 0 ? allWeekOrders : orders);
@@ -241,7 +258,7 @@ export default function DashboardPage() {
                         {loading
                             ? "Načítavam dáta..."
                             : dataSource === "server"
-                                ? "Live dáta zo Servera"
+                                ? `Live dáta zo Servera • Naposledy: ${lastUpdated.toLocaleTimeString("sk-SK")}`
                                 : "Mock dáta (Server fallback)"}
                     </span>
                 </div>
@@ -251,7 +268,7 @@ export default function DashboardPage() {
 
                 {/* Main: Orders Table */}
                 <div style={{ marginBottom: "1.5rem" }}>
-                    <OrdersTable orders={allWeekOrders.length > 0 ? allWeekOrders.slice(0, 20) : orders.slice(0, 20)} />
+                    <OrdersTable orders={allWeekOrders.length > 0 ? allWeekOrders.slice(0, 10) : orders.slice(0, 10)} />
                 </div>
 
                 {/* Upsell + SalesChart + Heatmap row */}
@@ -277,17 +294,13 @@ export default function DashboardPage() {
                     <OrdersHeatmap data={heatmap.data} days={heatmap.days} />
                 </div>
 
-                {/* Orders Map and Menu Table */}
-                <div
-                    className="charts-row"
-                    style={{
-                        display: "flex",
-                        gap: "1.5rem",
-                        marginTop: "1.5rem",
-                        alignItems: "flex-start",
-                    }}
-                >
+                {/* Full-width Orders Map */}
+                <div style={{ marginTop: "1.5rem" }}>
                     <OrdersMap ordersToday={orders} ordersWeek={allWeekOrders} dbStreets={dbStreets} />
+                </div>
+
+                {/* Menu Table below the map */}
+                <div id="menu-section" style={{ marginTop: "1.5rem" }}>
                     <MenuTable items={menuItems} onRefresh={fetchData} />
                 </div>
             </main>
