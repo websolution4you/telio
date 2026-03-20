@@ -15,7 +15,7 @@ interface DemoCallButtonProps {
 
 export default function DemoCallButton({
     businessType = "taxi",
-    backendUrl = "https://call-agent-dbt6.onrender.com",
+    backendUrl = "https://call-agent-65sb.onrender.com",
     customLabel,
     icon,
     color = "#7B61FF"
