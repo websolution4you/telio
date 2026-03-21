@@ -156,11 +156,10 @@ export default function Navbar() {
           onClick={() => setMenuOpen(false)}
         />
 
-        {/* Side Panel */}
         <div
           className={`absolute left-0 top-0 bottom-0 w-[85%] max-w-[320px] bg-[#050508] border-r border-white/10 shadow-[20px_0_50px_rgba(0,0,0,0.5)] transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
         >
-          <div className="flex flex-col h-full p-8 px-6">
+          <div className="flex flex-col h-full pt-14 pb-10 px-9">
             {/* Menu Header with Logo */}
             <div className="flex items-center justify-between" style={{ marginBottom: "80px" }}>
               <div className="flex items-center gap-2.5">
