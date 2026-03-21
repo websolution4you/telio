@@ -33,116 +33,118 @@ export default function Navbar() {
   ];
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 transition-all duration-300 ${menuOpen ? "z-[1001]" : "z-[100]"}`}
-      style={{
-        background: scrolled ? "rgba(5,5,8,0.92)" : "transparent",
-        backdropFilter: scrolled ? "blur(24px)" : "none",
-        borderBottom: scrolled ? "1px solid rgba(255,255,255,0.06)" : "none",
-      }}
-    >
-      <div className="h-18 flex items-center justify-between" style={{ maxWidth: "80rem", margin: "0 auto", padding: "0 2rem", height: "68px" }}>
-        {/* Logo */}
-        <div className="flex-1 flex items-center justify-start">
-          <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
-            <TelioLogo />
-            <span className="text-xl font-bold text-white" style={{ letterSpacing: "-0.02em" }}>
-              TELIO
-            </span>
-          </Link>
-        </div>
+    <>
+      <header
+        className={`fixed top-0 left-0 right-0 transition-all duration-300 z-[100]`}
+        style={{
+          background: scrolled ? "rgba(5,5,8,0.92)" : "transparent",
+          backdropFilter: scrolled ? "blur(24px)" : "none",
+          borderBottom: scrolled ? "1px solid rgba(255,255,255,0.06)" : "none",
+        }}
+      >
+        <div className="h-18 flex items-center justify-between" style={{ maxWidth: "80rem", margin: "0 auto", padding: "0 2rem", height: "68px" }}>
+          {/* Logo */}
+          <div className="flex-1 flex items-center justify-start">
+            <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
+              <TelioLogo />
+              <span className="text-xl font-bold text-white" style={{ letterSpacing: "-0.02em" }}>
+                TELIO
+              </span>
+            </Link>
+          </div>
 
-        {/* Desktop nav */}
-        <nav className="hidden md:flex items-center justify-center gap-10 flex-shrink-0">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-sm transition-colors duration-200 hover:text-white"
-              style={{ color: "var(--text-muted)" }}
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center justify-center gap-10 flex-shrink-0">
+            {navLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="text-sm transition-colors duration-200 hover:text-white"
+                style={{ color: "var(--text-muted)" }}
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
+
+          {/* Right side: lang switcher + CTA */}
+          <div className="hidden md:flex flex-1 items-center justify-end gap-4">
+            {/* Language switcher */}
+            <div
+              className="flex items-center rounded-lg overflow-hidden"
+              style={{ border: "1px solid var(--border)", background: "rgba(12,12,20,0.8)" }}
             >
-              {link.label}
+              <button
+                onClick={() => setLang("sk")}
+                className="px-3 py-1.5 text-xs font-semibold transition-all duration-150"
+                style={{
+                  background: lang === "sk" ? "rgba(0,255,209,0.12)" : "transparent",
+                  color: lang === "sk" ? "var(--cyan)" : "var(--text-muted)",
+                }}
+              >
+                SK
+              </button>
+              <div className="w-[1px] h-[14px] bg-white/60" style={{ marginLeft: "16px", marginRight: "16px" }} />
+              <button
+                onClick={() => setLang("en")}
+                className="px-3 py-1.5 text-xs font-semibold transition-all duration-150"
+                style={{
+                  background: lang === "en" ? "rgba(0,255,209,0.12)" : "transparent",
+                  color: lang === "en" ? "var(--cyan)" : "var(--text-muted)",
+                }}
+              >
+                EN
+              </button>
+            </div>
+
+            <a href="#waitlist" className="btn-primary btn-nav font-semibold">
+              {t.nav.cta}
             </a>
-          ))}
-        </nav>
-
-        {/* Right side: lang switcher + CTA */}
-        <div className="hidden md:flex flex-1 items-center justify-end gap-4">
-          {/* Language switcher */}
-          <div
-            className="flex items-center rounded-lg overflow-hidden"
-            style={{ border: "1px solid var(--border)", background: "rgba(12,12,20,0.8)" }}
-          >
-            <button
-              onClick={() => setLang("sk")}
-              className="px-3 py-1.5 text-xs font-semibold transition-all duration-150"
-              style={{
-                background: lang === "sk" ? "rgba(0,255,209,0.12)" : "transparent",
-                color: lang === "sk" ? "var(--cyan)" : "var(--text-muted)",
-              }}
-            >
-              SK
-            </button>
-            <div className="w-[1px] h-[14px] bg-white/60" style={{ marginLeft: "16px", marginRight: "16px" }} />
-            <button
-              onClick={() => setLang("en")}
-              className="px-3 py-1.5 text-xs font-semibold transition-all duration-150"
-              style={{
-                background: lang === "en" ? "rgba(0,255,209,0.12)" : "transparent",
-                color: lang === "en" ? "var(--cyan)" : "var(--text-muted)",
-              }}
-            >
-              EN
-            </button>
           </div>
 
-          <a href="#waitlist" className="btn-primary btn-nav font-semibold">
-            {t.nav.cta}
-          </a>
-        </div>
-
-        {/* Mobile: lang + hamburger */}
-        <div className="md:hidden flex-1 flex items-center justify-end gap-3">
-          <div
-            className="flex items-center rounded-md overflow-hidden"
-            style={{ border: "1px solid var(--border)" }}
-          >
-            <button
-              onClick={() => setLang("sk")}
-              className="px-4 py-2 text-xs font-bold transition-all duration-150"
-              style={{
-                background: lang === "sk" ? "rgba(0,255,209,0.12)" : "transparent",
-                color: lang === "sk" ? "var(--cyan)" : "var(--text-muted)",
-              }}
+          {/* Mobile: lang + hamburger */}
+          <div className="md:hidden flex-1 flex items-center justify-end gap-3">
+            <div
+              className="flex items-center rounded-md overflow-hidden"
+              style={{ border: "1px solid var(--border)" }}
             >
-              SK
-            </button>
-            <div className="w-[1px] h-[14px] bg-white/60" style={{ marginLeft: "16px", marginRight: "16px" }} />
+              <button
+                onClick={() => setLang("sk")}
+                className="px-4 py-2 text-xs font-bold transition-all duration-150"
+                style={{
+                  background: lang === "sk" ? "rgba(0,255,209,0.12)" : "transparent",
+                  color: lang === "sk" ? "var(--cyan)" : "var(--text-muted)",
+                }}
+              >
+                SK
+              </button>
+              <div className="w-[1px] h-[14px] bg-white/60" style={{ marginLeft: "16px", marginRight: "16px" }} />
+              <button
+                onClick={() => setLang("en")}
+                className="px-4 py-2 text-xs font-bold transition-all duration-150"
+                style={{
+                  background: lang === "en" ? "rgba(0,255,209,0.12)" : "transparent",
+                  color: lang === "en" ? "var(--cyan)" : "var(--text-muted)",
+                }}
+              >
+                EN
+              </button>
+            </div>
             <button
-              onClick={() => setLang("en")}
-              className="px-4 py-2 text-xs font-bold transition-all duration-150"
-              style={{
-                background: lang === "en" ? "rgba(0,255,209,0.12)" : "transparent",
-                color: lang === "en" ? "var(--cyan)" : "var(--text-muted)",
-              }}
+              className="flex flex-col gap-1.5 p-2"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Toggle menu"
             >
-              EN
+              <span className="block w-5 h-px bg-white transition-all duration-200"
+                style={{ transform: menuOpen ? "rotate(45deg) translate(2px, 2px)" : "none" }} />
+              <span className="block w-5 h-px bg-white transition-all duration-200"
+                style={{ opacity: menuOpen ? 0 : 1 }} />
+              <span className="block w-5 h-px bg-white transition-all duration-200"
+                style={{ transform: menuOpen ? "rotate(-45deg) translate(2px, -2px)" : "none" }} />
             </button>
           </div>
-          <button
-            className="flex flex-col gap-1.5 p-2"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle menu"
-          >
-            <span className="block w-5 h-px bg-white transition-all duration-200"
-              style={{ transform: menuOpen ? "rotate(45deg) translate(2px, 2px)" : "none" }} />
-            <span className="block w-5 h-px bg-white transition-all duration-200"
-              style={{ opacity: menuOpen ? 0 : 1 }} />
-            <span className="block w-5 h-px bg-white transition-all duration-200"
-              style={{ transform: menuOpen ? "rotate(-45deg) translate(2px, -2px)" : "none" }} />
-          </button>
         </div>
-      </div>
+      </header>
 
       {/* Mobile Side Menu */}
       <div
@@ -150,7 +152,7 @@ export default function Navbar() {
       >
         {/* Backdrop overlay */}
         <div
-          className="absolute inset-0 bg-black/60 backdrop-blur-md"
+          className="absolute inset-0 bg-black/80 backdrop-blur-xl"
           onClick={() => setMenuOpen(false)}
         />
 
@@ -168,7 +170,7 @@ export default function Navbar() {
               <button
                 onClick={() => setMenuOpen(false)}
                 className="p-2 text-white/50 hover:text-white transition-colors"
-              >
+               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
@@ -214,7 +216,7 @@ export default function Navbar() {
           </div>
         </div>
       </div>
-    </header>
+    </>
   );
 }
 
