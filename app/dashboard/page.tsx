@@ -4,11 +4,17 @@ export default function DashboardIndexPage() {
     return (
         <div className="min-h-screen bg-[#050508] text-white flex flex-col items-center justify-center p-8">
             <div className="flex flex-col items-center">
-                <h1 className="text-3xl sm:text-4xl font-extrabold mb-12 text-center tracking-tight">
+                <h1 
+                    className="text-3xl sm:text-4xl font-extrabold text-center tracking-tight"
+                    style={{ marginBottom: '60px' }}
+                >
                     Vyberte projekt
                 </h1>
 
-                <div className="flex flex-col md:flex-row gap-8 justify-center items-center">
+                <div 
+                    className="flex flex-col md:flex-row justify-center items-center"
+                    style={{ gap: '60px' }}
+                >
                     {/* Pizza Dashboard */}
                     <a
                         href="/dashboard/pizza"
