@@ -157,11 +157,11 @@ export default function Navbar() {
         />
 
         <div
-          className={`absolute left-0 top-0 bottom-0 w-[85%] max-w-[320px] bg-[#050508] border-r border-white/10 shadow-[20px_0_50px_rgba(0,0,0,0.5)] transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
+          className={`absolute left-0 top-0 bottom-0 w-[85%] max-w-[320px] bg-[#050508] border-r border-white/10 shadow-[20px_0_50px_rgba(0,0,0,0.5)] transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) ${menuOpen ? "translate-x-0" : "-translate-x-full"} overflow-hidden`}
         >
-          <div className="flex flex-col h-full" style={{ paddingTop: "100px", paddingBottom: "40px", paddingLeft: "50px", paddingRight: "50px" }}>
+          <div className="flex flex-col h-full overflow-y-auto custom-scrollbar" style={{ paddingTop: "60px", paddingBottom: "30px", paddingLeft: "40px", paddingRight: "40px" }}>
             {/* Menu Header with Logo */}
-            <div className="flex items-center justify-between" style={{ marginBottom: "80px" }}>
+            <div className="flex items-center justify-between shrink-0" style={{ marginBottom: "40px" }}>
               <div className="flex items-center gap-4">
                 <TelioLogo />
                 <span className="text-xl font-bold text-white tracking-tight">TELIO</span>
@@ -169,13 +169,14 @@ export default function Navbar() {
               <button
                 onClick={() => setMenuOpen(false)}
                 className="p-2 text-white/50 hover:text-white transition-colors"
-               >
+                aria-label="Close menu"
+              >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
 
             {/* Nav Links */}
-            <nav className="flex flex-col gap-6">
+            <nav className="flex flex-col gap-4 shrink-0">
               {navLinks.map((link, i) => (
                 <a
                   key={link.href}
@@ -186,20 +187,20 @@ export default function Navbar() {
                     transitionDelay: `${150 + i * 50}ms`,
                     background: "rgba(255, 255, 255, 0.03)",
                     border: "1px solid rgba(255, 255, 255, 0.05)",
-                    height: "64px"
+                    height: "56px"
                   }}
                   onClick={() => setMenuOpen(false)}
                 >
-                  <span className="relative z-10 font-semibold tracking-tight transition-colors uppercase text-lg">{link.label}</span>
+                  <span className="relative z-10 font-semibold tracking-tight transition-colors uppercase text-base">{link.label}</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-all duration-500 rounded-xl" />
                 </a>
               ))}
 
-              {/* Získať prístup Button (Matches Nav Gap) */}
+              {/* Získať prístup Button */}
               <a
                 href="#waitlist"
-                className="btn-primary w-full rounded-xl flex items-center justify-center font-semibold text-lg shadow-[0_0_20px_rgba(0,255,209,0.15)]"
-                style={{ height: "64px" }}
+                className="btn-primary w-full rounded-xl flex items-center justify-center font-semibold text-base shadow-[0_0_20px_rgba(0,255,209,0.15)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                style={{ height: "56px" }}
                 onClick={() => setMenuOpen(false)}
               >
                 {t.nav.cta}
@@ -207,8 +208,8 @@ export default function Navbar() {
             </nav>
 
             {/* Bottom Copyright */}
-            <div className={`mt-auto transition-all duration-500 delay-500 ${menuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
-              <p className="text-center text-xs text-white/20 tracking-wide uppercase font-semibold" style={{ marginTop: "80px" }}>
+            <div className={`mt-auto pt-10 shrink-0 transition-all duration-500 delay-500 ${menuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
+              <p className="text-center text-[10px] text-white/20 tracking-widest uppercase font-bold">
                 © 2025 TELIO · SLOVAKIA
               </p>
             </div>
