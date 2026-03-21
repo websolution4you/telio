@@ -12,29 +12,23 @@ export default function DashboardIndexPage() {
                     {/* Pizza Dashboard */}
                     <a
                         href="/dashboard/pizza"
-                        className="group flex flex-col items-center p-8 rounded-2xl bg-white/[0.03] border border-white/10 hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:-translate-y-1 transition-all duration-300 w-[280px] text-center"
+                        className="group flex flex-col items-center justify-center p-16 rounded-3xl bg-white/[0.03] border border-white/10 hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:-translate-y-2 transition-all duration-500 w-[280px] aspect-square"
                     >
-                        <div className="text-5xl mb-6 transform group-hover:scale-110 transition-transform duration-300">🍕</div>
-                        <h2 className="text-xl font-bold text-cyan-400 mb-2">
+                        <div className="text-6xl mb-6 transform group-hover:scale-110 transition-transform duration-500">🍕</div>
+                        <h2 className="text-2xl font-bold text-cyan-400 tracking-tight">
                             Dashboard Pizza
                         </h2>
-                        <p className="text-sm text-white/60 leading-relaxed">
-                            Reálne dáta pre pizzeria tenant, prepojené s pizza databázou.
-                        </p>
                     </a>
 
                     {/* Taxi Dashboard */}
                     <a
                         href="/dashboard/taxi"
-                        className="group flex flex-col items-center p-8 rounded-2xl bg-white/[0.03] border border-white/10 hover:bg-white/10 hover:border-white/30 hover:-translate-y-1 transition-all duration-300 w-[280px] text-center"
+                        className="group flex flex-col items-center justify-center p-16 rounded-3xl bg-white/[0.03] border border-white/10 hover:bg-white/10 hover:border-white/30 hover:-translate-y-2 transition-all duration-500 w-[280px] aspect-square"
                     >
-                        <div className="text-5xl mb-6 transform group-hover:scale-110 transition-transform duration-300">🚕</div>
-                        <h2 className="text-xl font-bold text-white mb-2">
+                        <div className="text-6xl mb-6 transform group-hover:scale-110 transition-transform duration-500">🚕</div>
+                        <h2 className="text-2xl font-bold text-white tracking-tight">
                             Dashboard Taxi
                         </h2>
-                        <p className="text-sm text-white/40 leading-relaxed">
-                            Pripravené na napojenie reálnych taxi dát. Placeholder mód.
-                        </p>
                     </a>
                 </div>
             </div>
