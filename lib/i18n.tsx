@@ -209,7 +209,7 @@ export const translations = {
       productLinks: ["Features", "Use cases", "Pricing", "Changelog"],
       industryLinks: ["Restaurant", "Taxi & Transport", "Healthcare", "Food delivery", "Salons"],
       companyLinks: ["About", "Privacy Policy", "Terms of Service", "Contact"],
-      copyright: "© 2025 Telio. All rights reserved. Made with ♥ in Slovakia.",
+      copyright: "© 2025 Telio. All rights reserved. Peťo & Kamil ♥",
     },
     demoCall: {
       tryDemo: "Try Demo Call",
@@ -422,7 +422,7 @@ export const translations = {
       productLinks: ["Funkcie", "Možnosti použitia", "Cenník", "Zmeny"],
       industryLinks: ["Reštaurácia", "Taxi & doprava", "Zdravotníctvo", "Rozvoz jedla", "Salóny"],
       companyLinks: ["O nás", "Ochrana súkromia", "Podmienky služby", "Kontakt"],
-      copyright: "© 2025 Telio. Všetky práva vyhradené. Vyrobené s ♥ na Slovensku.",
+      copyright: "© 2025 Telio. Všetky práva vyhradené. Peťo & Kamil ♥",
     },
     demoCall: {
       tryDemo: "Vyskúšať Demo Hovor",
