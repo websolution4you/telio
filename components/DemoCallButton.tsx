@@ -53,6 +53,15 @@ export default function DemoCallButton({
                 edge: ["dublin", "frankfurt"],
             });
 
+            // Nastavenie mikrofónu pre elimináciu ozveny a šumu
+            if (newDevice.audio) {
+                await newDevice.audio.setAudioConstraints({
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                });
+            }
+
             newDevice.on("error", (error) => {
                 console.error("Twilio Device Error:", error);
                 setCall((currentCall) => {
