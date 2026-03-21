@@ -2,84 +2,44 @@
 
 export default function DashboardIndexPage() {
     return (
-        <div style={{ background: "var(--bg)", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff" }}>
-            <h1 style={{ fontSize: "2rem", fontWeight: 800, marginBottom: "1rem" }}>
-                Vyberte projekt
-            </h1>
-            <p style={{ color: "var(--text-muted)", marginBottom: "3rem", fontSize: "1rem" }}>
-                Tento rozcestník je dočasný a nahradí ho neskôr tenant login flow.
-            </p>
+        <div className="min-h-screen bg-[#050508] text-white flex flex-col items-center justify-center p-6 sm:p-12 md:p-20">
+            <div className="max-w-4xl w-full flex flex-col items-center">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 text-center tracking-tight">
+                    Vyberte projekt
+                </h1>
+                <p className="text-white/50 mb-12 text-center text-sm sm:text-base md:text-lg max-w-lg">
+                    Tento rozcestník je dočasný a nahradí ho neskôr tenant login flow.
+                </p>
 
-            <div style={{ display: "flex", gap: "1.5rem" }}>
-                {/* Pizza Dashboard */}
-                <a
-                    href="/dashboard/pizza"
-                    style={{
-                        background: "rgba(0, 255, 209, 0.1)",
-                        border: "1px solid var(--cyan)",
-                        borderRadius: "16px",
-                        padding: "2rem",
-                        width: "280px",
-                        textDecoration: "none",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        transition: "all 0.2s",
-                        cursor: "pointer",
-                    }}
-                    onMouseEnter={e => {
-                        e.currentTarget.style.background = "rgba(0, 255, 209, 0.2)";
-                        e.currentTarget.style.transform = "translateY(-4px)";
-                    }}
-                    onMouseLeave={e => {
-                        e.currentTarget.style.background = "rgba(0, 255, 209, 0.1)";
-                        e.currentTarget.style.transform = "translateY(0)";
-                    }}
-                >
-                    <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🍕</div>
-                    <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--cyan)", marginBottom: "0.5rem" }}>
-                        Dashboard Pizza
-                    </h2>
-                    <p style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.7)", textAlign: "center", margin: 0 }}>
-                        Reálne dáta pre pizzeria tenant, prepojené s pizza databázou.
-                    </p>
-                </a>
+                <div className="flex flex-col md:flex-row gap-6 w-full justify-center items-stretch">
+                    {/* Pizza Dashboard */}
+                    <a
+                        href="/dashboard/pizza"
+                        className="group flex flex-col items-center p-8 sm:p-10 rounded-2xl bg-white/[0.03] border border-white/10 hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:-translate-y-1 transition-all duration-300 w-full md:w-[320px] text-center"
+                    >
+                        <div className="text-5xl mb-6 transform group-hover:scale-110 transition-transform duration-300">🍕</div>
+                        <h2 className="text-xl sm:text-2xl font-bold text-cyan-400 mb-3">
+                            Dashboard Pizza
+                        </h2>
+                        <p className="text-sm text-white/60 leading-relaxed">
+                            Reálne dáta pre pizzeria tenant, prepojené s pizza databázou.
+                        </p>
+                    </a>
 
-                {/* Taxi Dashboard */}
-                <a
-                    href="/dashboard/taxi"
-                    style={{
-                        background: "rgba(255, 255, 255, 0.03)",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        borderRadius: "16px",
-                        padding: "2rem",
-                        width: "280px",
-                        textDecoration: "none",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        transition: "all 0.2s",
-                        cursor: "pointer",
-                    }}
-                    onMouseEnter={e => {
-                        e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-                        e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)";
-                        e.currentTarget.style.transform = "translateY(-4px)";
-                    }}
-                    onMouseLeave={e => {
-                        e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
-                        e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
-                        e.currentTarget.style.transform = "translateY(0)";
-                    }}
-                >
-                    <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🚕</div>
-                    <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#fff", marginBottom: "0.5rem" }}>
-                        Dashboard Taxi
-                    </h2>
-                    <p style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.5)", textAlign: "center", margin: 0 }}>
-                        Pripravené na napojenie reálnych taxi dát. Placeholder mód.
-                    </p>
-                </a>
+                    {/* Taxi Dashboard */}
+                    <a
+                        href="/dashboard/taxi"
+                        className="group flex flex-col items-center p-8 sm:p-10 rounded-2xl bg-white/[0.03] border border-white/10 hover:bg-white/10 hover:border-white/30 hover:-translate-y-1 transition-all duration-300 w-full md:w-[320px] text-center"
+                    >
+                        <div className="text-5xl mb-6 transform group-hover:scale-110 transition-transform duration-300">🚕</div>
+                        <h2 className="text-xl sm:text-2xl font-bold text-white mb-3">
+                            Dashboard Taxi
+                        </h2>
+                        <p className="text-sm text-white/40 leading-relaxed">
+                            Pripravené na napojenie reálnych taxi dát. Placeholder mód.
+                        </p>
+                    </a>
+                </div>
             </div>
         </div>
     );
