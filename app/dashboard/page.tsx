@@ -1,8 +1,15 @@
 "use client";
 
+import Navbar from "@/components/Navbar";
+
 export default function DashboardIndexPage() {
     return (
-        <div className="min-h-screen bg-[#050508] text-white flex flex-col items-center justify-center p-8">
+        <>
+            <Navbar />
+            <div 
+                className="min-h-screen bg-[#050508] text-white flex flex-col items-center p-8"
+                style={{ paddingTop: '120px' }}
+            >
             <div className="flex flex-col items-center">
                 <h1 
                     className="text-3xl sm:text-4xl font-extrabold text-center tracking-tight"
@@ -44,5 +51,6 @@ export default function DashboardIndexPage() {
                 </div>
             </div>
         </div>
+    </>
     );
 }
