@@ -236,7 +236,7 @@ function TaxiRidesTable({ rides, calls }: { rides: TaxiRide[], calls?: any[] }) 
                                         <td colSpan={5} style={{ padding: "0 12px 16px 12px" }}>
                                             <div style={{ padding: "12px", background: "rgba(0,0,0,0.2)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }}>
                                                 <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Prepis hovoru</div>
-                                                <div style={{ fontSize: "0.85rem", color: "#e2e8f0", lineHeight: 1.5 }}>
+                                                <div style={{ fontSize: "0.85rem", color: "#e2e8f0", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
                                                     {findTranscript(r) ? `„${findTranscript(r)}“` : "Pre tento hovor nie je k dispozícii prepis."}
                                                 </div>
                                             </div>
