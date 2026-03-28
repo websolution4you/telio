@@ -24,6 +24,7 @@ export default function DemoCallButton({
     const deviceRef = useRef<Device | null>(null);
     const [call, setCall] = useState<Call | null>(null);
     const [status, setStatus] = useState<"idle" | "connecting" | "active" | "error">("idle");
+    const [userId, setUserId] = useState<string | null>(null);
     const [errorMsg, setErrorMsg] = useState("");
 
     useEffect(() => {
@@ -47,6 +48,8 @@ export default function DemoCallButton({
             }
             const data = await response.json();
             const token = data.token;
+            const identity = data.identity;
+            setUserId(identity);
 
             const newDevice = new Device(token, {
                 codecPreferences: [Call.Codec.Opus, Call.Codec.PCMU],
@@ -123,12 +126,24 @@ export default function DemoCallButton({
     };
 
     const handleEndCall = () => {
+        // 1. Frontend SDK Disconnect (WebRTC)
         if (call) {
             call.disconnect();
         }
         if (deviceRef.current) {
             deviceRef.current.disconnectAll();
         }
+
+        // 2. Server-side Hangup Failsafe (Twilio REST API)
+        if (userId) {
+            const hangupUrl = `${backendUrl.replace(/\/$/, "")}/twilio/hangup-by-identity`;
+            fetch(hangupUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ identity: userId })
+            }).catch(err => console.error("Hangup failsafe failed:", err));
+        }
+
         setStatus("idle");
         setCall(null);
     };
