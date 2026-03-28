@@ -7,9 +7,8 @@ import {
     formatPrice,
     parseTotalPrice,
     isRecent,
-    isUnclear,
 } from "@/lib/mockData";
-import { MapPin, TrendingUp, FileText, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { MapPin, TrendingUp, FileText, ChevronDown, ChevronUp } from "lucide-react";
 
 interface OrdersTableProps {
     orders: PizzaOrder[];
@@ -174,7 +173,6 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
                     {filteredOrders.map((order) => {
                         const sc = getStatusDisplay(order);
                         const price = parseTotalPrice(order.total_price);
-                        const unclear = isUnclear(order);
                         const isExpanded = expandedRowId === order.id;
 
                         return (
@@ -224,11 +222,6 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
                                         </div>
                                         <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "4px" }}>
                                             {order.customer_phone ?? "—"}
-                                            {unclear && (
-                                                <span title="Nejasné údaje">
-                                                    <AlertTriangle size={11} style={{ color: "#fbbf24" }} />
-                                                </span>
-                                            )}
                                         </div>
                                     </td>
 
