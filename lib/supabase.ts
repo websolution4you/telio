@@ -35,15 +35,7 @@ function getPizzaClient() {
 }
 
 function getTaxiClient() {
-    if (hasSharedClientConfig()) {
-        return getSharedClient();
-    }
-
-    return createNamedClient(
-        process.env.NEXT_PUBLIC_TAXI_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_TAXI_SUPABASE_ANON_KEY,
-        "TAXI"
-    );
+    return getPizzaClient();
 }
 
 export const supabase = getPizzaClient();

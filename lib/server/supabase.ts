@@ -34,23 +34,9 @@ export function getSharedDb() {
 }
 
 export function getPizzaDb() {
-    if (hasSharedDbConfig()) {
-        return getSharedDb();
-    }
-    return createNamedClient(
-        process.env.PIZZA_SUPABASE_URL,
-        process.env.PIZZA_SUPABASE_SERVICE_ROLE_KEY,
-        "PIZZA"
-    );
+    return getCoreDb();
 }
 
 export function getTaxiDb() {
-    if (hasSharedDbConfig()) {
-        return getSharedDb();
-    }
-    return createNamedClient(
-        process.env.TAXI_SUPABASE_URL,
-        process.env.TAXI_SUPABASE_SERVICE_ROLE_KEY,
-        "TAXI"
-    );
+    return getCoreDb();
 }
