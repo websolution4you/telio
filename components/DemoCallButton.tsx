@@ -40,6 +40,12 @@ export default function DemoCallButton({
             setStatus("connecting");
             setErrorMsg("");
 
+            // Cleanup previous device if exists
+            if (deviceRef.current) {
+                deviceRef.current.destroy();
+                deviceRef.current = null;
+            }
+
             // Use the provided backendUrl to fetch the Twilio token
             const tokenUrl = `${backendUrl.replace(/\/$/, "")}/twilio/token`;
             const response = await fetch(tokenUrl);
@@ -67,13 +73,16 @@ export default function DemoCallButton({
 
             newDevice.on("error", (error) => {
                 console.error("Twilio Device Error:", error);
-                setCall((currentCall) => {
-                    if (!currentCall || currentCall.status() === "closed") {
-                        setStatus("error");
-                        setErrorMsg(error.message);
-                    }
-                    return currentCall;
-                });
+                // Only show error if we are not idle or if the device wasn't just destroyed
+                if (deviceRef.current === newDevice) {
+                    setCall((currentCall) => {
+                        if (!currentCall || currentCall.status() === "closed") {
+                            setStatus("error");
+                            setErrorMsg(error.message);
+                        }
+                        return currentCall;
+                    });
+                }
             });
 
             await new Promise<void>((resolve, reject) => {
@@ -128,10 +137,22 @@ export default function DemoCallButton({
     const handleEndCall = () => {
         // 1. Frontend SDK Disconnect (WebRTC)
         if (call) {
-            call.disconnect();
+            try {
+                call.disconnect();
+            } catch (e) {
+                console.error("Error disconnecting call:", e);
+            }
+            setCall(null);
         }
+        
         if (deviceRef.current) {
-            deviceRef.current.disconnectAll();
+            try {
+                // Destroying the device removes all listeners and stops background errors
+                deviceRef.current.destroy();
+            } catch (e) {
+                console.error("Error destroying device:", e);
+            }
+            deviceRef.current = null;
         }
 
         // 2. Server-side Hangup Failsafe (Twilio REST API)
@@ -145,7 +166,8 @@ export default function DemoCallButton({
         }
 
         setStatus("idle");
-        setCall(null);
+        // Clear error message when manually ending a call or returning to idle
+        setErrorMsg(""); 
     };
 
     const label = customLabel || t.demoCall.tryDemo;
