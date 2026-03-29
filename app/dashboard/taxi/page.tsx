@@ -447,8 +447,13 @@ export default function TaxiDashboardPage() {
     useEffect(() => {
         const ridesSub = taxiSupabase
             .channel('taxi-rides-realtime')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: realtimeTables.rides }, () => {
-                console.log("Realtime: New ride inserted!");
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: realtimeTables.rides }, (payload) => {
+                console.log("Realtime: New ride inserted! Payload:", payload);
+                if (payload.new) {
+                    const newRide = payload.new as TaxiRide;
+                    setRidesToday(prev => [newRide, ...prev]);
+                    setAllWeekRides(prev => [newRide, ...prev].slice(0, 500));
+                }
                 fetchData();
                 playNotificationSound();
             })
@@ -462,8 +467,11 @@ export default function TaxiDashboardPage() {
 
         const callsSub = taxiSupabase
             .channel('taxi-calls-realtime')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: realtimeTables.calls }, () => {
-                console.log("Realtime: New call inserted!");
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: realtimeTables.calls }, (payload) => {
+                console.log("Realtime: New call inserted! Payload:", payload);
+                if (payload.new) {
+                    setCalls(prev => [payload.new, ...prev].slice(0, 100));
+                }
                 fetchData();
                 playNotificationSound();
             })
