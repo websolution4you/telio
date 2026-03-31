@@ -184,14 +184,13 @@ function TaxiRidesTable({ rides, calls }: { rides: TaxiRide[], calls?: any[] }) 
             });
         }
 
-        // Priorita: reálny transcript z jazdy > transcript z hovoru > summary z hovoru > poznámka (notes)
-        const transcript = r.transcript || matchedCall?.transcript || matchedCall?.summary;
+        // Priorita: matchedCall.transcript (kompletný hovor) > r.transcript (môže byť placeholder) > summary > notes
+        const rideTranscript = r.transcript?.includes("ElevenLabs Webhook") ? null : r.transcript;
+        const transcript = matchedCall?.transcript || rideTranscript || matchedCall?.summary || r.notes;
         
-        // Ak máme transcript "ElevenLabs Webhook Dispatch" v notes, ale máme niečo lepšie v hovore, použijeme to.
-        if (transcript) return transcript;
-        
-        return r.notes;
+        return transcript;
     };
+
 
 
     // Limit na posledných 10 záznamov
