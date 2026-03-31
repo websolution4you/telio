@@ -149,20 +149,50 @@ function TaxiRidesTable({ rides, calls }: { rides: TaxiRide[], calls?: any[] }) 
 
         // Hľadáme hovor z rovnakého čísla, ktorý sa stal v približne rovnakom čase (+/- 10 minút)
         const rideTime = new Date(r.created_at).getTime();
-        const caller = r.customer_phone?.replace(/\s+/g, '');
+        const callerPhone = (r.customer_phone || '').replace(/\s+/g, '').toLowerCase();
 
-        const matchedCall = calls.find(c => {
+        let matchedCall = calls.find(c => {
             if (!c.from_number) return false;
-            const callFrom = c.from_number.replace(/\s+/g, '');
+            const callFrom = c.from_number.replace(/\s+/g, '').toLowerCase();
             const callTime = new Date(c.started_at).getTime();
             const timeDiff = Math.abs(rideTime - callTime);
 
             // Zhoda čísla (aspoň koniec čísla ak by boli iné predvoľby) a časový rozdiel do 10 minút
-            return (callFrom.endsWith(caller || '---') || (caller && caller.endsWith(callFrom))) && timeDiff < 10 * 60000;
+            const phoneMatch = callerPhone && (callFrom.endsWith(callerPhone) || callerPhone.endsWith(callFrom));
+            return phoneMatch && timeDiff < 10 * 60000;
         });
 
-        return r.transcript || matchedCall?.transcript || matchedCall?.summary || r.notes;
+        // Fallback: Ak sme nenašli podľa čísla (napr. obaja sú "unknown"), skúsime nájsť hovor v rovnakom čase (+/- 5 minút)
+        if (!matchedCall) {
+            matchedCall = calls.find(c => {
+                const callTime = new Date(c.started_at).getTime();
+                const timeDiff = Math.abs(rideTime - callTime);
+                const isBothUnknown = (!callerPhone || callerPhone === 'unknown' || callerPhone === 'neznáme') && 
+                                     (!c.from_number || c.from_number.toLowerCase() === 'unknown');
+                
+                // Ak je to unknown, skúsime len časový match v úzkom okne
+                return isBothUnknown && timeDiff < 5 * 60000;
+            });
+        }
+
+        // Ak stále nič, skúsime aspoň nájsť akýkoľvek hovor v tomto čase (v prípade, že sa čísla fakt vôbec nezhodujú)
+        if (!matchedCall) {
+            matchedCall = calls.find(c => {
+                const callTime = new Date(c.started_at).getTime();
+                const timeDiff = Math.abs(rideTime - callTime);
+                return timeDiff < 2 * 60000; // Veľmi úzke okno (2 min) pre úplný fallback
+            });
+        }
+
+        // Priorita: reálny transcript z jazdy > transcript z hovoru > summary z hovoru > poznámka (notes)
+        const transcript = r.transcript || matchedCall?.transcript || matchedCall?.summary;
+        
+        // Ak máme transcript "ElevenLabs Webhook Dispatch" v notes, ale máme niečo lepšie v hovore, použijeme to.
+        if (transcript) return transcript;
+        
+        return r.notes;
     };
+
 
     // Limit na posledných 10 záznamov
     const displayRides = rides.slice(0, 10);
