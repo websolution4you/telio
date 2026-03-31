@@ -1,4 +1,4 @@
-import { getCoreDb } from "./supabase";
+import { getCoreDb, getPizzaDb, getTaxiDb } from "./supabase";
 
 export type ProjectType = "pizza" | "taxi";
 
@@ -141,7 +141,7 @@ export async function getProjectContext(tenantId: string, expectedType?: Project
             return {
                 tenant: dummyTenant,
                 dataSource: null,
-                db: coreDb,
+                db: getTaxiDb(),
                 projectType: "taxi",
                 tables: taxiTables,
                 realtimeTables: [taxiTables.rides, taxiTables.calls],
@@ -151,7 +151,7 @@ export async function getProjectContext(tenantId: string, expectedType?: Project
             return {
                 tenant: dummyTenant,
                 dataSource: null,
-                db: coreDb,
+                db: getPizzaDb(),
                 projectType: "pizza",
                 tables: pizzaTables,
                 realtimeTables: [pizzaTables.orders],
@@ -173,7 +173,7 @@ export async function getProjectContext(tenantId: string, expectedType?: Project
         console.warn(`Failed to load data source for tenant ${tenantId}:`, dataSourceError.message);
     }
 
-    const db = coreDb;
+    const db = tenant.project_type === "pizza" ? getPizzaDb() : getTaxiDb();
 
     if (tenant.project_type === "pizza") {
         const tables = resolvePizzaTables(dataSource ?? null);

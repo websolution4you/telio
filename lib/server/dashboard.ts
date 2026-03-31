@@ -142,10 +142,8 @@ function calculateTaxiKpis(rides: any[]) {
     let totalRevenue = 0;
     
     rides.forEach(ride => {
-        const price = parseFloat(ride.total_price);
-        if (!isNaN(price)) {
-            totalRevenue += price;
-        }
+        const price = ride.fare_amount || ride.price_estimate || 0;
+        totalRevenue += parseFloat(String(price));
     });
 
     return {

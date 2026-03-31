@@ -34,15 +34,9 @@ export function getSharedDb() {
 }
 
 export function getPizzaDb() {
-    if (hasSharedDbConfig()) {
-        return getSharedDb();
-    }
     return getCoreDb();
 }
 
 export function getTaxiDb() {
-    if (hasSharedDbConfig()) {
-        return getSharedDb();
-    }
     return getCoreDb();
 }
