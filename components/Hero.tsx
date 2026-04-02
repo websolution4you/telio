@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/i18n";
-import DemoCallButton from "@/components/DemoCallButton";
+import ElevenLabsCallButton from "@/components/ElevenLabsCallButton";
 import { Car, Pizza } from "lucide-react";
 
 export default function Hero() {
@@ -126,18 +126,20 @@ export default function Hero() {
             {t.hero.cta1}
           </a>
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <DemoCallButton 
-              businessType="taxi" 
-              customLabel="Taxi Demo" 
-              icon={<Car className="w-5 h-5 relative z-10" />} 
-              backendUrl="https://call-agent-65sb.onrender.com"
-            />
-            <DemoCallButton
-              businessType="pizzeria"
+            {/* 
+               DemoCallButton - Hidden for now as we transition to ElevenLabs direct web calls
+               <DemoCallButton 
+                 businessType="taxi" 
+                 customLabel="Taxi Demo" 
+                 icon={<Car className="w-5 h-5 relative z-10" />} 
+                 backendUrl="https://call-agent-65sb.onrender.com"
+               />
+            */}
+            <ElevenLabsCallButton
+              agentId={process.env.NEXT_PUBLIC_ELEVENLABS_PIZZA_AGENT_ID || "PLACEHOLDER_AGENT_ID"}
               customLabel="Pizzeria Demo"
               color="#FF6B35"
               icon={<Pizza className="w-5 h-5 relative z-10" />}
-              backendUrl="https://call-agent-dbt6.onrender.com"
             />
           </div>
           <a href="#how-it-works" className="btn-ghost btn-xl w-full sm:w-auto">

@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@11labs/client": "^0.0.5",
     "@supabase/supabase-js": "^2.98.0",
     "@twilio/voice-sdk": "^2.18.0",
     "framer-motion": "^12.34.3",
