@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { ConversationalClient } from "@11labs/client";
+import { Conversation } from "@11labs/client";
 import { useLang } from "@/lib/i18n";
 import { Phone, PhoneOff, Loader2 } from "lucide-react";
 
@@ -21,7 +21,7 @@ export default function ElevenLabsCallButton({
     const { t } = useLang();
     const [status, setStatus] = useState<"idle" | "connecting" | "active" | "error">("idle");
     const [errorMsg, setErrorMsg] = useState("");
-    const [client, setClient] = useState<ConversationalClient | null>(null);
+    const [client, setClient] = useState<any>(null); // Fallback to any to avoid TS issues if Conversation return type differs
 
     const handleStartCall = useCallback(async () => {
         try {
@@ -31,7 +31,7 @@ export default function ElevenLabsCallButton({
             // Ask for microphone permission explicitly if needed
             await navigator.mediaDevices.getUserMedia({ audio: true });
 
-            const newClient = await ConversationalClient.init({
+            const newClient = await Conversation.startSession({
                 agentId: agentId,
                 onConnect: () => {
                     setStatus("active");
@@ -51,7 +51,6 @@ export default function ElevenLabsCallButton({
                 },
             });
 
-            await newClient.startSession();
             setClient(newClient);
         } catch (error: any) {
             console.error("ElevenLabs: Failed to start session:", error);
@@ -62,7 +61,7 @@ export default function ElevenLabsCallButton({
 
     const handleEndCall = useCallback(async () => {
         if (client) {
-            await client.stopSession();
+            await client.endSession();
             setClient(null);
         }
         setStatus("idle");
