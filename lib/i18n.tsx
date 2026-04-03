@@ -227,12 +227,12 @@ export const translations = {
           title: "1. Interpretation and Definitions",
           content: "The words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.",
           subsections: [
-                { title: "Account", text: "A unique account created for You to access our Service." },
-                { title: "Company", text: "Refers to Telio (\"the Company\", \"We\", \"Us\" or \"Our\")." },
-                { title: "Cookies", text: "Small files placed on Your device containing browsing history details." },
-                { title: "Personal Data", text: "Information that relates to an identified or identifiable individual." },
-                { title: "Service", text: "Refers to the Website and the Telio AI Platform." },
-                { title: "Usage Data", text: "Data collected automatically, such as IP address and visit duration." }
+            { title: "Account", text: "A unique account created for You to access our Service." },
+            { title: "Company", text: "Refers to Telio (\"the Company\", \"We\", \"Us\" or \"Our\")." },
+            { title: "Cookies", text: "Small files placed on Your device containing browsing history details." },
+            { title: "Personal Data", text: "Information that relates to an identified or identifiable individual." },
+            { title: "Service", text: "Refers to the Website and the Telio AI Platform." },
+            { title: "Usage Data", text: "Data collected automatically, such as IP address and visit duration." }
           ]
         },
         {
@@ -484,18 +484,18 @@ export const translations = {
     privacy: {
       title: "Ochrana osobných údajov",
       lastUpdated: "Posledná aktualizácia: 1. apríla 2026",
-      introduction: "Tieto zásady ochrany osobných údajov vysvetľujú, ako Telio (\"Spoločnosť\", \"My\", \"Nás\") spracúva osobné údaje, keď používate našu webovú stránku (\"Stránka\"), služby a hlasové AI riešenia (\"Platforma\"). \"Osobné údaje\" sú akékoľvek informácie týkajúce sa identifikovateľnej osoby. Osobné údaje spracúvame v súlade s nariadením EÚ GDPR, slovenským zákonom o ochrane osobných údajov a ďalšími platnými právnymi predpismi.",
+      introduction: "Tieto zásady ochrany osobných údajov vysvetľujú, ako Telio  spracúva osobné údaje, keď používate našu webovú stránku (www.telio.sk), služby a hlasové AI riešenia. Osobné údaje sú akékoľvek informácie týkajúce sa identifikovateľnej osoby. Osobné údaje spracúvame v súlade s nariadením EÚ GDPR, slovenským zákonom o ochrane osobných údajov a ďalšími platnými právnymi predpismi.",
       sections: [
         {
           title: "1. Výklad a definície",
           content: "Slová s veľkým začiatočným písmenom majú význam definovaný za nasledujúcich podmienok. Nasledujúce definície majú rovnaký význam bez ohľadu na to, či sa vyskytujú v jednotnom alebo množnom čísle.",
           subsections: [
-                { title: "Účet", text: "Jedinečný účet vytvorený pre Vás na prístup k našej Službe." },
-                { title: "Spoločnosť", text: "Vzťahuje sa na Telio (\"Spoločnosť\", \"My\", \"Nás\" alebo \"Naše\")." },
-                { title: "Cookies", text: "Malé súbory umiestnené vo Vašom zariadení obsahujúce podrobnosti o histórii prehliadania." },
-                { title: "Osobné údaje", text: "Informácie, ktoré sa vzťahujú na identifikovanú alebo identifikovateľnú osobu." },
-                { title: "Služba", text: "Vzťahuje sa na Webovú stránku a platformu Telio AI." },
-                { title: "Údaje o používaní", text: "Údaje zhromažďované automaticky, ako je IP adresa a dĺžka návštevy." }
+            { title: "Účet", text: "Jedinečný účet vytvorený pre Vás na prístup k našej Službe." },
+            { title: "Spoločnosť", text: "Vzťahuje sa na Telio" },
+            { title: "Cookies", text: "Malé súbory umiestnené vo Vašom zariadení obsahujúce podrobnosti o histórii prehliadania." },
+            { title: "Osobné údaje", text: "Informácie, ktoré sa vzťahujú na identifikovanú alebo identifikovateľnú osobu." },
+            { title: "Služba", text: "Vzťahuje sa na Webovú stránku a platformu Telio AI." },
+            { title: "Údaje o používaní", text: "Údaje zhromažďované automaticky, ako je IP adresa a dĺžka návštevy." }
           ]
         },
         {
