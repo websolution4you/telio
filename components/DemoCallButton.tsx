@@ -187,7 +187,7 @@ export default function DemoCallButton({
                 <button
                     onClick={handleStartCall}
                     className="btn-primary btn-xl w-full flex items-center justify-center gap-2 relative overflow-hidden group"
-                    style={{ background: color, borderColor: color }}
+                    style={{ background: color, borderColor: color, cursor: "pointer" }}
                 >
                     <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out" />
                     {icon || <Phone className="w-5 h-5 relative z-10" />}
@@ -206,7 +206,7 @@ export default function DemoCallButton({
                 <button
                     onClick={handleEndCall}
                     className="btn-xl w-full flex items-center justify-center gap-2 rounded-full font-semibold transition-all shadow-lg active:scale-95"
-                    style={{ backgroundColor: "#ef4444", color: "white", padding: "0.875rem 2rem" }}
+                    style={{ backgroundColor: "#ef4444", color: "white", padding: "0.875rem 2rem", cursor: "pointer" }}
                 >
                     <PhoneOff className="w-5 h-5" />
                     <span className="whitespace-nowrap">{t.demoCall.endCall}</span>
