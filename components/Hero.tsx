@@ -147,21 +147,21 @@ export default function Hero() {
 
         {/* Waveform widget */}
         <div
-          className={`relative mx-auto transition-all duration-700 delay-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+          className={`relative mx-auto transition-all duration-700 delay-500 h-[190px] sm:h-[130px] ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
           style={{
-            maxWidth: "900px", height: "130px", borderRadius: "18px",
+            maxWidth: "900px", borderRadius: "18px",
             border: "1px solid var(--border)", background: "rgba(10,10,18,0.85)",
             backdropFilter: "blur(12px)", overflow: "hidden", marginBottom: "5rem"
           }}
         >
           <canvas ref={canvasRef} style={{ width: "100%", height: "100%", display: "block" }} />
-          <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-2">
+          <div className="absolute left-4 top-4 sm:top-1/2 sm:-translate-y-1/2 sm:left-6 flex items-center gap-2">
             <div className="w-2 h-2 rounded-full animate-pulse-glow" style={{ background: "var(--cyan)" }} />
             <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>{t.hero.live}</span>
           </div>
-          <div className="absolute right-6 top-1/2 -translate-y-1/2">
+          <div className="absolute left-4 right-4 bottom-4 sm:top-1/2 sm:-translate-y-1/2 sm:right-6 sm:left-auto sm:bottom-auto">
             <div key={activeEvent}
-              className="flex items-center gap-2 text-xs px-8 py-4 rounded-xl"
+              className="flex items-center justify-center sm:justify-start gap-2 text-xs px-6 sm:px-8 py-3 sm:py-4 rounded-xl"
               style={{ background: "rgba(0,0,0,0.5)", border: "1px solid var(--border)", animation: "fadeInUp 0.4s ease" }}
             >
               <span className="text-sm">{ev.emoji}</span>
