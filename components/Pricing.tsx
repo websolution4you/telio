@@ -70,15 +70,39 @@ export default function Pricing() {
               )}
 
               {/* Plan header */}
-              <div className="text-center" style={{ marginBottom: "var(--sp-item-gap)" }}>
-                <div className="font-bold tracking-widest uppercase mb-12"
+              <div className="text-center" style={{ marginBottom: "3rem" }}>
+                <div className="font-bold tracking-widest uppercase mb-6"
                   style={{
                     color: plan.highlighted ? "var(--cyan)" : "var(--text-muted)",
-                    fontSize: "1.1rem"
+                    fontSize: "0.9rem"
                   }}>
                   {plan.name}
                 </div>
-                <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
+
+                {/* Price Display */}
+                <div className="flex flex-col items-center mb-8">
+                  <div className="flex items-baseline gap-1.5">
+                    <span style={{
+                      fontSize: "clamp(2.5rem, 5vw, 3.8rem)",
+                      fontWeight: 900,
+                      color: "white",
+                      lineHeight: 1,
+                      letterSpacing: "-0.02em"
+                    }}>
+                      {plan.price}
+                    </span>
+                    <span style={{
+                      fontSize: "0.85rem",
+                      fontWeight: 500,
+                      color: "var(--text-muted)",
+                      opacity: 0.8
+                    }}>
+                      {plan.priceSub}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-sm leading-relaxed px-2" style={{ color: "var(--text-muted)", minHeight: "2.5rem" }}>
                   {plan.description}
                 </p>
               </div>
@@ -105,6 +129,14 @@ export default function Pricing() {
                   </li>
                 ))}
               </ul>
+
+              {/* Note if exists */}
+              {plan.note && (
+                <div className="mt-auto mb-6 text-[10px] sm:text-[11px] text-center italic" 
+                  style={{ color: "var(--text-muted)", opacity: 0.8, background: "rgba(0,0,0,0.15)", padding: "10px 14px", borderRadius: "12px", border: "1px solid var(--border)" }}>
+                  {plan.note}
+                </div>
+              )}
 
               {/* CTA */}
               <a href="#waitlist"
