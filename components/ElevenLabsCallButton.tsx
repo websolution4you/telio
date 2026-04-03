@@ -45,6 +45,9 @@ export default function ElevenLabsCallButton({
                     setStatus("idle");
                     setConversation(null);
                     console.log("ElevenLabs: Disconnected");
+                    setTimeout(() => {
+                        router.push(`/dashboard/pizza?newCall=true`);
+                    }, 500);
                 },
                 onError: (error: any) => {
                     console.error("ElevenLabs: Error:", error);
@@ -62,23 +65,15 @@ export default function ElevenLabsCallButton({
             setStatus("error");
             setErrorMsg(error.message || "Nepodarilo sa spustiť hovor");
         }
-    }, [agentId]);
+    }, [agentId, router]);
 
     const handleEndCall = useCallback(async () => {
-        const wasActive = status === "active";
-        
         if (conversation) {
             await conversation.endSession();
             setConversation(null);
         }
         setStatus("idle");
-        
-        if (wasActive) {
-            setTimeout(() => {
-                router.push(`/dashboard/pizza?newCall=true`);
-            }, 500);
-        }
-    }, [conversation, status, router]);
+    }, [conversation]);
 
     const label = customLabel || t.demoCall.tryDemo;
 

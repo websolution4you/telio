@@ -120,6 +120,9 @@ export default function DemoCallButton({
             newCall.on("disconnect", () => {
                 console.log("Call disconnected event");
                 handleEndCall();
+                setTimeout(() => {
+                    router.push(`/dashboard/${businessType === 'taxi' ? 'taxi' : 'pizza'}?newCall=true`);
+                }, 500);
             });
 
             newCall.on("error", (error) => {
@@ -172,12 +175,8 @@ export default function DemoCallButton({
         // Clear error message when manually ending a call or returning to idle
         setErrorMsg(""); 
 
-        // 3. Redirect to Dashboard with slightly delayed highlight flag
-        if (status === "active") {
-            setTimeout(() => {
-                router.push(`/dashboard/${businessType === 'taxi' ? 'taxi' : 'pizza'}?newCall=true`);
-            }, 500);
-        }
+        // 3. Redirect is handled exclusively in the newCall.on('disconnect') listener 
+        // to avoid React state closure staleness issues. 
     };
 
     const label = customLabel || t.demoCall.tryDemo;
