@@ -221,14 +221,14 @@ export const translations = {
     privacy: {
       title: "Privacy Policy",
       lastUpdated: "Last updated: April 1st 2026",
-      introduction: "This Privacy Policy explains how Telio (\"Company\", \"We\", \"Us\") processes personal data when you use our website (\"Site\"), services, and AI voice solutions (\"Platform\"). \"Personal data\" refers to any information relating to an identifiable individual. We process personal data in accordance with the EU GDPR, the Slovak Act on Personal Data Protection, and other applicable laws.",
+      introduction: "This Privacy Policy explains how Telio processes personal data when you use our website (www.telio.sk), services, and AI voice solutions. Personal data refers to any information relating to an identifiable individual. We process personal data in accordance with the EU GDPR, the Slovak Act on Personal Data Protection, and other applicable laws.",
       sections: [
         {
           title: "1. Interpretation and Definitions",
           content: "The words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.",
           subsections: [
             { title: "Account", text: "A unique account created for You to access our Service." },
-            { title: "Company", text: "Refers to Telio (\"the Company\", \"We\", \"Us\" or \"Our\")." },
+            { title: "Company", text: "Refers to Telio." },
             { title: "Cookies", text: "Small files placed on Your device containing browsing history details." },
             { title: "Personal Data", text: "Information that relates to an identified or identifiable individual." },
             { title: "Service", text: "Refers to the Website and the Telio AI Platform." },
