@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/i18n";
+import ElevenLabsCallButton from "@/components/ElevenLabsCallButton";
 import DemoCallButton from "@/components/DemoCallButton";
 import { Car, Pizza } from "lucide-react";
 
@@ -132,12 +133,11 @@ export default function Hero() {
               icon={<Car className="w-5 h-5 relative z-10" />} 
               backendUrl="https://call-agent-65sb.onrender.com"
             />
-            <DemoCallButton
-              businessType="pizzeria"
+            <ElevenLabsCallButton
+              agentId={process.env.NEXT_PUBLIC_ELEVENLABS_PIZZA_AGENT_ID || "PLACEHOLDER_AGENT_ID"}
               customLabel="Pizzeria Demo"
               color="#FF6B35"
               icon={<Pizza className="w-5 h-5 relative z-10" />}
-              backendUrl="https://call-agent-dbt6.onrender.com"
             />
           </div>
           <a href="#how-it-works" className="btn-ghost btn-xl w-full sm:w-auto">
