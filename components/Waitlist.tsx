@@ -2,14 +2,19 @@
 
 import { useEffect, useRef, useState, FormEvent } from "react";
 import { useLang } from "@/lib/i18n";
+import { sendContactFormAction } from "@/app/actions/contact";
 
 export default function Waitlist() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [business, setBusiness] = useState("");
+  const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const { t } = useLang();
 
   useEffect(() => {
@@ -23,11 +28,33 @@ export default function Waitlist() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email || !name || !business) {
+      setError("Meno, email a oblasť podnikania sú povinné.");
+      return;
+    }
+    
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setLoading(false);
-    setSubmitted(true);
+    setError("");
+    
+    try {
+      const result = await sendContactFormAction({
+        name,
+        email,
+        phone,
+        business,
+        message
+      });
+      
+      if (result.success) {
+        setSubmitted(true);
+      } else {
+        setError(result.error || "Chyba pri odosielaní.");
+      }
+    } catch (err) {
+      setError("Nepodarilo sa spojiť so serverom.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -64,7 +91,7 @@ export default function Waitlist() {
                 style={{
                   padding: "1.25rem 2.5rem",
                   background: business === b ? "rgba(0,255,209,0.1)" : "rgba(12,12,20,0.6)",
-                  border: `1px solid ${business === b ? "rgba(0,255,209,0.3)" : "var(--border)"}`,
+                  border: `${business === b ? "2px" : "1px"} solid ${business === b ? "rgba(0,255,209,0.5)" : "var(--border)"}`,
                   color: business === b ? "var(--cyan)" : "var(--text-muted)",
                 }}>
                 {b}
@@ -76,31 +103,96 @@ export default function Waitlist() {
         {/* Form / Success */}
         {!submitted ? (
           <form onSubmit={handleSubmit}
-            className={`flex flex-col gap-3 transition-all duration-700 delay-300 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+            className={`flex flex-col gap-4 transition-all duration-700 delay-300 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
             style={{ maxWidth: "36rem", margin: "0 auto", marginBottom: "var(--sp-badge-mb)", width: "100%" }}>
-            <input
-              type="email" required
-              placeholder={t.waitlist.placeholder}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input-xl outline-none transition-all duration-200"
-              style={{
-                background: "rgba(12,12,20,0.9)",
-                border: "1px solid var(--border)",
-                color: "var(--text)",
-                width: "100%",
-                height: "64px",
-                minHeight: "64px",
-                flexShrink: 0,
-                padding: "0 1.5rem",
-                boxSizing: "border-box"
-              }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(0,255,209,0.4)")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
-            />
+            
+            {/* Input Group */}
+            <div className="flex flex-col gap-3">
+              <input
+                type="text" required
+                placeholder={t.waitlist.nameLabel}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="input-xl outline-none transition-all duration-200"
+                style={{
+                  background: "rgba(12,12,20,0.9)",
+                  border: "1px solid var(--border)",
+                  color: "var(--text)",
+                  width: "100%",
+                  height: "56px",
+                  padding: "0 1.5rem",
+                  borderRadius: "12px"
+                }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(0,255,209,0.4)")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+              />
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  type="email" required
+                  placeholder={t.waitlist.emailLabel}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input-xl outline-none transition-all duration-200"
+                  style={{
+                    background: "rgba(12,12,20,0.9)",
+                    border: "1px solid var(--border)",
+                    color: "var(--text)",
+                    width: "100%",
+                    height: "56px",
+                    padding: "0 1.5rem",
+                    borderRadius: "12px"
+                  }}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(0,255,209,0.4)")}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+                />
+                <input
+                  type="tel"
+                  placeholder={t.waitlist.phoneLabel}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="input-xl outline-none transition-all duration-200"
+                  style={{
+                    background: "rgba(12,12,20,0.9)",
+                    border: "1px solid var(--border)",
+                    color: "var(--text)",
+                    width: "100%",
+                    height: "56px",
+                    padding: "0 1.5rem",
+                    borderRadius: "12px"
+                  }}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(0,255,209,0.4)")}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+                />
+              </div>
+
+              <textarea
+                placeholder={t.waitlist.messagePlaceholder}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="outline-none transition-all duration-200"
+                style={{
+                  background: "rgba(12,12,20,0.9)",
+                  border: "1px solid var(--border)",
+                  color: "var(--text)",
+                  width: "100%",
+                  minHeight: "120px",
+                  padding: "1rem 1.5rem",
+                  borderRadius: "12px",
+                  resize: "vertical"
+                }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(0,255,209,0.4)")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+              />
+            </div>
+
+            {error && (
+              <p className="text-red-400 text-sm animate-shake">{error}</p>
+            )}
+
             <button type="submit" disabled={loading}
               className="btn-primary btn-xl w-full text-sm font-bold whitespace-nowrap flex items-center justify-center gap-2"
-              style={{ height: "64px", minHeight: "64px", flexShrink: 0 }}>
+              style={{ height: "64px", minHeight: "64px", flexShrink: 0, cursor: "pointer" }}>
               {loading
                 ? <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                 : t.waitlist.cta}
