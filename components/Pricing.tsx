@@ -42,7 +42,7 @@ export default function Pricing() {
         </div>
 
         {/* Plans grid — equal height, proper spacing */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 xl:gap-8 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 xl:gap-8 items-stretch">
           {t.pricing.plans.map((plan, i) => (
             <div
               key={plan.name}
@@ -63,39 +63,42 @@ export default function Pricing() {
             >
               {/* Badge */}
               {plan.badge && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-xs font-bold px-6 py-2 rounded-full whitespace-nowrap"
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold px-5 py-1.5 rounded-full whitespace-nowrap z-20 shadow-lg"
                   style={{ background: "linear-gradient(135deg, var(--cyan), #7B61FF)", color: "#050508" }}>
                   {plan.badge}
                 </div>
               )}
 
               {/* Plan header */}
-              <div className="text-center" style={{ marginBottom: "3rem" }}>
+              <div className="text-center" style={{ marginBottom: "2.5rem" }}>
                 <div className="font-bold tracking-widest uppercase mb-6"
                   style={{
                     color: plan.highlighted ? "var(--cyan)" : "var(--text-muted)",
-                    fontSize: "0.9rem"
+                    fontSize: "0.85rem"
                   }}>
                   {plan.name}
                 </div>
 
                 {/* Price Display */}
-                <div className="flex flex-col items-center mb-8">
-                  <div className="flex items-baseline gap-1.5">
+                <div className="flex flex-col items-center mb-8 min-h-[5rem] justify-center">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-baseline justify-center gap-1 sm:gap-2 w-full">
                     <span style={{
-                      fontSize: "clamp(2.5rem, 5vw, 3.8rem)",
-                      fontWeight: 900,
+                      fontSize: plan.price.length > 7 ? "clamp(1.6rem, 3.5vw, 2.2rem)" : "clamp(2.6rem, 5vw, 3.8rem)",
+                      fontWeight: 950,
                       color: "white",
                       lineHeight: 1,
-                      letterSpacing: "-0.02em"
+                      letterSpacing: "-0.03em",
+                      textAlign: "center",
+                      wordBreak: "break-word"
                     }}>
                       {plan.price}
                     </span>
                     <span style={{
-                      fontSize: "0.85rem",
+                      fontSize: "0.8rem",
                       fontWeight: 500,
                       color: "var(--text-muted)",
-                      opacity: 0.8
+                      opacity: 0.8,
+                      whiteSpace: "nowrap"
                     }}>
                       {plan.priceSub}
                     </span>

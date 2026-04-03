@@ -390,7 +390,7 @@ export const translations = {
       plans: [
         {
           name: "Starter",
-          price: "0 €",
+          price: "99 €",
           priceSub: "/ mesiac",
           description: "Ideálne pre začínajúcich podnikateľov a jednotlivcov.",
           features: ["1 hlasový asistent", "300 minút v cene / mesiac", "Cena 0,33€ / min po prevolaní", "Podpora do 48 hodín"],
