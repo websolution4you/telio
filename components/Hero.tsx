@@ -123,9 +123,6 @@ export default function Hero() {
           className={`flex flex-col sm:flex-row items-center justify-center gap-4 transition-all duration-700 delay-300 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
           style={{ marginBottom: "2rem" }}
         >
-          <a href="#waitlist" className="btn-primary btn-xl w-full sm:w-auto">
-            {t.hero.cta1}
-          </a>
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <DemoCallButton 
               businessType="taxi" 
@@ -140,9 +137,6 @@ export default function Hero() {
               icon={<Pizza className="w-5 h-5 relative z-10" />}
             />
           </div>
-          <a href="#how-it-works" className="btn-ghost btn-xl w-full sm:w-auto">
-            {t.hero.cta2}
-          </a>
         </div>
 
         {/* Waveform widget */}
