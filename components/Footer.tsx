@@ -8,7 +8,7 @@ export default function Footer() {
 
   const productHrefs = ["#features", "#use-cases", "#pricing", "#"];
   const industryHref = "#use-cases";
-  const companyHrefs = ["#", "#", "#", "#"];
+  const companyHrefs = ["#", "/privacy", "#", "#"];
 
   return (
     <footer className="relative overflow-hidden" style={{ borderTop: "1px solid var(--border)", paddingTop: "var(--sp-section-py)", paddingBottom: "2.5rem" }}>

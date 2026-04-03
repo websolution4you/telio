@@ -218,6 +218,49 @@ export const translations = {
       companyLinks: ["About", "Privacy Policy", "Terms of Service", "Contact"],
       copyright: "© 2025 Telio. All rights reserved. Peťo & Kamil ♥",
     },
+    privacy: {
+      title: "Privacy Policy",
+      lastUpdated: "Last updated: April 1st 2026",
+      introduction: "This Privacy Policy explains how Telio (\"Company\", \"We\", \"Us\") processes personal data when you use our website (\"Site\"), services, and AI voice solutions (\"Platform\"). \"Personal data\" refers to any information relating to an identifiable individual. We process personal data in accordance with the EU GDPR, the Slovak Act on Personal Data Protection, and other applicable laws.",
+      sections: [
+        {
+          title: "1. Interpretation and Definitions",
+          content: "The words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.",
+          subsections: [
+                { title: "Account", text: "A unique account created for You to access our Service." },
+                { title: "Company", text: "Refers to Telio (\"the Company\", \"We\", \"Us\" or \"Our\")." },
+                { title: "Cookies", text: "Small files placed on Your device containing browsing history details." },
+                { title: "Personal Data", text: "Information that relates to an identified or identifiable individual." },
+                { title: "Service", text: "Refers to the Website and the Telio AI Platform." },
+                { title: "Usage Data", text: "Data collected automatically, such as IP address and visit duration." }
+          ]
+        },
+        {
+          title: "2. Collecting and Using Your Personal Data",
+          content: "We collect personal information such as email address, name, phone number, and usage data to provide and improve our Service. Usage data is collected automatically and may include IP addresses, browser types, and mobile device identifiers.",
+        },
+        {
+          title: "3. Use of Your Personal Data",
+          content: "The Company may use Personal Data to maintain our Service, manage Your Account, perform contracts, contact You with updates, and manage Your requests.",
+        },
+        {
+          title: "4. Retention of Your Personal Data",
+          content: "We will retain Your Personal Data only for as long as is necessary for the purposes set out in this Privacy Policy. We will retain and use Your Personal Data to the extent necessary to comply with our legal obligations.",
+        },
+        {
+          title: "5. Transfer of Your Personal Data",
+          content: "Your information may be processed at the Company's operating offices. Your consent to this Privacy Policy represents Your agreement to that transfer. We ensure an adequate level of data protection by relying on standard contractual clauses for international transfers.",
+        },
+        {
+          title: "6. Security of Your Personal Data",
+          content: "The security of Your Personal Data is important to Us, but remember that no method of transmission over the Internet is 100% secure. We strive to use commercially acceptable means to protect Your Personal Data.",
+        },
+        {
+          title: "7. Your Rights",
+          content: "You have the right to access, rectify, or erase your data. You may also object to processing or request data portability. To exercise these rights, contact us at info@telio.sk.",
+        }
+      ]
+    },
     demoCall: {
       tryDemo: "Try Demo Call",
       connecting: "Connecting...",
@@ -437,6 +480,49 @@ export const translations = {
       industryLinks: ["Reštaurácia", "Taxi & doprava", "Zdravotníctvo", "Rozvoz jedla", "Salóny"],
       companyLinks: ["O nás", "Ochrana súkromia", "Podmienky služby", "Kontakt"],
       copyright: "© 2025 Telio. Všetky práva vyhradené. Peťo & Kamil ♥",
+    },
+    privacy: {
+      title: "Ochrana osobných údajov",
+      lastUpdated: "Posledná aktualizácia: 1. apríla 2026",
+      introduction: "Tieto zásady ochrany osobných údajov vysvetľujú, ako Telio (\"Spoločnosť\", \"My\", \"Nás\") spracúva osobné údaje, keď používate našu webovú stránku (\"Stránka\"), služby a hlasové AI riešenia (\"Platforma\"). \"Osobné údaje\" sú akékoľvek informácie týkajúce sa identifikovateľnej osoby. Osobné údaje spracúvame v súlade s nariadením EÚ GDPR, slovenským zákonom o ochrane osobných údajov a ďalšími platnými právnymi predpismi.",
+      sections: [
+        {
+          title: "1. Výklad a definície",
+          content: "Slová s veľkým začiatočným písmenom majú význam definovaný za nasledujúcich podmienok. Nasledujúce definície majú rovnaký význam bez ohľadu na to, či sa vyskytujú v jednotnom alebo množnom čísle.",
+          subsections: [
+                { title: "Účet", text: "Jedinečný účet vytvorený pre Vás na prístup k našej Službe." },
+                { title: "Spoločnosť", text: "Vzťahuje sa na Telio (\"Spoločnosť\", \"My\", \"Nás\" alebo \"Naše\")." },
+                { title: "Cookies", text: "Malé súbory umiestnené vo Vašom zariadení obsahujúce podrobnosti o histórii prehliadania." },
+                { title: "Osobné údaje", text: "Informácie, ktoré sa vzťahujú na identifikovanú alebo identifikovateľnú osobu." },
+                { title: "Služba", text: "Vzťahuje sa na Webovú stránku a platformu Telio AI." },
+                { title: "Údaje o používaní", text: "Údaje zhromažďované automaticky, ako je IP adresa a dĺžka návštevy." }
+          ]
+        },
+        {
+          title: "2. Zhromažďovanie a používanie Vašich osobných údajov",
+          content: "Zhromažďujeme osobné údaje, ako je e-mailová adresa, meno, telefónne číslo a údaje o používaní, s cieľom poskytovať a zlepšovať našu Službu. Údaje o používaní sa zhromažďujú automaticky a môžu zahŕňať IP adresy, typy prehliadačov a identifikátory mobilných zariadení.",
+        },
+        {
+          title: "3. Používanie Vašich osobných údajov",
+          content: "Spoločnosť môže využívať osobné údaje na údržbu našej Služby, správu Vášho Účtu, plnenie zmlúv, informovanie o aktualizáciách a správu Vašich žiadostí.",
+        },
+        {
+          title: "4. Uchovávanie Vašich osobných údajov",
+          content: "Vaše osobné údaje budeme uchovávať len po dobu nevyhnutnú na účely stanovené v týchto zásadách. Vaše osobné údaje budeme uchovávať a používať v rozsahu nevyhnutnom na splnenie našich zákonných povinností.",
+        },
+        {
+          title: "5. Prenos Vašich osobných údajov",
+          content: "Vaše informácie môžu byť spracúvané v prevádzkových priestoroch Spoločnosti. Váš súhlas s týmito zásadami predstavuje Váš súhlas s týmto prenosom. Zabezpečujeme primeranú úroveň ochrany údajov spoliehaním sa na štandardné zmluvné doložky pri medzinárodných prenosoch.",
+        },
+        {
+          title: "6. Bezpečnosť Vašich osobných údajov",
+          content: "Bezpečnosť Vašich osobných údajov je pre nás dôležitá, ale pamätajte, že žiadny spôsob prenosu cez internet nie je 100% bezpečný. Snažíme sa používať komerčne prijateľné prostriedky na ochranu Vašich osobných údajov.",
+        },
+        {
+          title: "7. Vaše práva",
+          content: "Máte právo na prístup k svojim údajom, ich opravu alebo vymazanie. Môžete tiež namietať proti spracovaniu alebo požiadať o prenosnosť údajov. Na uplatnenie týchto práv nás kontaktujte na info@telio.sk.",
+        }
+      ]
     },
     demoCall: {
       tryDemo: "Vyskúšať Demo Hovor",
