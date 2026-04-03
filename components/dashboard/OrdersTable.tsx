@@ -77,6 +77,15 @@ function DetailRow({
 export default function OrdersTable({ orders }: OrdersTableProps) {
     const [filter, setFilter] = useState<"All" | string>("All");
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+    const [highlightNew, setHighlightNew] = useState(false);
+
+    React.useEffect(() => {
+        if (typeof window !== "undefined" && window.location.search.includes("newCall=true")) {
+            setHighlightNew(true);
+            setTimeout(() => setHighlightNew(false), 6000);
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, []);
 
     const filteredOrders =
         filter === "All" ? orders : orders.filter((o) => getStatusDisplay(o).label === filter);
@@ -170,10 +179,11 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
                     </tr>
                 </thead>
                 <tbody>
-                    {filteredOrders.map((order) => {
+                    {filteredOrders.map((order, index) => {
                         const sc = getStatusDisplay(order);
                         const price = parseTotalPrice(order.total_price);
                         const isExpanded = expandedRowId === order.id;
+                        const isHighlighted = index === 0 && highlightNew;
 
                         return (
                             <React.Fragment key={order.id}>
@@ -182,24 +192,23 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
                                     style={{
                                         borderBottom: isExpanded ? "none" : "1px solid var(--border)",
                                         cursor: "pointer",
-                                        background: isExpanded
-                                            ? "rgba(255,255,255,0.02)"
-                                            : "transparent",
-                                        transition: "background 0.15s",
+                                        background: isHighlighted ? "rgba(0, 255, 209, 0.15)" : isExpanded ? "rgba(255,255,255,0.02)" : "transparent",
+                                        boxShadow: isHighlighted ? "inset 0 0 10px rgba(0, 255, 209, 0.3)" : "none",
+                                        transition: "background 1s ease-out, box-shadow 1s ease-out",
                                     }}
                                     onMouseEnter={(e) => {
-                                        if (!isExpanded)
+                                        if (!isExpanded && !isHighlighted)
                                             e.currentTarget.style.background = "rgba(255,255,255,0.02)";
                                     }}
                                     onMouseLeave={(e) => {
-                                        if (!isExpanded)
+                                        if (!isExpanded && !isHighlighted)
                                             e.currentTarget.style.background = "transparent";
                                     }}
                                 >
                                     {/* Čas */}
                                     <td style={{ padding: "13px 12px", fontSize: "0.85rem", color: isExpanded ? "var(--cyan)" : "var(--text)", whiteSpace: "nowrap" }}>
                                         {formatTime(order.created_at)}
-                                        {isRecent(order) && (
+                                        {isRecent(order) && !isHighlighted && (
                                             <span
                                                 style={{
                                                     display: "inline-block",
@@ -213,6 +222,7 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
                                                 title="Posledných 30 min"
                                             />
                                         )}
+                                        {isHighlighted && <span style={{ marginLeft: "8px", fontSize: "0.65rem", background: "var(--cyan)", color: "#000", padding: "2px 6px", borderRadius: "10px", fontWeight: "bold", verticalAlign: "middle" }}>NOVÉ</span>}
                                     </td>
 
                                     {/* Zákazník */}

@@ -5,6 +5,8 @@ import { Device, Call } from "@twilio/voice-sdk";
 import { useLang } from "@/lib/i18n";
 import { Phone, PhoneOff, Loader2 } from "lucide-react";
 
+import { useRouter } from "next/navigation";
+
 interface DemoCallButtonProps {
     businessType?: string;
     backendUrl?: string; // Optional custom backend URL (e.g. for Peto's branch)
@@ -21,6 +23,7 @@ export default function DemoCallButton({
     color = "#7B61FF"
 }: DemoCallButtonProps) {
     const { t } = useLang();
+    const router = useRouter();
     const deviceRef = useRef<Device | null>(null);
     const [call, setCall] = useState<Call | null>(null);
     const [status, setStatus] = useState<"idle" | "connecting" | "active" | "error">("idle");
@@ -168,6 +171,13 @@ export default function DemoCallButton({
         setStatus("idle");
         // Clear error message when manually ending a call or returning to idle
         setErrorMsg(""); 
+
+        // 3. Redirect to Dashboard with slightly delayed highlight flag
+        if (status === "active") {
+            setTimeout(() => {
+                router.push(`/dashboard/${businessType === 'taxi' ? 'taxi' : 'pizza'}?newCall=true`);
+            }, 500);
+        }
     };
 
     const label = customLabel || t.demoCall.tryDemo;

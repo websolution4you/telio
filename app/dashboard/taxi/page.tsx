@@ -135,6 +135,16 @@ function TaxiKpiCards({ rides }: { rides: TaxiRide[] }) {
 function TaxiRidesTable({ rides, calls }: { rides: TaxiRide[], calls?: any[] }) {
     // Rozbalovanie
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+    const [highlightNew, setHighlightNew] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== "undefined" && window.location.search.includes("newCall=true")) {
+            setHighlightNew(true);
+            setTimeout(() => setHighlightNew(false), 6000); // 6 sekúnd highlight
+            // Vyčistenie URL bez refreshu stránky
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, []);
 
     // Časovač na prepočítanie statusu (každých 10s)
     const [, setCurrentTime] = useState(Date.now());
@@ -210,10 +220,11 @@ function TaxiRidesTable({ rides, calls }: { rides: TaxiRide[], calls?: any[] }) 
                     </tr>
                 </thead>
                 <tbody>
-                    {displayRides.map(r => {
+                    {displayRides.map((r, index) => {
                         // Kombinujeme reálny status s "fake live" efektom (v lib/mockTaxiData)
                         const currentStatus = getRideStatus(r.created_at, r.status);
                         const isExpanded = expandedRowId === r.id;
+                        const isHighlighted = index === 0 && highlightNew;
 
                         return (
                             <React.Fragment key={r.id}>
@@ -222,12 +233,14 @@ function TaxiRidesTable({ rides, calls }: { rides: TaxiRide[], calls?: any[] }) 
                                     style={{
                                         borderBottom: isExpanded ? "none" : "1px solid rgba(255,255,255,0.05)",
                                         cursor: "pointer",
-                                        background: isExpanded ? "rgba(255, 255, 255, 0.02)" : "transparent",
-                                        transition: "background 0.2s"
+                                        background: isHighlighted ? "rgba(0, 255, 209, 0.15)" : isExpanded ? "rgba(255, 255, 255, 0.02)" : "transparent",
+                                        boxShadow: isHighlighted ? "inset 0 0 10px rgba(0, 255, 209, 0.3)" : "none",
+                                        transition: "background 1s ease-out, box-shadow 1s ease-out"
                                     }}
                                 >
                                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "var(--text-muted)" }}>
                                         {new Date(r.created_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}
+                                        {isHighlighted && <span style={{ marginLeft: "8px", fontSize: "0.65rem", background: "var(--cyan)", color: "#000", padding: "2px 6px", borderRadius: "10px", fontWeight: "bold" }}>NOVÉ</span>}
                                     </td>
                                     <td style={{ padding: "12px", fontSize: "0.85rem" }}>
                                         <div style={{ color: "var(--cyan)", fontWeight: 500, display: "flex", alignItems: "center", gap: "6px" }}>

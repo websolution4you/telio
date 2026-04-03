@@ -4,6 +4,8 @@ import { useState, useCallback } from "react";
 import { useLang } from "@/lib/i18n";
 import { Phone, PhoneOff, Loader2 } from "lucide-react";
 
+import { useRouter } from "next/navigation";
+
 interface ElevenLabsCallButtonProps {
     agentId: string;
     customLabel?: string;
@@ -18,6 +20,7 @@ export default function ElevenLabsCallButton({
     color = "#7B61FF"
 }: ElevenLabsCallButtonProps) {
     const { t } = useLang();
+    const router = useRouter();
     const [status, setStatus] = useState<"idle" | "connecting" | "active" | "error">("idle");
     const [errorMsg, setErrorMsg] = useState("");
     const [conversation, setConversation] = useState<any>(null);
@@ -62,12 +65,20 @@ export default function ElevenLabsCallButton({
     }, [agentId]);
 
     const handleEndCall = useCallback(async () => {
+        const wasActive = status === "active";
+        
         if (conversation) {
             await conversation.endSession();
             setConversation(null);
         }
         setStatus("idle");
-    }, [conversation]);
+        
+        if (wasActive) {
+            setTimeout(() => {
+                router.push(`/dashboard/pizza?newCall=true`);
+            }, 500);
+        }
+    }, [conversation, status, router]);
 
     const label = customLabel || t.demoCall.tryDemo;
 
