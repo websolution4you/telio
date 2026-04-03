@@ -174,7 +174,7 @@ export const translations = {
           priceSub: "/ month",
           description: "Perfect for single locations getting started with AI voice.",
           features: ["1 AI voice assistant", "300 minutes included / month", "Rate 0.33€ / min after limit", "Support within 48 hours"],
-          cta: "Contact us", highlighted: false, badge: null,
+          cta: "Try for free", highlighted: false, badge: null,
         },
         {
           name: "Business",
@@ -182,7 +182,7 @@ export const translations = {
           priceSub: "/ month",
           description: "For growing businesses needing more capacity and power.",
           features: ["3 AI voice assistants *", "1000 minutes included / month", "Rate 0.23€ / min after limit", "Full analytics dashboard", "Address validation via Google Maps", "Confirmation via WhatsApp + SMS", "Support within 24 hours"],
-          cta: "Contact us", highlighted: true, badge: "Most popular",
+          cta: "Try for free", highlighted: true, badge: "Most popular",
           note: "* Can handle 3 calls simultaneously",
         },
         {
@@ -442,7 +442,7 @@ export const translations = {
           priceSub: "/ mesiac",
           description: "Ideálne pre začínajúcich podnikateľov a jednotlivcov.",
           features: ["1 hlasový asistent", "300 minút v cene / mesiac", "Cena 0,33€ / min po prevolaní", "Podpora do 48 hodín"],
-          cta: "Kontaktovať nás", highlighted: false, badge: null,
+          cta: "Vyskúšať zdarma", highlighted: false, badge: null,
         },
         {
           name: "Business",
@@ -450,7 +450,7 @@ export const translations = {
           priceSub: "/ mesiac",
           description: "Pre rastúce prevádzky, ktoré potrebujú väčší výkon.",
           features: ["3 hlasoví asistenti *", "1000 minút v cene / mesiac", "Cena 0,23€ / min po prevolaní", "Kompletný analytický dashboard", "Validácia adries cez Google Maps", "Potvrdenie cez WhatsApp + SMS", "Podpora do 24 hodín"],
-          cta: "Kontaktovať nás", highlighted: true, badge: "Najpopulárnejší",
+          cta: "Vyskúšať zdarma", highlighted: true, badge: "Najpopulárnejší",
           note: "* Vie vybaviť 3 hovory súčasne",
         },
         {
