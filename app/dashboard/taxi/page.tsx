@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import DashboardNav from "@/components/dashboard/DashboardNav";
+import Navbar from "@/components/Navbar";
 import { mockRides, mockTaxiPrices, computeTaxiKpis, getRideStatus, type TaxiRide, type TaxiPrice } from "@/lib/mockTaxiData";
 import { Navigation, MapPin, Phone, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -568,8 +568,8 @@ export default function TaxiDashboardPage() {
     }
 
     return (
-        <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
-            <DashboardNav />
+        <div style={{ background: "var(--bg)", minHeight: "100vh", paddingTop: "100px" }}>
+            <Navbar />
 
             <main style={{ maxWidth: "90rem", margin: "0 auto", padding: "2rem" }}>
                 <div style={{ marginBottom: "1.5rem" }}>

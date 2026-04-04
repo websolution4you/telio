@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import DashboardNav from "@/components/dashboard/DashboardNav";
+import Navbar from "@/components/Navbar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import KpiCards from "@/components/dashboard/KpiCards";
 
@@ -233,8 +233,8 @@ export default function DashboardPage() {
     }
 
     return (
-        <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
-            <DashboardNav />
+        <div style={{ background: "var(--bg)", minHeight: "100vh", paddingTop: "100px" }}>
+            <Navbar />
 
             <main
                 style={{
