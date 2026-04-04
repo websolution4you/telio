@@ -79,26 +79,7 @@ export default function Waitlist() {
           {t.waitlist.sub}
         </p>
 
-        {/* Business type selector */}
-        {!submitted && (
-          <div
-            className={`flex flex-wrap justify-center gap-2 transition-all duration-700 delay-250 ${inView ? "opacity-100" : "opacity-0"}`}
-            style={{ marginBottom: "var(--sp-badge-mb)" }}
-          >
-            {t.waitlist.businesses.map((b) => (
-              <button key={b} type="button" onClick={() => setBusiness(b)}
-                className="rounded-2xl text-xs font-bold transition-all duration-200"
-                style={{
-                  padding: "1.25rem 2.5rem",
-                  background: business === b ? "rgba(0,255,209,0.1)" : "rgba(12,12,20,0.6)",
-                  border: `${business === b ? "2px" : "1px"} solid ${business === b ? "rgba(0,255,209,0.5)" : "var(--border)"}`,
-                  color: business === b ? "var(--cyan)" : "var(--text-muted)",
-                }}>
-                {b}
-              </button>
-            ))}
-          </div>
-        )}
+
 
         {/* Form / Success */}
         {!submitted ? (
@@ -108,6 +89,38 @@ export default function Waitlist() {
             
             {/* Input Group */}
             <div className="flex flex-col gap-3">
+              <div className="relative w-full">
+                <select
+                  required
+                  value={business}
+                  onChange={(e) => setBusiness(e.target.value)}
+                  className="input-xl outline-none transition-all duration-200 appearance-none"
+                  style={{
+                    background: "rgba(12,12,20,0.9)",
+                    border: "1px solid var(--border)",
+                    color: business ? "var(--text)" : "var(--text-muted)",
+                    width: "100%",
+                    height: "56px",
+                    padding: "0 1.5rem",
+                    borderRadius: "12px",
+                    cursor: "pointer",
+                    appearance: "none"
+                  }}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(0,255,209,0.4)")}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+                >
+                  <option value="" disabled>{t.waitlist.businessLabel}</option>
+                  {t.waitlist.businesses.map((b) => (
+                    <option key={b} value={b} style={{ background: "#0a0a12", color: "#fff" }}>{b}</option>
+                  ))}
+                </select>
+                <div 
+                  className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: "var(--text-muted)", fontSize: "0.7rem" }}
+                >
+                  ▼
+                </div>
+              </div>
               <input
                 type="text" required
                 placeholder={t.waitlist.nameLabel}
