@@ -46,7 +46,11 @@ export default function Navbar() {
         <div className="h-18 flex items-center justify-between" style={{ maxWidth: "80rem", margin: "0 auto", padding: "0 2rem", height: "68px" }}>
           {/* Logo */}
           <div className="flex-1 flex items-center justify-start">
-            <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
+            <Link 
+              href="/" 
+              className="flex items-center gap-2.5 group flex-shrink-0"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            >
               <TelioLogo />
               <span className="text-xl font-bold text-white" style={{ letterSpacing: "-0.02em" }}>
                 TELIO
