@@ -5,6 +5,7 @@ import HowItWorks from "@/components/HowItWorks";
 import UseCases from "@/components/UseCases";
 import Features from "@/components/Features";
 import Pricing from "@/components/Pricing";
+import AboutUs from "@/components/AboutUs";
 import Waitlist from "@/components/Waitlist";
 import Footer from "@/components/Footer";
 
@@ -19,6 +20,7 @@ export default function Home() {
       <UseCases />
       <Features />
       <Pricing />
+      <AboutUs />
       <Footer />
     </main>
   );

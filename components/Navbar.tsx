@@ -29,6 +29,7 @@ export default function Navbar() {
     { label: t.nav.useCases, href: "/#use-cases" },
     { label: t.nav.features, href: "/#features" },
     { label: t.nav.pricing, href: "/#pricing" },
+    { label: t.nav.about, href: "/#about-us" },
     { label: "Dashboard", href: "/dashboard" },
   ];
 

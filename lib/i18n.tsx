@@ -11,7 +11,23 @@ export const translations = {
       useCases: "Use cases",
       features: "Features",
       pricing: "Pricing",
+      about: "About us",
       cta: "Get Early Access",
+    },
+    aboutUs: {
+      badge: "Team",
+      h2a: "The minds behind",
+      h2b: "Telio.",
+      kamil: {
+        name: "Kamil",
+        role: "Co-founder & AI Architect",
+        description: "Kamil leads the technical vision of Telio, ensuring our AI agents speak naturally and handle complex business logic with ease."
+      },
+      peto: {
+        name: "Peťo",
+        role: "Co-founder & Product Lead",
+        description: "Peťo focuses on the user experience and business integration, making sure Telio solves real problems for Slovak companies."
+      }
     },
     hero: {
       badge: "Telio is online",
@@ -280,7 +296,23 @@ export const translations = {
       useCases: "Možnosti použitia",
       features: "Funkcie",
       pricing: "Cenník",
+      about: "O nás",
       cta: "Získať prístup",
+    },
+    aboutUs: {
+      badge: "O nás",
+      h2a: "Kto stojí za",
+      h2b: "Telio.",
+      kamil: {
+        name: "Kamil",
+        role: "Spoluzakladateľ & AI Architekt",
+        description: "Kamil vedie technickú víziu Telio a dohliada na to, aby naši AI agenti komunikovali prirodzene a s ľahkosťou zvládali komplexnú biznis logiku."
+      },
+      peto: {
+        name: "Peťo",
+        role: "Spoluzakladateľ & Product Lead",
+        description: "Peťo sa zameriava na používateľskú skúsenosť a integráciu do firiem, pričom dbá na to, aby Telio riešilo reálne problémy slovenských podnikateľov."
+      }
     },
     hero: {
       badge: "Telio is online",
