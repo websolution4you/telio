@@ -24,7 +24,7 @@ export async function sendContactFormAction(data: ContactFormData) {
 
     // Send email via Resend
     const { data: resData, error } = await resend.emails.send({
-      from: 'Telio Kontakt <system@telio.sk>',
+      from: 'onboarding@resend.dev',
       to: 'info@telio.sk',
       replyTo: data.email,
       subject: `Nová správa od: ${data.name} (${data.business})`,
