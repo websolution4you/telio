@@ -1,5 +1,7 @@
 "use server";
 
+import { Resend } from 'resend';
+
 export interface ContactFormData {
   name: string;
   email: string;
@@ -7,6 +9,8 @@ export interface ContactFormData {
   business: string;
   message?: string;
 }
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendContactFormAction(data: ContactFormData) {
   try {
@@ -18,22 +22,23 @@ export async function sendContactFormAction(data: ContactFormData) {
     console.log("Message:", data.message || "No message");
     console.log("====================================");
 
-    // TODO: Integrate with a mail provider (e.g. Resend, SendGrid)
-    // Example with Resend:
-    // const resend = new Resend(process.env.RESEND_API_KEY);
-    // await resend.emails.send({
-    //   from: 'Telio Web <system@telio.sk>',
-    //   to: 'info@telio.sk',
-    //   subject: `Nová správa od: ${data.name} (${data.business})`,
-    //   text: `Meno: ${data.name}\nEmail: ${data.email}\nTel: ${data.phone}\nBiznis: ${data.business}\n\nSpráva:\n${data.message}`
-    // });
+    // Send email via Resend
+    const { data: resData, error } = await resend.emails.send({
+      from: 'Telio Kontakt <system@telio.sk>',
+      to: 'info@telio.sk',
+      replyTo: data.email,
+      subject: `Nová správa od: ${data.name} (${data.business})`,
+      text: `Meno: ${data.name}\nEmail: ${data.email}\nTel: ${data.phone || "Nezadané"}\nBiznis: ${data.business}\n\nSpráva:\n${data.message || "Bez správy"}`
+    });
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    if (error) {
+        console.error("Resend delivery error:", error);
+        return { success: false, error: "Nepodarilo sa odoslať e-mail. Skúste to prosím neskôr." };
+    }
 
     return { success: true };
   } catch (error) {
-    console.error("Contact form error:", error);
-    return { success: false, error: "Nepodarilo sa odoslať formulár. Skúste to prosím neskôr." };
+    console.error("Contact form general error:", error);
+    return { success: false, error: "Vyskytla sa neočakávaná chyba pri odosielaní." };
   }
 }
