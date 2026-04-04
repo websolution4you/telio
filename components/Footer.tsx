@@ -51,8 +51,8 @@ export default function Footer() {
             {t.footer.copyright.replace("2025", String(year))}
           </p>
           <div className="flex items-center gap-4">
-            <a href="mailto:hello@telio.sk" className="text-xs transition-colors duration-200 hover:text-white"
-              style={{ color: "var(--text-muted)" }}>hello@telio.sk</a>
+            <a href="mailto:info@telio.sk" className="text-xs transition-colors duration-200 hover:text-white"
+              style={{ color: "var(--text-muted)" }}>info@telio.sk</a>
             <span style={{ color: "var(--border)" }}>·</span>
             <span className="text-xs" style={{ color: "var(--text-muted)" }}>telio.sk</span>
           </div>
