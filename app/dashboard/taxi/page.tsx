@@ -194,11 +194,11 @@ function TaxiRidesTable({ rides, calls }: { rides: TaxiRide[], calls?: any[] }) 
             });
         }
 
-        // Priorita: matchedCall.transcript (kompletný hovor) > r.transcript (môže byť placeholder) > summary > notes
+        // Priorita: matchedCall.summary (zhrnutie) > matchedCall.transcript (kompletný prepis) > r.transcript > r.notes
         const rideTranscript = r.transcript?.includes("ElevenLabs Webhook") ? null : r.transcript;
-        const transcript = matchedCall?.transcript || rideTranscript || matchedCall?.summary || r.notes;
+        const result = matchedCall?.summary || matchedCall?.transcript || rideTranscript || r.notes;
         
-        return transcript;
+        return result;
     };
 
 
@@ -277,7 +277,7 @@ function TaxiRidesTable({ rides, calls }: { rides: TaxiRide[], calls?: any[] }) 
                                     <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(255, 255, 255, 0.02)" }}>
                                         <td colSpan={5} style={{ padding: "0 12px 16px 12px" }}>
                                             <div style={{ padding: "12px", background: "rgba(0,0,0,0.2)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }}>
-                                                <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Prepis hovoru</div>
+                                                <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Zhrnutie hovoru</div>
                                                 <div style={{ fontSize: "0.85rem", color: "#e2e8f0", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
                                                     {findTranscript(r) ? `„${findTranscript(r)}“` : "Pre tento hovor nie je k dispozícii prepis."}
                                                 </div>
