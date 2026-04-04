@@ -74,19 +74,21 @@ export default function AboutUs() {
               <div className="relative group" style={{ marginBottom: "2rem" }}>
                 <div className="absolute -inset-4 rounded-full bg-gradient-to-tr from-cyan-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 blur-xl transition-all duration-700" />
                 <div 
-                  className="relative w-48 h-48 md:w-56 md:h-56 rounded-full overflow-hidden"
+                  className="relative w-48 h-48 md:w-56 md:h-56 rounded-full overflow-hidden flex items-center justify-center shadow-2xl"
                   style={{ 
                     border: "2px solid rgba(0,255,209,0.3)",
                     boxShadow: "0 0 40px rgba(0,255,209,0.1)",
                     background: "rgba(12,12,20,1)"
                   }}
                 >
-                  <Image 
-                    src={member.image} 
-                    alt={member.name}
-                    fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
+                  <div className="relative w-[88%] h-[88%] rounded-full overflow-hidden">
+                    <Image 
+                      src={member.image} 
+                      alt={member.name}
+                      fill
+                      className="object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                  </div>
                 </div>
                 {/* Decorative element */}
                 <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full flex items-center justify-center"

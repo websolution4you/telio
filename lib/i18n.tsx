@@ -21,12 +21,12 @@ export const translations = {
       kamil: {
         name: "Kamil",
         role: "Co-founder & AI Architect",
-        description: "Kamil leads the technical vision of Telio, ensuring our AI agents speak naturally and handle complex business logic with ease."
+        description: "Kamil leads the technological vision of Telio and designs the architecture of AI agents capable of natural customer interaction and reliable handling of complex real-time business scenarios.\n\nHe focuses on integrating AI, voice technologies, and backend systems to ensure Telio's solutions are scalable, accurate, and ready for real-world enterprise deployment."
       },
       peto: {
         name: "Peťo",
         role: "Co-founder & Product Lead",
-        description: "Peťo focuses on the user experience and business integration, making sure Telio solves real problems for Slovak companies."
+        description: "Peťo is responsible for the product vision and user experience of Telio. He focuses on ensuring that AI agents provide tangible value to companies, are easy to deploy, and integrate seamlessly into their daily processes.\n\nHe bridges customer needs with technological capabilities so that Telio solves specific entrepreneurial challenges and delivers measurable results."
       }
     },
     hero: {
@@ -306,12 +306,12 @@ export const translations = {
       kamil: {
         name: "Kamil",
         role: "Spoluzakladateľ & AI Architekt",
-        description: "Kamil vedie technickú víziu Telio a dohliada na to, aby naši AI agenti komunikovali prirodzene a s ľahkosťou zvládali komplexnú biznis logiku."
+        description: "Kamil vedie technologickú víziu Telio a navrhuje architektúru AI agentov, ktorí dokážu prirodzene komunikovať so zákazníkmi a spoľahlivo zvládať komplexné biznis scenáre v reálnom čase.\n\nZameriava sa na prepojenie umelej inteligencie, voice technológií a backend systémov tak, aby riešenia Telio boli škálovateľné, presné a pripravené pre reálne nasadenie vo firmách."
       },
       peto: {
         name: "Peťo",
         role: "Spoluzakladateľ & Product Lead",
-        description: "Peťo sa zameriava na používateľskú skúsenosť a integráciu do firiem, pričom dbá na to, aby Telio riešilo reálne problémy slovenských podnikateľov."
+        description: "Peťo zodpovedá za produktovú víziu a používateľskú skúsenosť Telio. Zameriava sa na to, aby AI agenti prinášali firmám reálnu hodnotu, boli jednoducho nasaditeľní a prirodzene zapadli do ich každodenných procesov.\n\nPrepája potreby zákazníkov s technologickými možnosťami tak, aby Telio riešilo konkrétne problémy podnikateľov a prinášalo merateľné výsledky."
       }
     },
     hero: {
