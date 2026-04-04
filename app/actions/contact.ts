@@ -23,9 +23,10 @@ export async function sendContactFormAction(data: ContactFormData) {
     console.log("====================================");
 
     // Send email via Resend
+    const targetEmail = process.env.CONTACT_EMAIL || 'info@telio.sk';
     const { data: resData, error } = await resend.emails.send({
       from: 'onboarding@resend.dev',
-      to: 'info@telio.sk',
+      to: targetEmail,
       replyTo: data.email,
       subject: `Nová správa od: ${data.name} (${data.business})`,
       text: `Meno: ${data.name}\nEmail: ${data.email}\nTel: ${data.phone || "Nezadané"}\nBiznis: ${data.business}\n\nSpráva:\n${data.message || "Bez správy"}`
@@ -33,7 +34,8 @@ export async function sendContactFormAction(data: ContactFormData) {
 
     if (error) {
         console.error("Resend delivery error:", error);
-        return { success: false, error: "Nepodarilo sa odoslať e-mail. Skúste to prosím neskôr." };
+        // Dočasne pridávame surovú chybu pre debugging
+        return { success: false, error: `Chyba Resend: ${error.message}` };
     }
 
     return { success: true };
