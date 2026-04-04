@@ -78,7 +78,7 @@ export default function AboutUs() {
                   style={{ 
                     border: "2px solid rgba(0,255,209,0.3)",
                     boxShadow: "0 0 40px rgba(0,255,209,0.1)",
-                    background: "rgba(12,12,20,1)"
+                    background: "#ffffff"
                   }}
                 >
                   <div className="relative w-[88%] h-[88%] rounded-full overflow-hidden">
