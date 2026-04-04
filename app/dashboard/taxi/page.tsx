@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import DashboardNav from "@/components/dashboard/DashboardNav";
 import { mockRides, mockTaxiPrices, computeTaxiKpis, getRideStatus, type TaxiRide, type TaxiPrice } from "@/lib/mockTaxiData";
 import { Navigation, MapPin, Phone, ChevronDown, ChevronUp } from "lucide-react";
@@ -136,6 +136,7 @@ function TaxiRidesTable({ rides, calls }: { rides: TaxiRide[], calls?: any[] }) 
     // Rozbalovanie
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
     const [highlightNew, setHighlightNew] = useState(false);
+    const firstRowRef = useRef<HTMLTableRowElement>(null);
 
     useEffect(() => {
         if (typeof window !== "undefined" && window.location.search.includes("newCall=true")) {
@@ -143,6 +144,13 @@ function TaxiRidesTable({ rides, calls }: { rides: TaxiRide[], calls?: any[] }) 
             setTimeout(() => setHighlightNew(false), 6000); // 6 sekúnd highlight
             // Vyčistenie URL bez refreshu stránky
             window.history.replaceState({}, document.title, window.location.pathname);
+
+            // Automatický scroll na mobilných zariadeniach
+            if (window.innerWidth < 768) {
+                setTimeout(() => {
+                    firstRowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 800); // Mierny delay pre uistenie sa, že tabuľka je vykreslená
+            }
         }
     }, []);
 
@@ -229,6 +237,7 @@ function TaxiRidesTable({ rides, calls }: { rides: TaxiRide[], calls?: any[] }) 
                         return (
                             <React.Fragment key={r.id}>
                                 <tr
+                                    ref={index === 0 ? firstRowRef : null}
                                     onClick={() => setExpandedRowId(isExpanded ? null : r.id)}
                                     style={{
                                         borderBottom: isExpanded ? "none" : "1px solid rgba(255,255,255,0.05)",

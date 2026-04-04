@@ -79,11 +79,20 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
     const [highlightNew, setHighlightNew] = useState(false);
 
+    const firstRowRef = React.useRef<HTMLTableRowElement>(null);
+
     React.useEffect(() => {
         if (typeof window !== "undefined" && window.location.search.includes("newCall=true")) {
             setHighlightNew(true);
             setTimeout(() => setHighlightNew(false), 6000);
             window.history.replaceState({}, document.title, window.location.pathname);
+
+            // Automatický scroll na mobilných zariadeniach
+            if (window.innerWidth < 768) {
+                setTimeout(() => {
+                    firstRowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 800);
+            }
         }
     }, []);
 
@@ -188,6 +197,7 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
                         return (
                             <React.Fragment key={order.id}>
                                 <tr
+                                    ref={index === 0 ? firstRowRef : null}
                                     onClick={() => setExpandedRowId(isExpanded ? null : order.id)}
                                     style={{
                                         borderBottom: isExpanded ? "none" : "1px solid var(--border)",
