@@ -6,8 +6,6 @@ export default function Footer() {
   const { t } = useLang();
   const year = new Date().getFullYear();
 
-  const productHrefs = ["#features", "#use-cases", "#pricing", "#"];
-  const industryHref = "#use-cases";
   const companyHrefs = ["#", "/privacy", "#", "#"];
 
   return (
@@ -16,9 +14,9 @@ export default function Footer() {
         style={{ background: "radial-gradient(ellipse 50% 60% at 50% 0%, rgba(0,255,209,0.03) 0%, transparent 70%)" }} />
 
       <div className="relative" style={{ maxWidth: "80rem", margin: "0 auto", padding: "0 2rem" }}>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-12 mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-20">
           {/* Brand */}
-          <div className="col-span-2">
+          <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2.5" style={{ marginBottom: "32px" }}>
               <LogoMark />
               <span className="text-xl font-bold text-white" style={{ letterSpacing: "-0.02em" }}>TELIO</span>
@@ -33,42 +31,9 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Product */}
+          {/* Links (formerly Company) */}
           <div>
-            <div className="text-xs font-semibold tracking-widest uppercase" style={{ color: "var(--text-muted)", marginBottom: "32px" }}>
-              {t.footer.product}
-            </div>
-            <ul className="flex flex-col" style={{ gap: "18px" }}>
-              {t.footer.productLinks.map((item, i) => (
-                <li key={item}>
-                  <a href={productHrefs[i]} className="text-sm transition-colors duration-200 hover:text-white"
-                    style={{ color: "var(--text-muted)" }}>{item}</a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Industries */}
-          <div>
-            <div className="text-xs font-semibold tracking-widest uppercase" style={{ color: "var(--text-muted)", marginBottom: "32px" }}>
-              {t.footer.industries}
-            </div>
-            <ul className="flex flex-col" style={{ gap: "18px" }}>
-              {t.footer.industryLinks.map((item) => (
-                <li key={item}>
-                  <a href={industryHref} className="text-sm transition-colors duration-200 hover:text-white"
-                    style={{ color: "var(--text-muted)" }}>{item}</a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <div className="text-xs font-semibold tracking-widest uppercase" style={{ color: "var(--text-muted)", marginBottom: "32px" }}>
-              {t.footer.company}
-            </div>
-            <ul className="flex flex-col" style={{ gap: "18px" }}>
+            <ul className="flex flex-col" style={{ gap: "18px", marginTop: "4px" }}>
               {t.footer.companyLinks.map((item, i) => (
                 <li key={item}>
                   <a href={companyHrefs[i]} className="text-sm transition-colors duration-200 hover:text-white"
