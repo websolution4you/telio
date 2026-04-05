@@ -26,7 +26,7 @@ export const translations = {
       peto: {
         name: "Peťo",
         role: "Co-founder & Product Lead",
-        description: "Peťo is responsible for the product vision and user experience of Telio. He focuses on ensuring that AI agents provide tangible value to companies, are easy to deploy, and integrate seamlessly into their daily processes.\n\nHe bridges customer needs with technological capabilities so that Telio solves specific entrepreneurial challenges and delivers measurable results."
+        description: "Peťo is responsible for the product vision and user experience at Telio. As a skilled data analyst, he can extract relevant insights and tailor them to the company's needs to maximize business potential.\n\nHe bridges customer needs with technological capabilities, ensuring that AI agents provide real value, solve specific entrepreneurial challenges, and deliver measurable results."
       }
     },
     hero: {
@@ -311,7 +311,7 @@ export const translations = {
       peto: {
         name: "Peťo",
         role: "Spoluzakladateľ & Product Lead",
-        description: "Peťo zodpovedá za produktovú víziu a používateľskú skúsenosť Telio. Zameriava sa na to, aby AI agenti prinášali firmám reálnu hodnotu, boli jednoducho nasaditeľní a prirodzene zapadli do ich každodenných procesov.\n\nPrepája potreby zákazníkov s technologickými možnosťami tak, aby Telio riešilo konkrétne problémy podnikateľov a prinášalo merateľné výsledky."
+        description: "Peťo zodpovedá za produktovú víziu a používateľskú skúsenosť Telio. Ako skúsený dátový analytik dokáže vytiahnuť relevantné dáta a prispôsobiť ich firme tak, aby vyťažila zo svojho podnikania čo najviac.\n\nPrepája potreby zákazníkov s technologickými možnosťami tak, aby AI agenti prinášali firmám reálnu hodnotu, riešili konkrétne problémy a prinášali merateľné výsledky."
       }
     },
     hero: {
