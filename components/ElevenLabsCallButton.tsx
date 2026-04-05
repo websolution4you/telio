@@ -34,6 +34,20 @@ export default function ElevenLabsCallButton({
             const permStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             permStream.getTracks().forEach(track => track.stop());
 
+            // iOS fix: AudioContext štartuje suspended — prebudíme ho tichým bufferom
+            // aby ElevenLabs nemusel čakať pri prvom slove (praskanie)
+            const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+            if (AudioCtx) {
+                const ctx = new AudioCtx();
+                const buf = ctx.createBuffer(1, 1, 22050);
+                const src = ctx.createBufferSource();
+                src.buffer = buf;
+                src.connect(ctx.destination);
+                src.start(0);
+                await ctx.resume();
+                await ctx.close();
+            }
+
             // Dynamic import to avoid SSR issues
             const { Conversation } = await import("@elevenlabs/client");
 
