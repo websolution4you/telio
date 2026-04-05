@@ -60,17 +60,29 @@ export default function DemoCallButton({
             const identity = data.identity;
             setUserId(identity);
 
+            // Detekcia mobilného zariadenia pre optimalizáciu audio nastavení
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
             const newDevice = new Device(token, {
                 codecPreferences: [Call.Codec.Opus, Call.Codec.PCMU],
                 edge: ["dublin", "frankfurt"],
+                // Optimalizácia pre mobilné zariadenia - nižší bitrate pre stabilnejšie spojenie
+                maxAverageBitrate: isMobile ? 16000 : 32000,
+                // Prioritizácia audio paketov v sieti
+                dscp: true,
             });
 
             // Nastavenie mikrofónu pre elimináciu ozveny a šumu
+            // Optimalizované pre mobilné zariadenia
             if (newDevice.audio) {
                 await newDevice.audio.setAudioConstraints({
                     echoCancellation: true,
                     noiseSuppression: true,
                     autoGainControl: true,
+                    // Nižší sample rate pre mobilné zariadenia = lepšia stabilita
+                    sampleRate: isMobile ? 16000 : 48000,
+                    // Mono kanál pre lepšiu stabilitu a nižšiu spotrebu bandwidth
+                    channelCount: 1,
                 });
             }
 

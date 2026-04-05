@@ -30,7 +30,21 @@ export default function ElevenLabsCallButton({
             setStatus("connecting");
             setErrorMsg("");
 
-            await navigator.mediaDevices.getUserMedia({ audio: true });
+            // Detekcia mobilného zariadenia pre optimalizáciu audio nastavení
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+            // Optimalizované audio constraints pre lepšiu kvalitu a stabilitu
+            await navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                    // Nižší sample rate pre mobilné zariadenia = lepšia stabilita
+                    sampleRate: isMobile ? 16000 : 48000,
+                    // Mono kanál pre lepšiu stabilitu a nižšiu spotrebu bandwidth
+                    channelCount: 1,
+                }
+            });
 
             // Dynamic import to avoid SSR issues
             const { Conversation } = await import("@elevenlabs/client");
