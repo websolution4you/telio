@@ -39,6 +39,7 @@ export default function ElevenLabsCallButton({
 
             const conv = await Conversation.startSession({
                 agentId: agentId,
+                connectionType: "webrtc",
                 onConnect: () => {
                     setStatus("active");
                     console.log("ElevenLabs: Connected");
