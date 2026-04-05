@@ -60,9 +60,12 @@ export default function DemoCallButton({
             const identity = data.identity;
             setUserId(identity);
 
+            // iOS fix: Nechávame vybrať natívne audio parametre (bez vynúteného bitrate/sample rate)
             const newDevice = new Device(token, {
                 codecPreferences: [Call.Codec.Opus, Call.Codec.PCMU],
                 edge: ["dublin", "frankfurt"],
+                // Prioritizácia audio paketov v sieti
+                dscp: true,
             });
 
             // Nastavenie mikrofónu pre elimináciu ozveny a šumu
@@ -71,6 +74,8 @@ export default function DemoCallButton({
                     echoCancellation: true,
                     noiseSuppression: true,
                     autoGainControl: true,
+                    // Mono kanál pre lepšiu stabilitu a nižšiu spotrebu bandwidth
+                    channelCount: 1,
                 });
             }
 

@@ -30,13 +30,16 @@ export default function ElevenLabsCallButton({
             setStatus("connecting");
             setErrorMsg("");
 
-            await navigator.mediaDevices.getUserMedia({ audio: true });
+            // Permission check — stream hneď zatvoriť, ElevenLabs si otvorí vlastný
+            const permStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            permStream.getTracks().forEach(track => track.stop());
 
             // Dynamic import to avoid SSR issues
             const { Conversation } = await import("@elevenlabs/client");
 
             const conv = await Conversation.startSession({
                 agentId: agentId,
+                connectionType: "webrtc",
                 onConnect: () => {
                     setStatus("active");
                     console.log("ElevenLabs: Connected");
