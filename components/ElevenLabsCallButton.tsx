@@ -30,51 +30,15 @@ export default function ElevenLabsCallButton({
             setStatus("connecting");
             setErrorMsg("");
 
-            // Detekcia mobilného zariadenia pre optimalizáciu audio nastavení
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-            // Optimalizované audio constraints pre lepšiu kvalitu a stabilitu
-            // Flexibilnejšie nastavenia pre kompatibilitu s rôznymi zariadeniami
-            const audioConstraints: MediaTrackConstraints = {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true,
-                channelCount: 1,
-            };
-
-            // Sample rate len pre zariadenia, ktoré to podporujú
-            if (isMobile) {
-                audioConstraints.sampleRate = { ideal: 16000 };
-            } else {
-                // Desktop: použiť ideálny sample rate, ale povoliť fallback
-                audioConstraints.sampleRate = { ideal: 48000, min: 16000 };
-            }
-
-            // Požiadať o prístup k mikrofónu s lepším error handlingom
-            try {
-                await navigator.mediaDevices.getUserMedia({ 
-                    audio: audioConstraints
-                });
-            } catch (permError: any) {
-                console.error("Microphone permission error:", permError);
-                throw new Error(
-                    permError.name === 'NotAllowedError' 
-                        ? 'Prosím povoľte prístup k mikrofónu v nastaveniach prehliadača'
-                        : permError.name === 'NotFoundError'
-                        ? 'Mikrofón nebol nájdený. Skontrolujte, či je pripojený.'
-                        : `Chyba mikrofónu: ${permError.message}`
-                );
-            }
+            // Permission check — stream hneď zatvoriť, ElevenLabs si otvorí vlastný
+            const permStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            permStream.getTracks().forEach(track => track.stop());
 
             // Dynamic import to avoid SSR issues
             const { Conversation } = await import("@elevenlabs/client");
 
             const conv = await Conversation.startSession({
                 agentId: agentId,
-                // Konfiguracia pre lepšiu kvalitu audio
-                clientTools: {
-                    // Povoliť všetky dostupné audio optimalizácie
-                },
                 onConnect: () => {
                     setStatus("active");
                     console.log("ElevenLabs: Connected");
