@@ -50,9 +50,21 @@ export default function ElevenLabsCallButton({
                 audioConstraints.sampleRate = { ideal: 48000, min: 16000 };
             }
 
-            await navigator.mediaDevices.getUserMedia({ 
-                audio: audioConstraints
-            });
+            // Požiadať o prístup k mikrofónu s lepším error handlingom
+            try {
+                await navigator.mediaDevices.getUserMedia({ 
+                    audio: audioConstraints
+                });
+            } catch (permError: any) {
+                console.error("Microphone permission error:", permError);
+                throw new Error(
+                    permError.name === 'NotAllowedError' 
+                        ? 'Prosím povoľte prístup k mikrofónu v nastaveniach prehliadača'
+                        : permError.name === 'NotFoundError'
+                        ? 'Mikrofón nebol nájdený. Skontrolujte, či je pripojený.'
+                        : `Chyba mikrofónu: ${permError.message}`
+                );
+            }
 
             // Dynamic import to avoid SSR issues
             const { Conversation } = await import("@elevenlabs/client");
