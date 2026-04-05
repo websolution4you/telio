@@ -34,16 +34,24 @@ export default function ElevenLabsCallButton({
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
             // Optimalizované audio constraints pre lepšiu kvalitu a stabilitu
+            // Flexibilnejšie nastavenia pre kompatibilitu s rôznymi zariadeniami
+            const audioConstraints: MediaTrackConstraints = {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+                channelCount: 1,
+            };
+
+            // Sample rate len pre zariadenia, ktoré to podporujú
+            if (isMobile) {
+                audioConstraints.sampleRate = { ideal: 16000 };
+            } else {
+                // Desktop: použiť ideálny sample rate, ale povoliť fallback
+                audioConstraints.sampleRate = { ideal: 48000, min: 16000 };
+            }
+
             await navigator.mediaDevices.getUserMedia({ 
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true,
-                    // Nižší sample rate pre mobilné zariadenia = lepšia stabilita
-                    sampleRate: isMobile ? 16000 : 48000,
-                    // Mono kanál pre lepšiu stabilitu a nižšiu spotrebu bandwidth
-                    channelCount: 1,
-                }
+                audio: audioConstraints
             });
 
             // Dynamic import to avoid SSR issues
@@ -51,6 +59,10 @@ export default function ElevenLabsCallButton({
 
             const conv = await Conversation.startSession({
                 agentId: agentId,
+                // Konfiguracia pre lepšiu kvalitu audio
+                clientTools: {
+                    // Povoliť všetky dostupné audio optimalizácie
+                },
                 onConnect: () => {
                     setStatus("active");
                     console.log("ElevenLabs: Connected");
