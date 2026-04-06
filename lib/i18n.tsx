@@ -63,7 +63,7 @@ export const translations = {
       steps: [
         {
           number: "01",
-          title: "Customer calls your number",
+          title: "Customer calls your number, the call is instantly redirected to Telio.",
           description: "Telio picks up instantly — no waiting, no voicemail. It greets the caller in your business's name, just like a real receptionist would.",
           detail: "",
         },
@@ -348,7 +348,7 @@ export const translations = {
       steps: [
         {
           number: "01",
-          title: "Zákazník zavolá na vaše číslo",
+          title: "Zákazník zavolá na Vaše číslo, hovor bude hneď presmerovaný na Telio.",
           description: "Telio zdvihne okamžite — žiadne čakanie, žiadna hlasová schránka. Privíta volajúceho v mene vašej prevádzky, presne ako skutočná recepčná.",
           detail: "",
         },
