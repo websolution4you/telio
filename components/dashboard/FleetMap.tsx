@@ -69,9 +69,11 @@ const MOCK_DRIVERS = [
 ];
 
 export default function FleetMap() {
-  const { isLoaded } = useJsApiLoader({
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+  const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
+    googleMapsApiKey: apiKey || ""
   });
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -84,9 +86,31 @@ export default function FleetMap() {
     setMap(null);
   }, []);
 
+  if (!apiKey) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-[#050508] text-red-500 p-8 text-center">
+        <div>
+          <h3 className="text-xl font-bold mb-2">Chýba API Kľúč</h3>
+          <p className="text-sm opacity-80">Pridajte <b>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</b> do svojho .env súboru.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-[#050508] text-red-500">
+        <div>Chyba pri načítaní Mapy: {loadError.message}</div>
+      </div>
+    );
+  }
+
   if (!isLoaded) return (
     <div className="w-full h-full flex items-center justify-center bg-[#050508] text-cyan-400">
-      <div className="animate-pulse">Načítavam Google Mapu...</div>
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-sm tracking-widest uppercase">Načítavam Google Mapu...</div>
+      </div>
     </div>
   );
 
