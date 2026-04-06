@@ -227,7 +227,7 @@ export const translations = {
       successTitle: "You're in!",
       successSub: "We've received your request. We'll contact you within 48 hours. Check your inbox.",
       businesses: ["Restaurant", "Taxi", "Dentist / Clinic", "Pizzeria", "Salon", "Other"],
-      trust: ["No credit card required", "14 days free", "Cancel anytime"],
+      trust: ["14 days free", "Cancel anytime"],
     },
     footer: {
       tagline: "Your 24/7 AI voice agent for Slovak businesses. Never miss a customer call again.",
@@ -512,7 +512,7 @@ export const translations = {
       successTitle: "Máme to!",
       successSub: "Vašu požiadavku sme prijali. Budeme Vás kontaktovať do 48 hodín na uvedený email.",
       businesses: ["Reštaurácia", "Taxi", "Zubár / Klinika", "Pizzeria", "Salón", "Iné"],
-      trust: ["Platobná karta nie je potrebná", "14 dní zadarmo", "Zrušenie kedykoľvek"],
+      trust: ["14 dní zadarmo", "Zrušenie kedykoľvek"],
     },
     footer: {
       tagline: "Váš AI hlasový agent 24/7 pre slovenské firmy. Nikdy nestratíte zákazníka.",

@@ -165,19 +165,6 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* Stats pills */}
-        <div
-          className={`flex flex-wrap items-center justify-center gap-x-8 gap-y-3 transition-all duration-700 delay-700 ${visible ? "opacity-100" : "opacity-0"}`}
-          style={{ color: "var(--text-muted)", fontSize: "0.82rem" }}
-        >
-          <StatPill value="&lt; 1s" label={t.hero.statResponse} />
-          <Divider />
-          <StatPill value="24/7" label={t.hero.statAvail} />
-          <Divider />
-          <StatPill value="100%" label={t.hero.statCalls} />
-          <Divider />
-          <StatPill value="SK/EN" label={t.hero.statLang} />
-        </div>
       </div>
 
 
@@ -190,18 +177,4 @@ export default function Hero() {
       `}</style>
     </section>
   );
-}
-
-function StatPill({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="font-bold text-sm" style={{ color: "var(--cyan)" }}
-        dangerouslySetInnerHTML={{ __html: value }} />
-      <span>{label}</span>
-    </div>
-  );
-}
-
-function Divider() {
-  return <div className="hidden sm:block w-px h-4" style={{ background: "var(--border)" }} />;
 }
