@@ -8,11 +8,17 @@ import Link from "next/link";
 
 export default function TaxiFleetMapPage() {
   return (
-    <div className="bg-[#050508] min-h-screen flex flex-col pt-[100px] overflow-hidden">
+    <div 
+      className="bg-[#050508] min-h-screen flex flex-col overflow-hidden"
+      style={{ paddingTop: '120px' }}
+    >
       <Navbar />
 
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col pb-8 overflow-hidden">
-        <div className="flex items-center justify-between mb-6">
+      <main 
+        className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col overflow-hidden"
+        style={{ paddingBottom: '40px' }}
+      >
+        <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <Link 
               href="/dashboard/taxi" 
@@ -39,7 +45,10 @@ export default function TaxiFleetMapPage() {
         </div>
 
         {/* Map Container */}
-        <div className="flex-1 h-[calc(100vh-250px)] min-h-[600px] w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative">
+        <div 
+          className="w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative"
+          style={{ height: '700px', minHeight: '600px' }}
+        >
           <FleetMap />
         </div>
       </main>

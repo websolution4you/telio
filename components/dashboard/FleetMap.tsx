@@ -79,6 +79,7 @@ export default function FleetMap() {
   const [map, setMap] = useState<google.maps.Map | null>(null);
 
   const onLoad = useCallback(function callback(map: google.maps.Map) {
+    console.log("Google Map loaded successfully.");
     setMap(map);
   }, []);
 
@@ -88,28 +89,29 @@ export default function FleetMap() {
 
   if (!apiKey) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-[#050508] text-red-500 p-8 text-center">
-        <div>
-          <h3 className="text-xl font-bold mb-2">Chýba API Kľúč</h3>
-          <p className="text-sm opacity-80">Pridajte <b>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</b> do svojho .env súboru.</p>
-        </div>
+      <div className="w-full h-full flex flex-col items-center justify-center bg-[#050508] text-red-500 p-8 text-center border-2 border-dashed border-red-500/20 rounded-2xl">
+        <h3 className="text-xl font-bold mb-2">Google Maps API Key Chýba!</h3>
+        <p className="text-sm opacity-80 mb-4 max-w-sm">Vercel/Render potrebuje premennú <b>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</b>. Skontrolujte nastavenia projektu.</p>
+        <div className="px-4 py-2 bg-red-500/10 rounded-lg text-xs font-mono">Status: UNDEFINED</div>
       </div>
     );
   }
 
   if (loadError) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-[#050508] text-red-500">
-        <div>Chyba pri načítaní Mapy: {loadError.message}</div>
+      <div className="w-full h-full flex flex-col items-center justify-center bg-[#050508] text-red-500 p-8 text-center">
+        <h3 className="text-xl font-bold mb-2">Chyba pri načítaní Mapy</h3>
+        <p className="text-sm opacity-80">{loadError.message}</p>
       </div>
     );
   }
 
   if (!isLoaded) return (
-    <div className="w-full h-full flex items-center justify-center bg-[#050508] text-cyan-400">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-        <div className="text-sm tracking-widest uppercase">Načítavam Google Mapu...</div>
+    <div className="w-full h-full flex flex-col items-center justify-center bg-[#050508] text-cyan-400">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-sm tracking-widest uppercase font-bold">Inicializácia Google Maps...</div>
+        <div className="text-[10px] opacity-40">API Key: PRÍTOMNÝ (OK)</div>
       </div>
     </div>
   );
