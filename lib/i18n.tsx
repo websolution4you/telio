@@ -69,8 +69,8 @@ export const translations = {
         },
         {
           number: "02",
-          title: "AI understands and responds",
-          description: "Natural conversation powered by OpenAI. Telio understands intent, asks follow-up questions, checks availability, and takes action — all in real time.",
+          title: "Telio understands and responds",
+          description: "Natural conversation powered by newest AI technologies. Telio understands intent, asks follow-up questions, checks availability, and takes action — all in real time.",
           detail: "",
         },
         {
@@ -354,8 +354,8 @@ export const translations = {
         },
         {
           number: "02",
-          title: "AI rozumie a odpovedá",
-          description: "Prirodzený rozhovor poháňaný OpenAI. Telio pochopí zámer, pýta sa doplňujúce otázky, overuje dostupnosť a vykoná akciu — všetko v reálnom čase.",
+          title: "Telio rozumie a odpovedá",
+          description: "Prirodzený rozhovor poháňaný najnovšími AI technológiami. Telio pochopí zámer, pýta sa doplňujúce otázky, overuje dostupnosť a vykoná akciu — všetko v reálnom čase.",
           detail: "",
         },
         {
