@@ -318,7 +318,7 @@ export const translations = {
       badge: "Telio is online",
       h1a: "Váš biznis",
       h1b: "nezaspí nikdy.",
-      sub: "Telio je váš hlasový asistent 24/7. Zdvihne každý hovor, hovorí prirodzene po slovensky a v iných jazykoch rezervuje termíny, dispečuje taxíky — a nikdy si nevezme voľno.",
+      sub: "Telio je váš hlasový asistent 24/7. Zdvihne každý hovor, hovorí prirodzene po slovensky a v iných jazykoch, rezervuje termíny, dispečuje taxíky — a nikdy si nevezme voľno.",
       cta1: "Získať prístup →",
       cta2: "Zistiť viac",
       statResponse: "Čas odozvy",
