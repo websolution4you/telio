@@ -78,6 +78,7 @@ export async function getTaxiDashboardData(tenantId: string) {
         { data: ridesWeek },
         { data: prices },
         { data: calls },
+        { data: drivers },
     ] = await Promise.all([
         db
             .from(tables.rides)
@@ -102,6 +103,10 @@ export async function getTaxiDashboardData(tenantId: string) {
             .select("*")
             .order("started_at", { ascending: false })
             .limit(100),
+        db
+            .from(tables.drivers)
+            .select("*")
+            .order("last_update", { ascending: false }),
     ]);
 
     const kpisToday = calculateTaxiKpis(ridesToday || []);
@@ -114,7 +119,8 @@ export async function getTaxiDashboardData(tenantId: string) {
         kpisWeek,
         prices: prices || [],
         calls: (calls || []).slice(0, 50),
-        realtimeTables,
+        drivers: drivers || [],
+        realtimeTables: [...realtimeTables, tables.drivers],
         tables,
     };
 }

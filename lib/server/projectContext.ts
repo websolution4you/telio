@@ -20,6 +20,7 @@ export type TaxiTables = {
     rides: string;
     prices: string;
     calls: string;
+    drivers: string;
 };
 
 type BaseProjectContext = {
@@ -50,6 +51,7 @@ const DEFAULT_TABLES = {
         rides: "taxi_rides",
         prices: "taxi_rate_cards",
         calls: "calls",
+        drivers: "drivers",
     },
 } satisfies Record<ProjectType, PizzaTables | TaxiTables>;
 
@@ -63,6 +65,7 @@ const PREFIX_SUFFIXES = {
         rides: "rides",
         prices: "rate_cards",
         calls: "calls",
+        drivers: "drivers",
     },
 } satisfies Record<ProjectType, Record<string, string>>;
 
@@ -109,6 +112,8 @@ function resolveTaxiTables(dataSource: DataSourceRow): TaxiTables {
             || buildPrefixedName(prefix, PREFIX_SUFFIXES.taxi.prices, defaults.prices),
         calls: pickString(dataSource, ["calls_table", "taxi_calls_table"])
             || buildPrefixedName(prefix, PREFIX_SUFFIXES.taxi.calls, defaults.calls),
+        drivers: pickString(dataSource, ["drivers_table", "taxi_drivers_table"])
+            || buildPrefixedName(prefix, PREFIX_SUFFIXES.taxi.drivers, defaults.drivers),
     };
 }
 

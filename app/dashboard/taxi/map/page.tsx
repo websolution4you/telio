@@ -15,10 +15,10 @@ export default function TaxiFleetMapPage() {
       <Navbar />
 
       <main 
-        className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col overflow-hidden"
+        className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center overflow-hidden"
         style={{ paddingBottom: '40px' }}
       >
-        <div className="flex items-center justify-between mb-8">
+        <div className="w-full max-w-5xl flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <Link 
               href="/dashboard/taxi" 
@@ -46,7 +46,7 @@ export default function TaxiFleetMapPage() {
 
         {/* Map Container */}
         <div 
-          className="w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative"
+          className="w-full max-w-5xl rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative"
           style={{ height: '700px', minHeight: '600px' }}
         >
           <FleetMap />
