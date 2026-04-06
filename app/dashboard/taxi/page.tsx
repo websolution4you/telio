@@ -3,7 +3,8 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import { mockRides, mockTaxiPrices, computeTaxiKpis, getRideStatus, type TaxiRide, type TaxiPrice } from "@/lib/mockTaxiData";
-import { Navigation, MapPin, Phone, ChevronDown, ChevronUp } from "lucide-react";
+import { Navigation, MapPin, Phone, ChevronDown, ChevronUp, Map as MapIcon } from "lucide-react";
+import Link from "next/link";
 
 import SalesChart from "@/components/dashboard/SalesChart";
 import OrdersHeatmap from "@/components/dashboard/OrdersHeatmap";
@@ -583,6 +584,14 @@ export default function TaxiDashboardPage() {
                     </div>
                     <div className="flex items-center justify-between">
                         <h1 style={{ fontSize: "1.8rem", fontWeight: 800, color: "#fff" }}>Taxi Dispečing</h1>
+                        
+                        <Link 
+                            href="/dashboard/taxi/map"
+                            className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 border border-cyan-500/50 hover:bg-cyan-500/20 text-cyan-400 rounded-xl transition-all duration-300 font-bold text-sm shadow-lg shadow-cyan-900/10"
+                        >
+                            <MapIcon size={18} />
+                            Sledovať Flotu (Live)
+                        </Link>
                     </div>
                 </div>
 
