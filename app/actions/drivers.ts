@@ -39,3 +39,24 @@ export async function updateDriverLocationAction(driverId: string, lat: number, 
     return { success: false, error: err instanceof Error ? err.message : "Internal error" };
   }
 }
+
+/**
+ * Fetches all drivers from the database.
+ */
+export async function getDriversAction() {
+  try {
+    const tenantId = await getCurrentTenantId("taxi");
+    const { db, tables } = await getProjectContext(tenantId, "taxi");
+
+    const { data, error } = await db
+      .from(tables.drivers)
+      .select("*");
+
+    if (error) throw error;
+    return { success: true, drivers: data };
+
+  } catch (err) {
+    console.error("getDriversAction failed:", err);
+    return { success: false, error: err instanceof Error ? err.message : "Internal error" };
+  }
+}
