@@ -122,7 +122,7 @@ export default function FleetMap() {
 
       {/* Overlay Stats */}
       <div className="absolute top-4 left-4 z-10 bg-black/80 backdrop-blur-md p-4 rounded-xl border border-white/10 text-white">
-        <h3 className="text-sm font-bold text-cyan-400 mb-2 uppercase tracking-widest">Stav Floty</h3>
+        <h3 className="text-sm font-bold text-cyan-400 mb-2 uppercase tracking-widest">Stav Flotily</h3>
         <div className="space-y-2">
            <div className="flex items-center gap-2 text-xs">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>

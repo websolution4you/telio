@@ -27,7 +27,7 @@ export default function TaxiFleetMapPage() {
               <ChevronLeft size={20} className="text-white" />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-white tracking-tight">Sledovanie Floty</h1>
+              <h1 className="text-2xl font-bold text-white tracking-tight">Sledovanie Flotily</h1>
               <p className="text-sm text-white/50">Real-time poloha taxíkov na mape lokačných dát</p>
             </div>
           </div>
