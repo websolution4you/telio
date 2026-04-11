@@ -7,58 +7,36 @@ import { Layers, Map as MapIcon, Globe, Info } from 'lucide-react';
 const center = { lat: 49.023, lng: 20.590 };
 const mapContainerStyle = { width: '100%', height: '100%' };
 
-// Professional Silver Map Styles
-const silverStyle = [
-  { "elementType": "geometry", "stylers": [{ "color": "#f5f5f5" }] },
-  { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
-  { "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }] },
-  { "elementType": "labels.text.stroke", "stylers": [{ "color": "#f5f5f5" }] },
-  { "featureType": "administrative.land_parcel", "elementType": "labels.text.fill", "stylers": [{ "color": "#bdbdbd" }] },
-  { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#eeeeee" }] },
-  { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
-  { "featureType": "poi.park", "elementType": "geometry", "stylers": [{ "color": "#e5e5e5" }] },
-  { "featureType": "poi.park", "elementType": "labels.text.fill", "stylers": [{ "color": "#9e9e9e" }] },
+// Warm/Cream Map Styles (Matching provided aesthetic)
+const warmStyle = [
+  { "elementType": "geometry", "stylers": [{ "color": "#f2efe9" }] },
+  { "elementType": "labels.text.fill", "stylers": [{ "color": "#523719" }] },
+  { "elementType": "labels.text.stroke", "stylers": [{ "color": "#f2efe9" }] },
+  { "featureType": "administrative", "elementType": "geometry.stroke", "stylers": [{ "color": "#c9b2a6" }] },
   { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#ffffff" }] },
-  { "featureType": "road.arterial", "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
-  { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#dadada" }] },
-  { "featureType": "road.highway", "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }] },
-  { "featureType": "road.local", "elementType": "labels.text.fill", "stylers": [{ "color": "#9e9e9e" }] },
-  { "featureType": "transit.line", "elementType": "geometry", "stylers": [{ "color": "#e5e5e5" }] },
-  { "featureType": "transit.station", "elementType": "geometry", "stylers": [{ "color": "#eeeeee" }] },
-  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#c9c9c9" }] },
-  { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#9e9e9e" }] }
+  { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#ffeb3b" }] },
+  { "featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{ "color": "#fbc02d" }] },
+  { "featureType": "water", "elementType": "geometry.fill", "stylers": [{ "color": "#b9d3c2" }] },
+  { "featureType": "poi", "elementType": "labels.icon", "stylers": [{ "visibility": "on" }] },
+  { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#93817c" }] }
 ];
 
-// Futuristic Car SVG generator
-const getCarIcon = (color: string, isLightMode: boolean) => {
+// Modern Sedan SVG generator
+const getCarIcon = (color: string) => {
   const svg = `
     <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="2.5" result="blur" />
+        <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
           <feComposite in="SourceGraphic" in2="blur" operator="over" />
         </filter>
       </defs>
       
-      <!-- Podsvietenie pod autom -->
-      <ellipse cx="30" cy="30" rx="15" ry="25" fill="${color}" fill-opacity="${isLightMode ? '0.4' : '0.2'}" filter="url(#glow)" />
-      
-      <!-- Telo auta -->
-      <path d="M22 18C22 15 24 13 27 12H33C36 12 38 15 38 18V42C38 45 36 47 33 48H27C24 47 22 45 22 42V18Z" fill="${color}" />
-      
-      <!-- Čelné sklo -->
-      <path d="M24 20C24 19 25 18 26 18H34C35 18 36 19 36 20L35 26H25L24 20Z" fill="white" fill-opacity="0.4" />
-      
-      <!-- Strecha -->
-      <rect x="25" y="28" width="10" height="12" rx="2" fill="white" fill-opacity="0.2" />
-      
-      <!-- Predné svetlá -->
-      <rect x="23" y="13" width="4" height="2" rx="1" fill="white" />
-      <rect x="33" y="13" width="4" height="2" rx="1" fill="white" />
-      
-      <!-- Bočné spätné zrkadlá -->
-      <path d="M22 22H20V25H22V22Z" fill="${color}" />
-      <path d="M38 22H40V25H38V22Z" fill="${color}" />
+      <g transform="rotate(0, 30, 30)">
+        <ellipse cx="30" cy="32" rx="14" ry="24" fill="${color}" fill-opacity="0.3" filter="url(#glow)" />
+        <rect x="20" y="12" width="20" height="38" rx="3" fill="${color}" stroke="white" stroke-width="1.2" />
+        <path d="M22 22C22 20 24 19 30 19C36 19 38 20 38 22L37 28H23L22 22Z" fill="white" fill-opacity="0.6" stroke="white" stroke-width="0.5" />
+      </g>
     </svg>
   `;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
@@ -79,7 +57,7 @@ export default function FleetMap() {
   const { isLoaded, loadError } = useJsApiLoader({ id: 'google-map-script', googleMapsApiKey: apiKey || "" });
 
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [mapMode, setMapMode] = useState<'silver' | 'satellite'>('silver');
+  const [mapMode, setMapMode] = useState<'warm' | 'satellite'>('warm');
   const [showTraffic, setShowTraffic] = useState(false);
 
   useEffect(() => {
@@ -107,12 +85,12 @@ export default function FleetMap() {
     fullscreenControl: true,
     mapTypeControl: false,
     streetViewControl: false,
-    styles: mapMode === 'silver' ? silverStyle : []
+    styles: mapMode === 'warm' ? warmStyle : []
   }), [mapMode]);
 
-  if (!apiKey) return <div className="p-8 text-red-500 bg-[#050508] h-full flex items-center justify-center font-bold">MISSING API KEY</div>;
+  if (!apiKey) return <div className="p-8 text-red-500 bg-[#f2efe9] h-full flex items-center justify-center font-bold">MISSING API KEY</div>;
   if (loadError) return <div className="p-8 text-red-500 h-full flex items-center justify-center font-bold">LOADING ERROR</div>;
-  if (!isLoaded) return <div className="h-full flex flex-col items-center justify-center bg-[#050508] text-cyan-400 gap-4"><div className="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>Loading Fleet Map...</div>;
+  if (!isLoaded) return <div className="h-full flex flex-col items-center justify-center bg-[#f2efe9] text-[#523719] gap-4"><div className="w-10 h-10 border-4 border-[#523719] border-t-transparent rounded-full animate-spin"></div>Načítavam mapu flotily...</div>;
 
   return (
     <div className="w-full h-full relative group">
@@ -131,7 +109,7 @@ export default function FleetMap() {
           if (!lat || !lng) return null;
 
           const isAvailable = driver.status === 'AVAILABLE' || driver.status === 'ONLINE';
-          const iconColor = isAvailable ? '#0891b2' : '#be123c'; // Darker cyan/rose for better contrast on white
+          const iconColor = isAvailable ? '#22c55e' : '#ef4444'; // Green for available, Red for busy
 
           return (
             <Marker
@@ -139,9 +117,9 @@ export default function FleetMap() {
               position={{ lat, lng }}
               title={`${driver.name} - ${driver.status}`}
               icon={{
-                url: getCarIcon(iconColor, mapMode === 'silver'),
-                scaledSize: new google.maps.Size(60, 60),
-                anchor: new google.maps.Point(30, 30)
+                url: getCarIcon(iconColor),
+                scaledSize: new google.maps.Size(50, 50),
+                anchor: new google.maps.Point(25, 25)
               }}
             />
           );
@@ -150,52 +128,52 @@ export default function FleetMap() {
 
       {/* Floating Control Panel */}
       <div className="absolute top-6 right-6 z-10 flex flex-col gap-2">
-        <div className="bg-black/80 backdrop-blur-xl border border-white/10 p-1.5 rounded-2xl flex gap-1 shadow-2xl">
+        <div className="bg-white border border-gray-200 p-1.5 rounded-2xl flex gap-1 shadow-xl">
           <button 
-            onClick={() => setMapMode('silver')}
-            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${mapMode === 'silver' ? 'bg-white text-black' : 'text-white/50 hover:bg-white/5'}`}
+            onClick={() => setMapMode('warm')}
+            className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${mapMode === 'warm' ? 'bg-[#523719] text-white' : 'text-gray-400 hover:bg-gray-50'}`}
           >
-            <MapIcon size={14} /> Mapa
+            LIGHT
           </button>
           <button 
             onClick={() => setMapMode('satellite')}
-            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${mapMode === 'satellite' ? 'bg-white text-black' : 'text-white/50 hover:bg-white/5'}`}
+            className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${mapMode === 'satellite' ? 'bg-[#523719] text-white' : 'text-gray-400 hover:bg-gray-50'}`}
           >
-            <Globe size={14} /> Satelit
+            SATELLITE
           </button>
         </div>
 
         <button 
           onClick={() => setShowTraffic(!showTraffic)}
-          className={`bg-black/80 backdrop-blur-xl border border-white/10 p-4 rounded-xl flex items-center justify-between shadow-2xl transition-all ${showTraffic ? 'ring-1 ring-cyan-500/50' : ''}`}
+          className={`bg-white border border-gray-200 px-4 py-3 rounded-xl flex items-center justify-between shadow-xl transition-all ${showTraffic ? 'border-[#523719]' : ''}`}
         >
           <div className="flex items-center gap-3">
-             <Layers size={16} className={showTraffic ? 'text-cyan-400' : 'text-white/40'} />
-             <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">Doprava</span>
+             <Layers size={16} className={showTraffic ? 'text-[#523719]' : 'text-gray-400'} />
+             <span className="text-[10px] font-black uppercase tracking-widest text-[#523719]">Doprava</span>
           </div>
-          <div className={`w-8 h-4 rounded-full relative transition-colors ${showTraffic ? 'bg-cyan-500' : 'bg-white/10'}`}>
+          <div className={`w-8 h-4 rounded-full relative transition-colors ${showTraffic ? 'bg-[#523719]' : 'bg-gray-200'}`}>
             <div className={`absolute top-1 w-2 h-2 rounded-full bg-white transition-all ${showTraffic ? 'left-5' : 'left-1'}`} />
           </div>
         </button>
       </div>
 
       {/* Stats Overlay Re-styled for light map compatibility */}
-      <div className="absolute bottom-10 left-6 z-10 bg-black/90 backdrop-blur-xl p-5 rounded-3xl border border-white/10 text-white min-w-[220px] shadow-2xl">
-        <h3 className="text-[10px] font-black text-cyan-400 mb-4 uppercase tracking-[0.2em]">Live Status Flotily</h3>
+      <div className="absolute top-6 left-6 z-10 bg-white border border-gray-200 p-5 rounded-3xl text-[#523719] min-w-[220px] shadow-xl">
+        <h3 className="text-[10px] font-black text-[#523719] mb-4 uppercase tracking-[0.2em] opacity-60">STAV FLOTILY</h3>
         <div className="space-y-4">
-           <div className="flex items-center justify-between">
+           <div className="flex items-center justify-between font-bold">
             <div className="flex items-center gap-3">
-               <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_12px_rgba(34,211,238,1)] animate-pulse"></span>
-               <span className="text-xs font-medium text-white/80">Voľní</span>
+               <span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse"></span>
+               <span className="text-xs uppercase tracking-widest">Voľní vodiči</span>
             </div>
-            <b className="text-sm font-mono text-cyan-400">{drivers.filter(d => d.status === 'AVAILABLE' || d.status === 'ONLINE').length}</b>
+            <b className="text-sm font-mono">{drivers.filter(d => d.status === 'AVAILABLE' || d.status === 'ONLINE').length}</b>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between font-bold">
             <div className="flex items-center gap-3">
-               <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.5)]"></span>
-               <span className="text-xs font-medium text-white/40">Zaujatie</span>
+               <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></span>
+               <span className="text-xs uppercase tracking-widest">Obsadení vodiči</span>
             </div>
-            <b className="text-sm font-mono text-white/40">{drivers.filter(d => d.status !== 'AVAILABLE' && d.status !== 'ONLINE').length}</b>
+            <b className="text-sm font-mono">{drivers.filter(d => d.status !== 'AVAILABLE' && d.status !== 'ONLINE').length}</b>
           </div>
         </div>
       </div>
