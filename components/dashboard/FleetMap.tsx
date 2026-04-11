@@ -102,8 +102,11 @@ export default function FleetMap() {
   }, []);
 
   const mapOptions = useMemo(() => ({
-    disableDefaultUI: true,
-    zoomControl: false,
+    disableDefaultUI: false,
+    zoomControl: true,
+    fullscreenControl: true,
+    mapTypeControl: false,
+    streetViewControl: false,
     styles: mapMode === 'silver' ? silverStyle : []
   }), [mapMode]);
 
