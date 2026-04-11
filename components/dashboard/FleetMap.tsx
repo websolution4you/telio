@@ -126,8 +126,8 @@ export default function FleetMap() {
         })}
       </GoogleMap>
 
-      {/* Floating Control Panel */}
-      <div className="absolute top-6 right-6 z-10 flex flex-col gap-2">
+      {/* Floating Control Panel (Offset to avoid Google UI overlap) */}
+      <div className="absolute top-20 right-6 z-10 flex flex-col gap-2">
         <div className="bg-white border border-gray-200 p-1.5 rounded-2xl flex gap-1 shadow-xl">
           <button 
             onClick={() => setMapMode('warm')}
