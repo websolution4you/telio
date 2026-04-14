@@ -81,12 +81,17 @@ export default async function ChatbotInsightsPage({
   const displayTotal = displayLogs.length;
   const topIntent = Object.entries(intentCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "None";
 
-  const questionCounts: Record<string, number> = {};
+  const questionCounts: Record<string, { count: number, intent: string }> = {};
   logs.forEach(l => {
     const norm = l.user_message.toLowerCase().trim();
-    questionCounts[norm] = (questionCounts[norm] || 0) + 1;
+    if (!questionCounts[norm]) {
+      questionCounts[norm] = { count: 0, intent: l.intent };
+    }
+    questionCounts[norm].count++;
   });
-  const topQuestions = Object.entries(questionCounts).sort((a, b) => b[1] - a[1]).slice(0, 20);
+  const topQuestions = Object.entries(questionCounts)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 100);
 
   const pageStats: Record<string, { count: number, sessions: Set<string> }> = {};
   logs.forEach(l => {
@@ -186,13 +191,28 @@ export default async function ChatbotInsightsPage({
           {/* Common Inquiries */}
           <div style={s.section}>
             <div style={s.sectionHeader}>
-              <span style={s.sectionTitle}><MessageSquare size={16} color="#3b82f6" /> Časté otázky</span>
+              <span style={s.sectionTitle}><MessageSquare size={16} color="#3b82f6" /> Analýza otázok a zámerov</span>
+              <span style={{ fontSize: "0.7rem", color: "#a1a1aa" }}>Top 100</span>
             </div>
-            <div style={{ padding: "1rem 1.25rem", maxHeight: "380px", overflowY: "auto" }}>
-              {topQuestions.map(([q, count]) => (
-                <div key={q} style={s.inquiryItem}>
-                  <span style={s.inquiryText}>"{q}"</span>
-                  <span style={s.inquiryCount}>{count}×</span>
+            <div style={{ padding: "1rem 1.25rem", maxHeight: "500px", overflowY: "auto" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "1rem", padding: "0.5rem", borderBottom: "1px solid #f0f0f1", marginBottom: "0.5rem", fontSize: "0.7rem", fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase" }}>
+                <span>Otázka</span>
+                <span>Zámer</span>
+                <span>Počet</span>
+              </div>
+              {topQuestions.map(([q, stats]: any) => (
+                <div key={q} style={{ ...s.inquiryItem, display: "grid", gridTemplateColumns: "1fr auto auto" }}>
+                  <span style={s.inquiryText} title={q}>"{q}"</span>
+                  <span style={{ 
+                    ...s.badge, 
+                    backgroundColor: stats.intent === "nezname" ? "#fef2f2" : "#eff6ff",
+                    color: stats.intent === "nezname" ? "#ef4444" : "#3b82f6",
+                    border: `1px solid ${stats.intent === "nezname" ? "#fca5a5" : "#bfdbfe"}`,
+                    textTransform: "capitalize"
+                  }}>
+                    {stats.intent}
+                  </span>
+                  <span style={s.inquiryCount}>{stats.count}×</span>
                 </div>
               ))}
             </div>
