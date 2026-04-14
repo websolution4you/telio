@@ -140,8 +140,8 @@ export default async function ChatbotInsightsPage({
           {[
             { label: "Celkom správ", value: totalMessages, color: "#3b82f6", icon: <MessageSquare size={18} /> },
             { label: "Unikátne sedenia", value: totalSessions, color: "#22c55e", icon: <TrendingUp size={18} /> },
-            { label: "Miera fallbackov", value: `${fallbackRate}%`, color: "#f97316", icon: <AlertTriangle size={18} />, tooltip: "Bezpečnostný mechanizmus: % správ, ktoré musela prevziať predpripravená odpoveď pri chybe alebo neistote modelu." },
-            { label: "Najčastejší zámer", value: topIntent, color: "#a855f7", icon: <Layout size={18} /> },
+            { label: "Miera fallbackov", value: `${fallbackRate}%`, color: "#f97316", icon: <AlertTriangle size={18} />, tooltip: "Bezpečnostný mechanizmus: % správ, ktoré musela prevziať predpripravená odpoved pri chybe alebo neistote modelu." },
+            { label: "Najčastejšia kategória", value: topIntent, color: "#a855f7", icon: <Layout size={18} /> },
           ].map(({ label, value, color, icon, tooltip }) => (
             <div key={label} style={s.card} title={tooltip}>
               <div style={s.cardHeader}>
@@ -160,14 +160,14 @@ export default async function ChatbotInsightsPage({
             <div style={s.sectionHeader}>
               <span style={s.sectionTitle}>
                 <TrendingUp size={16} color="#3b82f6" /> 
-                Najčastejšie zámery {hideUnknown && <span style={{ color: "#71717a", fontWeight: 400 }}>(bez 'nezname')</span>}
+                Najpopulárnejšie kategórie {hideUnknown && <span style={{ color: "#71717a", fontWeight: 400 }}>(bez 'nezname')</span>}
               </span>
             </div>
             <div style={{ overflowX: "auto" }}>
               <table style={s.table}>
                 <thead>
                   <tr>
-                    {["Zámer", "Počet", "%", "Fallback %"].map(h => <th key={h} style={s.th}>{h}</th>)}
+                    {["Kategória", "Počet", "%", "Fallback %"].map(h => <th key={h} style={s.th}>{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -191,13 +191,13 @@ export default async function ChatbotInsightsPage({
           {/* Common Inquiries */}
           <div style={s.section}>
             <div style={s.sectionHeader}>
-              <span style={s.sectionTitle}><MessageSquare size={16} color="#3b82f6" /> Analýza otázok a zámerov</span>
+              <span style={s.sectionTitle}><MessageSquare size={16} color="#3b82f6" /> Analýza otázok a kategórií</span>
               <span style={{ fontSize: "0.7rem", color: "#a1a1aa" }}>Top 100</span>
             </div>
             <div style={{ padding: "1rem 1.25rem", maxHeight: "500px", overflowY: "auto" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "1rem", padding: "0.5rem", borderBottom: "1px solid #f0f0f1", marginBottom: "0.5rem", fontSize: "0.7rem", fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase" }}>
                 <span>Otázka</span>
-                <span>Zámer</span>
+                <span>Kategória</span>
                 <span>Počet</span>
               </div>
               {topQuestions.map(([q, stats]: any) => (
@@ -256,7 +256,7 @@ export default async function ChatbotInsightsPage({
             <table style={s.table}>
               <thead>
                 <tr>
-                  {["Čas", "Otázka používateľa", "Odpoveď asistenta", "Zámer", "Zdroj"].map(h => <th key={h} style={s.th}>{h}</th>)}
+                  {["Čas", "Otázka používateľa", "Odpoveď asistenta", "Kategória", "Zdroj"].map(h => <th key={h} style={s.th}>{h}</th>)}
                 </tr>
               </thead>
               <tbody>
