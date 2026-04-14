@@ -26,11 +26,10 @@ const s = {
   inquiryCount: { fontSize: "0.65rem", fontWeight: 700, backgroundColor: "#fff", border: "1px solid #e4e4e7", padding: "0.15rem 0.45rem", borderRadius: "0.35rem", whiteSpace: "nowrap" as const } as React.CSSProperties,
 };
 
-export default async function ChatbotInsightsPage({
-  searchParams,
-}: {
-  searchParams: { hide_unknown?: string };
+export default async function ChatbotInsightsPage(props: {
+  searchParams: Promise<{ hide_unknown?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   if (!supabaseAdmin) {
     return (
       <div style={{ padding: "2.5rem", color: "#ef4444", backgroundColor: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "0.75rem", margin: "2.5rem" }}>
