@@ -147,7 +147,13 @@ export default async function ChatbotInsightsPage(props: {
                 <span style={s.cardLabel}>{label}</span>
                 <span style={{ color }}>{icon}</span>
               </div>
-              <div style={{ ...s.cardValue, fontSize: typeof value === "string" && value.length > 8 ? "1.2rem" : "2rem" }}>{value}</div>
+              <div style={{ 
+                ...s.cardValue, 
+                fontSize: typeof value === "string" && value.length > 8 ? "1.2rem" : "2rem",
+                textTransform: "capitalize"
+              }}>
+                {value}
+              </div>
             </div>
           ))}
         </div>
