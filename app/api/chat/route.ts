@@ -28,6 +28,7 @@ function detectLanguage(text: string): "sk" | "en" {
 
 /**
  * 2. Improved Intent Detection (English + Slovak)
+ * Refactored to Slovak internal keys
  */
 function detectIntent(text: string): string {
   const lowerText = text.toLowerCase();

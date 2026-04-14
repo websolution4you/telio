@@ -26,7 +26,11 @@ const s = {
   inquiryCount: { fontSize: "0.65rem", fontWeight: 700, backgroundColor: "#fff", border: "1px solid #e4e4e7", padding: "0.15rem 0.45rem", borderRadius: "0.35rem", whiteSpace: "nowrap" as const } as React.CSSProperties,
 };
 
-export default async function ChatbotInsightsPage() {
+export default async function ChatbotInsightsPage({
+  searchParams,
+}: {
+  searchParams: { hide_unknown?: string };
+}) {
   if (!supabaseAdmin) {
     return (
       <div style={{ padding: "2.5rem", color: "#ef4444", backgroundColor: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "0.75rem", margin: "2.5rem" }}>
@@ -34,6 +38,8 @@ export default async function ChatbotInsightsPage() {
       </div>
     );
   }
+
+  const hideUnknown = searchParams.hide_unknown === "true";
 
   const { data: latestLogs, error: logsError } = await supabaseAdmin
     .from("chatbot_logs")
@@ -59,12 +65,20 @@ export default async function ChatbotInsightsPage() {
   const fallbackCount = logs.filter(l => l.is_fallback).length;
   const fallbackRate = totalMessages > 0 ? ((fallbackCount / totalMessages) * 100).toFixed(1) : "0.0";
 
+  // Aggregate Data for Intents
   const intentCounts: Record<string, number> = {};
   const intentFallbacks: Record<string, number> = {};
+  
   logs.forEach(l => {
+    // Skip unknown if hidden
+    if (hideUnknown && l.intent === "nezname") return;
+    
     intentCounts[l.intent] = (intentCounts[l.intent] || 0) + 1;
     if (l.is_fallback) intentFallbacks[l.intent] = (intentFallbacks[l.intent] || 0) + 1;
   });
+
+  const displayLogs = hideUnknown ? logs.filter(l => l.intent !== "nezname") : logs;
+  const displayTotal = displayLogs.length;
   const topIntent = Object.entries(intentCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "None";
 
   const questionCounts: Record<string, number> = {};
@@ -87,12 +101,33 @@ export default async function ChatbotInsightsPage() {
     <div style={s.page}>
       <div style={s.inner}>
         {/* Header */}
-        <div>
-          <h1 style={s.title}>
-            <Bot size={30} color="#3b82f6" />
-            Chatbot Prehľad
-          </h1>
-          <p style={s.subtitle}>Interný prehľad využívania a výkonnosti Telio chatbota.</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "2.5rem" }}>
+          <div>
+            <h1 style={s.title}>
+              <Bot size={30} color="#3b82f6" />
+              Chatbot Prehľad
+            </h1>
+            <p style={s.subtitle}>Interný prehľad využívania a výkonnosti Telio chatbota.</p>
+          </div>
+          
+          <div style={{ display: "flex", gap: "1rem" }}>
+             <a 
+               href={hideUnknown ? "/internal/chatbot" : "/internal/chatbot?hide_unknown=true"}
+               style={{ 
+                 fontSize: "0.75rem", 
+                 fontWeight: 600, 
+                 padding: "0.5rem 1rem", 
+                 borderRadius: "0.5rem", 
+                 backgroundColor: hideUnknown ? "#3b82f6" : "#fff", 
+                 color: hideUnknown ? "#fff" : "#3b82f6",
+                 border: "1px solid #3b82f6",
+                 textDecoration: "none",
+                 transition: "all 0.2s"
+               }}
+             >
+               {hideUnknown ? "✓ Skryté 'nezname'" : "Skryť 'nezname'"}
+             </a>
+          </div>
         </div>
 
         {/* KPI Cards */}
@@ -100,10 +135,10 @@ export default async function ChatbotInsightsPage() {
           {[
             { label: "Celkom správ", value: totalMessages, color: "#3b82f6", icon: <MessageSquare size={18} /> },
             { label: "Unikátne sedenia", value: totalSessions, color: "#22c55e", icon: <TrendingUp size={18} /> },
-            { label: "Miera fallbackov", value: `${fallbackRate}%`, color: "#f97316", icon: <AlertTriangle size={18} /> },
+            { label: "Miera fallbackov", value: `${fallbackRate}%`, color: "#f97316", icon: <AlertTriangle size={18} />, tooltip: "Bezpečnostný mechanizmus: % správ, ktoré musela prevziať predpripravená odpoveď pri chybe alebo neistote modelu." },
             { label: "Najčastejší zámer", value: topIntent, color: "#a855f7", icon: <Layout size={18} /> },
-          ].map(({ label, value, color, icon }) => (
-            <div key={label} style={s.card}>
+          ].map(({ label, value, color, icon, tooltip }) => (
+            <div key={label} style={s.card} title={tooltip}>
               <div style={s.cardHeader}>
                 <span style={s.cardLabel}>{label}</span>
                 <span style={{ color }}>{icon}</span>
@@ -118,7 +153,10 @@ export default async function ChatbotInsightsPage() {
           {/* Intents Table */}
           <div style={s.section}>
             <div style={s.sectionHeader}>
-              <span style={s.sectionTitle}><TrendingUp size={16} color="#3b82f6" /> Najčastejšie zámery</span>
+              <span style={s.sectionTitle}>
+                <TrendingUp size={16} color="#3b82f6" /> 
+                Najčastejšie zámery {hideUnknown && <span style={{ color: "#71717a", fontWeight: 400 }}>(bez 'nezname')</span>}
+              </span>
             </div>
             <div style={{ overflowX: "auto" }}>
               <table style={s.table}>
@@ -129,7 +167,7 @@ export default async function ChatbotInsightsPage() {
                 </thead>
                 <tbody>
                   {Object.entries(intentCounts).sort((a, b) => b[1] - a[1]).map(([intent, count]) => {
-                    const pct = ((count / totalMessages) * 100).toFixed(1);
+                    const pct = ((count / displayTotal) * 100).toFixed(1);
                     const fbRatio = ((intentFallbacks[intent] || 0) / count * 100).toFixed(1);
                     return (
                       <tr key={intent} style={{ borderBottom: "1px solid #f4f4f5" }}>
@@ -164,7 +202,7 @@ export default async function ChatbotInsightsPage() {
         {/* Top Pages */}
         <div style={s.section}>
           <div style={s.sectionHeader}>
-            <span style={s.sectionTitle}><Globe size={16} color="#3b82f6" /> Top Pages</span>
+            <span style={s.sectionTitle}><Globe size={16} color="#3b82f6" /> Najaktívnejšie stránky</span>
           </div>
           <div style={{ overflowX: "auto" }}>
             <table style={s.table}>
@@ -191,8 +229,8 @@ export default async function ChatbotInsightsPage() {
         {/* Latest Fallbacks */}
         <div style={s.section}>
           <div style={s.sectionHeader}>
-            <span style={s.sectionTitle}><AlertTriangle size={16} color="#f97316" /> Latest Fallbacks</span>
-            <span style={{ fontSize: "0.7rem", color: "#a1a1aa" }}>Latest 30</span>
+            <span style={s.sectionTitle}><AlertTriangle size={16} color="#f97316" /> Posledné fallbacky</span>
+            <span style={{ fontSize: "0.7rem", color: "#a1a1aa" }}>Posledných 30</span>
           </div>
           <div style={{ overflowX: "auto" }}>
             <table style={s.table}>
