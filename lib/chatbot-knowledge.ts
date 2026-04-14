@@ -361,7 +361,11 @@ export const chatbotKnowledge = {
     ],
 
     intentFallbacks: {
-        pricing: {
+        prehlad: {
+            sk: "Telio je AI hlasový asistent pre firmy – zdvíha hovory, spracúva objednávky a automatizuje komunikáciu nonstop. Funguje pre pizzerie, taxislužby, kliniky a ďalšie prevádzky.",
+            en: "Telio is an AI voice assistant for businesses – it answers calls, processes orders, and automates communication around the clock. It works for pizzerias, taxi services, clinics, and more."
+        },
+        cena: {
             sk: "Telio má transparentný mesačný cenník. Starter stojí 99 € mesačne, Business 239 € mesačne a Enterprise je individuálne na mieru. Všetky plány zahŕňajú 14-dňovú skúšobnú dobu zdarma.",
             en: "Telio has transparent monthly pricing. Starter costs €99 per month, Business €239 per month, and Enterprise is custom-priced. All plans include a 14-day free trial."
         },
@@ -369,7 +373,7 @@ export const chatbotKnowledge = {
             sk: "Na webe sú dostupné ukážky Pizza Demo a Taxi Demo. Ak chcete prístup alebo bližšiu ukážku, kliknite na 'Získať prístup' alebo vyplňte formulár.",
             en: "The website includes Pizza Demo and Taxi Demo examples. If you want access or a closer walkthrough, click 'Get Access' or fill out the form."
         },
-        languages: {
+        jazyky: {
             sk: "Telio môže fungovať aj v ďalších jazykoch. Jazykové možnosti závisia od konkrétneho nastavenia riešenia a použitej technológie.",
             en: "Telio can also work in other languages. Language support depends on the specific setup and configuration of the solution."
         },
@@ -377,17 +381,17 @@ export const chatbotKnowledge = {
             sk: "Telio obsahuje aj analytický dashboard, ktorý sa líši podľa typu prevádzky. Môže zobrazovať objednávky alebo jazdy, obrat, heatmapy, menu položky, zóny a sledovanie flotily.",
             en: "Telio also includes an analytics dashboard that varies by business type. It can show orders or rides, revenue, heatmaps, menu items, zones, and live fleet tracking."
         },
-        contact: {
+        kontakt: {
             sk: "Ak máte záujem o ukážku alebo chcete zistiť, či je Telio vhodné pre vašu prevádzku, kliknite na 'Získať prístup' alebo vyplňte formulár. Tím Telio sa ozve do 48 hodín.",
             en: "If you want a demo or would like to find out whether Telio fits your business, click 'Get Access' or fill out the form. The Telio team will get back to you within 48 hours."
         },
-        unknown: {
+        nezname: {
             sk: "Momentálne vám na toto neviem dať spoľahlivú odpoveď. Skúste prosím otázku trochu spresniť alebo kliknite na 'Získať prístup' a Telio tím sa vám ozve.",
-            en: "I can’t give you a reliable answer to that right now. Please try to rephrase the question or click 'Get Access' and the Telio team will get back to you."
+            en: "I can't give you a reliable answer to that right now. Please try to rephrase the question or click 'Get Access' and the Telio team will get back to you."
         },
         technical: {
             sk: "Momentálne sa mi nepodarilo pripraviť odpoveď. Skúste to prosím ešte raz alebo kliknite na 'Získať prístup' a radi sa vám ozveme.",
-            en: "I couldn’t prepare a reliable answer right now. Please try again or click 'Get Access' and the Telio team will get back to you."
+            en: "I couldn't prepare a reliable answer right now. Please try again or click 'Get Access' and the Telio team will get back to you."
         }
     }
 };

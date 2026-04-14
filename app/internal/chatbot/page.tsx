@@ -3,31 +3,52 @@ import { Bot, MessageSquare, AlertTriangle, TrendingUp, Layout, Globe, Clock } f
 
 export const dynamic = "force-dynamic";
 
+const s = {
+  page: { minHeight: "100vh", backgroundColor: "#f4f4f5", padding: "2.5rem", fontFamily: "sans-serif", color: "#18181b" } as React.CSSProperties,
+  inner: { maxWidth: "1200px", margin: "0 auto" } as React.CSSProperties,
+  title: { fontSize: "1.875rem", fontWeight: 800, letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.4rem" } as React.CSSProperties,
+  subtitle: { color: "#71717a", fontSize: "0.95rem", marginBottom: "2.5rem" } as React.CSSProperties,
+  grid4: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1.25rem", marginBottom: "2.5rem" } as React.CSSProperties,
+  grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "2.5rem" } as React.CSSProperties,
+  card: { backgroundColor: "#fff", borderRadius: "1rem", border: "1px solid #e4e4e7", padding: "1.5rem", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" } as React.CSSProperties,
+  cardHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.6rem" } as React.CSSProperties,
+  cardLabel: { fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "#71717a" } as React.CSSProperties,
+  cardValue: { fontSize: "2rem", fontWeight: 900, letterSpacing: "-0.02em" } as React.CSSProperties,
+  sectionTitle: { fontSize: "0.95rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem" } as React.CSSProperties,
+  sectionHeader: { padding: "1rem 1.5rem", borderBottom: "1px solid #f0f0f1", display: "flex", alignItems: "center", justifyContent: "space-between" } as React.CSSProperties,
+  table: { width: "100%", borderCollapse: "collapse" as const, fontSize: "0.875rem" } as React.CSSProperties,
+  th: { padding: "0.75rem 1.5rem", textAlign: "left" as const, fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", color: "#71717a", backgroundColor: "#fafafa", borderBottom: "1px solid #f0f0f1" } as React.CSSProperties,
+  td: { padding: "0.85rem 1.5rem", borderBottom: "1px solid #f4f4f5" } as React.CSSProperties,
+  badge: { fontSize: "0.65rem", fontWeight: 700, padding: "0.2rem 0.55rem", borderRadius: "0.4rem", backgroundColor: "#f4f4f5", color: "#52525b" } as React.CSSProperties,
+  section: { backgroundColor: "#fff", borderRadius: "1rem", border: "1px solid #e4e4e7", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", marginBottom: "2.5rem", overflow: "hidden" } as React.CSSProperties,
+  inquiryItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", padding: "0.65rem 0.85rem", backgroundColor: "#fafafa", borderRadius: "0.6rem", marginBottom: "0.5rem" } as React.CSSProperties,
+  inquiryText: { fontSize: "0.85rem", fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, color: "#3f3f46" } as React.CSSProperties,
+  inquiryCount: { fontSize: "0.65rem", fontWeight: 700, backgroundColor: "#fff", border: "1px solid #e4e4e7", padding: "0.15rem 0.45rem", borderRadius: "0.35rem", whiteSpace: "nowrap" as const } as React.CSSProperties,
+};
+
 export default async function ChatbotInsightsPage() {
   if (!supabaseAdmin) {
     return (
-      <div className="p-10 text-red-500 bg-red-50 rounded-xl m-10 border border-red-200">
+      <div style={{ padding: "2.5rem", color: "#ef4444", backgroundColor: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "0.75rem", margin: "2.5rem" }}>
         Error: Supabase Admin client not initialized. Check your environment variables.
       </div>
     );
   }
 
-  // 1. Fetch Latest Logs (for Fallbacks and General context)
   const { data: latestLogs, error: logsError } = await supabaseAdmin
     .from("chatbot_logs")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(100);
 
-  // 2. Aggregate Data for KPIs
   const { data: allStats, error: statsError } = await supabaseAdmin
     .from("chatbot_logs")
     .select("is_fallback, session_id, intent, user_message, page_url");
 
   if (logsError || statsError) {
     return (
-      <div className="p-10 text-red-500 bg-red-50 rounded-xl m-10 border border-red-200">
-        Error loading insights: {logsError?.message || statsError?.message}
+      <div style={{ padding: "2.5rem", color: "#ef4444" }}>
+        Error: {logsError?.message || statsError?.message}
       </div>
     );
   }
@@ -36,9 +57,8 @@ export default async function ChatbotInsightsPage() {
   const totalMessages = logs.length;
   const totalSessions = new Set(logs.map(l => l.session_id)).size;
   const fallbackCount = logs.filter(l => l.is_fallback).length;
-  const fallbackRate = totalMessages > 0 ? ((fallbackCount / totalMessages) * 100).toFixed(1) : 0;
+  const fallbackRate = totalMessages > 0 ? ((fallbackCount / totalMessages) * 100).toFixed(1) : "0.0";
 
-  // Top Intent
   const intentCounts: Record<string, number> = {};
   const intentFallbacks: Record<string, number> = {};
   logs.forEach(l => {
@@ -47,188 +67,164 @@ export default async function ChatbotInsightsPage() {
   });
   const topIntent = Object.entries(intentCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "None";
 
-  // Top Questions (Normalized)
   const questionCounts: Record<string, number> = {};
   logs.forEach(l => {
     const norm = l.user_message.toLowerCase().trim();
     questionCounts[norm] = (questionCounts[norm] || 0) + 1;
   });
-  const topQuestions = Object.entries(questionCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 20);
+  const topQuestions = Object.entries(questionCounts).sort((a, b) => b[1] - a[1]).slice(0, 20);
 
-  // Top Pages
   const pageStats: Record<string, { count: number, sessions: Set<string> }> = {};
   logs.forEach(l => {
     if (!pageStats[l.page_url]) pageStats[l.page_url] = { count: 0, sessions: new Set() };
     pageStats[l.page_url].count++;
     pageStats[l.page_url].sessions.add(l.session_id);
   });
-  const sortedPages = Object.entries(pageStats)
-    .sort((a, b) => b[1].count - a[1].count)
-    .slice(0, 10);
+  const sortedPages = Object.entries(pageStats).sort((a, b) => b[1].count - a[1].count).slice(0, 10);
+  const fallbackLogs = latestLogs?.filter(l => l.is_fallback).slice(0, 30) || [];
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-6 sm:p-10 font-sans text-zinc-900 dark:text-zinc-100">
-      <div className="max-w-7xl mx-auto space-y-10">
+    <div style={s.page}>
+      <div style={s.inner}>
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-3">
-            <Bot className="text-blue-500" size={32} />
-            Chatbot Insights
+          <h1 style={s.title}>
+            <Bot size={30} color="#3b82f6" />
+            Chatbot Prehľad
           </h1>
-          <p className="text-zinc-500 dark:text-zinc-400 mt-2">
-            Internal overview of Telio chatbot usage and performance.
-          </p>
+          <p style={s.subtitle}>Interný prehľad využívania a výkonnosti Telio chatbota.</p>
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title="Total Messages" value={totalMessages} icon={<MessageSquare className="text-blue-500" />} />
-          <StatCard title="Total Sessions" value={totalSessions} icon={<TrendingUp className="text-green-500" />} />
-          <StatCard title="Fallback Rate" value={`${fallbackRate}%`} icon={<AlertTriangle className="text-orange-500" />} />
-          <StatCard title="Top Intent" value={topIntent} icon={<Layout className="text-purple-500" />} />
+        <div style={s.grid4}>
+          {[
+            { label: "Celkom správ", value: totalMessages, color: "#3b82f6", icon: <MessageSquare size={18} /> },
+            { label: "Unikátne sedenia", value: totalSessions, color: "#22c55e", icon: <TrendingUp size={18} /> },
+            { label: "Miera fallbackov", value: `${fallbackRate}%`, color: "#f97316", icon: <AlertTriangle size={18} /> },
+            { label: "Najčastejší zámer", value: topIntent, color: "#a855f7", icon: <Layout size={18} /> },
+          ].map(({ label, value, color, icon }) => (
+            <div key={label} style={s.card}>
+              <div style={s.cardHeader}>
+                <span style={s.cardLabel}>{label}</span>
+                <span style={{ color }}>{icon}</span>
+              </div>
+              <div style={{ ...s.cardValue, fontSize: typeof value === "string" && value.length > 8 ? "1.2rem" : "2rem" }}>{value}</div>
+            </div>
+          ))}
         </div>
 
-        {/* Grid for Intent and Questions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          {/* Top Intents Table */}
-          <section className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
-            <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex items-center gap-2">
-              <TrendingUp size={18} className="text-blue-500" />
-              <h2 className="font-bold">Top Intents</h2>
+        {/* Top Intents + Common Inquiries */}
+        <div style={s.grid2}>
+          {/* Intents Table */}
+          <div style={s.section}>
+            <div style={s.sectionHeader}>
+              <span style={s.sectionTitle}><TrendingUp size={16} color="#3b82f6" /> Najčastejšie zámery</span>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500">
+            <div style={{ overflowX: "auto" }}>
+              <table style={s.table}>
+                <thead>
                   <tr>
-                    <th className="px-6 py-3 font-semibold">Intent</th>
-                    <th className="px-6 py-3 font-semibold">Count</th>
-                    <th className="px-6 py-3 font-semibold">%</th>
-                    <th className="px-6 py-3 font-semibold">Fallback</th>
+                    {["Zámer", "Počet", "%", "Fallback %"].map(h => <th key={h} style={s.th}>{h}</th>)}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                  {Object.entries(intentCounts).sort((a,b) => b[1]-a[1]).map(([intent, count]) => {
+                <tbody>
+                  {Object.entries(intentCounts).sort((a, b) => b[1] - a[1]).map(([intent, count]) => {
                     const pct = ((count / totalMessages) * 100).toFixed(1);
                     const fbRatio = ((intentFallbacks[intent] || 0) / count * 100).toFixed(1);
                     return (
-                      <tr key={intent} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30">
-                        <td className="px-6 py-4 font-medium capitalize">{intent}</td>
-                        <td className="px-6 py-4">{count}</td>
-                        <td className="px-6 py-4 text-zinc-500">{pct}%</td>
-                        <td className={`px-6 py-4 font-semibold ${Number(fbRatio) > 40 ? "text-orange-500" : "text-zinc-500"}`}>
-                          {fbRatio}%
-                        </td>
+                      <tr key={intent} style={{ borderBottom: "1px solid #f4f4f5" }}>
+                        <td style={{ ...s.td, fontWeight: 600, textTransform: "capitalize" }}>{intent}</td>
+                        <td style={s.td}>{count}</td>
+                        <td style={{ ...s.td, color: "#71717a" }}>{pct}%</td>
+                        <td style={{ ...s.td, fontWeight: 700, color: Number(fbRatio) > 40 ? "#f97316" : "#71717a" }}>{fbRatio}%</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
-          </section>
+          </div>
 
-          {/* Top Questions List */}
-          <section className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm flex flex-col">
-            <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex items-center gap-2">
-              <MessageSquare size={18} className="text-blue-500" />
-              <h2 className="font-bold">Common Inquiries</h2>
+          {/* Common Inquiries */}
+          <div style={s.section}>
+            <div style={s.sectionHeader}>
+              <span style={s.sectionTitle}><MessageSquare size={16} color="#3b82f6" /> Časté otázky</span>
             </div>
-            <div className="p-6 space-y-3 flex-1 overflow-y-auto max-h-[400px]">
+            <div style={{ padding: "1rem 1.25rem", maxHeight: "380px", overflowY: "auto" }}>
               {topQuestions.map(([q, count]) => (
-                <div key={q} className="flex items-center justify-between gap-4 p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl group hover:bg-zinc-100 transition-colors">
-                  <span className="text-sm italic truncate">"{q}"</span>
-                  <span className="text-[10px] font-bold bg-white dark:bg-zinc-700 px-2 py-1 rounded-md shadow-sm border border-zinc-100 dark:border-zinc-600">
-                    {count}x
-                  </span>
+                <div key={q} style={s.inquiryItem}>
+                  <span style={s.inquiryText}>"{q}"</span>
+                  <span style={s.inquiryCount}>{count}×</span>
                 </div>
               ))}
             </div>
-          </section>
+          </div>
         </div>
 
-        {/* Top Pages Section */}
-        <section className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex items-center gap-2">
-            <Globe size={18} className="text-blue-500" />
-            <h2 className="font-bold">Top Pages</h2>
+        {/* Top Pages */}
+        <div style={s.section}>
+          <div style={s.sectionHeader}>
+            <span style={s.sectionTitle}><Globe size={16} color="#3b82f6" /> Top Pages</span>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500">
+          <div style={{ overflowX: "auto" }}>
+            <table style={s.table}>
+              <thead>
                 <tr>
-                  <th className="px-6 py-3 font-semibold">Page URL</th>
-                  <th className="px-6 py-3 font-semibold text-right">Messages</th>
-                  <th className="px-6 py-3 font-semibold text-right">Unique Sessions</th>
+                  <th style={s.th}>URL stránky</th>
+                  <th style={{ ...s.th, textAlign: "right" }}>Správy</th>
+                  <th style={{ ...s.th, textAlign: "right" }}>Unikátne sedenia</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              <tbody>
                 {sortedPages.map(([url, stats]) => (
-                  <tr key={url} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30">
-                    <td className="px-6 py-4 font-mono text-xs opacity-80 max-w-xs truncate">{url}</td>
-                    <td className="px-6 py-4 text-right font-bold">{stats.count}</td>
-                    <td className="px-6 py-4 text-right text-zinc-500">{stats.sessions.size}</td>
+                  <tr key={url}>
+                    <td style={{ ...s.td, fontFamily: "monospace", fontSize: "0.78rem", color: "#52525b" }}>{url}</td>
+                    <td style={{ ...s.td, textAlign: "right", fontWeight: 700 }}>{stats.count}</td>
+                    <td style={{ ...s.td, textAlign: "right", color: "#71717a" }}>{stats.sessions.size}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </section>
+        </div>
 
-        {/* Latest Fallbacks Section */}
-        <section className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex items-center gap-2 justify-between">
-            <div className="flex items-center gap-2">
-              <AlertTriangle size={18} className="text-orange-500" />
-              <h2 className="font-bold">Latest Fallbacks</h2>
-            </div>
-            <span className="text-[10px] text-zinc-400">Latest 30</span>
+        {/* Latest Fallbacks */}
+        <div style={s.section}>
+          <div style={s.sectionHeader}>
+            <span style={s.sectionTitle}><AlertTriangle size={16} color="#f97316" /> Latest Fallbacks</span>
+            <span style={{ fontSize: "0.7rem", color: "#a1a1aa" }}>Latest 30</span>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 uppercase tracking-wider">
+          <div style={{ overflowX: "auto" }}>
+            <table style={s.table}>
+              <thead>
                 <tr>
-                  <th className="px-6 py-3">Time</th>
-                  <th className="px-6 py-3">User Message</th>
-                  <th className="px-6 py-3">Assistant Reply</th>
-                  <th className="px-6 py-3">Intent</th>
-                  <th className="px-6 py-3">Source</th>
+                  {["Čas", "Otázka používateľa", "Odpoveď asistenta", "Zámer", "Zdroj"].map(h => <th key={h} style={s.th}>{h}</th>)}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-zinc-600 dark:text-zinc-400">
-                {latestLogs?.filter(l => l.is_fallback).slice(0, 30).map((log) => (
-                  <tr key={log.id} className="hover:bg-orange-50/30 dark:hover:bg-orange-900/5">
-                    <td className="px-6 py-4 whitespace-nowrap opacity-60">
-                      <div className="flex items-center gap-1">
+              <tbody>
+                {fallbackLogs.map((log) => (
+                  <tr key={log.id}>
+                    <td style={{ ...s.td, whiteSpace: "nowrap", color: "#a1a1aa", fontSize: "0.75rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
                         <Clock size={10} />
-                        {new Date(log.created_at).toLocaleString('sk-SK', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        {new Date(log.created_at).toLocaleString("sk-SK", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-200">"{log.user_message}"</td>
-                    <td className="px-6 py-4 italic max-w-sm">
-                      <p className="truncate" title={log.assistant_reply}>{log.assistant_reply}</p>
+                    <td style={{ ...s.td, fontWeight: 600, maxWidth: "200px" }}>"{log.user_message}"</td>
+                    <td style={{ ...s.td, fontStyle: "italic", maxWidth: "280px", color: "#52525b" }}>
+                      <span title={log.assistant_reply} style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {log.assistant_reply}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 capitalize">{log.intent}</td>
-                    <td className="px-6 py-4 text-[10px] font-mono opacity-50">{log.source}</td>
+                    <td style={{ ...s.td, textTransform: "capitalize" }}>{log.intent}</td>
+                    <td style={{ ...s.td, fontFamily: "monospace", fontSize: "0.7rem", color: "#a1a1aa" }}>{log.source}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </section>
+        </div>
       </div>
-    </div>
-  );
-}
-
-function StatCard({ title, value, icon }: { title: string, value: string | number, icon: React.ReactNode }) {
-  return (
-    <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-2">
-      <div className="flex items-center justify-between text-zinc-400">
-        <span className="text-xs font-bold uppercase tracking-widest">{title}</span>
-        {icon}
-      </div>
-      <div className="text-2xl font-black tracking-tight">{value}</div>
     </div>
   );
 }

@@ -47,11 +47,11 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 const INTENT_CTA_MAP: Record<string, string> = {
-  pricing: "Získať prístup",
+  cena: "Získať prístup",
   demo: "Chcem ukážku",
-  contact: "Vyplniť formulár",
+  kontakt: "Vyplniť formulár",
   dashboard: "Získať prístup",
-  unknown: "Kontaktovať nás",
+  nezname: "Kontaktovať nás",
 };
 
 export default function ChatWidget() {

@@ -33,19 +33,19 @@ function detectIntent(text: string): string {
   const lowerText = text.toLowerCase();
   
   const keywords = {
-    overview: ["co je", "ako to funguje", "kto ste", "telio", "what is", "how it works", "how does it work", "who are you", "product", "overview", "what do you do", "what can telio do", "who is it for"],
-    pricing: ["cena", "cennik", "kolko", "drahe", "price", "pricing", "cost", "expensive", "starter", "business", "enterprise", "how much", "trial"],
+    prehlad: ["co je", "ako to funguje", "kto ste", "telio", "what is", "how it works", "how does it work", "who are you", "product", "overview", "what do you do", "what can telio do", "who is it for"],
+    cena: ["cena", "cennik", "kolko", "drahe", "price", "pricing", "cost", "expensive", "starter", "business", "enterprise", "how much", "trial"],
     demo: ["demo", "pizza", "taxi", "ukazka", "vyskusat", "try"],
-    languages: ["jazyk", "jazyky", "slovensky", "anglicky", "english", "language", "languages", "speak"],
+    jazyky: ["jazyk", "jazyky", "slovensky", "anglicky", "english", "language", "languages", "speak"],
     dashboard: ["dashboard", "flotila", "fleet", "mapa", "map", "live", "tracking", "heatmap", "eta"],
-    contact: ["kontakt", "pristup", "ziskat pristup", "formular", "contact", "get access", "form"]
+    kontakt: ["kontakt", "pristup", "ziskat pristup", "formular", "contact", "get access", "form"]
   };
 
   for (const [intent, words] of Object.entries(keywords)) {
     if (words.some(word => lowerText.includes(word))) return intent;
   }
   
-  return "unknown";
+  return "nezname";
 }
 
 /**
@@ -53,7 +53,7 @@ function detectIntent(text: string): string {
  */
 function getFallbackReply(intent: string, lang: "sk" | "en", source: string) {
   const fallbacks = (chatbotKnowledge as any).intentFallbacks;
-  const intentData = fallbacks[intent] || fallbacks.unknown;
+  const intentData = fallbacks[intent] || fallbacks.nezname;
   const reply = intentData[lang] || intentData.sk;
   
   return {
@@ -110,7 +110,7 @@ export async function POST(req: Request) {
     const pageUrl = body.pageUrl || "unknown";
     
     if (!userMessage || typeof userMessage !== "string" || userMessage.trim() === "") {
-      const fb = getFallbackReply("unknown", "sk", "safety_empty_message");
+      const fb = getFallbackReply("nezname", "sk", "safety_empty_message");
       return NextResponse.json(fb);
     }
 
@@ -181,7 +181,7 @@ export async function POST(req: Request) {
 
   } catch (outerError: any) {
     console.error(`Outer API Error: ${outerError.message}`);
-    const techFb = getFallbackReply("unknown", "sk", "technical_fallback");
+    const techFb = getFallbackReply("nezname", "sk", "technical_fallback");
     return NextResponse.json(techFb);
   }
 }
