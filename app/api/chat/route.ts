@@ -7,8 +7,9 @@ const apiKey = process.env.TELIO_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey || "");
 
 // Supabase Admin Client for logging
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/^"|"$/g, '');
+const supabaseServiceKey = process.env.CORE_SUPABASE_SERVICE_ROLE_KEY?.trim().replace(/^"|"$/g, '');
+
 const supabaseAdmin = (supabaseUrl && supabaseServiceKey) 
   ? createClient(supabaseUrl, supabaseServiceKey) 
   : null;
@@ -80,7 +81,7 @@ async function logInteraction(data: {
   if (!supabaseAdmin) return;
   
   try {
-    const { error } = await supabaseAdmin
+    await supabaseAdmin
       .from("chatbot_logs")
       .insert([{
         session_id: data.sessionId,
@@ -92,10 +93,8 @@ async function logInteraction(data: {
         source: data.source,
         is_fallback: data.source !== "model"
       }]);
-
-    if (error) console.error("[SupabaseLog] Error:", error.message);
-  } catch (err) {
-    console.error("[SupabaseLog] Critical failure:", err);
+  } catch (err: any) {
+    console.error("[ChatLog] Supabase insertion failed:", err.message);
   }
 }
 
@@ -118,8 +117,8 @@ export async function POST(req: Request) {
     const lang = detectLanguage(userMessage);
     const intent = detectIntent(userMessage);
 
-    // Logging only to console for now (before model generates)
-    console.log(`[ChatLog] Incoming: "${userMessage}" | Lang: ${lang} | Intent: ${intent}`);
+    // Development info log
+    console.log(`[ChatLog] "${userMessage}" | Lang: ${lang} | Intent: ${intent}`);
 
     let finalResponse;
 

@@ -183,10 +183,9 @@ export default function ChatWidget() {
     const element = document.getElementById('waitlist');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
-      // Minor delay to let scroll start before closing chat if desired, 
-      // but usually keep chat open for UX
     } else {
-      window.location.hash = 'waitlist';
+      // If not on the page with the form, redirect to homepage anchor
+      window.location.href = '/#waitlist';
     }
   };
 
