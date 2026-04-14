@@ -75,10 +75,7 @@ export default function Navbar() {
           {/* Right side: lang switcher + CTA */}
           <div className="hidden md:flex flex-1 items-center justify-end gap-4">
             {/* Language switcher */}
-            <div
-              className="flex items-center rounded-lg overflow-hidden"
-              style={{ border: "1px solid var(--border)", background: "rgba(12,12,20,0.8)" }}
-            >
+            <div className="lang-switcher-container flex items-center rounded-lg overflow-hidden">
               <button
                 onClick={() => setLang("sk")}
                 className="px-3 py-1.5 text-xs font-semibold transition-all duration-150"
@@ -109,10 +106,7 @@ export default function Navbar() {
 
           {/* Mobile: lang + hamburger */}
           <div className="md:hidden flex-1 flex items-center justify-end gap-3">
-            <div
-              className="flex items-center rounded-md overflow-hidden"
-              style={{ border: "1px solid var(--border)" }}
-            >
+            <div className="lang-switcher-container flex items-center rounded-md overflow-hidden">
               <button
                 onClick={() => setLang("sk")}
                 className="px-4 py-2 text-xs font-bold transition-all duration-150"

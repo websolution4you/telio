@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { LangProvider } from "@/lib/i18n";
+import ChatWidget from "@/components/ChatWidget";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -33,7 +34,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="sk" className="dark">
       <body className={`${inter.variable} antialiased`}>
-        <LangProvider>{children}</LangProvider>
+        <LangProvider>
+          {children}
+          <ChatWidget />
+        </LangProvider>
       </body>
     </html>
   );
