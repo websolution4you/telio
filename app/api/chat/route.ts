@@ -1,56 +1,126 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { TELIO_KNOWLEDGE } from "@/lib/chatbot-knowledge";
+import { chatbotKnowledge } from "@/lib/chatbot-knowledge";
 import { NextResponse } from "next/server";
 
 const apiKey = process.env.TELIO_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey || "");
 
+/**
+ * 1. Simple Language Detection
+ */
+function detectLanguage(text: string): "sk" | "en" {
+  const skChars = /[ľščťžýáíéóúäô]/i;
+  const enWords = /\b(the|is|and|you|how|price|cost|where|work|about)\b/i;
+  
+  if (skChars.test(text)) return "sk";
+  if (enWords.test(text)) return "en";
+  return "sk"; // Default to Slovak
+}
+
+/**
+ * 2. Simple Intent Detection
+ */
+function detectIntent(text: string): string {
+  const lowerText = text.toLowerCase();
+  
+  const keywords = {
+    pricing: ["cena", "cennik", "kolko", "drahe", "price", "pricing", "cost", "expensive", "starter", "business", "enterprise"],
+    demo: ["demo", "pizza", "taxi", "ukazka", "vyskusat", "try"],
+    languages: ["jazyk", "jazyky", "slovensky", "anglicky", "english", "language", "languages"],
+    dashboard: ["dashboard", "flotila", "fleet", "mapa", "map", "live", "tracking", "heatmap", "eta"],
+    contact: ["kontakt", "pristup", "ziskat pristup", "formular", "contact", "get access", "form"]
+  };
+
+  for (const [intent, words] of Object.entries(keywords)) {
+    if (words.some(word => lowerText.includes(word))) return intent;
+  }
+  
+  return "unknown";
+}
+
+/**
+ * Helper to get safe fallback response
+ */
+function getFallbackReply(intent: string, lang: "sk" | "en", source: string) {
+  const fallbacks = (chatbotKnowledge as any).intentFallbacks;
+  const intentData = fallbacks[intent] || fallbacks.unknown;
+  const reply = intentData[lang] || intentData.sk;
+  
+  return {
+    role: "assistant",
+    content: reply,
+    reply: reply,
+    language: lang,
+    intent: intent,
+    source: source
+  };
+}
+
 export async function POST(req: Request) {
   if (!apiKey || apiKey === "your_key_here") {
-    console.error("TELIO_GEMINI_API_KEY is missing or is still the placeholder.");
     return NextResponse.json({ error: "API key not configured" }, { status: 500 });
   }
 
   try {
-    const { messages } = await req.json();
-    const lastMessage = messages[messages.length - 1].content;
+    const body = await req.json();
+    const userMessage = body.message; // Strict format: { message: string }
+    
+    if (!userMessage || typeof userMessage !== "string" || userMessage.trim() === "") {
+      return NextResponse.json(getFallbackReply("unknown", "sk", "safety_empty_message"));
+    }
 
-    console.log("Chat API: Attempting to generate content. Key length:", apiKey?.length);
+    const lang = detectLanguage(userMessage);
+    const intent = detectIntent(userMessage);
+
+    // Logging for visibility
+    console.log(`[ChatLog] Incoming: "${userMessage}" | Lang: ${lang} | Intent: ${intent}`);
 
     try {
-      // Pouzivame novy model, kedze Google API kluc v roku 2026 nepodporuje 1.5 verzie
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-lite" });
       
       const prompt = `
-        Si Telio asistent, virtuálny pomocník pre firmu Telio.
-        Tvojou úlohou je stručne a profesionálne odpovedať na otázky v slovenskom jazyku.
-        Používaj VÝHRADNE informácie z tohto zdroja:
-        ---
-        ${TELIO_KNOWLEDGE}
-        ---
+        Identita: Si ${chatbotKnowledge.brand.assistantName}, asistent pre firmu ${chatbotKnowledge.brand.name}.
+        Rola: ${chatbotKnowledge.brand.role}.
+        Jazyk odpovede: ${lang === "en" ? "Angličtina (English)" : "Slovenčina"}.
         
-        Pravidlá:
-        1. Odpovedaj stručne (max 2-3 vety, ak to nie je zložitejšia otázka).
-        2. Ak informáciu v zdroji NENÁJDEŠ, odpovedz presne takto: 
-           "Toto momentálne neviem potvrdiť. Najlepšie bude, ak nám necháte kontakt a pripravíme presnú odpoveď."
-        3. Nevymýšľaj si žiadne fakty, ceny ani funkcie, ktoré nie sú v zdroji.
-        4. Buď milý a profesionálny.
+        Dáta (Knowledge Base):
+        ---
+        ${JSON.stringify(chatbotKnowledge, null, 2)}
+        ---
 
-        Otázka od používateľa: ${lastMessage}
+        Pravidlá:
+        1. Odpovedaj výhradne v jazyku: ${lang === "en" ? "ENGLISH" : "SLOVENSKY"}.
+        2. Rešpektuj pravidlá: ${chatbotKnowledge.responseRules.join(" ")}
+        3. Pre biznis otázky (cena, faq) použi presné dáta. Pre slovníkové (glossary) vysvetli pojem.
+        4. Nikdy nepriznávaj chyby a nehovor "niečo sa pokazilo".
+
+        Položená otázka: ${userMessage}
       `;
 
       const result = await model.generateContent(prompt);
-      const response = await result.response;
-      return NextResponse.json({ role: "assistant", content: response.text() });
-    } catch (error: any) {
-      console.error("Primary model failed, trying fallback to gemini-2.5-pro:", error);
-      const modelPro = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
-      const resultPro = await modelPro.generateContent(lastMessage);
-      const responsePro = await resultPro.response;
-      return NextResponse.json({ role: "assistant", content: responsePro.text() });
+      const outputText = result.response.text();
+
+      if (!outputText || outputText.trim() === "") {
+        console.error("Gemini returned empty reply.");
+        return NextResponse.json(getFallbackReply(intent, lang, "intent_fallback_empty_model_reply"));
+      }
+
+      return NextResponse.json({
+        role: "assistant",
+        content: outputText,
+        reply: outputText,
+        language: lang,
+        intent: intent,
+        source: "model"
+      });
+
+    } catch (modelError: any) {
+      console.error(`Model Error: ${modelError.message}`);
+      return NextResponse.json(getFallbackReply(intent, lang, "intent_fallback_model_error"));
     }
+
   } catch (outerError: any) {
-    console.error("Chat API outer error:", outerError);
-    return NextResponse.json({ error: "Failed to process chat request" }, { status: 500 });
+    console.error(`Outer API Error: ${outerError.message}`);
+    return NextResponse.json(getFallbackReply("unknown", "sk", "technical_fallback"));
   }
 }

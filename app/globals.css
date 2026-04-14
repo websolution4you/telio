@@ -276,7 +276,7 @@ body {
 
 /* Chat overrides */
 .chat-input-container {
-  padding: 0px 5px 0px 7px;
+  padding: 0px 5px 0px 5px;
 }
 
 .chat-textarea {
@@ -289,6 +289,7 @@ body {
 
 .chat-bubble {
   padding: 10px 14px !important;
+  white-space: pre-wrap;
 }
 
 .chat-header {
@@ -301,6 +302,14 @@ body {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+}
+
+.chat-suggestions-container {
+  padding: 5px 5px !important;
+}
+
+.chat-suggestion-btn {
+  cursor: pointer;
 }
 
 .chat-send-icon {

@@ -9,6 +9,41 @@ interface Message {
   content: string;
 }
 
+const playSubtleDing = () => {
+  try {
+    const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    
+    ctx.resume().then(() => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(1200, ctx.currentTime);
+      
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.8, ctx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.3);
+    });
+  } catch (e) {
+    console.error("Audio error:", e);
+  }
+};
+
+const SUGGESTED_QUESTIONS = [
+  "Čo je Telio?",
+  "Koľko to stojí?",
+  "Čo je Taxi Demo?",
+  "Do you speak English?",
+];
+
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -16,7 +51,41 @@ export default function ChatWidget() {
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [shouldShake, setShouldShake] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+      inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
+    }
+  }, [inputValue]);
+
+  // Initial attention grab
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isOpen) {
+        setShouldShake(true);
+        playSubtleDing();
+        setTimeout(() => setShouldShake(false), 1000);
+      }
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [isOpen]);
+
+  // Periodic reminder
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isOpen) {
+        setShouldShake(true);
+        setTimeout(() => setShouldShake(false), 1000);
+      }
+    }, 30000);
+    return () => clearTimeout(timer);
+  }, [isOpen]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -25,73 +94,89 @@ export default function ChatWidget() {
   useEffect(() => {
     if (isOpen) {
       scrollToBottom();
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [messages, isOpen]);
 
-  const handleSend = async () => {
-    if (!inputValue.trim() || isLoading) return;
+  const handleSend = async (overrideText?: string) => {
+    const textToSend = overrideText || inputValue;
+    if (!textToSend.trim() || isLoading) return;
 
-    const userMsg: Message = { role: "user", content: inputValue };
+    const userMsg: Message = { role: "user", content: textToSend };
     setMessages((prev) => [...prev, userMsg]);
     setInputValue("");
     setIsLoading(true);
+
+    // Detect language for local fallbacks
+    const isEn = /^(hi|hello|how|what|price|do you)/i.test(textToSend);
 
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [...messages, userMsg] }),
+        // Backend now expects { message: string }
+        body: JSON.stringify({ message: textToSend }),
       });
 
-      if (!response.ok) throw new Error("Cloud not connect to AI service.");
+      if (!response.ok) throw new Error("API Error");
 
       const data = await response.json();
-      setMessages((prev) => [...prev, data]);
+      
+      const replyContent = data.reply || (isEn 
+        ? "I can’t give you a reliable answer to that right now. Please try rephrasing your question."
+        : "Momentálne vám na toto neviem dať spoľahlivú odpoveď. Skúste prosím otázku trochu spresniť.");
+
+      playSubtleDing();
+      setMessages((prev) => [...prev, { role: "assistant", content: replyContent }]);
     } catch (error) {
       console.error("Chat error:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Prepáčte, niečo sa pokazilo. Prosím, skúste to neskôr alebo nás kontaktujte priamo.",
-        },
-      ]);
+      const errorMsg = isEn
+        ? "I couldn’t prepare a reliable answer right now. Please try again."
+        : "Momentálne sa mi nepodarilo pripraviť odpoveď. Skúste to prosím ešte raz.";
+      
+      setMessages((prev) => [...prev, { role: "assistant", content: errorMsg }]);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   return (
     <>
       {/* Floating Button */}
       <motion.button
         initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
+        animate={{ 
+          scale: shouldShake ? [1, 1.8, 1, 1.4, 1] : 1, 
+          opacity: 1,
+          x: shouldShake ? [0, -15, 15, -15, 15, 0] : 0,
+          rotate: shouldShake ? [0, -15, 15, -15, 15, 0] : 0
+        }}
+        transition={{
+          scale: { duration: 0.8, ease: "easeOut" },
+          x: { duration: 0.6, ease: "easeInOut" },
+          rotate: { duration: 0.6, ease: "easeInOut" }
+        }}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 p-4 bg-blue-600 text-white rounded-full shadow-2xl hover:bg-blue-700 transition-colors focus:outline-none"
+        className="fixed bottom-6 right-6 z-50 p-6 bg-blue-600 text-white rounded-full shadow-2xl hover:bg-blue-700 transition-colors focus:outline-none"
         aria-label="Otvoriť chat"
       >
         <AnimatePresence mode="wait">
           {isOpen ? (
-            <motion.div
-              key="close"
-              initial={{ rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: 90, opacity: 0 }}
-            >
-              <X size={24} />
+            <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
+              <X size={40} />
             </motion.div>
           ) : (
-            <motion.div
-              key="chat"
-              initial={{ rotate: 90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: -90, opacity: 0 }}
-            >
-              <MessageCircle size={24} />
+            <motion.div key="chat" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
+              <MessageCircle size={40} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -104,7 +189,7 @@ export default function ChatWidget() {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed bottom-24 right-6 z-50 w-[90vw] sm:w-[380px] h-[500px] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 flex flex-col"
+            className="fixed bottom-24 right-6 z-50 w-[90vw] sm:w-[380px] h-[550px] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 flex flex-col"
           >
             {/* Header */}
             <div className="chat-header bg-gradient-to-r from-blue-600 to-blue-500 text-white flex items-center gap-3">
@@ -118,53 +203,60 @@ export default function ChatWidget() {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-zinc-50 dark:bg-zinc-950/50">
+            <div className="flex-1 overflow-y-auto overscroll-contain px-[5px] py-4 space-y-4 bg-zinc-50 dark:bg-zinc-950/50">
               {messages.map((msg, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, x: msg.role === "user" ? 10 : -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={`chat-message-wrapper flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`chat-bubble max-w-[85%] rounded-2xl text-sm ${
-                      msg.role === "user"
-                        ? "bg-blue-600 text-white rounded-tr-none shadow-md shadow-blue-500/10 mr-2"
-                        : "bg-white dark:bg-zinc-800 text-zinc-950 dark:text-zinc-100 shadow-sm border border-zinc-200 dark:border-zinc-700 rounded-tl-none ml-2"
-                    }`}
-                  >
+                <motion.div key={idx} initial={{ opacity: 0, x: msg.role === "user" ? 10 : -10 }} animate={{ opacity: 1, x: 0 }} className={`chat-message-wrapper flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`chat-bubble max-w-[85%] rounded-2xl text-sm ${
+                      msg.role === "user" ? "bg-blue-600 text-white rounded-tr-none shadow-md" : "bg-white dark:bg-zinc-800 text-zinc-950 dark:text-zinc-100 shadow-sm border border-zinc-200 dark:border-zinc-700 rounded-tl-none"
+                    }`}>
                     {msg.content}
                   </div>
                 </motion.div>
               ))}
+              
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-white dark:bg-zinc-800 p-3 rounded-2xl rounded-tl-none border border-zinc-100 dark:border-zinc-700 shadow-sm">
+                  <div className="bg-white dark:bg-zinc-800 p-3 rounded-2xl rounded-tl-none border border-zinc-100 dark:border-zinc-700 shadow-sm flex items-center gap-2">
                     <Loader2 size={16} className="animate-spin text-blue-500" />
+                    <span className="text-xs text-zinc-500">
+                      {/^(hi|hello|how|what|price|do you)/i.test(inputValue) ? "Telio is preparing an answer..." : "Telio pripravuje odpoveď..."}
+                    </span>
                   </div>
                 </div>
               )}
-              <div ref={messagesEndRef} />
+              
+              {/* Suggested Questions */}
+              {!isLoading && messages.length <= 2 && (
+                <div className="chat-suggestions-container flex flex-wrap gap-2 pt-2">
+                  {SUGGESTED_QUESTIONS.map((q, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSend(q)}
+                      className="chat-suggestion-btn text-[11px] bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-full border border-blue-100 dark:border-blue-800/50 hover:bg-blue-100 transition-colors"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              <div ref={messagesEndRef} className="h-2 flex-shrink-0" />
             </div>
 
             {/* Input Area */}
             <div className="chat-input-container bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800">
               <div className="chat-input-wrapper flex gap-2 items-end bg-zinc-100 dark:bg-zinc-800 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 mx-1">
                 <textarea
+                  ref={inputRef}
                   rows={1}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  onKeyUp={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSend();
-                    }
-                  }}
+                  onKeyDown={handleKeyDown}
                   placeholder="Napíšte otázku..."
-                  className="chat-textarea flex-1 bg-transparent border-none px-3 py-2 text-sm focus:ring-0 outline-none text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 resize-none min-h-[44px] max-h-[120px]"
+                  className="chat-textarea flex-1 bg-transparent border-none px-3 py-2 text-sm focus:ring-0 outline-none text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 resize-none min-h-[44px]"
                 />
                 <button
-                  onClick={handleSend}
+                  onClick={() => handleSend()}
                   disabled={!inputValue.trim() || isLoading}
                   className="chat-send-btn bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-lg shadow-blue-500/20"
                 >
