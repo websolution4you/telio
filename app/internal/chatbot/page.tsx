@@ -1,5 +1,4 @@
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { format } from "date-fns";
 import { Bot, MessageSquare, AlertTriangle, TrendingUp, Layout, Globe, Clock } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -202,7 +201,7 @@ export default async function ChatbotInsightsPage() {
                     <td className="px-6 py-4 whitespace-nowrap opacity-60">
                       <div className="flex items-center gap-1">
                         <Clock size={10} />
-                        {format(new Date(log.created_at), "MMM d, HH:mm")}
+                        {new Date(log.created_at).toLocaleString('sk-SK', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </td>
                     <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-200">"{log.user_message}"</td>
