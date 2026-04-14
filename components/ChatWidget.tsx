@@ -68,6 +68,7 @@ export default function ChatWidget() {
   const [sessionId, setSessionId] = useState<string>("");
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Initialize Session ID
@@ -115,9 +116,20 @@ export default function ChatWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const scrollToLastMessageStart = () => {
+    lastMessageRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   useEffect(() => {
-    if (isOpen) {
-      scrollToBottom();
+    if (isOpen && messages.length > 0) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg.role === "assistant") {
+        // Scroll to the top of the new assistant message so user can read from start
+        setTimeout(scrollToLastMessageStart, 100);
+      } else {
+        // For user messages, just scroll to bottom
+        scrollToBottom();
+      }
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [messages, isOpen]);
@@ -247,7 +259,11 @@ export default function ChatWidget() {
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto overscroll-contain px-[5px] py-4 space-y-4 bg-zinc-50 dark:bg-zinc-950/50">
               {messages.map((msg, idx) => (
-                <div key={idx} className="flex flex-col gap-2">
+                <div 
+                  key={idx} 
+                  ref={idx === messages.length - 1 ? lastMessageRef : null} 
+                  className="flex flex-col gap-2"
+                >
                   <motion.div initial={{ opacity: 0, x: msg.role === "user" ? 10 : -10 }} animate={{ opacity: 1, x: 0 }} className={`chat-message-wrapper flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div className={`chat-bubble max-w-[85%] rounded-2xl text-sm ${
                         msg.role === "user" ? "bg-blue-600 text-white rounded-tr-none shadow-md" : "bg-white dark:bg-zinc-800 text-zinc-950 dark:text-zinc-100 shadow-sm border border-zinc-200 dark:border-zinc-700 rounded-tl-none"
