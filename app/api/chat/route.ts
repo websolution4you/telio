@@ -1,16 +1,24 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { chatbotKnowledge } from "@/lib/chatbot-knowledge";
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 const apiKey = process.env.TELIO_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey || "");
+
+// Supabase Admin Client for logging
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseAdmin = (supabaseUrl && supabaseServiceKey) 
+  ? createClient(supabaseUrl, supabaseServiceKey) 
+  : null;
 
 /**
  * 1. Simple Language Detection
  */
 function detectLanguage(text: string): "sk" | "en" {
   const skChars = /[ľščťžýáíéóúäô]/i;
-  const enWords = /\b(the|is|and|you|how|price|cost|where|work|about)\b/i;
+  const enWords = /\b(the|is|and|you|how|price|cost|where|work|about|who|what|can)\b/i;
   
   if (skChars.test(text)) return "sk";
   if (enWords.test(text)) return "en";
@@ -18,15 +26,16 @@ function detectLanguage(text: string): "sk" | "en" {
 }
 
 /**
- * 2. Simple Intent Detection
+ * 2. Improved Intent Detection (English + Slovak)
  */
 function detectIntent(text: string): string {
   const lowerText = text.toLowerCase();
   
   const keywords = {
-    pricing: ["cena", "cennik", "kolko", "drahe", "price", "pricing", "cost", "expensive", "starter", "business", "enterprise"],
+    overview: ["co je", "ako to funguje", "kto ste", "telio", "what is", "how it works", "how does it work", "who are you", "product", "overview", "what do you do", "what can telio do", "who is it for"],
+    pricing: ["cena", "cennik", "kolko", "drahe", "price", "pricing", "cost", "expensive", "starter", "business", "enterprise", "how much", "trial"],
     demo: ["demo", "pizza", "taxi", "ukazka", "vyskusat", "try"],
-    languages: ["jazyk", "jazyky", "slovensky", "anglicky", "english", "language", "languages"],
+    languages: ["jazyk", "jazyky", "slovensky", "anglicky", "english", "language", "languages", "speak"],
     dashboard: ["dashboard", "flotila", "fleet", "mapa", "map", "live", "tracking", "heatmap", "eta"],
     contact: ["kontakt", "pristup", "ziskat pristup", "formular", "contact", "get access", "form"]
   };
@@ -56,6 +65,40 @@ function getFallbackReply(intent: string, lang: "sk" | "en", source: string) {
   };
 }
 
+/**
+ * Background Logging to Supabase
+ */
+async function logInteraction(data: {
+  sessionId: string;
+  pageUrl: string;
+  userMessage: string;
+  assistantReply: string;
+  language: string;
+  intent: string;
+  source: string;
+}) {
+  if (!supabaseAdmin) return;
+  
+  try {
+    const { error } = await supabaseAdmin
+      .from("chatbot_logs")
+      .insert([{
+        session_id: data.sessionId,
+        page_url: data.pageUrl,
+        user_message: data.userMessage,
+        assistant_reply: data.assistantReply,
+        language: data.language,
+        intent: data.intent,
+        source: data.source,
+        is_fallback: data.source !== "model"
+      }]);
+
+    if (error) console.error("[SupabaseLog] Error:", error.message);
+  } catch (err) {
+    console.error("[SupabaseLog] Critical failure:", err);
+  }
+}
+
 export async function POST(req: Request) {
   if (!apiKey || apiKey === "your_key_here") {
     return NextResponse.json({ error: "API key not configured" }, { status: 500 });
@@ -63,64 +106,83 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const userMessage = body.message; // Strict format: { message: string }
+    const userMessage = body.message;
+    const sessionId = body.sessionId || "unknown";
+    const pageUrl = body.pageUrl || "unknown";
     
     if (!userMessage || typeof userMessage !== "string" || userMessage.trim() === "") {
-      return NextResponse.json(getFallbackReply("unknown", "sk", "safety_empty_message"));
+      const fb = getFallbackReply("unknown", "sk", "safety_empty_message");
+      return NextResponse.json(fb);
     }
 
     const lang = detectLanguage(userMessage);
     const intent = detectIntent(userMessage);
 
-    // Logging for visibility
+    // Logging only to console for now (before model generates)
     console.log(`[ChatLog] Incoming: "${userMessage}" | Lang: ${lang} | Intent: ${intent}`);
 
+    let finalResponse;
+
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-lite" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
       
       const prompt = `
         Identita: Si ${chatbotKnowledge.brand.assistantName}, asistent pre firmu ${chatbotKnowledge.brand.name}.
         Rola: ${chatbotKnowledge.brand.role}.
-        Jazyk odpovede: ${lang === "en" ? "Angličtina (English)" : "Slovenčina"}.
+        Jazyk odpovede: ${lang === "en" ? "ENGLISH" : "SLOVENSKY"}.
         
         Dáta (Knowledge Base):
         ---
         ${JSON.stringify(chatbotKnowledge, null, 2)}
         ---
 
-        Pravidlá:
-        1. Odpovedaj výhradne v jazyku: ${lang === "en" ? "ENGLISH" : "SLOVENSKY"}.
-        2. Rešpektuj pravidlá: ${chatbotKnowledge.responseRules.join(" ")}
-        3. Pre biznis otázky (cena, faq) použi presné dáta. Pre slovníkové (glossary) vysvetli pojem.
-        4. Nikdy nepriznávaj chyby a nehovor "niečo sa pokazilo".
+        Pravidlá odpovedania:
+        1. Ak používateľ píše v ANGLIČTINE, odpovedaj VŽDY V ANGLIČTINE.
+        2. Môžeš prekladať slovenské časti znalostnej bázy (overview, faq, pricing, dashboard, features) do angličtiny.
+        3. Odpovedaj profesionálne, stručne a na základe faktov. Nevymýšľaj si.
+        4. Ak je odpoveď v dátach, odpovedaj sebavedomo.
+        5. Ak odpoveď úplne chýba, zostaň profesionálny (nepriznávaj technické chyby).
 
-        Položená otázka: ${userMessage}
+        Otázka od používateľa: ${userMessage}
       `;
 
       const result = await model.generateContent(prompt);
       const outputText = result.response.text();
 
       if (!outputText || outputText.trim() === "") {
-        console.error("Gemini returned empty reply.");
-        return NextResponse.json(getFallbackReply(intent, lang, "intent_fallback_empty_model_reply"));
+        finalResponse = getFallbackReply(intent, lang, "intent_fallback_empty_model_reply");
+      } else {
+        finalResponse = {
+          role: "assistant",
+          content: outputText,
+          reply: outputText,
+          language: lang,
+          intent: intent,
+          source: "model"
+        };
       }
-
-      return NextResponse.json({
-        role: "assistant",
-        content: outputText,
-        reply: outputText,
-        language: lang,
-        intent: intent,
-        source: "model"
-      });
 
     } catch (modelError: any) {
       console.error(`Model Error: ${modelError.message}`);
-      return NextResponse.json(getFallbackReply(intent, lang, "intent_fallback_model_error"));
+      finalResponse = getFallbackReply(intent, lang, "intent_fallback_model_error");
     }
+
+    // Fire-and-forget logging to Supabase
+    logInteraction({
+      sessionId,
+      pageUrl,
+      userMessage,
+      assistantReply: finalResponse.reply,
+      language: lang,
+      intent: intent,
+      source: finalResponse.source as string
+    });
+
+    return NextResponse.json(finalResponse);
 
   } catch (outerError: any) {
     console.error(`Outer API Error: ${outerError.message}`);
-    return NextResponse.json(getFallbackReply("unknown", "sk", "technical_fallback"));
+    const techFb = getFallbackReply("unknown", "sk", "technical_fallback");
+    return NextResponse.json(techFb);
   }
 }

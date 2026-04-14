@@ -310,6 +310,7 @@ body {
 
 .chat-suggestion-btn {
   cursor: pointer;
+  padding: 4px 12px !important;
 }
 
 .chat-send-icon {

@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Loader2, Bot } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, Bot, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  intent?: string;
+  source?: string;
 }
 
 const playSubtleDing = () => {
@@ -41,20 +43,42 @@ const SUGGESTED_QUESTIONS = [
   "Čo je Telio?",
   "Koľko to stojí?",
   "Čo je Taxi Demo?",
-  "Do you speak English?",
+  "Pre koho je Telio vhodné?",
 ];
+
+const INTENT_CTA_MAP: Record<string, string> = {
+  pricing: "Získať prístup",
+  demo: "Chcem ukážku",
+  contact: "Vyplniť formulár",
+  dashboard: "Získať prístup",
+  unknown: "Kontaktovať nás",
+};
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Dobrý deň! Som Telio AI asistent. Ako vám môžem pomôcť s našimi službami?" },
+    { 
+      role: "assistant", 
+      content: "Dobrý deň, som Telio AI asistent. Môžem vám rýchlo vysvetliť, ako Telio funguje, koľko stojí alebo pre aké prevádzky je vhodné." 
+    },
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [shouldShake, setShouldShake] = useState(false);
+  const [sessionId, setSessionId] = useState<string>("");
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Initialize Session ID
+  useEffect(() => {
+    let sId = localStorage.getItem("telio_chat_session_id");
+    if (!sId) {
+      sId = crypto.randomUUID();
+      localStorage.setItem("telio_chat_session_id", sId);
+    }
+    setSessionId(sId);
+  }, []);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -107,15 +131,17 @@ export default function ChatWidget() {
     setInputValue("");
     setIsLoading(true);
 
-    // Detect language for local fallbacks
     const isEn = /^(hi|hello|how|what|price|do you)/i.test(textToSend);
 
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Backend now expects { message: string }
-        body: JSON.stringify({ message: textToSend }),
+        body: JSON.stringify({ 
+          message: textToSend,
+          sessionId: sessionId,
+          pageUrl: window.location.href
+        }),
       });
 
       if (!response.ok) throw new Error("API Error");
@@ -126,8 +152,13 @@ export default function ChatWidget() {
         ? "I can’t give you a reliable answer to that right now. Please try rephrasing your question."
         : "Momentálne vám na toto neviem dať spoľahlivú odpoveď. Skúste prosím otázku trochu spresniť.");
 
-      playSubtleDing();
-      setMessages((prev) => [...prev, { role: "assistant", content: replyContent }]);
+      if (isOpen) playSubtleDing();
+      setMessages((prev) => [...prev, { 
+        role: "assistant", 
+        content: replyContent,
+        intent: data.intent,
+        source: data.source
+      }]);
     } catch (error) {
       console.error("Chat error:", error);
       const errorMsg = isEn
@@ -144,6 +175,18 @@ export default function ChatWidget() {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleCTAClick = () => {
+    // Navigate to waitlist form
+    const element = document.getElementById('waitlist');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+      // Minor delay to let scroll start before closing chat if desired, 
+      // but usually keep chat open for UX
+    } else {
+      window.location.hash = 'waitlist';
     }
   };
 
@@ -205,18 +248,33 @@ export default function ChatWidget() {
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto overscroll-contain px-[5px] py-4 space-y-4 bg-zinc-50 dark:bg-zinc-950/50">
               {messages.map((msg, idx) => (
-                <motion.div key={idx} initial={{ opacity: 0, x: msg.role === "user" ? 10 : -10 }} animate={{ opacity: 1, x: 0 }} className={`chat-message-wrapper flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`chat-bubble max-w-[85%] rounded-2xl text-sm ${
-                      msg.role === "user" ? "bg-blue-600 text-white rounded-tr-none shadow-md" : "bg-white dark:bg-zinc-800 text-zinc-950 dark:text-zinc-100 shadow-sm border border-zinc-200 dark:border-zinc-700 rounded-tl-none"
-                    }`}>
-                    {msg.content}
-                  </div>
-                </motion.div>
+                <div key={idx} className="flex flex-col gap-2">
+                  <motion.div initial={{ opacity: 0, x: msg.role === "user" ? 10 : -10 }} animate={{ opacity: 1, x: 0 }} className={`chat-message-wrapper flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div className={`chat-bubble max-w-[85%] rounded-2xl text-sm ${
+                        msg.role === "user" ? "bg-blue-600 text-white rounded-tr-none shadow-md" : "bg-white dark:bg-zinc-800 text-zinc-950 dark:text-zinc-100 shadow-sm border border-zinc-200 dark:border-zinc-700 rounded-tl-none"
+                      }`}>
+                      {msg.content}
+                    </div>
+                  </motion.div>
+                  
+                  {/* Intent-based CTA Button */}
+                  {msg.role === "assistant" && msg.intent && INTENT_CTA_MAP[msg.intent] && (
+                    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start ml-2 pl-px">
+                      <button
+                        onClick={handleCTAClick}
+                        className="flex items-center gap-2 text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg border border-blue-100 dark:border-blue-800/50 hover:bg-blue-100 transition-colors"
+                      >
+                        {INTENT_CTA_MAP[msg.intent]}
+                        <ArrowRight size={12} />
+                      </button>
+                    </motion.div>
+                  )}
+                </div>
               ))}
               
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-white dark:bg-zinc-800 p-3 rounded-2xl rounded-tl-none border border-zinc-100 dark:border-zinc-700 shadow-sm flex items-center gap-2">
+                  <div className="bg-white dark:bg-zinc-800 p-3 rounded-2xl rounded-tl-none border border-zinc-100 dark:border-zinc-700 shadow-sm flex items-center gap-2 ml-2">
                     <Loader2 size={16} className="animate-spin text-blue-500" />
                     <span className="text-xs text-zinc-500">
                       {/^(hi|hello|how|what|price|do you)/i.test(inputValue) ? "Telio is preparing an answer..." : "Telio pripravuje odpoveď..."}
@@ -232,7 +290,7 @@ export default function ChatWidget() {
                     <button
                       key={idx}
                       onClick={() => handleSend(q)}
-                      className="chat-suggestion-btn text-[11px] bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-full border border-blue-100 dark:border-blue-800/50 hover:bg-blue-100 transition-colors"
+                      className="chat-suggestion-btn text-[11px] bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 rounded-full border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 transition-colors shadow-sm"
                     >
                       {q}
                     </button>

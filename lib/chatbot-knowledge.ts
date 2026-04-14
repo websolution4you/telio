@@ -299,6 +299,50 @@ export const chatbotKnowledge = {
             a: "Business obsahuje 3 hlasových asistentov, 1000 minút mesačne v cene, 0,23 € za minútu po prevolaní, analytický dashboard, validáciu adries cez Google Maps, potvrdenie cez WhatsApp a SMS a podporu do 24 hodín."
         },
         {
+            question: "Kde môžem vidieť demo?",
+            answer: "Máme dve interaktívne ukážky: Pizza Demo (pre reštaurácie) a Taxi Demo (pre prepravcov). Odkazy nájdete priamo v sekcii 'Demo' v našom dashboarde."
+        },
+        {
+            question: "What is Telio?",
+            answer: "Telio is an AI-powered voice assistant designed for businesses. it handles incoming calls, creates reservations, answers FAQs, and automates communication 24/7 in native Slovak and English."
+        },
+        {
+            question: "How does Telio work?",
+            answer: "You simply forward your phone line to Telio. When a customer calls, Telio answers in your brand's name, understands their intent, collects necessary data, and performs actions like calendar entries or text confirmations."
+        },
+        {
+            question: "Who is Telio for?",
+            answer: "It is ideal for restaurants, taxi services, medical clinics, and any business that handles many phone inquiries or bookings and wants to automate them efficiently."
+        },
+        {
+            question: "How much does it cost?",
+            answer: "We offer three plans: Starter for small businesses, Business for growing companies, and Enterprise for large-scale operations. For specific pricing, please check our Pricing section."
+        },
+        {
+            question: "Is there a free trial?",
+            answer: "Yes, you can try our interactive Pizza or Taxi demos immediately to see how the voice assistant handles real conversations."
+        },
+        {
+            question: "Do you speak English?",
+            answer: "Yes, Telio fully supports both Slovak and English languages for both the voice assistant and the chat interface."
+        },
+        {
+            question: "What is Taxi Demo?",
+            answer: "It is a practical demonstration where Telio acts as a taxi dispatcher, takes pick-up details, and confirms the ride."
+        },
+        {
+            question: "What is Pizza Demo?",
+            answer: "A voice demo where Telio handles a food order, asks for toppings and delivery details, and confirms the price."
+        },
+        {
+            question: "Is there a map?",
+            answer: "Yes, Telio's dashboard includes a live fleet tracking map where you can see all your vehicles and orders in real-time."
+        },
+        {
+            question: "What is fleet tracking?",
+            answer: "It is a feature that provides real-time GPS monitoring of your mobile units, heatmaps of your business activity, and accurate ETA predictions."
+        },
+        {
             q: "Čo znamená Pizza Demo?",
             a: "Pizza Demo je ukážka použitia Telio pre pizzeriu alebo rozvoz. Súčasťou je aj ukážkový dashboard s objednávkami, predajom, heatmapou rozvozov a správou menu položiek."
         },
