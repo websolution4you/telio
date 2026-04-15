@@ -1,7 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 async function test() {
-  const apiKey = "AIzaSyBuwR9GEoQFiqdC1-orKJOqoOdeT9gp_q4".trim();
+  // Load from environment variable for security
+  const apiKey = (process.env.TELIO_GEMINI_API_KEY || "").trim();
   
   try {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
