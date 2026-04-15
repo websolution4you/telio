@@ -46,12 +46,12 @@ const SUGGESTED_QUESTIONS = [
   "Pre koho je Telio vhodné?",
 ];
 
-const INTENT_CTA_MAP: Record<string, string> = {
-  cena: "Získať prístup",
-  demo: "Chcem ukážku",
-  kontakt: "Vyplniť formulár",
-  dashboard: "Získať prístup",
-  nezname: "Kontaktovať nás",
+const INTENT_CTA_MAP: Record<string, { label: string; href: string }> = {
+  cena:      { label: "Zobraziť cenník",  href: "/#pricing" },
+  demo:      { label: "Chcem ukážku",     href: "/#waitlist" },
+  kontakt:   { label: "Vyplniť formulár", href: "/#waitlist" },
+  dashboard: { label: "Otvoriť dashboard", href: "/dashboard" },
+  nezname:   { label: "Kontaktovať nás",  href: "/#waitlist" },
 };
 
 export default function ChatWidget() {
@@ -190,15 +190,17 @@ export default function ChatWidget() {
     }
   };
 
-  const handleCTAClick = () => {
-    // Navigate to waitlist form
-    const element = document.getElementById('waitlist');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      // If not on the page with the form, redirect to homepage anchor
-      window.location.href = '/#waitlist';
+  const handleCTAClick = (href: string) => {
+    const [path, anchor] = href.split('#');
+    const isCurrentPage = !path || path === '/' && window.location.pathname === '/';
+    if (anchor && isCurrentPage) {
+      const element = document.getElementById(anchor);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
     }
+    window.location.href = href;
   };
 
   return (
@@ -274,12 +276,12 @@ export default function ChatWidget() {
                   
                   {/* Intent-based CTA Button */}
                   {msg.role === "assistant" && msg.intent && INTENT_CTA_MAP[msg.intent] && (
-                    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start ml-2 pl-px">
+                    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="chat-cta-wrapper flex justify-start ml-2">
                       <button
-                        onClick={handleCTAClick}
+                        onClick={() => handleCTAClick(INTENT_CTA_MAP[msg.intent!].href)}
                         className="flex items-center gap-2 text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg border border-blue-100 dark:border-blue-800/50 hover:bg-blue-100 transition-colors"
                       >
-                        {INTENT_CTA_MAP[msg.intent]}
+                        {INTENT_CTA_MAP[msg.intent].label}
                         <ArrowRight size={12} />
                       </button>
                     </motion.div>
