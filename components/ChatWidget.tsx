@@ -132,6 +132,16 @@ export default function ChatWidget() {
       }
       setTimeout(() => inputRef.current?.focus(), 100);
     }
+
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+
+    return () => {
+      document.body.style.overflow = "unset";
+    };
   }, [messages, isOpen]);
 
   const handleSend = async (overrideText?: string) => {
@@ -245,17 +255,22 @@ export default function ChatWidget() {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed bottom-24 right-6 z-50 w-[90vw] sm:w-[380px] h-[550px] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 flex flex-col"
+            className="fixed z-50 flex flex-col overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-2xl top-4 bottom-28 left-4 right-4 sm:top-auto sm:w-[380px] sm:h-[550px] sm:bottom-28 sm:right-6 sm:left-auto"
           >
             {/* Header */}
-            <div className="chat-header bg-gradient-to-r from-blue-600 to-blue-500 text-white flex items-center gap-3">
-              <div className="p-2 bg-white/20 rounded-lg">
-                <Bot size={20} />
+            <div className="chat-header bg-gradient-to-r from-blue-600 to-blue-500 text-white flex items-center justify-between p-4 px-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <Bot size={20} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Telio AI Asistent</h3>
+                  <p className="text-[11px] opacity-80">Online 24/7</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-sm">Telio AI Asistent</h3>
-                <p className="text-[11px] opacity-80">Online 24/7</p>
-              </div>
+              <button onClick={() => setIsOpen(false)} className="sm:hidden p-2 text-white/80 hover:text-white" aria-label="Zatvoriť chat">
+                <X size={20} />
+              </button>
             </div>
 
             {/* Messages Area */}
@@ -319,11 +334,15 @@ export default function ChatWidget() {
             </div>
 
             {/* Input Area */}
-            <div className="chat-input-container bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800">
-              <div className="chat-input-wrapper flex gap-2 items-end bg-zinc-100 dark:bg-zinc-800 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 mx-1">
+            <div className="chat-input-container bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 p-2">
+              <form 
+                onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+                className="chat-input-wrapper flex gap-2 items-end bg-zinc-100 dark:bg-zinc-800 p-2 rounded-2xl border border-zinc-200 dark:border-zinc-700"
+              >
                 <textarea
                   ref={inputRef}
                   rows={1}
+                  enterKeyHint="send"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -331,13 +350,13 @@ export default function ChatWidget() {
                   className="chat-textarea flex-1 bg-transparent border-none px-3 py-2 text-sm focus:ring-0 outline-none text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 resize-none min-h-[44px]"
                 />
                 <button
-                  onClick={() => handleSend()}
+                  type="submit"
                   disabled={!inputValue.trim() || isLoading}
-                  className="chat-send-btn bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-lg shadow-blue-500/20"
+                  className="chat-send-btn p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-lg shadow-blue-500/20"
                 >
-                  <Send className="chat-send-icon" />
+                  <Send size={18} className="chat-send-icon" />
                 </button>
-              </div>
+              </form>
               <p className="text-[10px] text-center text-zinc-400 mt-2">
                 Powered by Telio AI
               </p>
