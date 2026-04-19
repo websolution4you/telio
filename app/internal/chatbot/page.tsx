@@ -4,26 +4,26 @@ import { Bot, MessageSquare, AlertTriangle, TrendingUp, Layout, Globe, Clock } f
 export const dynamic = "force-dynamic";
 
 const s = {
-  page: { minHeight: "100vh", backgroundColor: "#09090b", padding: "2.5rem", fontFamily: "sans-serif", color: "#fafafa" } as React.CSSProperties,
+  page: { minHeight: "100vh", backgroundColor: "#f4f4f5", padding: "2.5rem", fontFamily: "sans-serif", color: "#18181b" } as React.CSSProperties,
   inner: { maxWidth: "1200px", margin: "0 auto" } as React.CSSProperties,
   title: { fontSize: "1.875rem", fontWeight: 800, letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.4rem" } as React.CSSProperties,
-  subtitle: { color: "#a1a1aa", fontSize: "0.95rem", marginBottom: "2.5rem" } as React.CSSProperties,
+  subtitle: { color: "#71717a", fontSize: "0.95rem", marginBottom: "2.5rem" } as React.CSSProperties,
   grid4: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1.25rem", marginBottom: "2.5rem" } as React.CSSProperties,
   grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "2.5rem" } as React.CSSProperties,
-  card: { backgroundColor: "#18181b", borderRadius: "1rem", border: "1px solid #27272a", padding: "1.5rem", boxShadow: "0 4px 12px rgba(0,0,0,0.2)" } as React.CSSProperties,
+  card: { backgroundColor: "#fff", borderRadius: "1rem", border: "1px solid #e4e4e7", padding: "1.5rem", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" } as React.CSSProperties,
   cardHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.6rem" } as React.CSSProperties,
-  cardLabel: { fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "#a1a1aa" } as React.CSSProperties,
+  cardLabel: { fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "#71717a" } as React.CSSProperties,
   cardValue: { fontSize: "2rem", fontWeight: 900, letterSpacing: "-0.02em" } as React.CSSProperties,
   sectionTitle: { fontSize: "0.95rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem" } as React.CSSProperties,
-  sectionHeader: { padding: "1rem 1.5rem", borderBottom: "1px solid #27272a", display: "flex", alignItems: "center", justifyContent: "space-between" } as React.CSSProperties,
+  sectionHeader: { padding: "1rem 1.5rem", borderBottom: "1px solid #f0f0f1", display: "flex", alignItems: "center", justifyContent: "space-between" } as React.CSSProperties,
   table: { width: "100%", borderCollapse: "collapse" as const, fontSize: "0.875rem" } as React.CSSProperties,
-  th: { padding: "0.75rem 1.5rem", textAlign: "left" as const, fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", color: "#a1a1aa", backgroundColor: "#18181b", borderBottom: "1px solid #27272a" } as React.CSSProperties,
-  td: { padding: "0.85rem 1.5rem", borderBottom: "1px solid #18181b" } as React.CSSProperties,
-  badge: { fontSize: "0.65rem", fontWeight: 700, padding: "0.2rem 0.55rem", borderRadius: "0.4rem", backgroundColor: "#27272a", color: "#e4e4e7" } as React.CSSProperties,
-  section: { backgroundColor: "#18181b", borderRadius: "1rem", border: "1px solid #27272a", boxShadow: "0 4px 12px rgba(0,0,0,0.2)", marginBottom: "2.5rem", overflow: "hidden" } as React.CSSProperties,
-  inquiryItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", padding: "0.65rem 0.85rem", backgroundColor: "#09090b", borderRadius: "0.6rem", marginBottom: "0.5rem" } as React.CSSProperties,
-  inquiryText: { fontSize: "0.85rem", fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, color: "#e4e4e7" } as React.CSSProperties,
-  inquiryCount: { fontSize: "0.65rem", fontWeight: 700, backgroundColor: "#18181b", border: "1px solid #27272a", padding: "0.15rem 0.45rem", borderRadius: "0.35rem", whiteSpace: "nowrap" as const } as React.CSSProperties,
+  th: { padding: "0.75rem 1.5rem", textAlign: "left" as const, fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", color: "#71717a", backgroundColor: "#fafafa", borderBottom: "1px solid #f0f0f1" } as React.CSSProperties,
+  td: { padding: "0.85rem 1.5rem", borderBottom: "1px solid #f4f4f5" } as React.CSSProperties,
+  badge: { fontSize: "0.65rem", fontWeight: 700, padding: "0.2rem 0.55rem", borderRadius: "0.4rem", backgroundColor: "#f4f4f5", color: "#52525b" } as React.CSSProperties,
+  section: { backgroundColor: "#fff", borderRadius: "1rem", border: "1px solid #e4e4e7", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", marginBottom: "2.5rem", overflow: "hidden" } as React.CSSProperties,
+  inquiryItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", padding: "0.65rem 0.85rem", backgroundColor: "#fafafa", borderRadius: "0.6rem", marginBottom: "0.5rem" } as React.CSSProperties,
+  inquiryText: { fontSize: "0.85rem", fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, color: "#3f3f46" } as React.CSSProperties,
+  inquiryCount: { fontSize: "0.65rem", fontWeight: 700, backgroundColor: "#fff", border: "1px solid #e4e4e7", padding: "0.15rem 0.45rem", borderRadius: "0.35rem", whiteSpace: "nowrap" as const } as React.CSSProperties,
 };
 
 export default async function ChatbotInsightsPage(props: {
@@ -122,8 +122,8 @@ export default async function ChatbotInsightsPage(props: {
                  fontWeight: 600, 
                  padding: "0.5rem 1rem", 
                  borderRadius: "0.5rem", 
-                 backgroundColor: hideUnknown ? "#3b82f6" : "#18181b", 
-                 color: "#fff",
+                 backgroundColor: hideUnknown ? "#3b82f6" : "#fff", 
+                 color: hideUnknown ? "#fff" : "#3b82f6",
                  border: "1px solid #3b82f6",
                  textDecoration: "none",
                  transition: "all 0.2s"
@@ -180,7 +180,7 @@ export default async function ChatbotInsightsPage(props: {
                     const pct = ((count / displayTotal) * 100).toFixed(1);
                     const fbRatio = ((intentFallbacks[intent] || 0) / count * 100).toFixed(1);
                     return (
-                      <tr key={intent} style={{ borderBottom: "1px solid #27272a" }}>
+                      <tr key={intent} style={{ borderBottom: "1px solid #f4f4f5" }}>
                         <td style={{ ...s.td, fontWeight: 600, textTransform: "capitalize" }}>{intent}</td>
                         <td style={s.td}>{count}</td>
                         <td style={{ ...s.td, color: "#71717a" }}>{pct}%</td>
@@ -210,9 +210,9 @@ export default async function ChatbotInsightsPage(props: {
                   <span style={s.inquiryText} title={q}>"{q}"</span>
                   <span style={{ 
                     ...s.badge, 
-                    backgroundColor: stats.intent === "nezname" ? "#450a0a" : "#1e3a8a",
-                    color: stats.intent === "nezname" ? "#fca5a5" : "#93c5fd",
-                    border: `1px solid ${stats.intent === "nezname" ? "#7f1d1d" : "#1e40af"}`,
+                    backgroundColor: stats.intent === "nezname" ? "#fef2f2" : "#eff6ff",
+                    color: stats.intent === "nezname" ? "#ef4444" : "#3b82f6",
+                    border: `1px solid ${stats.intent === "nezname" ? "#fca5a5" : "#bfdbfe"}`,
                     textTransform: "capitalize"
                   }}>
                     {stats.intent}
@@ -241,7 +241,7 @@ export default async function ChatbotInsightsPage(props: {
               <tbody>
                 {sortedPages.map(([url, stats]) => (
                   <tr key={url}>
-                    <td style={{ ...s.td, fontFamily: "monospace", fontSize: "0.78rem", color: "#a1a1aa" }}>{url}</td>
+                    <td style={{ ...s.td, fontFamily: "monospace", fontSize: "0.78rem", color: "#52525b" }}>{url}</td>
                     <td style={{ ...s.td, textAlign: "right", fontWeight: 700 }}>{stats.count}</td>
                     <td style={{ ...s.td, textAlign: "right", color: "#71717a" }}>{stats.sessions.size}</td>
                   </tr>
