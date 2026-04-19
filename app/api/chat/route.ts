@@ -31,21 +31,48 @@ function detectLanguage(text: string): "sk" | "en" {
  * Refactored to Slovak internal keys
  */
 function detectIntent(text: string): string {
-  const lowerText = text.toLowerCase();
+  const lowerText = text.toLowerCase().trim();
   
+  // 1. Check for vague or ultra-short messages first
+  const vaguePatterns = [
+    /^d+$/i, /^ano$/i, /^nie$/i, /^preco\??$/i, /^ako\??$/i, /^hej$/i, /^ok$/i, /^dobre$/i,
+    /^nuz$/i, /^no$/i, /^a\??$/i, /^potom\??$/i, /^super$/i, /^viete\??$/i
+  ];
+  const isVague = vaguePatterns.some(p => p.test(lowerText)) || lowerText.length < 3;
+
   const keywords = {
-    prehlad: ["co je", "ako to funguje", "kto ste", "telio", "what is", "how it works", "how does it work", "who are you", "product", "overview", "what do you do", "what can telio do", "who is it for"],
-    cena: ["cena", "cennik", "kolko", "drahe", "price", "pricing", "cost", "expensive", "starter", "business", "enterprise", "how much", "trial"],
-    demo: ["demo", "pizza", "taxi", "ukazka", "vyskusat", "try"],
-    jazyky: ["jazyk", "jazyky", "slovensky", "anglicky", "english", "language", "languages", "speak"],
-    dashboard: ["dashboard", "flotila", "fleet", "mapa", "map", "live", "tracking", "heatmap", "eta"],
-    kontakt: ["kontakt", "pristup", "ziskat pristup", "formular", "contact", "get access", "form"]
+    prehlad: [
+      "co je", "ako to funguje", "ako funguje", "kto ste", "povedz viac", "viac info", "vysvetli", "telio", 
+      "vhodne", "prevadzka", "pizzeria", "skuska", "skusobna", "produkt", "overview", "what is", "how it works"
+    ],
+    cena: [
+      "cena", "cennik", "kolko", "stoji", "drahe", "platit", "zadarmo", "trial", "skuska", "skusobna", 
+      "price", "pricing", "cost", "how much"
+    ],
+    demo: [
+      "demo", "ukazka", "vyskusat", "vyskusat", "pizza demo", "taxi demo", "try it", "how it looks"
+    ],
+    jazyky: [
+      "jazyk", "jazyky", "slovensky", "anglicky", "english", "speak", "language"
+    ],
+    dashboard: [
+      "dashboard", "analytika", "analyza", "heatmapa", "heatmap", "mapa", "map", "flotila", "fleet", 
+      "live", "tracking", "eta", "podla hodin", "podla hodiny", "analyza"
+    ],
+    kontakt: [
+      "kontakt", "objednat", "nastavi", "nainstaluje", "spustit", "pristup", "ziskat pristup", "formular", 
+      "contact", "order", "get access"
+    ]
   };
 
+  // Check intents
   for (const [intent, words] of Object.entries(keywords)) {
     if (words.some(word => lowerText.includes(word))) return intent;
   }
   
+  // If no intent found but message is vague/short, return a special clarification intent
+  if (isVague) return "clarification";
+
   return "nezname";
 }
 
@@ -54,6 +81,21 @@ function detectIntent(text: string): string {
  */
 function getFallbackReply(intent: string, lang: "sk" | "en", source: string) {
   const fallbacks = (chatbotKnowledge as any).intentFallbacks;
+  const clarif = (chatbotKnowledge as any).clarification;
+  
+  // Handle clarification intent explicitly
+  if (intent === "clarification") {
+    const reply = clarif[lang] || clarif.sk;
+    return {
+      role: "assistant",
+      content: reply,
+      reply: reply,
+      language: lang,
+      intent: "nezname", // treat as unknown for logging purposes but with clarif content
+      source: source
+    };
+  }
+
   const intentData = fallbacks[intent] || fallbacks.nezname;
   const reply = intentData[lang] || intentData.sk;
   
