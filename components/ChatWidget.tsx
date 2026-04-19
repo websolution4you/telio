@@ -124,14 +124,20 @@ export default function ChatWidget() {
     if (isOpen && messages.length > 0) {
       const lastMsg = messages[messages.length - 1];
       if (lastMsg.role === "assistant") {
-        // Scroll to the top of the new assistant message so user can read from start
-        setTimeout(scrollToLastMessageStart, 100);
+        setTimeout(scrollToLastMessageStart, 150);
       } else {
-        // For user messages, just scroll to bottom
-        scrollToBottom();
+        setTimeout(scrollToBottom, 150);
       }
-      setTimeout(() => inputRef.current?.focus(), 100);
+      setTimeout(() => inputRef.current?.focus(), 150);
     }
+    
+    // Additional scroll on window resize (keyboard)
+    const handleResize = () => {
+      if (isOpen && document.activeElement === inputRef.current) {
+        setTimeout(scrollToBottom, 200);
+      }
+    };
+    window.visualViewport?.addEventListener("resize", handleResize);
 
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -141,6 +147,7 @@ export default function ChatWidget() {
 
     return () => {
       document.body.style.overflow = "unset";
+      window.visualViewport?.removeEventListener("resize", handleResize);
     };
   }, [messages, isOpen]);
 
@@ -232,7 +239,7 @@ export default function ChatWidget() {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 p-6 bg-blue-600 text-white rounded-full shadow-2xl hover:bg-blue-700 transition-colors focus:outline-none"
+        className="fixed bottom-6 right-6 z-[1000] p-6 bg-blue-600 text-white rounded-full shadow-2xl hover:bg-blue-700 transition-colors focus:outline-none"
         aria-label="Otvoriť chat"
       >
         <AnimatePresence mode="wait">
@@ -255,7 +262,7 @@ export default function ChatWidget() {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed z-50 flex flex-col overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-2xl top-4 bottom-28 left-4 right-4 sm:top-auto sm:w-[380px] sm:h-[550px] sm:bottom-28 sm:right-6 sm:left-auto"
+            className="fixed z-[1001] flex flex-col overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-2xl bottom-20 left-4 right-4 max-h-[60vh] sm:max-h-none sm:top-auto sm:w-[380px] sm:h-[550px] sm:bottom-28 sm:right-6 sm:left-auto"
           >
             {/* Header */}
             <div className="chat-header bg-gradient-to-r from-blue-600 to-blue-500 text-white flex items-center justify-between p-4 px-5">
