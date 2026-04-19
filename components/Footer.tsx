@@ -45,11 +45,35 @@ export default function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4"
-          style={{ borderTop: "1px solid var(--border)", marginTop: "48px", paddingTop: "48px" }}>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6"
+          style={{ borderTop: "1px solid var(--border)", marginTop: "48px", paddingTop: "32px" }}>
           <p className="text-xs" style={{ color: "var(--text-muted)" }}>
             {t.footer.copyright.replace("2025", String(year))}
           </p>
+
+          {/* Cartesia Startups badge */}
+          <a
+            href="https://cartesia.ai/startups"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 transition-opacity duration-200 hover:opacity-80"
+            title="Powered by Cartesia Startups"
+            style={{
+              background: "#ffffff",
+              borderRadius: "10px",
+              padding: "8px 16px",
+              display: "inline-flex",
+              alignItems: "center",
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/cartesia-startups-logo.png"
+              alt="Cartesia Startups"
+              style={{ height: "22px", width: "auto", display: "block" }}
+            />
+          </a>
+
           <div className="flex items-center gap-4">
             <a href="mailto:info@telio.sk" className="text-xs transition-colors duration-200 hover:text-white"
               style={{ color: "var(--text-muted)" }}>info@telio.sk</a>
