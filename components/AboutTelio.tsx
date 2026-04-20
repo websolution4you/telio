@@ -61,15 +61,32 @@ export default function AboutTelio() {
             {t.aboutTelio.title}
           </h2>
 
+          {/* Lead Text */}
+          {t.aboutTelio.lead && (
+            <p
+              className={`transition-all duration-700 delay-200 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+              style={{ 
+                color: "white", 
+                fontSize: "clamp(1.2rem, 2vw, 1.6rem)", 
+                lineHeight: 1.4, 
+                maxWidth: "50rem",
+                fontWeight: 700,
+                marginBottom: "2rem"
+              }}
+            >
+              {t.aboutTelio.lead}
+            </p>
+          )}
+
           {/* Body Text */}
           <p
-            className={`transition-all duration-700 delay-200 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+            className={`transition-all duration-700 delay-300 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
             style={{ 
               color: "var(--text-muted)", 
-              fontSize: "clamp(1.1rem, 1.5vw, 1.25rem)", 
+              fontSize: "clamp(1rem, 1.2vw, 1.15rem)", 
               lineHeight: 1.7, 
-              maxWidth: "50rem",
-              fontWeight: 300
+              maxWidth: "46rem",
+              fontWeight: 400
             }}
           >
             {t.aboutTelio.text}

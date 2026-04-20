@@ -18,8 +18,7 @@ export const translations = {
       badge: "Team",
       h2a: "The minds behind",
       h2b: "Telio",
-      introLead: "Telio was created with the goal of helping businesses not lose customers on the phone.",
-      introBody: "We build AI voice and chat assistants for businesses that need to handle calls, reservations, orders, and dispatching quickly, reliably, and without missed opportunities. We focus on practical solutions for real businesses — from pizzerias and restaurants to taxi services and other operations. Our goal is to create usable AI products that bring measurable value, better oversight, and less chaos to daily operations for companies.",
+      intro: "Behind Telio are co-founders who connect AI technologies, product vision, and the practical needs of real businesses.",
       cartesiaSupport: "Voice AI development at Telio is supported by the Cartesia Startups program.",
       kamil: {
         name: "Kamil",
@@ -37,7 +36,8 @@ export const translations = {
     aboutTelio: {
       badge: "About Telio",
       title: "Slovak AI Startup",
-      text: "Telio is a Slovak technology startup focused on AI voice and chat assistants for businesses. Our goal is to help operations handle calls, reservations, orders, and customer requests quickly, reliably, and without missed opportunities. We build practical AI solutions for real companies that want to automate communication, gain a better overview of operations, and improve daily functioning."
+      lead: "Telio was created with the goal of helping businesses not lose customers on the phone.",
+      text: "We build AI voice and chat assistants for businesses that need to handle calls, reservations, orders, and dispatching quickly, reliably, and without missed opportunities. We focus on practical solutions for real businesses — from pizzerias and restaurants to taxi services and other operations. Our goal is to create usable AI products that bring measurable value, better oversight, and less chaos to daily operations for companies."
     },
     hero: {
       badge: "Telio is online",
@@ -313,8 +313,7 @@ export const translations = {
       badge: "O nás",
       h2a: "Kto stojí za",
       h2b: "Telio",
-      introLead: "Telio vzniklo s cieľom pomôcť firmám nestrácať zákazníkov pri telefóne.",
-      introBody: "Budujeme AI hlasových a chat asistentov pre prevádzky, ktoré potrebujú vybavovať hovory, rezervácie, objednávky a dispečing rýchlo, spoľahlivo a bez zmeškaných príležitostí. Zameriavame sa na praktické riešenia pre reálne firmy — od pizzerií a reštaurácií až po taxislužby a ďalšie prevádzky. Naším cieľom je vytvárať použiteľné AI produkty, ktoré firmám prinášajú merateľnú hodnotu, lepší prehľad a menej chaosu v každodennej prevádzke.",
+      intro: "Za Telio stoja spoluzakladatelia, ktorí prepájajú AI technológie, produktovú víziu a praktické potreby reálnych firiem.",
       cartesiaSupport: "Vývoj hlasovej AI v Telio je podporený programom Cartesia Startups.",
       kamil: {
         name: "Kamil",
@@ -332,7 +331,8 @@ export const translations = {
     aboutTelio: {
       badge: "O Telio",
       title: "Slovenský AI Startup",
-      text: "Telio je slovenský technologický startup zameraný na AI hlasových a chat asistentov pre firmy. Naším cieľom je pomáhať prevádzkam vybavovať hovory, rezervácie, objednávky a zákaznícke požiadavky rýchlo, spoľahlivo a bez zmeškaných príležitostí. Budujeme praktické AI riešenia pre reálne firmy, ktoré chcú automatizovať komunikáciu, získať lepší prehľad o prevádzke a zlepšiť každodenné fungovanie."
+      lead: "Telio vzniklo s cieľom pomôcť firmám nestrácať zákazníkov pri telefóne.",
+      text: "Budujeme AI hlasových a chat asistentov pre prevádzky, ktoré potrebujú vybavovať hovory, rezervácie, objednávky a dispečing rýchlo, spoľahlivo a bez zmeškaných príležitostí. Zameriavame sa na praktické riešenia pre reálne firmy — od pizzerií a reštaurácií až po taxislužby a ďalšie prevádzky. Naším cieľom je vytvárať použiteľné AI produkty, ktoré firmám prinášajú merateľnú hodnotu, lepší prehľad a menej chaosu v každodennej prevádzke."
     },
     hero: {
       badge: "Telio is online",

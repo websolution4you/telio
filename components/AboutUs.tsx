@@ -62,18 +62,14 @@ export default function AboutUs() {
           >
             {t.aboutUs.h2a} <span className="text-gradient">{t.aboutUs.h2b}</span>
           </h2>
-          <div className="mt-10 max-w-4xl mx-auto space-y-6">
-            {t.aboutUs.introLead && (
-              <p className="text-xl md:text-2xl font-bold text-white leading-tight tracking-tight">
-                {t.aboutUs.introLead}
-              </p>
-            )}
-            {t.aboutUs.introBody && (
-              <p className="text-base md:text-lg leading-relaxed font-light text-white/50">
-                {t.aboutUs.introBody}
-              </p>
-            )}
-          </div>
+          {t.aboutUs.intro && (
+            <p 
+              className="mt-8 text-lg md:text-xl font-light leading-relaxed max-w-2xl mx-auto"
+              style={{ color: "var(--text-muted)", opacity: 0.8 }}
+            >
+              {t.aboutUs.intro}
+            </p>
+          )}
         </div>
 
         {/* Team Grid */}
