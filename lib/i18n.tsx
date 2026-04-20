@@ -34,6 +34,11 @@ export const translations = {
         linkedin: "https://www.linkedin.com/in/peter-kalavsky-9ab56186"
       }
     },
+    aboutTelio: {
+      badge: "About Telio",
+      title: "Slovak AI Startup",
+      text: "Telio is a Slovak technology startup focused on AI voice and chat assistants for businesses. Our goal is to help operations handle calls, reservations, orders, and customer requests quickly, reliably, and without missed opportunities. We build practical AI solutions for real companies that want to automate communication, gain a better overview of operations, and improve daily functioning."
+    },
     hero: {
       badge: "Telio is online",
       h1a: "Your business,",
@@ -323,6 +328,11 @@ export const translations = {
         description: "Peťo je spoluzakladateľ a Product Lead Telio. Zodpovedá za produktovú víziu, používateľskú skúsenosť, analytiku a prepájanie potrieb zákazníkov s technologickými možnosťami produktu. Zameriava sa na to, aby Telio riešilo konkrétne biznis problémy a prinášalo firmám merateľnú hodnotu.",
         linkedin: "https://www.linkedin.com/in/peter-kalavsky-9ab56186"
       }
+    },
+    aboutTelio: {
+      badge: "O Telio",
+      title: "Slovenský AI Startup",
+      text: "Telio je slovenský technologický startup zameraný na AI hlasových a chat asistentov pre firmy. Naším cieľom je pomáhať prevádzkam vybavovať hovory, rezervácie, objednávky a zákaznícke požiadavky rýchlo, spoľahlivo a bez zmeškaných príležitostí. Budujeme praktické AI riešenia pre reálne firmy, ktoré chcú automatizovať komunikáciu, získať lepší prehľad o prevádzke a zlepšiť každodenné fungovanie."
     },
     hero: {
       badge: "Telio is online",
