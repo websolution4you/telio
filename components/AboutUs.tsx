@@ -24,6 +24,7 @@ export default function AboutUs() {
       name: t.aboutUs.kamil.name,
       role: t.aboutUs.kamil.role,
       description: t.aboutUs.kamil.description,
+      linkedin: t.aboutUs.kamil.linkedin,
       image: "/team/kamil.jpg"
     },
     {
@@ -31,6 +32,7 @@ export default function AboutUs() {
       name: t.aboutUs.peto.name,
       role: t.aboutUs.peto.role,
       description: t.aboutUs.peto.description,
+      linkedin: t.aboutUs.peto.linkedin,
       image: "/team/peto.jpg"
     }
   ];
@@ -60,6 +62,18 @@ export default function AboutUs() {
           >
             {t.aboutUs.h2a} <span className="text-gradient">{t.aboutUs.h2b}</span>
           </h2>
+          <div className="mt-10 max-w-4xl mx-auto space-y-6">
+            {t.aboutUs.introLead && (
+              <p className="text-xl md:text-2xl font-bold text-white leading-tight tracking-tight">
+                {t.aboutUs.introLead}
+              </p>
+            )}
+            {t.aboutUs.introBody && (
+              <p className="text-base md:text-lg leading-relaxed font-light text-white/50">
+                {t.aboutUs.introBody}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Team Grid */}
@@ -109,6 +123,35 @@ export default function AboutUs() {
                 >
                   {member.description}
                 </p>
+
+                {member.linkedin && (
+                  <a 
+                    href={member.linkedin} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-full transition-all duration-300 group/link"
+                    style={{ 
+                      color: "var(--text-muted)", 
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px solid rgba(255,255,255,0.05)"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "white";
+                      e.currentTarget.style.background = "rgba(0,119,181,0.1)";
+                      e.currentTarget.style.borderColor = "rgba(0,119,181,0.3)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "var(--text-muted)";
+                      e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.05)";
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                    </svg>
+                    LinkedIn
+                  </a>
+                )}
               </div>
             </div>
           ))}

@@ -56,12 +56,23 @@ body {
   overflow-x: hidden;
 }
 
-/* Grid background */
+/* Grid background with smooth fade-out at edges */
 .grid-bg {
+  position: relative;
+}
+
+.grid-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   background-image:
     linear-gradient(var(--grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 60px 60px;
+  mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* Glow effects */
