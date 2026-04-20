@@ -19,6 +19,7 @@ export default function AboutTelio() {
 
   return (
     <section 
+      id="about-telio"
       ref={sectionRef}
       className={`relative overflow-hidden transition-colors duration-1000`}
       style={{ 

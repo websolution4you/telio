@@ -26,6 +26,7 @@ export default function Navbar() {
 
   const navLinks = [
     { label: t.nav.howItWorks, href: "/#how-it-works" },
+    { label: t.nav.aboutTelio, href: "/#about-telio" },
     { label: t.nav.useCases, href: "/#use-cases" },
     { label: t.nav.features, href: "/#features" },
     { label: t.nav.pricing, href: "/#pricing" },

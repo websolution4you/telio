@@ -8,6 +8,7 @@ export const translations = {
   en: {
     nav: {
       howItWorks: "How it works",
+      aboutTelio: "About Telio",
       useCases: "Use cases",
       features: "Features",
       pricing: "Pricing",
@@ -302,6 +303,7 @@ export const translations = {
   sk: {
     nav: {
       howItWorks: "Ako to funguje",
+      aboutTelio: "O Telio",
       useCases: "Možnosti použitia",
       features: "Funkcie",
       pricing: "Cenník",
