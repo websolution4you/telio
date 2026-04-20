@@ -36,8 +36,7 @@ export const translations = {
     aboutTelio: {
       badge: "About Telio",
       title: "Slovak AI Startup",
-      lead: "Telio was founded as a project by two co-founders who bridge AI technology, product thinking, and real business needs.",
-      text: "Our goal is to build practical voice and chat AI solutions for businesses that need to reliably handle calls, orders, reservations, and other customer communications. We develop the product iteratively based on real-world use cases and feedback to ensure it brings measurable value to daily business operations."
+      text: "Telio was founded in November 2025 as a project by two co-founders who bridge AI technology, product thinking, and real business needs. From the beginning, we focused on building a practical AI solution for businesses that daily handle calls, orders, reservations, and other customer communications. Gradually, we have developed Telio from its original idea into a functional product with an AI voice assistant, chatbot, analytics, pricing, and specific use cases for businesses. We are building Telio as a practical tool for businesses that want to automate communication and get a better overview of their operations."
     },
     hero: {
       badge: "Telio is online",
@@ -331,8 +330,7 @@ export const translations = {
     aboutTelio: {
       badge: "O Telio",
       title: "Slovenský AI Startup",
-      lead: "Telio vzniklo ako projekt dvoch spoluzakladateľov, ktorí prepájajú AI technológie, produktové myslenie a reálne potreby firiem.",
-      text: "Naším cieľom je budovať praktické hlasové a chat AI riešenia pre prevádzky, ktoré potrebujú spoľahlivo zvládať hovory, objednávky, rezervácie a ďalšiu zákaznícku komunikáciu. Produkt rozvíjame postupne na základe reálnych use caseov a spätnej väzby, aby firmám prinášal merateľnú hodnotu v každodennej prevádzke."
+      text: "Telio vzniklo v novembri 2025 ako projekt dvoch spoluzakladateľov, ktorí prepájajú AI technológie, produktové myslenie a reálne potreby firiem. Od začiatku sme sa zamerali na budovanie praktického AI riešenia pre prevádzky, ktoré denne riešia hovory, objednávky, rezervácie a ďalšiu zákaznícku komunikáciu. Postupne sme Telio rozvinuli od pôvodnej myšlienky k funkčnému produktu s AI hlasovým asistentom, chatbotom, analytikou, cenníkom a konkrétnymi scenármi využitia pre firmy. Telio budujeme ako praktický nástroj pre firmy, ktoré chcú automatizovať komunikáciu a získať lepší prehľad o svojej prevádzke."
     },
     hero: {
       badge: "Telio is online",
