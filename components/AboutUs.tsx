@@ -20,20 +20,20 @@ export default function AboutUs() {
 
   const team = [
     {
-      id: "kamil",
-      name: t.aboutUs.kamil.name,
-      role: t.aboutUs.kamil.role,
-      description: t.aboutUs.kamil.description,
-      linkedin: t.aboutUs.kamil.linkedin,
-      image: "/team/kamil.jpg"
-    },
-    {
       id: "peto",
       name: t.aboutUs.peto.name,
       role: t.aboutUs.peto.role,
       description: t.aboutUs.peto.description,
       linkedin: t.aboutUs.peto.linkedin,
       image: "/team/peto.jpg"
+    },
+    {
+      id: "kamil",
+      name: t.aboutUs.kamil.name,
+      role: t.aboutUs.kamil.role,
+      description: t.aboutUs.kamil.description,
+      linkedin: t.aboutUs.kamil.linkedin,
+      image: "/team/kamil.jpg"
     }
   ];
 
