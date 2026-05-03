@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/i18n";
 import ElevenLabsCallButton from "@/components/ElevenLabsCallButton";
 import DemoCallButton from "@/components/DemoCallButton";
-import { Car, Pizza } from "lucide-react";
+import { Headset, Pizza } from "lucide-react";
 
 export default function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -132,7 +132,7 @@ export default function Hero() {
               <DemoCallButton 
                 businessType="taxi" 
                 customLabel={t.hero.assistantCta} 
-                icon={<Car className="w-5 h-5 relative z-10" />} 
+                icon={<Headset className="w-5 h-5 relative z-10" />} 
                 backendUrl="https://call-agent-65sb.onrender.com"
               />
             </div>
