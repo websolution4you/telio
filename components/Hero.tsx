@@ -120,22 +120,35 @@ export default function Hero() {
 
         {/* CTAs */}
         <div
-          className={`flex flex-col sm:flex-row items-center justify-center gap-4 transition-all duration-700 delay-300 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+          className={`flex flex-col items-center justify-center transition-all duration-700 delay-300 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
           style={{ marginBottom: "2rem" }}
         >
-          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <DemoCallButton 
-              businessType="taxi" 
-              customLabel="Taxi Demo" 
-              icon={<Car className="w-5 h-5 relative z-10" />} 
-              backendUrl="https://call-agent-65sb.onrender.com"
-            />
-            <ElevenLabsCallButton
-              agentId={process.env.NEXT_PUBLIC_ELEVENLABS_PIZZA_AGENT_ID || "PLACEHOLDER_AGENT_ID"}
-              customLabel="Pizzeria Demo"
-              color="#FF6B35"
-              icon={<Pizza className="w-5 h-5 relative z-10" />}
-            />
+          <div className="flex flex-col md:flex-row gap-12 w-full md:w-auto items-start justify-center">
+            {/* Taxi / Telio Assistant */}
+            <div className="flex flex-col gap-3 w-full md:w-auto items-center md:items-start">
+              <span className="text-xs font-medium px-1" style={{ color: "var(--text-muted)", opacity: 0.9 }}>
+                {t.hero.assistantLabel}
+              </span>
+              <DemoCallButton 
+                businessType="taxi" 
+                customLabel={t.hero.assistantCta} 
+                icon={<Car className="w-5 h-5 relative z-10" />} 
+                backendUrl="https://call-agent-65sb.onrender.com"
+              />
+            </div>
+
+            {/* Pizza Demo */}
+            <div className="flex flex-col gap-3 w-full md:w-auto items-center md:items-start">
+              <span className="text-xs font-medium px-1" style={{ color: "var(--text-muted)", opacity: 0.9 }}>
+                {t.hero.pizzeriaLabel}
+              </span>
+              <ElevenLabsCallButton
+                agentId={process.env.NEXT_PUBLIC_ELEVENLABS_PIZZA_AGENT_ID || "PLACEHOLDER_AGENT_ID"}
+                customLabel="Pizzeria Demo"
+                color="#FF6B35"
+                icon={<Pizza className="w-5 h-5 relative z-10" />}
+              />
+            </div>
           </div>
         </div>
 

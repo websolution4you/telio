@@ -49,6 +49,9 @@ export const translations = {
         { emoji: "🚕", text: "Taxi to Hospital — dispatched", time: "1m ago" },
       ],
       scroll: "scroll",
+      assistantLabel: "Call our AI assistant directly from the web",
+      pizzeriaLabel: "Try the demo version to see how Telio works for ordering pizza.",
+      assistantCta: "Telio Assistant",
     },
     stats: [
       { value: "< 2s", label: "Average response time", sub: "From ring to first word" },
@@ -334,6 +337,9 @@ export const translations = {
         { emoji: "🚕", text: "Taxi do nemocnice — odoslané", time: "pred 1m" },
       ],
       scroll: "scroll",
+      assistantLabel: "Zavolaj nášmu AI asistentovi priamo z webu",
+      pizzeriaLabel: "Vyskúšaj demo verziu ako by fungoval Telio pri objednaní pizze.",
+      assistantCta: "Telio Asistent",
     },
     stats: [
       { value: "< 2s", label: "Priemerný čas odozvy", sub: "Od zvonenia po prvé slovo" },
