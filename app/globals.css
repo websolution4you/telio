@@ -56,12 +56,23 @@ body {
   overflow-x: hidden;
 }
 
-/* Grid background */
+/* Grid background with smooth fade-out at edges */
 .grid-bg {
+  position: relative;
+}
+
+.grid-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   background-image:
     linear-gradient(var(--grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 60px 60px;
+  mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* Glow effects */
@@ -273,3 +284,64 @@ body {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Chat overrides */
+.chat-input-container {
+  padding: 0px 5px 0px 5px;
+}
+
+.chat-textarea {
+  padding: 10px 14px !important;
+}
+
+.chat-message-wrapper {
+  padding: 7px 5px 0px 5px;
+}
+
+.chat-bubble {
+  padding: 10px 14px !important;
+  white-space: pre-wrap;
+}
+
+.chat-header {
+  padding: 5px 0px 5px 5px;
+}
+
+.chat-cta-wrapper {
+  padding-left: 5px;
+}
+
+.chat-send-btn {
+  padding: 10px !important;
+  margin: 0 6px 3px 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.chat-suggestions-container {
+  padding: 5px 5px !important;
+}
+
+.chat-suggestion-btn {
+  cursor: pointer;
+  padding: 4px 12px !important;
+}
+
+.chat-send-icon {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+}
+
+/* Navbar / Header overrides */
+.lang-switcher-container {
+  border: 1px solid var(--border);
+  background: rgba(12, 12, 20, 0.8);
+  padding: 2px 8px 2px 8px;
+}
+
+
+
+
+

@@ -6,6 +6,7 @@ import UseCases from "@/components/UseCases";
 import Features from "@/components/Features";
 import Pricing from "@/components/Pricing";
 import AboutUs from "@/components/AboutUs";
+import AboutTelio from "@/components/AboutTelio";
 import Waitlist from "@/components/Waitlist";
 import Footer from "@/components/Footer";
 
@@ -14,13 +15,14 @@ export default function Home() {
     <main style={{ background: "var(--bg)" }}>
       <Navbar />
       <Hero />
+      <AboutTelio />
       <Stats />
       <HowItWorks />
-      <Waitlist />
-      <UseCases />
       <Features />
+      <UseCases />
       <Pricing />
       <AboutUs />
+      <Waitlist />
       <Footer />
     </main>
   );

@@ -8,6 +8,7 @@ export const translations = {
   en: {
     nav: {
       howItWorks: "How it works",
+      aboutTelio: "About Telio",
       useCases: "Use cases",
       features: "Features",
       pricing: "Pricing",
@@ -17,17 +18,25 @@ export const translations = {
     aboutUs: {
       badge: "Team",
       h2a: "The minds behind",
-      h2b: "Telio.",
+      h2b: "Telio",
+      cartesiaSupport: "Voice AI development at Telio is supported by the Cartesia Startups program.",
       kamil: {
         name: "Kamil",
         role: "Co-founder & AI Architect",
-        description: "Kamil leads the technological vision of Telio and designs the architecture of AI agents capable of natural customer interaction and reliable handling of complex real-time business scenarios.\n\nHe focuses on integrating AI, voice technologies, and backend systems to ensure Telio's solutions are scalable, accurate, and ready for real-world enterprise deployment."
+        description: "Kamil is the co-founder and AI architect of Telio. He is responsible for the technological vision of the product, design of AI agents, backend architecture, and connecting voice technologies with real business processes. His goal is to build scalable and reliable AI solutions ready for deployment in real operations.",
+        linkedin: "https://www.linkedin.com/in/kamil-bartko-3b4945400"
       },
       peto: {
         name: "Peťo",
         role: "Co-founder & Product Lead",
-        description: "Peťo is responsible for the product vision and user experience at Telio. As a skilled data analyst, he can extract relevant insights and tailor them to the company's needs to maximize business potential.\n\nHe bridges customer needs with technological capabilities, ensuring that AI agents provide real value, solve specific entrepreneurial challenges, and deliver measurable results."
+        description: "Peťo is the co-founder and Product Lead of Telio. He is responsible for the product vision, user experience, analytics, and connecting customer needs with the technological capabilities of the product. He focuses on ensuring Telio solves specific business problems and brings measurable value to companies.",
+        linkedin: "https://www.linkedin.com/in/peter-kalavsky-9ab56186"
       }
+    },
+    aboutTelio: {
+      badge: "About Telio",
+      title: "Slovak AI Startup",
+      text: "Telio was founded in November 2025 as a project by two co-founders who bridge AI technology, product thinking, and real business needs. From the beginning, we focused on building a practical AI solution for businesses that daily handle calls, orders, reservations, and other customer communications. Gradually, we have developed Telio from its original idea into a functional product with an AI voice assistant, chatbot, analytics, pricing, and specific use cases for businesses. We are building Telio as a practical tool for businesses that want to automate communication and get a better overview of their operations."
     },
     hero: {
       badge: "Telio is online",
@@ -296,6 +305,7 @@ export const translations = {
   sk: {
     nav: {
       howItWorks: "Ako to funguje",
+      aboutTelio: "O Telio",
       useCases: "Možnosti použitia",
       features: "Funkcie",
       pricing: "Cenník",
@@ -305,17 +315,25 @@ export const translations = {
     aboutUs: {
       badge: "O nás",
       h2a: "Kto stojí za",
-      h2b: "Telio.",
+      h2b: "Telio",
+      cartesiaSupport: "Vývoj hlasovej AI v Telio je podporený programom Cartesia Startups.",
       kamil: {
         name: "Kamil",
         role: "Spoluzakladateľ & AI Architekt",
-        description: "Kamil vedie technologickú víziu Telio a navrhuje architektúru AI agentov, ktorí dokážu prirodzene komunikovať so zákazníkmi a spoľahlivo zvládať komplexné biznis scenáre v reálnom čase.\n\nZameriava sa na prepojenie umelej inteligencie, voice technológií a backend systémov tak, aby riešenia Telio boli škálovateľné, presné a pripravené pre reálne nasadenie vo firmách."
+        description: "Kamil je spoluzakladateľ a AI architekt Telio. Zodpovedá za technologickú víziu produktu, návrh AI agentov, backend architektúru a prepájanie voice technológií s reálnymi firemnými procesmi. Jeho cieľom je budovať škálovateľné a spoľahlivé AI riešenia pripravené na nasadenie v reálnych prevádzkach.",
+        linkedin: "https://www.linkedin.com/in/kamil-bartko-3b4945400"
       },
       peto: {
         name: "Peťo",
         role: "Spoluzakladateľ & Product Lead",
-        description: "Peťo zodpovedá za produktovú víziu a používateľskú skúsenosť Telio. Ako skúsený dátový analytik dokáže vytiahnuť relevantné dáta a prispôsobiť ich firme tak, aby vyťažila zo svojho podnikania čo najviac.\n\nPrepája potreby zákazníkov s technologickými možnosťami tak, aby AI agenti prinášali firmám reálnu hodnotu, riešili konkrétne problémy a prinášali merateľné výsledky."
+        description: "Peťo je spoluzakladateľ a Product Lead Telio. Zodpovedá za produktovú víziu, používateľskú skúsenosť, analytiku a prepájanie potrieb zákazníkov s technologickými možnosťami produktu. Zameriava sa na to, aby Telio riešilo konkrétne biznis problémy a prinášalo firmám merateľnú hodnotu.",
+        linkedin: "https://www.linkedin.com/in/peter-kalavsky-9ab56186"
       }
+    },
+    aboutTelio: {
+      badge: "O Telio",
+      title: "Slovenský AI Startup",
+      text: "Telio vzniklo v novembri 2025 ako projekt dvoch spoluzakladateľov, ktorí prepájajú AI technológie, produktové myslenie a reálne potreby firiem. Od začiatku sme sa zamerali na budovanie praktického AI riešenia pre prevádzky, ktoré denne riešia hovory, objednávky, rezervácie a ďalšiu zákaznícku komunikáciu. Postupne sme Telio rozvinuli od pôvodnej myšlienky k funkčnému produktu s AI hlasovým asistentom, chatbotom, analytikou, cenníkom a konkrétnymi scenármi využitia pre firmy. Telio budujeme ako praktický nástroj pre firmy, ktoré chcú automatizovať komunikáciu a získať lepší prehľad o svojej prevádzke."
     },
     hero: {
       badge: "Telio is online",
