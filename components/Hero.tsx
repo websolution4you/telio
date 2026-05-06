@@ -126,28 +126,28 @@ export default function Hero() {
           <div className="flex flex-col md:flex-row gap-12 w-full md:w-auto items-start justify-center">
             {/* Taxi / Telio Assistant */}
             <div className="flex flex-col gap-3 w-full md:w-auto items-center md:items-start">
-              <span className="text-xs font-medium px-1" style={{ color: "var(--text-muted)", opacity: 0.9 }}>
-                {t.hero.assistantLabel}
-              </span>
               <DemoCallButton 
                 businessType="taxi" 
                 customLabel={t.hero.assistantCta} 
                 icon={<Headset className="w-5 h-5 relative z-10" />} 
                 backendUrl="https://call-agent-65sb.onrender.com"
               />
+              <span className="text-xs font-medium px-1" style={{ color: "var(--text-muted)", opacity: 0.9 }}>
+                {t.hero.assistantLabel}
+              </span>
             </div>
 
             {/* Pizza Demo */}
             <div className="flex flex-col gap-3 w-full md:w-auto items-center md:items-start">
-              <span className="text-xs font-medium px-1" style={{ color: "var(--text-muted)", opacity: 0.9 }}>
-                {t.hero.pizzeriaLabel}
-              </span>
               <ElevenLabsCallButton
                 agentId={process.env.NEXT_PUBLIC_ELEVENLABS_PIZZA_AGENT_ID || "PLACEHOLDER_AGENT_ID"}
                 customLabel="Pizzeria Demo"
                 color="#FF6B35"
                 icon={<Pizza className="w-5 h-5 relative z-10" />}
               />
+              <span className="text-xs font-medium px-1" style={{ color: "var(--text-muted)", opacity: 0.9 }}>
+                {t.hero.pizzeriaLabel}
+              </span>
             </div>
           </div>
         </div>
