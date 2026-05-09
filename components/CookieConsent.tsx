@@ -39,7 +39,7 @@ export default function CookieConsent() {
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: 50, opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-          className="fixed bottom-6 right-6 z-[100] max-w-sm w-[calc(100vw-3rem)] sm:w-full"
+          className="fixed bottom-6 left-6 z-[100] max-w-sm w-[calc(100vw-3rem)] sm:w-full"
         >
           <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]/90 backdrop-blur-xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
             {/* Glow effect */}
@@ -72,13 +72,13 @@ export default function CookieConsent() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={acceptCookies}
-                    className="btn-primary px-6 py-2.5 text-sm font-bold w-full sm:w-auto cursor-pointer"
+                    className="btn-primary px-8 py-4 text-sm font-bold w-full sm:w-auto cursor-pointer"
                   >
                     {t.cookies.accept}
                   </button>
                   <button
                     onClick={declineCookies}
-                    className="btn-ghost px-6 py-2.5 text-sm font-medium w-full sm:w-auto cursor-pointer"
+                    className="btn-ghost px-8 py-4 text-sm font-medium w-full sm:w-auto cursor-pointer"
                   >
                     {t.cookies.decline}
                   </button>
