@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { LangProvider } from "@/lib/i18n";
 import ChatWidget from "@/components/ChatWidget";
+import CookieConsent from "@/components/CookieConsent";
 
 const inter = Inter({
   // Deployment trigger: 2026-04-18 (v3, git reconnected)
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <LangProvider>
           {children}
           <ChatWidget />
+          <CookieConsent />
         </LangProvider>
       </body>
     </html>

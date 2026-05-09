@@ -300,6 +300,13 @@ export const translations = {
       connecting: "Connecting...",
       endCall: "End Call",
     },
+    cookies: {
+      title: "Cookies",
+      text: "We use cookies to enhance your browsing experience, serve personalized content, and analyze our traffic. By clicking \"Accept\", you consent to our use of cookies.",
+      accept: "Accept all",
+      decline: "Decline",
+      more: "Learn more",
+    },
   },
 
   sk: {
@@ -596,6 +603,13 @@ export const translations = {
       tryDemo: "Vyskúšať Demo Hovor",
       connecting: "Pripájam...",
       endCall: "Ukončiť hovor",
+    },
+    cookies: {
+      title: "Cookies",
+      text: "Používame súbory cookie, aby sme vám poskytli čo najlepší zážitok na našom webe, personalizovali obsah a analyzovali návštevnosť. Kliknutím na „Prijať všetko“ vyjadrujete súhlas s ich používaním.",
+      accept: "Prijať všetko",
+      decline: "Odmietnuť",
+      more: "Zistiť viac",
     },
   },
 } as const;
