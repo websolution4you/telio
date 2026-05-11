@@ -57,8 +57,8 @@ export async function createMenuItemAction(item: UpdatePayload) {
         const tenantId = await getCurrentTenantId("pizza");
         const { db, tables } = await getProjectContext(tenantId, "pizza");
         
-        // Ensure tenant_id is set if column exists or required by RLS
-        const newItem = { ...item };
+        // Ensure tenant_id is set to satisfy NOT NULL constraint
+        const newItem = { ...item, tenant_id: tenantId };
         
         const { error } = await db.from(tables.menuItems).insert([newItem]);
 
