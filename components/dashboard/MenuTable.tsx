@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { updateMenuItemAction, createMenuItemAction } from "@/app/actions/dashboard";
-import { Plus } from "lucide-react";
+import { updateMenuItemAction, createMenuItemAction, deleteMenuItemAction } from "@/app/actions/dashboard";
+import { Plus, Trash2 } from "lucide-react";
 
 export interface MenuItem {
     id: number;
@@ -26,6 +26,7 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
     const handleSave = async () => {
         try {
             let res;
+            const isUpdate = !!editingItem;
             if (isCreating) {
                 res = await createMenuItemAction(editForm);
             } else if (editingItem) {
@@ -35,6 +36,7 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
             }
 
             if (res.success) {
+                alert(isUpdate ? "Položka bola upravená." : "Položka bola úspešne pridaná.");
                 setEditingItem(null);
                 setIsCreating(false);
                 setEditForm({});
@@ -45,6 +47,22 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
         } catch (e) {
             console.error(e);
             alert("Chyba pri ukladaní menu položky.");
+        }
+    };
+
+    const handleDelete = async (id: number) => {
+        if (!confirm("Naozaj chcete vymazať túto položku?")) return;
+        try {
+            const res = await deleteMenuItemAction(id);
+            if (res.success) {
+                alert("Položka bola vymazaná.");
+                onRefresh();
+            } else {
+                alert("Chyba pri mazaní: " + res.error);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Chyba pri mazaní položky.");
         }
     };
 
@@ -121,9 +139,19 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
                                 )}
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
-                                <div style={{ color: "var(--cyan)", fontSize: "1rem", fontWeight: 700 }}>
-                                    {item.price?.toFixed(2)} €
-                                </div>
+                            <div style={{ color: "var(--cyan)", fontSize: "1rem", fontWeight: 700 }}>
+                                {item.price?.toFixed(2)} €
+                            </div>
+                            <div style={{ display: "flex", gap: "8px" }}>
+                                <button
+                                    onClick={() => handleDelete(item.id)}
+                                    style={{ padding: "6px", background: "transparent", border: "1px solid rgba(255, 59, 48, 0.3)", color: "rgba(255, 59, 48, 0.7)", borderRadius: 6, cursor: "pointer", transition: "all 0.2s" }}
+                                    onMouseEnter={e => { e.currentTarget.style.color = "#ff3b30"; e.currentTarget.style.borderColor = "#ff3b30"; e.currentTarget.style.background = "rgba(255, 59, 48, 0.1)"; }}
+                                    onMouseLeave={e => { e.currentTarget.style.color = "rgba(255, 59, 48, 0.7)"; e.currentTarget.style.borderColor = "rgba(255, 59, 48, 0.3)"; e.currentTarget.style.background = "transparent"; }}
+                                    title="Vymazať"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
                                 <button
                                     onClick={() => { setEditingItem(item); setEditForm(item); }}
                                     style={{ padding: "4px 12px", background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", borderRadius: 6, cursor: "pointer", fontSize: "0.75rem", transition: "all 0.2s" }}
@@ -133,6 +161,8 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
                                     Upraviť
                                 </button>
                             </div>
+                            </div>
+
                         </div>
                         {item.ingredients && (
                             <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", paddingTop: "12px", borderTop: "1px solid rgba(255,255,255,0.05)", lineHeight: 1.4 }}>

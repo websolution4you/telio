@@ -73,6 +73,23 @@ export async function createMenuItemAction(item: UpdatePayload) {
     }
 }
 
+export async function deleteMenuItemAction(itemId: number) {
+    try {
+        const tenantId = await getCurrentTenantId("pizza");
+        const { db, tables } = await getProjectContext(tenantId, "pizza");
+        const { error } = await db.from(tables.menuItems).delete().eq("id", itemId);
+
+        if (error) {
+            return { success: false, error: error.message };
+        }
+
+        return { success: true };
+    } catch (error: unknown) {
+        console.error("deleteMenuItemAction failed:", error);
+        return { success: false, error: getErrorMessage(error) };
+    }
+}
+
 export async function updateTaxiPriceAction(priceId: string, updates: UpdatePayload) {
     try {
         const tenantId = await getCurrentTenantId("taxi");
