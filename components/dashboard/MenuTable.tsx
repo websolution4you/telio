@@ -9,6 +9,7 @@ export interface MenuItem {
     price: number;
     weight_grams: number | null;
     ingredients: string | null;
+    display_order: number | null;
 }
 
 interface MenuTableProps {
@@ -115,11 +116,9 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
                                     <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Cena (€)</label>
                                     <input type="number" step="0.1" className="edit-input" style={{ width: "100%" }} value={editForm.price ?? 0} onChange={e => setEditForm({ ...editForm, price: parseFloat(e.target.value) })} />
                                 </div>
-                                <div>
-                                    <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Hmotnosť (g)</label>
-                                    <input type="number" className="edit-input" style={{ width: "100%" }} value={editForm.weight_grams ?? 0} onChange={e => setEditForm({ ...editForm, weight_grams: parseInt(e.target.value) })} />
-                                </div>
-                            </div>
+    ingredients: string | null;
+    display_order: number | null;
+}
 
                             <div>
                                 <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Zloženie</label>

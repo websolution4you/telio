@@ -36,10 +36,10 @@ export async function getPizzaDashboardData(tenantId: string) {
             // Odstránený tenant filter pre zobrazenie všetkých
             .order("created_at", { ascending: false })
             .limit(500),
-        db
+                db
             .from(tables.menuItems)
             .select("*")
-            .order("id"),
+            .order("display_order", { ascending: true }),
         db
             .from(tables.streets)
             .select("name"),
