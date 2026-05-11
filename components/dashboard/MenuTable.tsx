@@ -113,12 +113,14 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
 
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                                 <div>
-                                    <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Cena (€)</label>
-                                    <input type="number" step="0.1" className="edit-input" style={{ width: "100%" }} value={editForm.price ?? 0} onChange={e => setEditForm({ ...editForm, price: parseFloat(e.target.value) })} />
+                                    <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Hmotnosť (g)</label>
+                                    <input type="number" className="edit-input" style={{ width: "100%" }} value={editForm.weight_grams ?? 0} onChange={e => setEditForm({ ...editForm, weight_grams: parseInt(e.target.value) })} />
                                 </div>
-    ingredients: string | null;
-    display_order: number | null;
-}
+                                <div>
+                                    <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Poradie zobrazenia</label>
+                                    <input type="number" className="edit-input" style={{ width: "100%" }} value={editForm.display_order ?? 0} onChange={e => setEditForm({ ...editForm, display_order: parseInt(e.target.value) })} />
+                                </div>
+                            </div>
 
                             <div>
                                 <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Zloženie</label>
