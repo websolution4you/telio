@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { updateMenuItemAction, createMenuItemAction, deleteMenuItemAction } from "@/app/actions/dashboard";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, CheckCircle, XCircle, X } from "lucide-react";
 
 export interface MenuItem {
     id: number;
@@ -18,10 +18,25 @@ interface MenuTableProps {
     onRefresh: () => void;
 }
 
+interface Toast {
+    id: number;
+    message: string;
+    type: "success" | "error";
+}
+
 export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
     const [isCreating, setIsCreating] = useState(false);
     const [editForm, setEditForm] = useState<Partial<MenuItem>>({});
+    const [toasts, setToasts] = useState<Toast[]>([]);
+
+    const showToast = (message: string, type: "success" | "error" = "success") => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, message, type }]);
+        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500);
+    };
+
+    const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
 
     const handleSave = async () => {
         try {
@@ -36,17 +51,17 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
             }
 
             if (res.success) {
-                alert(isUpdate ? "Položka bola upravená." : "Položka bola úspešne pridaná.");
+                showToast(isUpdate ? "Položka bola úspešne upravená." : "Položka bola úspešne pridaná.", "success");
                 setEditingItem(null);
                 setIsCreating(false);
                 setEditForm({});
                 onRefresh();
             } else {
-                alert("Chyba pri ukladaní menu položky: " + res.error);
+                showToast("Chyba pri ukladaní: " + res.error, "error");
             }
         } catch (e) {
             console.error(e);
-            alert("Chyba pri ukladaní menu položky.");
+            showToast("Chyba pri ukladaní menu položky.", "error");
         }
     };
 
@@ -55,14 +70,14 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
         try {
             const res = await deleteMenuItemAction(id);
             if (res.success) {
-                alert("Položka bola vymazaná.");
+                showToast("Položka bola vymazaná.", "success");
                 onRefresh();
             } else {
-                alert("Chyba pri mazaní: " + res.error);
+                showToast("Chyba pri mazaní: " + res.error, "error");
             }
         } catch (e) {
             console.error(e);
-            alert("Chyba pri mazaní položky.");
+            showToast("Chyba pri mazaní položky.", "error");
         }
     };
 
@@ -79,6 +94,44 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
 
     return (
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "1.5rem", flex: 1, position: "relative" }}>
+
+            {/* Toast notifications */}
+            <div style={{ position: "fixed", bottom: "2rem", right: "2rem", display: "flex", flexDirection: "column", gap: "0.75rem", zIndex: 9999, pointerEvents: "none" }}>
+                {toasts.map(toast => (
+                    <div
+                        key={toast.id}
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                            padding: "14px 18px",
+                            borderRadius: 12,
+                            background: toast.type === "success" ? "rgba(0, 20, 16, 0.97)" : "rgba(20, 4, 4, 0.97)",
+                            border: `1px solid ${toast.type === "success" ? "rgba(0, 255, 209, 0.4)" : "rgba(255, 59, 48, 0.4)"}`,
+                            boxShadow: `0 8px 32px ${toast.type === "success" ? "rgba(0,255,209,0.15)" : "rgba(255,59,48,0.15)"}, 0 2px 8px rgba(0,0,0,0.4)`,
+                            backdropFilter: "blur(12px)",
+                            minWidth: 280,
+                            maxWidth: 380,
+                            pointerEvents: "all",
+                            animation: "toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)"
+                        }}
+                    >
+                        {toast.type === "success"
+                            ? <CheckCircle size={18} style={{ color: "var(--cyan)", flexShrink: 0 }} />
+                            : <XCircle size={18} style={{ color: "#ff3b30", flexShrink: 0 }} />
+                        }
+                        <span style={{ color: "#fff", fontSize: "0.875rem", fontWeight: 500, flex: 1, lineHeight: 1.4 }}>
+                            {toast.message}
+                        </span>
+                        <button
+                            onClick={() => removeToast(toast.id)}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.4)", padding: 2, display: "flex", flexShrink: 0 }}
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+                ))}
+            </div>
             <div className="flex items-center justify-between" style={{ marginBottom: "1.25rem" }}>
                 <div>
                     <h2 style={{ fontSize: "1.05rem", fontWeight: 600, color: "#fff" }}>Menu položky</h2>
@@ -229,6 +282,10 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
             .edit-input:focus {
                 border-color: var(--cyan);
                 }
+            @keyframes toastIn {
+                from { opacity: 0; transform: translateY(12px) scale(0.95); }
+                to   { opacity: 1; transform: translateY(0)   scale(1);    }
+            }
             `}} />
         </div>
     );

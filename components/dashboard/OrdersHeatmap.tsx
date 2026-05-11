@@ -1,5 +1,8 @@
 "use client";
 
+import { useState, useEffect, useMemo } from "react";
+import { type PizzaOrder } from "@/lib/mockData";
+
 interface HeatmapData {
     day: string;     // "Po", "Ut", ...
     hour: number;    // 0-23
@@ -7,19 +10,77 @@ interface HeatmapData {
 }
 
 interface OrdersHeatmapProps {
-    data: HeatmapData[];
-    days: string[];
+    ordersToday: PizzaOrder[];
+    ordersWeek: PizzaOrder[];
+    period?: number;
 }
 
-export default function OrdersHeatmap({ data, days }: OrdersHeatmapProps) {
+const SK_DAY_NAMES = ["Ne", "Po", "Ut", "St", "Št", "Pi", "So"];
+
+function buildHeatmapData(orders: PizzaOrder[], periodDays: number): { data: HeatmapData[]; days: string[] } {
+    const days = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"];
+    const map = new Map<string, number>();
+
+    const now = new Date();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(now.getDate() - periodDays);
+    // V prípade dneška nastavíme cutoff na začiatok dňa, aby sme nič nestratili kvôli hodine
+    if (periodDays === 1) cutoffDate.setHours(0, 0, 0, 0);
+
+    orders.forEach((o) => {
+        const d = new Date(o.created_at);
+        if (d < cutoffDate) return;
+        
+        // Používame slovenské názvy dní pre kľúč mapy, aby sedeli s SK_DAY_NAMES
+        const dayLabel = SK_DAY_NAMES[d.getDay()];
+        const hour = d.getHours();
+        const key = `${dayLabel}-${hour}`;
+        map.set(key, (map.get(key) ?? 0) + 1);
+    });
+
+    const data: HeatmapData[] = [];
+    // SK_DAY_NAMES: ["Ne", "Po", "Ut", "St", "Št", "Pi", "So"]
+    // Chceme aby vizuálne v tabuľke boli dni Po-Ne
+    const displayOrder = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"];
+
+    displayOrder.forEach((day) => {
+        for (let h = 10; h <= 22; h++) {
+            const key = `${day}-${h}`;
+            data.push({ day, hour: h, count: map.get(key) ?? 0 });
+        }
+    });
+
+    return { data, days: displayOrder };
+}
+
+export default function OrdersHeatmap({ ordersToday, ordersWeek, period = 7 }: OrdersHeatmapProps) {
+    const [localRangeIdx, setLocalRangeIdx] = useState<number | null>(null);
+
+    // Map global period to rangeIdx (0: Dnes, 1: 7 dní, 2: 30 dní)
+    const effectiveRangeIdx = localRangeIdx !== null ? localRangeIdx : (period === 1 ? 0 : (period === 7 ? 1 : 2));
+    const RANGES = ["Dnes", "7 dní", "30 dní"];
+
+    // Effect to update localRangeIdx when global period changes
+    useEffect(() => {
+        setLocalRangeIdx(null); // Reset local override when global changes
+    }, [period]);
+
+        // Derived period for labels based on selection
+    const displayPeriod = effectiveRangeIdx === 0 ? 1 : (effectiveRangeIdx === 1 ? 7 : 30);
+
+    const { data: heatmapData, days } = useMemo(() => {
+        const rawData = displayPeriod === 1 ? ordersToday : ordersWeek;
+        return buildHeatmapData(rawData, displayPeriod);
+    }, [displayPeriod, ordersToday, ordersWeek]);
+
     // Business hours only (10-22)
     const hours = Array.from({ length: 13 }, (_, i) => i + 10);
 
     // Build lookup map
     const lookup = new Map<string, number>();
-    data.forEach((d) => lookup.set(`${d.day}-${d.hour}`, d.count));
+    heatmapData.forEach((d) => lookup.set(`${d.day}-${d.hour}`, d.count));
 
-    const maxCount = Math.max(...data.map((d) => d.count), 1);
+    const maxCount = Math.max(...heatmapData.map((d) => d.count), 1);
 
     function cellColor(count: number): string {
         if (count === 0) return "rgba(255,255,255,0.03)";
@@ -31,7 +92,7 @@ export default function OrdersHeatmap({ data, days }: OrdersHeatmapProps) {
     }
 
     return (
-        <div
+                <div
             style={{
                 background: "var(--bg-card)",
                 border: "1px solid var(--border)",
@@ -41,13 +102,37 @@ export default function OrdersHeatmap({ data, days }: OrdersHeatmapProps) {
                 minWidth: 0,
             }}
         >
-            <div style={{ marginBottom: "1rem" }}>
-                <h3 style={{ fontSize: "0.95rem", fontWeight: 600, color: "#fff" }}>
-                    Objednávky podľa hodiny
-                </h3>
-                <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: 2 }}>
-                    Heatmapa – posledných 7 dní
-                </p>
+            <div className="flex items-center justify-between" style={{ marginBottom: "1rem" }}>
+                <div>
+                    <h3 style={{ fontSize: "0.95rem", fontWeight: 600, color: "#fff" }}>
+                        Objednávky podľa hodiny
+                    </h3>
+                    <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: 2 }}>
+                        Heatmapa – {displayPeriod === 1 ? "Dnes" : `posledných ${displayPeriod} dní`}
+                    </p>
+                </div>
+
+                <div style={{ display: "flex", background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: 3 }}>
+                    {RANGES.map((r, i) => (
+                        <button
+                            key={r}
+                            onClick={() => setLocalRangeIdx(i)}
+                            style={{
+                                padding: "4px 12px",
+                                fontSize: "0.7rem",
+                                fontWeight: 600,
+                                borderRadius: 8,
+                                border: "none",
+                                background: effectiveRangeIdx === i ? "var(--cyan)" : "transparent",
+                                color: effectiveRangeIdx === i ? "#000" : "var(--text-muted)",
+                                cursor: "pointer",
+                                transition: "all 0.2s"
+                            }}
+                        >
+                            {r}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             <div style={{ overflowX: "auto" }}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { PizzaOrder } from "@/lib/mockData";
 import { isRecent } from "@/lib/mockData";
 import { Clock } from "lucide-react";
@@ -63,19 +63,27 @@ function getStreetCoords(dbStreetName: string) {
 
 const RANGES = ["Dnes", "7 dní", "30 dní"];
 
-export default function OrdersMap({ ordersToday, ordersWeek, dbStreets = [] }: OrdersMapProps) {
-    const [rangeIdx, setRangeIdx] = useState(1);
+export default function OrdersMap({ ordersToday, ordersWeek, dbStreets = [], period = 7 }: OrdersMapProps & { period?: number }) {
+    const [localRangeIdx, setLocalRangeIdx] = useState<number | null>(null);
 
-    const filtered = useMemo(() => {
-        if (rangeIdx === 0) {
-            return ordersToday.filter(o => (o.status === "NEW" || o.status === "CONFIRMED") && isRecent(o));
-        } else if (rangeIdx === 1) {
+        // Effect to update localRangeIdx when global period changes
+    useEffect(() => {
+        setLocalRangeIdx(null); // Reset local override when global changes
+    }, [period]);
+
+    // Map global period to rangeIdx (0: Dnes, 1: 7 dní, 2: 30 dní)
+    const effectiveRangeIdx = localRangeIdx !== null ? localRangeIdx : (period === 1 ? 0 : (period === 7 ? 1 : 2));
+
+        const filtered = useMemo(() => {
+        if (effectiveRangeIdx === 0) {
+            return ordersToday;
+        } else if (effectiveRangeIdx === 1) {
             return ordersWeek;
         } else {
             // Mock 30d by repeating 7d for heatmap visualization
             return [...ordersWeek, ...ordersWeek, ...ordersWeek];
         }
-    }, [rangeIdx, ordersToday, ordersWeek]);
+    }, [effectiveRangeIdx, ordersToday, ordersWeek]);
 
     const groupedStreets = useMemo(() => {
         if (dbStreets.length === 0) return [];
@@ -122,19 +130,19 @@ export default function OrdersMap({ ordersToday, ordersWeek, dbStreets = [] }: O
                     <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: 2 }}>Zoskupené podľa ulíc v Levoči</p>
                 </div>
 
-                <div style={{ display: "flex", background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: 3 }}>
+                                <div style={{ display: "flex", background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: 3 }}>
                     {RANGES.map((r, i) => (
                         <button
                             key={r}
-                            onClick={() => setRangeIdx(i)}
+                            onClick={() => setLocalRangeIdx(i)}
                             style={{
                                 padding: "4px 12px",
                                 fontSize: "0.7rem",
                                 fontWeight: 600,
                                 borderRadius: 8,
                                 border: "none",
-                                background: rangeIdx === i ? "var(--cyan)" : "transparent",
-                                color: rangeIdx === i ? "#000" : "var(--text-muted)",
+                                background: effectiveRangeIdx === i ? "var(--cyan)" : "transparent",
+                                color: effectiveRangeIdx === i ? "#000" : "var(--text-muted)",
                                 cursor: "pointer",
                                 transition: "all 0.2s"
                             }}

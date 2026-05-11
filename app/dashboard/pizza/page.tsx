@@ -64,24 +64,41 @@ import {
 
 const SK_DAY_NAMES = ["Ne", "Po", "Ut", "St", "Št", "Pi", "So"];
 
-function getLast7DayLabels(): string[] {
+function getDayLabels(daysCount: number): string[] {
     const result: string[] = [];
-    for (let i = 6; i >= 0; i--) {
+    for (let i = daysCount - 1; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        result.push(SK_DAY_NAMES[d.getDay()]);
+        if (daysCount > 7) {
+            // Pre viac ako 7 dní používame formát D.M.
+            result.push(`${d.getDate()}.${d.getMonth() + 1}.`);
+        } else {
+            result.push(SK_DAY_NAMES[d.getDay()]);
+        }
     }
     return result;
 }
 
-function buildSalesData(orders: PizzaOrder[]): DaySalesData[] {
-    const days = getLast7DayLabels();
+function buildSalesData(orders: PizzaOrder[], periodDays: number): DaySalesData[] {
+    const days = getDayLabels(periodDays);
     const buckets: Record<string, { orders: number; revenue: number }> = {};
     days.forEach((d) => (buckets[d] = { orders: 0, revenue: 0 }));
 
+    const now = new Date();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(now.getDate() - periodDays);
+
     orders.forEach((o) => {
         const d = new Date(o.created_at);
-        const label = SK_DAY_NAMES[d.getDay()];
+        if (d < cutoffDate) return;
+
+        let label = "";
+        if (periodDays > 7) {
+            label = `${d.getDate()}.${d.getMonth() + 1}.`;
+        } else {
+            label = SK_DAY_NAMES[d.getDay()];
+        }
+
         if (buckets[label]) {
             buckets[label].orders += 1;
             buckets[label].revenue += parseTotalPrice(o.total_price);
@@ -95,12 +112,19 @@ function buildSalesData(orders: PizzaOrder[]): DaySalesData[] {
     }));
 }
 
-function buildHeatmapData(orders: PizzaOrder[]): { data: HeatmapData[]; days: string[] } {
-    const days = getLast7DayLabels();
+function buildHeatmapData(orders: PizzaOrder[], periodDays: number): { data: HeatmapData[]; days: string[] } {
+    // Heatmapa by mala mať vždy len dni v týždni, bez ohľadu na to či agregujeme za 7 alebo 30 dní
+    const days = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"];
     const map = new Map<string, number>();
+
+    const now = new Date();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(now.getDate() - periodDays);
 
     orders.forEach((o) => {
         const d = new Date(o.created_at);
+        if (d < cutoffDate) return;
+        
         const dayLabel = SK_DAY_NAMES[d.getDay()];
         const hour = d.getHours();
         const key = `${dayLabel}-${hour}`;
@@ -147,10 +171,12 @@ export default function DashboardPage() {
         problems: 0,
     });
 
-    const [loading, setLoading] = useState(true);
+        const [loading, setLoading] = useState(true);
     const [dataSource, setDataSource] = useState<"server" | "mock">("mock");
     const [realtimeOrdersTable, setRealtimeOrdersTable] = useState("pizza_orders");
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+    
+    const [viewPeriod, setViewPeriod] = useState<1 | 7 | 30>(30);
 
     const updateOrdersAndKpis = useCallback((newOrders: PizzaOrder[], weekOrders: PizzaOrder[]) => {
         setOrders(newOrders);
@@ -217,8 +243,12 @@ export default function DashboardPage() {
         };
     }, [fetchData, realtimeOrdersTable]);
 
-    const salesData = buildSalesData(allWeekOrders.length > 0 ? allWeekOrders : orders);
-    const heatmap = buildHeatmapData(allWeekOrders.length > 0 ? allWeekOrders : orders);
+        const ordersForPeriod = viewPeriod === 1 
+        ? orders 
+        : allWeekOrders; // Note: In a real app we'd fetch 30 days of data, here we use allWeekOrders as mock data for 7/30 days
+        
+    const salesData = buildSalesData(ordersForPeriod, viewPeriod === 1 ? 1 : viewPeriod);
+    const heatmap = buildHeatmapData(ordersForPeriod, viewPeriod === 1 ? 1 : viewPeriod);
 
     if (loading && orders.length === 0) {
         return (
@@ -243,35 +273,93 @@ export default function DashboardPage() {
                     padding: "2rem",
                 }}
             >
-                {/* Data source indicator */}
-                <div className="flex items-center gap-2" style={{ marginBottom: "0.5rem" }}>
-                    <span
-                        style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: "50%",
-                            background: dataSource === "server" ? "#4ade80" : "#f59e0b",
-                            display: "inline-block",
-                        }}
-                    />
-                    <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                        {loading
-                            ? "Načítavam dáta..."
-                            : dataSource === "server"
-                                ? `Live dáta zo Servera • Naposledy: ${lastUpdated.toLocaleTimeString("sk-SK")}`
-                                : "Mock dáta (Server fallback)"}
-                    </span>
+                                                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                        <span
+                            style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: "50%",
+                                background: dataSource === "server" ? "#4ade80" : "#f59e0b",
+                                display: "inline-block",
+                            }}
+                        />
+                        <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                            {loading
+                                ? "Načítavam dáta..."
+                                : dataSource === "server"
+                                    ? `Live dáta zo Servera • Naposledy: ${lastUpdated.toLocaleTimeString("sk-SK")}`
+                                    : "Mock dáta (Server fallback)"}
+                        </span>
+                    </div>
                 </div>
 
                 <DashboardHeader onRefresh={fetchData} />
-                <KpiCards dataToday={kpisToday} dataWeek={kpisWeek} />
 
-                {/* Main: Orders Table */}
+                <div style={{ display: "flex", gap: "16px", justifyContent: "flex-end", marginBottom: "1.5rem", marginTop: "-1rem" }}>
+                                            <button 
+                                                onClick={() => setViewPeriod(1)} 
+                                                className="flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200"
+                                                style={{ 
+                                                    padding: "4px 14px", 
+                                                    background: viewPeriod === 1 ? "linear-gradient(135deg, #00FFD1, #00c9a7)" : "rgba(255,255,255,0.03)", 
+                                                    color: viewPeriod === 1 ? "#050508" : "var(--text)", 
+                                                    border: viewPeriod === 1 ? "none" : "1px solid var(--border)", 
+                                                    cursor: "pointer",
+                                                    boxShadow: viewPeriod === 1 ? "0 8px 16px rgba(0, 255, 209, 0.25)" : "none",
+                                                    fontWeight: viewPeriod === 1 ? "bold" : "500"
+                                                }}
+                                                onMouseEnter={e => { if (viewPeriod !== 1) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#fff"; } }}
+                                                onMouseLeave={e => { if (viewPeriod !== 1) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.color = "var(--text)"; } }}
+                                            >
+                                                Dnes
+                                            </button>
+                                            <button 
+                                                onClick={() => setViewPeriod(7)} 
+                                                className="flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200"
+                                                style={{ 
+                                                    padding: "4px 14px", 
+                                                    background: viewPeriod === 7 ? "linear-gradient(135deg, #00FFD1, #00c9a7)" : "rgba(255,255,255,0.03)", 
+                                                    color: viewPeriod === 7 ? "#050508" : "var(--text)", 
+                                                    border: viewPeriod === 7 ? "none" : "1px solid var(--border)", 
+                                                    cursor: "pointer",
+                                                    boxShadow: viewPeriod === 7 ? "0 8px 16px rgba(0, 255, 209, 0.25)" : "none",
+                                                    fontWeight: viewPeriod === 7 ? "bold" : "500"
+                                                }}
+                                                onMouseEnter={e => { if (viewPeriod !== 7) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#fff"; } }}
+                                                onMouseLeave={e => { if (viewPeriod !== 7) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.color = "var(--text)"; } }}
+                                            >
+                                                7 dní
+                                            </button>
+                                            <button 
+                                                onClick={() => setViewPeriod(30)} 
+                                                className="flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200"
+                                                style={{ 
+                                                    padding: "4px 14px", 
+                                                    background: viewPeriod === 30 ? "linear-gradient(135deg, #00FFD1, #00c9a7)" : "rgba(255,255,255,0.03)", 
+                                                    color: viewPeriod === 30 ? "#050508" : "var(--text)", 
+                                                    border: viewPeriod === 30 ? "none" : "1px solid var(--border)", 
+                                                    cursor: "pointer",
+                                                    boxShadow: viewPeriod === 30 ? "0 8px 16px rgba(0, 255, 209, 0.25)" : "none",
+                                                    fontWeight: viewPeriod === 30 ? "bold" : "500"
+                                                }}
+                                                onMouseEnter={e => { if (viewPeriod !== 30) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#fff"; } }}
+                                                onMouseLeave={e => { if (viewPeriod !== 30) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.color = "var(--text)"; } }}
+                                            >
+                                                30 dní
+                                            </button>
+                                        </div>
+
+                <KpiCards dataToday={kpisToday} dataWeek={kpisWeek} overridePeriod={viewPeriod} />
+
+                                {/* Main: Orders Table */}
                 <div style={{ marginBottom: "1.5rem" }}>
                     <OrdersTable orders={allWeekOrders.length > 0 ? allWeekOrders.slice(0, 10) : orders.slice(0, 10)} />
                 </div>
 
-                {/* Upsell + SalesChart + Heatmap row */}
+                <div id="charts-section" />
+
+                                {/* Upsell + SalesChart + Heatmap row */}
                 <div
                     className="charts-row"
                     style={{
@@ -289,17 +377,16 @@ export default function DashboardPage() {
                             minWidth: 0,
                         }}
                     >
-                        <SalesChart data={salesData} />
+                                                <SalesChart ordersToday={orders} ordersWeek={allWeekOrders} period={viewPeriod} />
                     </div>
-                    <OrdersHeatmap data={heatmap.data} days={heatmap.days} />
+                    <OrdersHeatmap ordersToday={orders} ordersWeek={allWeekOrders} period={viewPeriod} />
                 </div>
 
-                {/* Full-width Orders Map */}
-                <div style={{ marginTop: "1.5rem" }}>
-                    <OrdersMap ordersToday={orders} ordersWeek={allWeekOrders} dbStreets={dbStreets} />
-                </div>
-
-                {/* Menu Table below the map */}
+                                {/* Full-width Orders Map */}
+                                <div style={{ marginTop: "1.5rem" }}>
+                                    <OrdersMap ordersToday={orders} ordersWeek={allWeekOrders} dbStreets={dbStreets} period={viewPeriod} />
+                                </div>
+                                    {/* Menu Table below the map */}
                 <div id="menu-section" style={{ marginTop: "1.5rem" }}>
                     <MenuTable items={menuItems} onRefresh={fetchData} />
                 </div>

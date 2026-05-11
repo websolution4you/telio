@@ -4,16 +4,19 @@ import { RefreshCw, Download, LayoutGrid } from "lucide-react";
 
 interface DashboardHeaderProps {
     onRefresh?: () => void;
+    title?: string;
+    extraAction?: React.ReactNode;
 }
 
-export default function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
+export default function DashboardHeader({ onRefresh, title = "Rýchly prehľad", extraAction }: DashboardHeaderProps) {
     return (
         <div className="flex items-center justify-between mb-8">
             <div>
                 <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: 4 }}>Dnes</p>
-                <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff" }}>Rýchly prehľad</h1>
+                <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#fff" }}>{title}</h1>
             </div>
             <div className="flex items-center gap-4">
+                {extraAction}
                 <button
                     onClick={() => {
                         const el = document.getElementById('menu-section');
@@ -39,8 +42,11 @@ export default function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
                 >
                     Menu
                 </button>
-                <button
-                    onClick={onRefresh}
+                                <button
+                    onClick={() => {
+                        const el = document.getElementById('charts-section');
+                        if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
                     className="flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200"
                     style={{
                         padding: "2px 7px",
@@ -59,20 +65,7 @@ export default function DashboardHeader({ onRefresh }: DashboardHeaderProps) {
                         e.currentTarget.style.color = "var(--text)";
                     }}
                 >
-                    Refresh
-                </button>
-                <button
-                    className="flex items-center justify-center rounded-lg text-sm font-bold transition-all duration-200 hover:scale-105 active:scale-95"
-                    style={{
-                        padding: "2px 7px",
-                        background: "linear-gradient(135deg, #00FFD1, #00c9a7)",
-                        color: "#050508",
-                        boxShadow: "0 8px 16px rgba(0, 255, 209, 0.25)",
-                        border: "none",
-                        cursor: "pointer"
-                    }}
-                >
-                    Export
+                    Analýzy
                 </button>
             </div>
         </div>

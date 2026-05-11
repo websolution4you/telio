@@ -106,20 +106,14 @@ function buildTaxiHeatmapData(rides: TaxiRide[]) {
 
 // --- Komponenty UI ---
 
-function TaxiKpiCards({ rides }: { rides: TaxiRide[] }) {
-    const [period, setPeriod] = useState<1 | 7 | 30>(1);
-    const data = useMemo(() => computeTaxiKpis(rides, period), [rides, period]);
+function TaxiKpiCards({ rides, overridePeriod }: { rides: TaxiRide[], overridePeriod: 1 | 7 | 30 }) {
+        const data = useMemo(() => computeTaxiKpis(rides, overridePeriod), [rides, overridePeriod]);
 
     return (
         <div style={{ marginBottom: "2rem" }}>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginBottom: "1rem" }}>
-                <button onClick={() => setPeriod(1)} style={{ padding: "4px 12px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 600, background: period === 1 ? "var(--cyan)" : "transparent", color: period === 1 ? "#000" : "var(--text-muted)", border: "1px solid", borderColor: period === 1 ? "var(--cyan)" : "var(--border)", cursor: "pointer", transition: "all 0.2s" }}>Dnes</button>
-                <button onClick={() => setPeriod(7)} style={{ padding: "4px 12px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 600, background: period === 7 ? "var(--cyan)" : "transparent", color: period === 7 ? "#000" : "var(--text-muted)", border: "1px solid", borderColor: period === 7 ? "var(--cyan)" : "var(--border)", cursor: "pointer", transition: "all 0.2s" }}>7 dní</button>
-                <button onClick={() => setPeriod(30)} style={{ padding: "4px 12px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 600, background: period === 30 ? "var(--cyan)" : "transparent", color: period === 30 ? "#000" : "var(--text-muted)", border: "1px solid", borderColor: period === 30 ? "var(--cyan)" : "var(--border)", cursor: "pointer", transition: "all 0.2s" }}>30 dní</button>
-            </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
                 <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "1.25rem" }}>
-                    <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginBottom: "0.5rem" }}>{period === 1 ? "Dnešné jazdy" : "Jazdy celkom"}</div>
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginBottom: "0.5rem" }}>{overridePeriod === 1 ? "Dnešné jazdy" : "Jazdy celkom"}</div>
                     <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#fff" }}>{data.ridesCount}</div>
                 </div>
                 <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "1.25rem" }}>
@@ -442,6 +436,9 @@ export default function TaxiDashboardPage() {
     const [dataSource, setDataSource] = useState<"server" | "mock">("mock");
     const [realtimeTables, setRealtimeTables] = useState({ rides: "taxi_rides", calls: "calls" });
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+    
+    // Default period for overview
+    const [period, setPeriod] = useState<1 | 7 | 30>(30);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -573,7 +570,7 @@ export default function TaxiDashboardPage() {
             <Navbar />
 
             <main style={{ maxWidth: "90rem", margin: "0 auto", padding: "2rem" }}>
-                <div style={{ marginBottom: "1.5rem" }}>
+                                <div style={{ marginBottom: "1.5rem" }}>
                     <div className="flex items-center gap-2" style={{ marginBottom: "0.5rem" }}>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: dataSource === "server" ? "#4ade80" : "#f59e0b", display: "inline-block" }} />
                         <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
@@ -582,9 +579,12 @@ export default function TaxiDashboardPage() {
                                 : "Mock dáta (Server fallback)"}
                         </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                        <h1 style={{ fontSize: "1.8rem", fontWeight: 800, color: "#fff" }}>Taxi Dispečing</h1>
-                        
+                </div>
+
+                <DashboardHeader 
+                    onRefresh={fetchData} 
+                    title="Taxi Dispečing"
+                    extraAction={
                         <Link 
                             href="/dashboard/taxi/map"
                             className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 border border-cyan-500/50 hover:bg-cyan-500/20 text-cyan-400 rounded-xl transition-all duration-300 font-bold text-sm shadow-lg shadow-cyan-900/10"
@@ -592,17 +592,72 @@ export default function TaxiDashboardPage() {
                             <MapIcon size={18} />
                             Sledovať Flotu (Live)
                         </Link>
-                    </div>
+                    }
+                />
+
+                {/* Period Selector (Dnes, 7 dní, 30 dní) moved below header */}
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "16px", marginBottom: "1.5rem", marginTop: "-1rem" }}>
+                    <button 
+                        onClick={() => setPeriod(1)} 
+                        className="flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200"
+                        style={{ 
+                            padding: "4px 14px", 
+                            background: period === 1 ? "linear-gradient(135deg, #00FFD1, #00c9a7)" : "rgba(255,255,255,0.03)", 
+                            color: period === 1 ? "#050508" : "var(--text)", 
+                            border: period === 1 ? "none" : "1px solid var(--border)", 
+                            cursor: "pointer",
+                            boxShadow: period === 1 ? "0 8px 16px rgba(0, 255, 209, 0.25)" : "none",
+                            fontWeight: period === 1 ? "bold" : "500"
+                        }}
+                        onMouseEnter={e => { if (period !== 1) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#fff"; } }}
+                        onMouseLeave={e => { if (period !== 1) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.color = "var(--text)"; } }}
+                    >
+                        Dnes
+                    </button>
+                    <button 
+                        onClick={() => setPeriod(7)} 
+                        className="flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200"
+                        style={{ 
+                            padding: "4px 14px", 
+                            background: period === 7 ? "linear-gradient(135deg, #00FFD1, #00c9a7)" : "rgba(255,255,255,0.03)", 
+                            color: period === 7 ? "#050508" : "var(--text)", 
+                            border: period === 7 ? "none" : "1px solid var(--border)", 
+                            cursor: "pointer",
+                            boxShadow: period === 7 ? "0 8px 16px rgba(0, 255, 209, 0.25)" : "none",
+                            fontWeight: period === 7 ? "bold" : "500"
+                        }}
+                        onMouseEnter={e => { if (period !== 7) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#fff"; } }}
+                        onMouseLeave={e => { if (period !== 7) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.color = "var(--text)"; } }}
+                    >
+                        7 dní
+                    </button>
+                    <button 
+                        onClick={() => setPeriod(30)} 
+                        className="flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200"
+                        style={{ 
+                            padding: "4px 14px", 
+                            background: period === 30 ? "linear-gradient(135deg, #00FFD1, #00c9a7)" : "rgba(255,255,255,0.03)", 
+                            color: period === 30 ? "#050508" : "var(--text)", 
+                            border: period === 30 ? "none" : "1px solid var(--border)", 
+                            cursor: "pointer",
+                            boxShadow: period === 30 ? "0 8px 16px rgba(0, 255, 209, 0.25)" : "none",
+                            fontWeight: period === 30 ? "bold" : "500"
+                        }}
+                        onMouseEnter={e => { if (period !== 30) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#fff"; } }}
+                        onMouseLeave={e => { if (period !== 30) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.color = "var(--text)"; } }}
+                    >
+                        30 dní
+                    </button>
                 </div>
 
-                <DashboardHeader onRefresh={fetchData} />
+                <TaxiKpiCards rides={allWeekRides} overridePeriod={period} />
 
-                <TaxiKpiCards rides={allWeekRides} />
-
-                {/* Tabuľka jázd */}
+                                                {/* Tabuľka jázd */}
                 <div style={{ marginBottom: "1.5rem" }}>
                     <TaxiRidesTable rides={allWeekRides} calls={calls} />
                 </div>
+
+                <div id="charts-section" />
 
                 {/* Predaj (7 dní) + Heatmapa objednávok */}
                 <div

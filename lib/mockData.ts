@@ -63,6 +63,7 @@ export interface KpiData {
     upsellOffered: number;
     upsellAccepted: number;
     upsellRevenue: number;
+    topCaller?: { phone: string; count: number };
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -270,6 +271,23 @@ export function computeKpis(orders: PizzaOrder[]): KpiData {
     const upsellAccepted = orders.filter((o) => o.upsell_accepted).length;
     const upsellRevenue = upsellAccepted * 1.50; // Simple estimate: 1.50€ per upsell
 
+    // Calculate Top Caller
+    const callerMap: Record<string, number> = {};
+    orders.forEach(o => {
+        if (o.customer_phone) {
+            callerMap[o.customer_phone] = (callerMap[o.customer_phone] || 0) + 1;
+        }
+    });
+    
+    let topPhone = "-";
+    let topCount = 0;
+    Object.entries(callerMap).forEach(([phone, count]) => {
+        if (count > topCount) {
+            topCount = count;
+            topPhone = phone;
+        }
+    });
+
     return {
         ordersToday: orders.length,
         revenueToday: revenue,
@@ -279,6 +297,7 @@ export function computeKpis(orders: PizzaOrder[]): KpiData {
         upsellOffered,
         upsellAccepted,
         upsellRevenue,
+        topCaller: { phone: topPhone, count: topCount }
     };
 }
 
