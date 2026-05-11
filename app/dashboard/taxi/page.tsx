@@ -538,17 +538,13 @@ export default function TaxiDashboardPage() {
         };
     }, [fetchData, realtimeTables]);
 
-    const salesData = useMemo(() => buildTaxiSalesData(allWeekRides.length > 0 ? allWeekRides : ridesToday), [allWeekRides, ridesToday]);
-    const heatmap = useMemo(() => buildTaxiHeatmapData(allWeekRides.length > 0 ? allWeekRides : ridesToday), [allWeekRides, ridesToday]);
+        // Prispôsobenie mapových pípov pre OrdersMap (Očakáva pole s `delivery_address` a `created_at`)
+    const ridesTodayMapped = useMemo(() => ridesToday.map(r => ({ ...r, delivery_address: r.dropoff_address, total_price: String(r.fare_amount || r.price_estimate || 0), status: (r.status === "DONE" || r.status === "COMPLETED") ? "DONE" : "NEW" } as any)), [ridesToday]);
+    const ridesWeekMapped = useMemo(() => allWeekRides.map(r => ({ ...r, delivery_address: r.dropoff_address, total_price: String(r.fare_amount || r.price_estimate || 0), status: (r.status === "DONE" || r.status === "COMPLETED") ? "DONE" : "NEW" } as any)), [allWeekRides]);
+    const allWeekRidesMapped = ridesWeekMapped;
 
-    // Prispôsobenie mapových pípov pre OrdersMap (Očakáva pole s `delivery_address` a `created_at`)
-    const todayStr = new Date().toDateString();
-
-    const mappedOrdersToday = ridesToday
-        .map(r => ({ ...r, delivery_address: r.dropoff_address, total_price: String(r.fare_amount || r.price_estimate || 0), status: (r.status === "DONE" || r.status === "COMPLETED") ? "DONE" : "NEW" } as any));
-
-    const mappedOrdersWeek = allWeekRides
-        .map(r => ({ ...r, delivery_address: r.dropoff_address, total_price: String(r.fare_amount || r.price_estimate || 0), status: (r.status === "DONE" || r.status === "COMPLETED") ? "DONE" : "NEW" } as any));
+    const mappedOrdersToday = ridesTodayMapped;
+    const mappedOrdersWeek = ridesWeekMapped;
 
     // Nastavenie pevných známych ulíc/zón (z Pizza modulu sú to Streets)
     const defaultStreets = ["Námestie majstra pavla", "Sídlisko Západ", "Košická", "Ždiarska", "Czausika", "Nemocnica", "Autobusová stanica"];
@@ -659,15 +655,15 @@ export default function TaxiDashboardPage() {
 
                 <div id="charts-section" />
 
-                {/* Predaj (7 dní) + Heatmapa objednávok */}
+                                {/* Predaj (7 dní) + Heatmapa objednávok */}
                 <div
                     className="charts-row"
                     style={{ display: "flex", gap: "1.5rem", alignItems: "stretch", marginBottom: "1.5rem" }}
                 >
                     <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-                        <SalesChart data={salesData} />
+                        <SalesChart ordersToday={ridesTodayMapped} ordersWeek={ridesWeekMapped} period={period} />
                     </div>
-                    <OrdersHeatmap data={heatmap.data} days={heatmap.days} />
+                    <OrdersHeatmap ordersToday={ridesTodayMapped} ordersWeek={allWeekRidesMapped} period={period} />
                 </div>
 
                 {/* Heatmapa miest/ulíc (OrdersMap) + Cenník zón */}
