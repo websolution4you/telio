@@ -52,6 +52,27 @@ export async function updateMenuItemAction(itemId: number, updates: UpdatePayloa
     }
 }
 
+export async function createMenuItemAction(item: UpdatePayload) {
+    try {
+        const tenantId = await getCurrentTenantId("pizza");
+        const { db, tables } = await getProjectContext(tenantId, "pizza");
+        
+        // Ensure tenant_id is set if column exists or required by RLS
+        const newItem = { ...item };
+        
+        const { error } = await db.from(tables.menuItems).insert([newItem]);
+
+        if (error) {
+            return { success: false, error: error.message };
+        }
+
+        return { success: true };
+    } catch (error: unknown) {
+        console.error("createMenuItemAction failed:", error);
+        return { success: false, error: getErrorMessage(error) };
+    }
+}
+
 export async function updateTaxiPriceAction(priceId: string, updates: UpdatePayload) {
     try {
         const tenantId = await getCurrentTenantId("taxi");

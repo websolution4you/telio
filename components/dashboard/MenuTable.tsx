@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { updateMenuItemAction } from "@/app/actions/dashboard";
+import { updateMenuItemAction, createMenuItemAction } from "@/app/actions/dashboard";
+import { Plus } from "lucide-react";
 
 export interface MenuItem {
     id: number;
@@ -19,14 +20,24 @@ interface MenuTableProps {
 
 export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+    const [isCreating, setIsCreating] = useState(false);
     const [editForm, setEditForm] = useState<Partial<MenuItem>>({});
 
     const handleSave = async () => {
-        if (!editingItem) return;
         try {
-            const res = await updateMenuItemAction(editingItem.id, editForm);
+            let res;
+            if (isCreating) {
+                res = await createMenuItemAction(editForm);
+            } else if (editingItem) {
+                res = await updateMenuItemAction(editingItem.id, editForm);
+            } else {
+                return;
+            }
+
             if (res.success) {
                 setEditingItem(null);
+                setIsCreating(false);
+                setEditForm({});
                 onRefresh();
             } else {
                 alert("Chyba pri ukladaní menu položky: " + res.error);
@@ -37,6 +48,17 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
         }
     };
 
+    const openCreateModal = () => {
+        setIsCreating(true);
+        setEditForm({
+            name: "",
+            price: 0,
+            weight_grams: 0,
+            ingredients: "",
+            display_order: (items.length > 0 ? Math.max(...items.map(i => i.display_order || 0)) + 1 : 1)
+        });
+    };
+
     return (
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "1.5rem", flex: 1, position: "relative" }}>
             <div className="flex items-center justify-between" style={{ marginBottom: "1.25rem" }}>
@@ -44,6 +66,28 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
                     <h2 style={{ fontSize: "1.05rem", fontWeight: 600, color: "#fff" }}>Menu položky</h2>
                     <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2 }}>Editácia dostupných jedál a nápojov</p>
                 </div>
+                <button
+                    onClick={openCreateModal}
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "8px 16px",
+                        background: "rgba(0, 255, 209, 0.1)",
+                        border: "1px solid var(--cyan)",
+                        color: "var(--cyan)",
+                        borderRadius: 8,
+                        cursor: "pointer",
+                        fontSize: "0.85rem",
+                        fontWeight: 600,
+                        transition: "all 0.2s"
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(0, 255, 209, 0.2)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "rgba(0, 255, 209, 0.1)"}
+                >
+                    <Plus size={16} />
+                    Pridať položku
+                </button>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))", gap: "1rem" }}>
@@ -99,11 +143,13 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
                 ))}
             </div>
 
-            {/* Simple Edit Modal Overlay */}
-            {editingItem && (
+            {/* Simple Edit/Create Modal Overlay */}
+            {(editingItem || isCreating) && (
                 <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
                     <div style={{ background: "var(--bg-card)", border: "1px solid var(--cyan)", borderRadius: 12, padding: "2rem", width: "100%", maxWidth: 450, boxShadow: "0 20px 40px rgba(0,0,0,0.6)" }}>
-                        <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#fff", marginBottom: "1.5rem" }}>Upraviť položku</h3>
+                        <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#fff", marginBottom: "1.5rem" }}>
+                            {isCreating ? "Pridať novú položku" : "Upraviť položku"}
+                        </h3>
 
                         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                             <div>
@@ -129,8 +175,10 @@ export default function MenuItemsConfig({ items, onRefresh }: MenuTableProps) {
                         </div>
 
                         <div className="flex gap-3 justify-end" style={{ marginTop: "2rem" }}>
-                            <button onClick={() => setEditingItem(null)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 8, cursor: "pointer", fontSize: "0.85rem" }}>Zrušiť</button>
-                            <button onClick={handleSave} style={{ padding: "8px 20px", background: "rgba(0, 255, 209, 0.15)", border: "1px solid var(--cyan)", color: "var(--cyan)", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: "0.85rem" }}>Uložiť zmeny</button>
+                            <button onClick={() => { setEditingItem(null); setIsCreating(false); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 8, cursor: "pointer", fontSize: "0.85rem" }}>Zrušiť</button>
+                            <button onClick={handleSave} style={{ padding: "8px 20px", background: "rgba(0, 255, 209, 0.15)", border: "1px solid var(--cyan)", color: "var(--cyan)", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: "0.85rem" }}>
+                                {isCreating ? "Vytvoriť" : "Uložiť zmeny"}
+                            </button>
                         </div>
                     </div>
                 </div>
