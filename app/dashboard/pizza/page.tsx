@@ -380,11 +380,11 @@ export default function DashboardPage() {
                                             </button>
                                         </div>
 
-                <KpiCards dataToday={kpisToday} dataWeek={kpisWeek} dataMonth={kpisMonth} overridePeriod={viewPeriod} />
+                                <KpiCards dataToday={kpisToday} dataWeek={kpisWeek} dataMonth={kpisMonth} overridePeriod={viewPeriod} />
 
-                                {/* Main: Orders Table */}
+                {/* Main: Orders Table */}
                 <div style={{ marginBottom: "1.5rem" }}>
-                    <OrdersTable orders={allWeekOrders.length > 0 ? allWeekOrders.slice(0, 10) : orders.slice(0, 10)} />
+                    <OrdersTable orders={ordersForPeriod} />
                 </div>
 
                 <div id="charts-section" />

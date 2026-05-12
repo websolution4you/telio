@@ -78,6 +78,10 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
     const [filter, setFilter] = useState<"All" | string>("All");
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
     const [highlightNew, setHighlightNew] = useState(false);
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const rowsPerPage = 8;
 
     const firstRowRef = React.useRef<HTMLTableRowElement>(null);
 
@@ -96,8 +100,19 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
         }
     }, []);
 
-    const filteredOrders =
+        const filteredOrders =
         filter === "All" ? orders : orders.filter((o) => getStatusDisplay(o).label === filter);
+        
+    const totalPages = Math.ceil(filteredOrders.length / rowsPerPage);
+    const paginatedOrders = filteredOrders.slice(
+        (currentPage - 1) * rowsPerPage,
+        currentPage * rowsPerPage
+    );
+
+    // Reset pagination when filter changes
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [filter]);
 
     return (
         <div
@@ -112,13 +127,13 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
             }}
         >
             {/* Header */}
-            <div className="flex items-start justify-between" style={{ marginBottom: "1.25rem" }}>
+                        <div className="flex items-start justify-between" style={{ marginBottom: "1.25rem" }}>
                 <div>
                     <h2 style={{ fontSize: "1.05rem", fontWeight: 600, color: "#fff" }}>
                         Najnovšie objednávky
                     </h2>
                     <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2 }}>
-                        Posledných 20
+                        Zobrazujem {Math.min(filteredOrders.length, rowsPerPage * currentPage)} z {filteredOrders.length}
                     </p>
                 </div>
                 <div style={{ position: "relative" }}>
@@ -187,8 +202,8 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
                         <th style={{ padding: "0 12px 12px", width: "40px" }}></th>
                     </tr>
                 </thead>
-                <tbody>
-                    {filteredOrders.map((order, index) => {
+                                <tbody>
+                    {paginatedOrders.map((order, index) => {
                         const sc = getStatusDisplay(order);
                         const price = parseTotalPrice(order.total_price);
                         const isExpanded = expandedRowId === order.id;
@@ -346,9 +361,9 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
                                     </tr>
                                 )}
                             </React.Fragment>
-                        );
+    );
                     })}
-                    {filteredOrders.length === 0 && (
+                    {paginatedOrders.length === 0 && (
                         <tr>
                             <td
                                 colSpan={6}
@@ -365,6 +380,47 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
                     )}
                 </tbody>
             </table>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--border)" }}>
+                    <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        style={{
+                            padding: "6px 12px",
+                            background: currentPage === 1 ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.05)",
+                            color: currentPage === 1 ? "var(--text-muted)" : "var(--text)",
+                            border: "1px solid var(--border)",
+                            borderRadius: 6,
+                            fontSize: "0.75rem",
+                            cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                            transition: "all 0.2s"
+                        }}
+                    >
+                        Predošlé
+                    </button>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                        Strana <span style={{ color: "#fff", fontWeight: 600 }}>{currentPage}</span> z {totalPages}
+                    </div>
+                    <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        style={{
+                            padding: "6px 12px",
+                            background: currentPage === totalPages ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.05)",
+                            color: currentPage === totalPages ? "var(--text-muted)" : "var(--text)",
+                            border: "1px solid var(--border)",
+                            borderRadius: 6,
+                            fontSize: "0.75rem",
+                            cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                            transition: "all 0.2s"
+                        }}
+                    >
+                        Ďalšie
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
