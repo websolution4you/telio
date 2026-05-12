@@ -12,6 +12,7 @@ interface HeatmapData {
 interface OrdersHeatmapProps {
     ordersToday: PizzaOrder[];
     ordersWeek: PizzaOrder[];
+    ordersMonth?: PizzaOrder[];
     period?: number;
 }
 
@@ -53,7 +54,7 @@ function buildHeatmapData(orders: PizzaOrder[], periodDays: number): { data: Hea
     return { data, days: displayOrder };
 }
 
-export default function OrdersHeatmap({ ordersToday, ordersWeek, period = 7 }: OrdersHeatmapProps) {
+export default function OrdersHeatmap({ ordersToday, ordersWeek, ordersMonth, period = 7 }: OrdersHeatmapProps) {
     const [localRangeIdx, setLocalRangeIdx] = useState<number | null>(null);
 
     // Map global period to rangeIdx (0: Dnes, 1: 7 dní, 2: 30 dní)
@@ -68,10 +69,13 @@ export default function OrdersHeatmap({ ordersToday, ordersWeek, period = 7 }: O
         // Derived period for labels based on selection
     const displayPeriod = effectiveRangeIdx === 0 ? 1 : (effectiveRangeIdx === 1 ? 7 : 30);
 
-    const { data: heatmapData, days } = useMemo(() => {
-        const rawData = displayPeriod === 1 ? ordersToday : ordersWeek;
+        const { data: heatmapData, days } = useMemo(() => {
+        const rawData = displayPeriod === 1 
+            ? ordersToday 
+            : (displayPeriod === 7 ? ordersWeek : (ordersMonth || ordersWeek));
+            
         return buildHeatmapData(rawData, displayPeriod);
-    }, [displayPeriod, ordersToday, ordersWeek]);
+    }, [displayPeriod, ordersToday, ordersWeek, ordersMonth]);
 
     // Business hours only (10-22)
     const hours = Array.from({ length: 13 }, (_, i) => i + 10);

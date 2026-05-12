@@ -323,12 +323,13 @@ export default function DashboardPage() {
 
                 <DashboardHeader onRefresh={fetchData} />
 
-                <div style={{ display: "flex", gap: "16px", justifyContent: "flex-end", marginBottom: "1.5rem", marginTop: "-1rem" }}>
+                                <div style={{ display: "flex", gap: "16px", justifyContent: "flex-end", marginBottom: "2rem", marginTop: "0px" }}>
                                             <button 
                                                 onClick={() => setViewPeriod(1)} 
                                                 className="flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200"
                                                 style={{ 
-                                                    padding: "4px 14px", 
+                                                    width: "90px",
+                                                    padding: "6px 0", 
                                                     background: viewPeriod === 1 ? "linear-gradient(135deg, #00FFD1, #00c9a7)" : "rgba(255,255,255,0.03)", 
                                                     color: viewPeriod === 1 ? "#050508" : "var(--text)", 
                                                     border: viewPeriod === 1 ? "none" : "1px solid var(--border)", 
@@ -345,7 +346,8 @@ export default function DashboardPage() {
                                                 onClick={() => setViewPeriod(7)} 
                                                 className="flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200"
                                                 style={{ 
-                                                    padding: "4px 14px", 
+                                                    width: "90px",
+                                                    padding: "6px 0", 
                                                     background: viewPeriod === 7 ? "linear-gradient(135deg, #00FFD1, #00c9a7)" : "rgba(255,255,255,0.03)", 
                                                     color: viewPeriod === 7 ? "#050508" : "var(--text)", 
                                                     border: viewPeriod === 7 ? "none" : "1px solid var(--border)", 
@@ -362,7 +364,8 @@ export default function DashboardPage() {
                                                 onClick={() => setViewPeriod(30)} 
                                                 className="flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200"
                                                 style={{ 
-                                                    padding: "4px 14px", 
+                                                    width: "90px",
+                                                    padding: "6px 0", 
                                                     background: viewPeriod === 30 ? "linear-gradient(135deg, #00FFD1, #00c9a7)" : "rgba(255,255,255,0.03)", 
                                                     color: viewPeriod === 30 ? "#050508" : "var(--text)", 
                                                     border: viewPeriod === 30 ? "none" : "1px solid var(--border)", 
@@ -387,7 +390,7 @@ export default function DashboardPage() {
                 <div id="charts-section" />
 
                                 {/* Upsell + SalesChart + Heatmap row */}
-                <div
+                                <div
                     className="charts-row"
                     style={{
                         display: "flex",
@@ -404,9 +407,9 @@ export default function DashboardPage() {
                             minWidth: 0,
                         }}
                     >
-                                                <SalesChart ordersToday={orders} ordersWeek={allWeekOrders} period={viewPeriod} />
+                                                <SalesChart ordersToday={orders} ordersWeek={allWeekOrders} ordersMonth={allMonthOrders} period={viewPeriod} />
                     </div>
-                    <OrdersHeatmap ordersToday={orders} ordersWeek={allWeekOrders} period={viewPeriod} />
+                    <OrdersHeatmap ordersToday={orders} ordersWeek={allWeekOrders} ordersMonth={allMonthOrders} period={viewPeriod} />
                 </div>
 
                                 {/* Full-width Orders Map */}
