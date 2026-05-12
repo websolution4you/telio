@@ -11,32 +11,37 @@ export async function getPizzaDashboardData(tenantId: string) {
     const startOfDay = new Date(Date.UTC(slovakiaNow.getUTCFullYear(), slovakiaNow.getUTCMonth(), slovakiaNow.getUTCDate(), 0, 0, 0));
     startOfDay.setTime(startOfDay.getTime() - (1 * 60 * 60 * 1000)); // Shift back to UTC for DB query
     
-    const endOfDay = new Date(startOfDay);
+        const endOfDay = new Date(startOfDay);
     endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
+
+    const sevenDaysAgo = new Date(startOfDay);
+    sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 7);
+
+    const thirtyDaysAgo = new Date(startOfDay);
+    thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30);
 
     console.log(`[DEBUG] Dashboard Range (UTC): ${startOfDay.toISOString()} to ${endOfDay.toISOString()}`);
 
     const [
         { data: ordersToday },
-        { data: ordersWeek },
+        { data: ordersExtended },
         { data: menuItems },
         { data: streets },
     ] = await Promise.all([
         db
             .from(tables.orders)
             .select("*")
-            // Odstránený tenant filter pre zobrazenie všetkých
             .gte("created_at", startOfDay.toISOString())
             .lt("created_at", endOfDay.toISOString())
             .order("created_at", { ascending: false })
-            .limit(100),
+            .limit(200),
         db
             .from(tables.orders)
             .select("*")
-            // Odstránený tenant filter pre zobrazenie všetkých
+            .gte("created_at", thirtyDaysAgo.toISOString())
             .order("created_at", { ascending: false })
-            .limit(500),
-                db
+            .limit(2000),
+        db
             .from(tables.menuItems)
             .select("*")
             .order("display_order", { ascending: true }),
@@ -45,14 +50,9 @@ export async function getPizzaDashboardData(tenantId: string) {
             .select("name"),
     ]);
 
-    const kpisToday = calculateKpis(ordersToday || []);
-    const kpisWeek = calculateKpis(ordersWeek || []);
-
     return {
         ordersToday: ordersToday || [],
-        ordersWeek: ordersWeek || [],
-        kpisToday,
-        kpisWeek,
+        ordersExtended: ordersExtended || [],
         menuItems: menuItems || [],
         streets: (streets || []).map((street: { name: string }) => street.name),
         realtimeTables,

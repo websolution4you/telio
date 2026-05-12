@@ -23,8 +23,8 @@ export default function DashboardHeader({ onRefresh, title = "Rýchly prehľad",
                         if (el) el.scrollIntoView({ behavior: 'smooth' });
                     }}
                     className="flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200"
-                    style={{
-                        padding: "2px 7px",
+                                        style={{
+                        padding: "4px 14px",
                         border: "1px solid var(--border)",
                         color: "var(--text)",
                         background: "rgba(0,255,209,0.05)",
@@ -48,8 +48,8 @@ export default function DashboardHeader({ onRefresh, title = "Rýchly prehľad",
                         if (el) el.scrollIntoView({ behavior: 'smooth' });
                     }}
                     className="flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200"
-                    style={{
-                        padding: "2px 7px",
+                                        style={{
+                        padding: "4px 14px",
                         border: "1px solid var(--border)",
                         color: "var(--text)",
                         background: "rgba(255,255,255,0.03)",

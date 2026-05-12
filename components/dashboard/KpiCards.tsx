@@ -7,6 +7,7 @@ import { formatPrice } from "@/lib/mockData";
 interface KpiCardsProps {
     dataToday: KpiData;
     dataWeek: KpiData;
+    dataMonth?: KpiData;
     onProblemsClick?: () => void;
     overridePeriod?: 1 | 7 | 30;
 }
@@ -24,12 +25,14 @@ interface CardDef {
 const RANGES = ["dnes", "7 dní", "30 dní"];
 
 // Get the corresponding kpi data object based on range index
-const getDataObj = (idx: number, dataToday: KpiData, dataWeek: KpiData) => {
-    if (idx === 1 || idx === 2) return dataWeek; // fallback 30d to week for now if missing
+const getDataObj = (idx: number, dataToday: KpiData, dataWeek: KpiData, dataMonth?: KpiData) => {
+    if (idx === 0) return dataToday;
+    if (idx === 1) return dataWeek;
+    if (idx === 2) return dataMonth || dataWeek;
     return dataToday;
 };
 
-export default function KpiCards({ dataToday, dataWeek, onProblemsClick, overridePeriod }: KpiCardsProps) {
+export default function KpiCards({ dataToday, dataWeek, dataMonth, onProblemsClick, overridePeriod }: KpiCardsProps) {
         const [rangeIdx, setRangeIdx] = useState<Record<string, number>>({
         orders: 0,
         revenue: 0,
@@ -56,8 +59,8 @@ export default function KpiCards({ dataToday, dataWeek, onProblemsClick, overrid
     const cards: CardDef[] = [
         {
             id: "orders",
-            label: `Objednávky ${RANGES[getEffectiveIdx("orders")]}`,
-            value: String(getDataObj(getEffectiveIdx("orders"), dataToday, dataWeek).ordersToday),
+                        label: `Objednávky ${RANGES[getEffectiveIdx("orders")]}`,
+            value: String(getDataObj(getEffectiveIdx("orders"), dataToday, dataWeek, dataMonth).ordersToday),
             sub: "",
             clickable: overridePeriod === undefined,
             onClick: () => cycleRange("orders"),
@@ -65,7 +68,7 @@ export default function KpiCards({ dataToday, dataWeek, onProblemsClick, overrid
         {
             id: "revenue",
             label: `Obrat ${RANGES[getEffectiveIdx("revenue")]}`,
-            value: formatPrice(getDataObj(getEffectiveIdx("revenue"), dataToday, dataWeek).revenueToday),
+            value: formatPrice(getDataObj(getEffectiveIdx("revenue"), dataToday, dataWeek, dataMonth).revenueToday),
             sub: "bez tipov",
             clickable: overridePeriod === undefined,
             onClick: () => cycleRange("revenue"),
@@ -73,7 +76,7 @@ export default function KpiCards({ dataToday, dataWeek, onProblemsClick, overrid
         {
             id: "avg",
             label: "Priemer objednávky",
-            value: formatPrice(getDataObj(getEffectiveIdx("avg"), dataToday, dataWeek).avgOrder),
+            value: formatPrice(getDataObj(getEffectiveIdx("avg"), dataToday, dataWeek, dataMonth).avgOrder),
             sub: RANGES[getEffectiveIdx("avg")],
             clickable: overridePeriod === undefined,
             onClick: () => cycleRange("avg"),
@@ -81,8 +84,8 @@ export default function KpiCards({ dataToday, dataWeek, onProblemsClick, overrid
         {
             id: "top-caller",
             label: `Top zákazník ${RANGES[getEffectiveIdx("caller")]}`,
-            value: getDataObj(getEffectiveIdx("caller"), dataToday, dataWeek).topCaller?.phone || "-",
-            sub: `${getDataObj(getEffectiveIdx("caller"), dataToday, dataWeek).topCaller?.count || 0} objednávok`,
+            value: getDataObj(getEffectiveIdx("caller"), dataToday, dataWeek, dataMonth).topCaller?.phone || "-",
+            sub: `${getDataObj(getEffectiveIdx("caller"), dataToday, dataWeek, dataMonth).topCaller?.count || 0} objednávok`,
             clickable: overridePeriod === undefined,
             onClick: () => cycleRange("caller"),
         },
@@ -92,14 +95,14 @@ export default function KpiCards({ dataToday, dataWeek, onProblemsClick, overrid
             value: (
                 <span className="flex items-baseline gap-1" style={{ whiteSpace: "nowrap" }}>
                     <span style={{ color: "#4ade80" }}>
-                        {formatPrice(getDataObj(getEffectiveIdx("upsell"), dataToday, dataWeek).upsellRevenue)}
+                        {formatPrice(getDataObj(getEffectiveIdx("upsell"), dataToday, dataWeek, dataMonth).upsellRevenue)}
                     </span>
                 </span>
             ),
-            sub: getDataObj(getEffectiveIdx("upsell"), dataToday, dataWeek).upsellOffered > 0
-                ? `${getDataObj(getEffectiveIdx("upsell"), dataToday, dataWeek).upsellAccepted}/${getDataObj(getEffectiveIdx("upsell"), dataToday, dataWeek).upsellOffered} (${Math.round((getDataObj(getEffectiveIdx("upsell"), dataToday, dataWeek).upsellAccepted / getDataObj(getEffectiveIdx("upsell"), dataToday, dataWeek).upsellOffered) * 100)}% úspešnosť)`
+            sub: getDataObj(getEffectiveIdx("upsell"), dataToday, dataWeek, dataMonth).upsellOffered > 0
+                ? `${getDataObj(getEffectiveIdx("upsell"), dataToday, dataWeek, dataMonth).upsellAccepted}/${getDataObj(getEffectiveIdx("upsell"), dataToday, dataWeek, dataMonth).upsellOffered} (${Math.round((getDataObj(getEffectiveIdx("upsell"), dataToday, dataWeek, dataMonth).upsellAccepted / getDataObj(getEffectiveIdx("upsell"), dataToday, dataWeek, dataMonth).upsellOffered) * 100)}% úspešnosť)`
                 : "žiadne",
-            accent: getDataObj(getEffectiveIdx("upsell"), dataToday, dataWeek).upsellAccepted > 0 ? "#4ade80" : undefined,
+            accent: getDataObj(getEffectiveIdx("upsell"), dataToday, dataWeek, dataMonth).upsellAccepted > 0 ? "#4ade80" : undefined,
             clickable: overridePeriod === undefined,
             onClick: () => cycleRange("upsell"),
         },

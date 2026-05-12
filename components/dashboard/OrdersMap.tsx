@@ -8,7 +8,9 @@ import { Clock } from "lucide-react";
 interface OrdersMapProps {
     ordersToday: PizzaOrder[];
     ordersWeek: PizzaOrder[];
+    ordersMonth?: PizzaOrder[];
     dbStreets: string[];
+    period?: number;
 }
 
 function normalizeStr(str: string) {
@@ -63,10 +65,10 @@ function getStreetCoords(dbStreetName: string) {
 
 const RANGES = ["Dnes", "7 dní", "30 dní"];
 
-export default function OrdersMap({ ordersToday, ordersWeek, dbStreets = [], period = 7 }: OrdersMapProps & { period?: number }) {
+export default function OrdersMap({ ordersToday, ordersWeek, ordersMonth, dbStreets = [], period = 7 }: OrdersMapProps & { period?: number }) {
     const [localRangeIdx, setLocalRangeIdx] = useState<number | null>(null);
 
-        // Effect to update localRangeIdx when global period changes
+    // Effect to update localRangeIdx when global period changes
     useEffect(() => {
         setLocalRangeIdx(null); // Reset local override when global changes
     }, [period]);
@@ -74,16 +76,15 @@ export default function OrdersMap({ ordersToday, ordersWeek, dbStreets = [], per
     // Map global period to rangeIdx (0: Dnes, 1: 7 dní, 2: 30 dní)
     const effectiveRangeIdx = localRangeIdx !== null ? localRangeIdx : (period === 1 ? 0 : (period === 7 ? 1 : 2));
 
-        const filtered = useMemo(() => {
+    const filtered = useMemo(() => {
         if (effectiveRangeIdx === 0) {
             return ordersToday;
         } else if (effectiveRangeIdx === 1) {
             return ordersWeek;
         } else {
-            // Mock 30d by repeating 7d for heatmap visualization
-            return [...ordersWeek, ...ordersWeek, ...ordersWeek];
+            return ordersMonth || [...ordersWeek, ...ordersWeek, ...ordersWeek];
         }
-    }, [effectiveRangeIdx, ordersToday, ordersWeek]);
+    }, [effectiveRangeIdx, ordersToday, ordersWeek, ordersMonth]);
 
     const groupedStreets = useMemo(() => {
         if (dbStreets.length === 0) return [];

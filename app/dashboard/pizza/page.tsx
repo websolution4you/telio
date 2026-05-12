@@ -147,6 +147,7 @@ function buildHeatmapData(orders: PizzaOrder[], periodDays: number): { data: Hea
 export default function DashboardPage() {
     const [orders, setOrders] = useState<PizzaOrder[]>([]);
     const [allWeekOrders, setAllWeekOrders] = useState<PizzaOrder[]>([]);
+    const [allMonthOrders, setAllMonthOrders] = useState<PizzaOrder[]>([]);
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     const [dbStreets, setDbStreets] = useState<string[]>([]);
 
@@ -155,20 +156,30 @@ export default function DashboardPage() {
         revenueToday: 0,
         avgOrder: 0,
         openOrders: 0,
+        problems: 0,
         upsellRevenue: 0,
         upsellOffered: 0,
         upsellAccepted: 0,
-        problems: 0,
     });
     const [kpisWeek, setKpisWeek] = useState<KpiData>({
         ordersToday: 0,
         revenueToday: 0,
         avgOrder: 0,
         openOrders: 0,
+        problems: 0,
         upsellRevenue: 0,
         upsellOffered: 0,
         upsellAccepted: 0,
+    });
+    const [kpisMonth, setKpisMonth] = useState<KpiData>({
+        ordersToday: 0,
+        revenueToday: 0,
+        avgOrder: 0,
+        openOrders: 0,
         problems: 0,
+        upsellRevenue: 0,
+        upsellOffered: 0,
+        upsellAccepted: 0,
     });
 
         const [loading, setLoading] = useState(true);
@@ -178,11 +189,27 @@ export default function DashboardPage() {
     
     const [viewPeriod, setViewPeriod] = useState<1 | 7 | 30>(30);
 
-    const updateOrdersAndKpis = useCallback((newOrders: PizzaOrder[], weekOrders: PizzaOrder[]) => {
+        const updateOrdersAndKpis = useCallback((newOrders: PizzaOrder[], extendedOrders: PizzaOrder[]) => {
         setOrders(newOrders);
+        
+        // Filter out week orders from the extended (30 days) batch
+        const now = new Date();
+        const slovakiaNow = new Date(now.getTime() + (1 * 60 * 60 * 1000));
+        const startOfDay = new Date(Date.UTC(slovakiaNow.getUTCFullYear(), slovakiaNow.getUTCMonth(), slovakiaNow.getUTCDate(), 0, 0, 0));
+        startOfDay.setTime(startOfDay.getTime() - (1 * 60 * 60 * 1000));
+        
+        const sevenDaysAgo = new Date(startOfDay);
+        sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 7);
+        const sevenDaysAgoTime = sevenDaysAgo.getTime();
+
+        const weekOrders = extendedOrders.filter(o => new Date(o.created_at).getTime() >= sevenDaysAgoTime);
+
         setAllWeekOrders(weekOrders);
+        setAllMonthOrders(extendedOrders);
+        
         setKpisToday(computeKpis(newOrders));
         setKpisWeek(computeKpis(weekOrders));
+        setKpisMonth(computeKpis(extendedOrders));
     }, []);
 
     // ── Fetch všetky dáta zo servera naraz ──
@@ -191,8 +218,8 @@ export default function DashboardPage() {
         try {
             const res = await fetchPizzaDashboardAction();
             if (res.success && res.data) {
-                console.log(`[DEBUG] Dashboard fetched: Today=${res.data.ordersToday?.length}, Week=${res.data.ordersWeek?.length}, Streets=${res.data.streets?.length}`);
-                updateOrdersAndKpis(res.data.ordersToday as PizzaOrder[], res.data.ordersWeek as PizzaOrder[]);
+                console.log(`[DEBUG] Dashboard fetched: Today=${res.data.ordersToday?.length}, Extended=${res.data.ordersExtended?.length}, Streets=${res.data.streets?.length}`);
+                updateOrdersAndKpis(res.data.ordersToday as PizzaOrder[], res.data.ordersExtended as PizzaOrder[]);
                 setMenuItems(res.data.menuItems);
                 setDbStreets(res.data.streets);
                 if (res.data.tables?.orders) {
@@ -243,9 +270,9 @@ export default function DashboardPage() {
         };
     }, [fetchData, realtimeOrdersTable]);
 
-        const ordersForPeriod = viewPeriod === 1 
+                const ordersForPeriod = viewPeriod === 1 
         ? orders 
-        : allWeekOrders; // Note: In a real app we'd fetch 30 days of data, here we use allWeekOrders as mock data for 7/30 days
+        : (viewPeriod === 7 ? allWeekOrders : allMonthOrders);
         
     const salesData = buildSalesData(ordersForPeriod, viewPeriod === 1 ? 1 : viewPeriod);
     const heatmap = buildHeatmapData(ordersForPeriod, viewPeriod === 1 ? 1 : viewPeriod);
@@ -350,7 +377,7 @@ export default function DashboardPage() {
                                             </button>
                                         </div>
 
-                <KpiCards dataToday={kpisToday} dataWeek={kpisWeek} overridePeriod={viewPeriod} />
+                <KpiCards dataToday={kpisToday} dataWeek={kpisWeek} dataMonth={kpisMonth} overridePeriod={viewPeriod} />
 
                                 {/* Main: Orders Table */}
                 <div style={{ marginBottom: "1.5rem" }}>
@@ -384,7 +411,7 @@ export default function DashboardPage() {
 
                                 {/* Full-width Orders Map */}
                                 <div style={{ marginTop: "1.5rem" }}>
-                                    <OrdersMap ordersToday={orders} ordersWeek={allWeekOrders} dbStreets={dbStreets} period={viewPeriod} />
+                                    <OrdersMap ordersToday={orders} ordersWeek={allWeekOrders} ordersMonth={allMonthOrders} dbStreets={dbStreets} period={viewPeriod} />
                                 </div>
                                     {/* Menu Table below the map */}
                 <div id="menu-section" style={{ marginTop: "1.5rem" }}>
