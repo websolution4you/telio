@@ -140,7 +140,7 @@ export default function Hero() {
             {/* Pizza Demo */}
             <div className="flex flex-col gap-3 w-full md:w-auto items-center md:items-start">
               <ElevenLabsCallButton
-                agentId={process.env.NEXT_PUBLIC_ELEVENLABS_PIZZA_AGENT_ID || "agent_5801kr0myjf5tkdhtbms61nc"}
+                agentId={process.env.NEXT_PUBLIC_ELEVENLABS_PIZZA_AGENT_ID || "agent_5801krr0myvjjf5tkdhtbms61nc"}
                 customLabel="Pizzeria Demo"
                 color="#FF6B35"
                 icon={<Pizza className="w-5 h-5 relative z-10" />}
