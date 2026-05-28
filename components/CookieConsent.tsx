@@ -75,13 +75,13 @@ export default function CookieConsent() {
               <div className="flex gap-3">
                 <button
                   onClick={acceptCookies}
-                  className="btn-primary py-3.5 px-6 text-sm font-bold flex-1 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99]"
+                  className="btn-primary py-4.5 px-6 text-sm font-bold flex-1 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99]"
                 >
                   {t.cookies.accept}
                 </button>
                 <button
                   onClick={declineCookies}
-                  className="btn-ghost py-3.5 px-6 text-sm font-semibold flex-1 cursor-pointer transition-all hover:bg-white/5 hover:scale-[1.01] active:scale-[0.99]"
+                  className="btn-ghost py-4.5 px-6 text-sm font-semibold flex-1 cursor-pointer transition-all hover:bg-white/5 hover:scale-[1.01] active:scale-[0.99]"
                 >
                   {t.cookies.decline}
                 </button>
