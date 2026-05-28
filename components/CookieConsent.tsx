@@ -39,60 +39,63 @@ export default function CookieConsent() {
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: 50, opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-          className="fixed bottom-6 left-6 z-[100] max-w-sm w-[calc(100vw-3rem)] sm:w-full"
+          className="fixed bottom-6 left-6 z-[100] max-w-md w-[calc(100vw-3rem)]"
         >
-          <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]/90 backdrop-blur-xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]/95 backdrop-blur-xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
             {/* Glow effect */}
-            <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[var(--cyan)]/10 blur-3xl pointer-events-none" />
-            <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-[var(--purple)]/5 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[var(--cyan)]/15 blur-3xl pointer-events-none" />
+            <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-[var(--purple)]/10 blur-3xl pointer-events-none" />
             
-            <div className="relative flex items-start gap-4">
-              <div className="flex-shrink-0 mt-1 p-2.5 rounded-xl bg-gradient-to-br from-[var(--cyan)]/20 to-[var(--purple)]/20 border border-[var(--cyan)]/20">
-                <Cookie className="w-5 h-5 text-[var(--cyan)]" />
-              </div>
-              
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-bold text-[var(--text)]">
+            <div className="relative">
+              {/* Header: Icon, Title & Close Button */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-gradient-to-br from-[var(--cyan)]/20 to-[var(--purple)]/20 border border-[var(--cyan)]/25">
+                    <Cookie className="w-5 h-5 text-[var(--cyan)]" />
+                  </div>
+                  <h3 className="text-lg font-bold text-[var(--text)] tracking-tight">
                     {t.cookies.title}
                   </h3>
-                  <button 
-                    onClick={() => setIsVisible(false)}
-                    className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors p-1 -mr-2"
-                    aria-label="Close"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
                 </div>
-                
-                <p className="text-sm text-[var(--text-muted)] leading-relaxed mb-6">
-                  {t.cookies.text}
-                </p>
-                
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button
-                    onClick={acceptCookies}
-                    className="btn-primary px-8 py-4 text-sm font-bold w-full sm:w-auto cursor-pointer"
-                  >
-                    {t.cookies.accept}
-                  </button>
-                  <button
-                    onClick={declineCookies}
-                    className="btn-ghost px-8 py-4 text-sm font-medium w-full sm:w-auto cursor-pointer"
-                  >
-                    {t.cookies.decline}
-                  </button>
-                </div>
-                
-                <div className="mt-5 flex items-center justify-center sm:justify-start">
-                  <Link 
-                    href="/privacy" 
-                    className="text-xs text-[var(--text-muted)] hover:text-[var(--cyan)] transition-colors flex items-center gap-1 group"
-                  >
-                    <span className="underline underline-offset-4">{t.cookies.more}</span>
-                    <span className="group-hover:translate-x-0.5 transition-transform">→</span>
-                  </Link>
-                </div>
+                <button 
+                  onClick={() => setIsVisible(false)}
+                  className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors p-1.5 hover:bg-white/5 rounded-lg"
+                  aria-label="Close"
+                >
+                  <X className="w-4.5 h-4.5" />
+                </button>
+              </div>
+              
+              {/* Text Description */}
+              <p className="text-sm text-[var(--text-muted)] leading-relaxed mb-6">
+                {t.cookies.text}
+              </p>
+              
+              {/* Buttons: Accept & Decline side-by-side */}
+              <div className="flex gap-3">
+                <button
+                  onClick={acceptCookies}
+                  className="btn-primary py-3.5 px-6 text-sm font-bold flex-1 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  {t.cookies.accept}
+                </button>
+                <button
+                  onClick={declineCookies}
+                  className="btn-ghost py-3.5 px-6 text-sm font-semibold flex-1 cursor-pointer transition-all hover:bg-white/5 hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  {t.cookies.decline}
+                </button>
+              </div>
+              
+              {/* Privacy Policy Link */}
+              <div className="mt-4 flex justify-start">
+                <Link 
+                  href="/privacy" 
+                  className="text-xs text-[var(--text-muted)] hover:text-[var(--cyan)] transition-colors flex items-center gap-1 group"
+                >
+                  <span className="underline underline-offset-4">{t.cookies.more}</span>
+                  <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+                </Link>
               </div>
             </div>
           </div>
