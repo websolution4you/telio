@@ -26,12 +26,9 @@ export default function Navbar() {
 
   const navLinks = [
     { label: t.nav.howItWorks, href: "/#how-it-works" },
-    { label: t.nav.aboutTelio, href: "/#about-telio" },
     { label: t.nav.useCases, href: "/#use-cases" },
-    { label: t.nav.features, href: "/#features" },
     { label: t.nav.pricing, href: "/#pricing" },
     { label: t.nav.about, href: "/#about-us" },
-    { label: "Dashboard", href: "/dashboard" },
   ];
 
   return (
@@ -100,9 +97,9 @@ export default function Navbar() {
               </button>
             </div>
 
-            <a href="#waitlist" className="btn-primary btn-nav font-semibold">
-              {t.nav.cta}
-            </a>
+            <Link href="/dashboard" className="btn-primary btn-nav font-semibold">
+              Dashboard
+            </Link>
           </div>
 
           {/* Mobile: lang + hamburger */}
@@ -196,15 +193,15 @@ export default function Navbar() {
                 </a>
               ))}
 
-              {/* Získať prístup Button */}
-              <a
-                href="#waitlist"
+              {/* Dashboard Button */}
+              <Link
+                href="/dashboard"
                 className="btn-primary w-full rounded-xl flex items-center justify-center font-semibold text-base shadow-[0_0_20px_rgba(0,255,209,0.15)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
                 style={{ height: "56px" }}
                 onClick={() => setMenuOpen(false)}
               >
-                {t.nav.cta}
-              </a>
+                Dashboard
+              </Link>
             </nav>
 
             {/* Bottom Copyright */}
