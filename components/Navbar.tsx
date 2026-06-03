@@ -97,7 +97,7 @@ export default function Navbar() {
               </button>
             </div>
 
-            <Link href="/dashboard" className="btn-primary btn-nav font-semibold">
+            <Link href="/dashboard/pizza" className="btn-primary btn-nav font-semibold">
               Dashboard
             </Link>
           </div>
@@ -195,7 +195,7 @@ export default function Navbar() {
 
               {/* Dashboard Button */}
               <Link
-                href="/dashboard"
+                href="/dashboard/pizza"
                 className="btn-primary w-full rounded-xl flex items-center justify-center font-semibold text-base shadow-[0_0_20px_rgba(0,255,209,0.15)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
                 style={{ height: "56px" }}
                 onClick={() => setMenuOpen(false)}
