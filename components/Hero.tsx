@@ -138,38 +138,40 @@ export default function Hero() {
         >
           <div className="flex flex-col md:flex-row gap-12 w-full md:w-auto items-start justify-center">
             {/* Pizza Demo / Skúšobný hovor */}
-            <div className="flex flex-col gap-5 w-full md:w-[380px] items-center">
+            <div className="flex flex-col gap-6 w-full max-w-[420px] md:w-[420px] items-center">
               {/* Dropdown for calling cases */}
               <div className="relative w-full" ref={dropdownRef}>
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="w-full flex items-center justify-between gap-3 px-4.5 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 hover:border-white/20 transition-all text-left text-sm text-white cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
+                  className="w-full flex items-center justify-between gap-3.5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-left text-sm md:text-base text-white cursor-pointer shadow-[0_4px_25px_rgba(0,0,0,0.4)]"
+                  style={{ height: "56px", padding: "0 1.5rem" }}
                 >
-                  <div className="flex items-center gap-2.5">
-                    {selectedCase === "pizza" && <Pizza className="w-4 h-4 text-[#FF6B35]" />}
-                    {selectedCase === "clinic" && <Stethoscope className="w-4 h-4 text-[#00D4FF]" />}
-                    {selectedCase === "taxi" && <Car className="w-4 h-4 text-[#7B61FF]" />}
-                    <span>
+                  <div className="flex items-center gap-3">
+                    {selectedCase === "pizza" && <Pizza className="w-5 h-5 text-[#FF6B35] shrink-0" />}
+                    {selectedCase === "clinic" && <Stethoscope className="w-5 h-5 text-[#00D4FF] shrink-0" />}
+                    {selectedCase === "taxi" && <Car className="w-5 h-5 text-[#7B61FF] shrink-0" />}
+                    <span className="font-medium tracking-tight">
                       {selectedCase === "pizza" && (lang === "sk" ? "Hlasový asistent pre pizzeriu" : "Voice assistant for pizzeria")}
                       {selectedCase === "clinic" && (lang === "sk" ? "Hlasový asistent pre stomatologickú ambulanciu" : "Voice assistant for dental clinic")}
                       {selectedCase === "taxi" && (lang === "sk" ? "Hlasový asistent pre taxislužbu" : "Voice assistant for taxi service")}
                     </span>
                   </div>
-                  <ChevronDown className={`w-4 h-4 text-white/55 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
+                  <ChevronDown className={`w-5 h-5 text-white/50 shrink-0 transition-transform duration-250 ${dropdownOpen ? "rotate-180 text-white" : ""}`} />
                 </button>
 
                 {dropdownOpen && (
-                  <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl bg-[#0a0a12]/95 border border-white/10 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] overflow-hidden">
+                  <div className="absolute left-0 right-0 mt-2 z-[999] rounded-2xl bg-[#0c0c16]/98 border border-white/15 backdrop-blur-2xl shadow-[0_15px_40px_rgba(0,0,0,0.6)] overflow-hidden p-1.5 flex flex-col gap-1">
                     <button
                       onClick={() => {
                         setSelectedCase("pizza");
                         setDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center gap-2.5 px-4 py-3.5 text-left text-sm hover:bg-white/5 transition-colors cursor-pointer ${
-                        selectedCase === "pizza" ? "text-white bg-white/5 font-semibold" : "text-white/70"
+                      className={`w-full flex items-center gap-3 rounded-xl text-left text-sm md:text-base hover:bg-white/10 transition-colors cursor-pointer ${
+                        selectedCase === "pizza" ? "text-white bg-white/8 font-semibold" : "text-white/70"
                       }`}
+                      style={{ padding: "0.875rem 1.25rem" }}
                     >
-                      <Pizza className="w-4 h-4 text-[#FF6B35]" />
+                      <Pizza className="w-5 h-5 text-[#FF6B35] shrink-0" />
                       <span>{lang === "sk" ? "Hlasový asistent pre pizzeriu" : "Voice assistant for pizzeria"}</span>
                     </button>
                     <button
@@ -177,11 +179,12 @@ export default function Hero() {
                         setSelectedCase("clinic");
                         setDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center gap-2.5 px-4 py-3.5 text-left text-sm hover:bg-white/5 transition-colors cursor-pointer ${
-                        selectedCase === "clinic" ? "text-white bg-white/5 font-semibold" : "text-white/70"
+                      className={`w-full flex items-center gap-3 rounded-xl text-left text-sm md:text-base hover:bg-white/10 transition-colors cursor-pointer ${
+                        selectedCase === "clinic" ? "text-white bg-white/8 font-semibold" : "text-white/70"
                       }`}
+                      style={{ padding: "0.875rem 1.25rem" }}
                     >
-                      <Stethoscope className="w-4 h-4 text-[#00D4FF]" />
+                      <Stethoscope className="w-5 h-5 text-[#00D4FF] shrink-0" />
                       <span>{lang === "sk" ? "Hlasový asistent pre stomatologickú ambulanciu" : "Voice assistant for dental clinic"}</span>
                     </button>
                     <button
@@ -189,11 +192,12 @@ export default function Hero() {
                         setSelectedCase("taxi");
                         setDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center gap-2.5 px-4 py-3.5 text-left text-sm hover:bg-white/5 transition-colors cursor-pointer ${
-                        selectedCase === "taxi" ? "text-white bg-white/5 font-semibold" : "text-white/70"
+                      className={`w-full flex items-center gap-3 rounded-xl text-left text-sm md:text-base hover:bg-white/10 transition-colors cursor-pointer ${
+                        selectedCase === "taxi" ? "text-white bg-white/8 font-semibold" : "text-white/70"
                       }`}
+                      style={{ padding: "0.875rem 1.25rem" }}
                     >
-                      <Car className="w-4 h-4 text-[#7B61FF]" />
+                      <Car className="w-5 h-5 text-[#7B61FF] shrink-0" />
                       <span>{lang === "sk" ? "Hlasový asistent pre taxislužbu" : "Voice assistant for taxi service"}</span>
                     </button>
                   </div>
