@@ -4,15 +4,28 @@ import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/i18n";
 import ElevenLabsCallButton from "@/components/ElevenLabsCallButton";
 import DemoCallButton from "@/components/DemoCallButton";
-import { Headset, Pizza } from "lucide-react";
+import { Headset, Pizza, Stethoscope, Taxi, ChevronDown } from "lucide-react";
 
 export default function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [activeEvent, setActiveEvent] = useState(0);
   const [visible, setVisible] = useState(false);
+  const [selectedCase, setSelectedCase] = useState("pizza");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const { lang, t } = useLang();
 
   useEffect(() => { setVisible(true); }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -125,7 +138,68 @@ export default function Hero() {
         >
           <div className="flex flex-col md:flex-row gap-12 w-full md:w-auto items-start justify-center">
             {/* Pizza Demo / Skúšobný hovor */}
-            <div className="flex flex-col gap-3 w-full md:w-auto items-center">
+            <div className="flex flex-col gap-5 w-full md:w-[380px] items-center">
+              {/* Dropdown for calling cases */}
+              <div className="relative w-full" ref={dropdownRef}>
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="w-full flex items-center justify-between gap-3 px-4.5 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 hover:border-white/20 transition-all text-left text-sm text-white cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
+                >
+                  <div className="flex items-center gap-2.5">
+                    {selectedCase === "pizza" && <Pizza className="w-4 h-4 text-[#FF6B35]" />}
+                    {selectedCase === "clinic" && <Stethoscope className="w-4 h-4 text-[#00D4FF]" />}
+                    {selectedCase === "taxi" && <Taxi className="w-4 h-4 text-[#7B61FF]" />}
+                    <span>
+                      {selectedCase === "pizza" && (lang === "sk" ? "Hlasový asistent pre pizzeriu" : "Voice assistant for pizzeria")}
+                      {selectedCase === "clinic" && (lang === "sk" ? "Hlasový asistent pre stomatologickú ambulanciu" : "Voice assistant for dental clinic")}
+                      {selectedCase === "taxi" && (lang === "sk" ? "Hlasový asistent pre taxislužbu" : "Voice assistant for taxi service")}
+                    </span>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-white/55 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {dropdownOpen && (
+                  <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl bg-[#0a0a12]/95 border border-white/10 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] overflow-hidden">
+                    <button
+                      onClick={() => {
+                        setSelectedCase("pizza");
+                        setDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-4 py-3.5 text-left text-sm hover:bg-white/5 transition-colors cursor-pointer ${
+                        selectedCase === "pizza" ? "text-white bg-white/5 font-semibold" : "text-white/70"
+                      }`}
+                    >
+                      <Pizza className="w-4 h-4 text-[#FF6B35]" />
+                      <span>{lang === "sk" ? "Hlasový asistent pre pizzeriu" : "Voice assistant for pizzeria"}</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedCase("clinic");
+                        setDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-4 py-3.5 text-left text-sm hover:bg-white/5 transition-colors cursor-pointer ${
+                        selectedCase === "clinic" ? "text-white bg-white/5 font-semibold" : "text-white/70"
+                      }`}
+                    >
+                      <Stethoscope className="w-4 h-4 text-[#00D4FF]" />
+                      <span>{lang === "sk" ? "Hlasový asistent pre stomatologickú ambulanciu" : "Voice assistant for dental clinic"}</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedCase("taxi");
+                        setDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-4 py-3.5 text-left text-sm hover:bg-white/5 transition-colors cursor-pointer ${
+                        selectedCase === "taxi" ? "text-white bg-white/5 font-semibold" : "text-white/70"
+                      }`}
+                    >
+                      <Taxi className="w-4 h-4 text-[#7B61FF]" />
+                      <span>{lang === "sk" ? "Hlasový asistent pre taxislužbu" : "Voice assistant for taxi service"}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <ElevenLabsCallButton
                 agentId={process.env.NEXT_PUBLIC_ELEVENLABS_PIZZA_AGENT_ID || "agent_5801krr0myvjjf5tkdhtbms61nc"}
                 customLabel={lang === "sk" ? "Skúšobný hovor" : "Test Call"}
