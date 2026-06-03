@@ -46,7 +46,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className={`${inter.variable} antialiased`}>
         <LangProvider>
           {children}
-          <ChatWidget />
+          {/* <ChatWidget /> */}
           <CookieConsent />
         </LangProvider>
       </body>
