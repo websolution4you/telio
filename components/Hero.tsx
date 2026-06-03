@@ -4,7 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/i18n";
 import ElevenLabsCallButton from "@/components/ElevenLabsCallButton";
 import DemoCallButton from "@/components/DemoCallButton";
-import { Headset, Pizza, Stethoscope, Car, ChevronDown } from "lucide-react";
+import { Headset, Pizza, Car, ChevronDown } from "lucide-react";
+
+function ToothIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M7 3C5.5 3 4.5 4.5 4.5 6C4.5 8.5 6 9.5 6 12C6 15 4 19 4 20C4 21 5 21.5 6 21C7.5 20.25 8.5 19 10 19C11.5 19 12 20 12 20C12 20 12.5 19 14 19C15.5 19 16.5 20.25 18 21C19 21.5 20 21 20 20C20 19 18 15 18 12C18 9.5 19.5 8.5 19.5 6C19.5 4.5 18.5 3 17 3C14 3 13 5.5 12 5.5C11 5.5 10 3 7 3Z" />
+    </svg>
+  );
+}
 
 export default function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -148,7 +156,7 @@ export default function Hero() {
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     {selectedCase === "pizza" && <Pizza className="w-4.5 h-4.5 text-[#FF6B35] shrink-0" />}
-                    {selectedCase === "clinic" && <Stethoscope className="w-4.5 h-4.5 text-[#00D4FF] shrink-0" />}
+                    {selectedCase === "clinic" && <ToothIcon className="w-4.5 h-4.5 text-[#00D4FF] shrink-0" />}
                     {selectedCase === "taxi" && <Car className="w-4.5 h-4.5 text-[#7B61FF] shrink-0" />}
                     <span className="font-semibold tracking-tight truncate">
                       {selectedCase === "pizza" && (lang === "sk" ? "Pre pizzeriu" : "For pizzeria")}
@@ -184,7 +192,7 @@ export default function Hero() {
                       }`}
                       style={{ padding: "0.75rem 1rem" }}
                     >
-                      <Stethoscope className="w-4.5 h-4.5 text-[#00D4FF] shrink-0" />
+                      <ToothIcon className="w-4.5 h-4.5 text-[#00D4FF] shrink-0" />
                       <span className="truncate">{lang === "sk" ? "Hlasový asistent pre stomatologickú ambulanciu" : "Voice assistant for dental clinic"}</span>
                     </button>
                     <button
