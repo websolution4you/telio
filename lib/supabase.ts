@@ -3,9 +3,10 @@ import { createClient } from "@supabase/supabase-js";
 function createNamedClient(url: string | undefined, key: string | undefined, label: string) {
     if (!url || !key) {
         console.warn(`${label} Supabase client credentials are missing`);
+        return createClient("https://placeholder-project.supabase.co", "placeholder-key");
     }
 
-    return createClient(url || "", key || "");
+    return createClient(url, key);
 }
 
 function hasSharedClientConfig() {

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/i18n";
 import ElevenLabsCallButton from "@/components/ElevenLabsCallButton";
 import DemoCallButton from "@/components/DemoCallButton";
-import { Headset, Pizza, Stethoscope, Taxi, ChevronDown } from "lucide-react";
+import { Headset, Pizza, Stethoscope, Car, ChevronDown } from "lucide-react";
 
 export default function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -148,7 +148,7 @@ export default function Hero() {
                   <div className="flex items-center gap-2.5">
                     {selectedCase === "pizza" && <Pizza className="w-4 h-4 text-[#FF6B35]" />}
                     {selectedCase === "clinic" && <Stethoscope className="w-4 h-4 text-[#00D4FF]" />}
-                    {selectedCase === "taxi" && <Taxi className="w-4 h-4 text-[#7B61FF]" />}
+                    {selectedCase === "taxi" && <Car className="w-4 h-4 text-[#7B61FF]" />}
                     <span>
                       {selectedCase === "pizza" && (lang === "sk" ? "Hlasový asistent pre pizzeriu" : "Voice assistant for pizzeria")}
                       {selectedCase === "clinic" && (lang === "sk" ? "Hlasový asistent pre stomatologickú ambulanciu" : "Voice assistant for dental clinic")}
@@ -193,7 +193,7 @@ export default function Hero() {
                         selectedCase === "taxi" ? "text-white bg-white/5 font-semibold" : "text-white/70"
                       }`}
                     >
-                      <Taxi className="w-4 h-4 text-[#7B61FF]" />
+                      <Car className="w-4 h-4 text-[#7B61FF]" />
                       <span>{lang === "sk" ? "Hlasový asistent pre taxislužbu" : "Voice assistant for taxi service"}</span>
                     </button>
                   </div>
