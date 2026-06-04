@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/i18n";
-import ElevenLabsCallButton from "@/components/ElevenLabsCallButton";
 import DemoCallButton from "@/components/DemoCallButton";
 import { Headset, Pizza, Car, ChevronDown } from "lucide-react";
 
@@ -212,8 +211,9 @@ export default function Hero() {
                 )}
               </div>
 
-              <ElevenLabsCallButton
-                agentId={process.env.NEXT_PUBLIC_ELEVENLABS_PIZZA_AGENT_ID || "agent_5801krr0myvjjf5tkdhtbms61nc"}
+              <DemoCallButton
+                businessType="pizza"
+                backendUrl="https://hlasovyasistent-65299054235.europe-west3.run.app"
                 customLabel={lang === "sk" ? "Skúšobný hovor" : "Test Call"}
                 color="#FF6B35"
                 icon={<Pizza className="w-5 h-5 relative z-10" />}
