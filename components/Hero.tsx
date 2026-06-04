@@ -151,8 +151,8 @@ export default function Hero() {
               <div className="relative w-full animate-fadeInUp" ref={dropdownRef}>
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="w-full flex items-center justify-between gap-2.5 rounded-xl bg-[#11111e]/90 hover:bg-[#161626]/90 border border-white/10 hover:border-white/20 transition-all text-left text-sm text-white cursor-pointer shadow-[0_4px_25px_rgba(0,0,0,0.4)]"
-                  style={{ height: "52px", padding: "0 1.25rem" }}
+                  className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-[#11111e]/90 hover:bg-[#161626]/90 border border-white/10 hover:border-white/20 transition-all text-sm text-white cursor-pointer shadow-[0_4px_25px_rgba(0,0,0,0.4)] relative"
+                  style={{ height: "52px", padding: "0 2.5rem" }}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     {selectedCase === "pizza" && <Pizza className="w-4.5 h-4.5 text-[#FF6B35] shrink-0" />}
@@ -164,7 +164,7 @@ export default function Hero() {
                       {selectedCase === "taxi" && (lang === "sk" ? "Telio pre taxislužbu" : "Telio for taxi service")}
                     </span>
                   </div>
-                  <ChevronDown className={`w-4.5 h-4.5 text-white/50 shrink-0 transition-transform duration-250 ${dropdownOpen ? "rotate-180 text-white" : ""}`} />
+                  <ChevronDown className={`w-4.5 h-4.5 text-white/50 shrink-0 transition-transform duration-250 ${dropdownOpen ? "rotate-180 text-white" : ""} absolute right-4 top-1/2 -translate-y-1/2`} />
                 </button>
 
                 {dropdownOpen && (
