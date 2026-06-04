@@ -27,7 +27,6 @@ export default function Footer() {
             </p>
             <div className="text-xs leading-relaxed flex flex-col gap-1" style={{ color: "var(--text-muted)", marginBottom: "32px" }}>
               <span className="font-semibold text-white">Telio s. r. o.</span>
-              <span>Bratislava 08. 05. 2026</span>
               <span>Bujnákova 1839/7, 841 01 Bratislava-Dúbravka</span>
               <span>IČO: 57 615 802</span>
               <div className="flex flex-col mt-0.5">
