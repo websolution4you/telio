@@ -22,9 +22,19 @@ export default function Footer() {
               <span className="text-xl font-bold text-white" style={{ letterSpacing: "-0.02em" }}>TELIO</span>
             </div>
             <p className="text-sm leading-relaxed"
-              style={{ color: "var(--text-muted)", maxWidth: "260px", lineHeight: 1.7, marginBottom: "40px" }}>
+              style={{ color: "var(--text-muted)", maxWidth: "260px", lineHeight: 1.7, marginBottom: "24px" }}>
               {t.footer.tagline}
             </p>
+            <div className="text-xs leading-relaxed flex flex-col gap-1" style={{ color: "var(--text-muted)", marginBottom: "32px" }}>
+              <span className="font-semibold text-white">Telio s. r. o.</span>
+              <span>Bratislava 08. 05. 2026</span>
+              <span>Bujnákova 1839/7, 841 01 Bratislava-Dúbravka</span>
+              <span>IČO: 57 615 802</span>
+              <div className="flex flex-col mt-0.5">
+                <span>Tel: 0915 962 068</span>
+                <span style={{ paddingLeft: "24px" }}>0905 012 054</span>
+              </div>
+            </div>
             <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
               <span className="w-2 h-2 rounded-full animate-pulse-glow" style={{ background: "var(--cyan)" }} />
               &nbsp;{t.footer.status}
