@@ -159,9 +159,9 @@ export default function Hero() {
                     {selectedCase === "clinic" && <ToothIcon className="w-4.5 h-4.5 text-[#00D4FF] shrink-0" />}
                     {selectedCase === "taxi" && <Car className="w-4.5 h-4.5 text-[#7B61FF] shrink-0" />}
                     <span className="font-semibold tracking-tight truncate">
-                      {selectedCase === "pizza" && (lang === "sk" ? "Pre pizzeriu" : "For pizzeria")}
-                      {selectedCase === "clinic" && (lang === "sk" ? "Pre stomatologickú kliniku" : "For dental clinic")}
-                      {selectedCase === "taxi" && (lang === "sk" ? "Pre taxislužbu" : "For taxi service")}
+                      {selectedCase === "pizza" && (lang === "sk" ? "Telio pre pizzeriu" : "Telio for pizzeria")}
+                      {selectedCase === "clinic" && (lang === "sk" ? "Telio pre stomatologickú kliniku" : "Telio for dental clinic")}
+                      {selectedCase === "taxi" && (lang === "sk" ? "Telio pre taxislužbu" : "Telio for taxi service")}
                     </span>
                   </div>
                   <ChevronDown className={`w-4.5 h-4.5 text-white/50 shrink-0 transition-transform duration-250 ${dropdownOpen ? "rotate-180 text-white" : ""}`} />
@@ -180,7 +180,7 @@ export default function Hero() {
                       style={{ padding: "0.75rem 1rem" }}
                     >
                       <Pizza className="w-4.5 h-4.5 text-[#FF6B35] shrink-0" />
-                      <span className="truncate">{lang === "sk" ? "Hlasový asistent pre pizzeriu" : "Voice assistant for pizzeria"}</span>
+                      <span className="truncate">{lang === "sk" ? "Telio pre pizzeriu" : "Telio for pizzeria"}</span>
                     </button>
                     <button
                       onClick={() => {
@@ -193,7 +193,7 @@ export default function Hero() {
                       style={{ padding: "0.75rem 1rem" }}
                     >
                       <ToothIcon className="w-4.5 h-4.5 text-[#00D4FF] shrink-0" />
-                      <span className="truncate">{lang === "sk" ? "Hlasový asistent pre stomatologickú ambulanciu" : "Voice assistant for dental clinic"}</span>
+                      <span className="truncate">{lang === "sk" ? "Telio pre stomatologickú kliniku" : "Telio for dental clinic"}</span>
                     </button>
                     <button
                       onClick={() => {
@@ -206,7 +206,7 @@ export default function Hero() {
                       style={{ padding: "0.75rem 1rem" }}
                     >
                       <Car className="w-4.5 h-4.5 text-[#7B61FF] shrink-0" />
-                      <span className="truncate">{lang === "sk" ? "Hlasový asistent pre taxislužbu" : "Voice assistant for taxi service"}</span>
+                      <span className="truncate">{lang === "sk" ? "Telio pre taxislužbu" : "Telio for taxi service"}</span>
                     </button>
                   </div>
                 )}
