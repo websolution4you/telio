@@ -19,7 +19,7 @@ export const translations = {
       badge: "Team",
       h2a: "The minds behind",
       h2b: "Telio",
-      cartesiaSupport: "Voice AI development and the Telio assistant are supported by Cartesia Startups and a Google for Startups grant.",
+      cartesiaSupport: "Voice AI development and the Telio assistant are supported by Cartesia Startups and a Google\u00A0for\u00A0Startups grant.",
       kamil: {
         name: "Kamil",
         role: "Co-founder & AI Architect",
@@ -250,7 +250,7 @@ export const translations = {
       productLinks: ["Features", "Use cases", "Pricing", "Changelog"],
       industryLinks: ["Restaurant", "Taxi & Transport", "Healthcare", "Food delivery", "Salons"],
       companyLinks: ["About", "Privacy Policy", "Terms of Service", "Contact"],
-      copyright: "© 2025 Telio. All rights reserved. Peťo & Kamil ♥",
+      copyright: "© 2025 Telio. All rights reserved. Peťo & Kamil\u00A0♥",
     },
     privacy: {
       title: "Privacy Policy",
@@ -323,7 +323,7 @@ export const translations = {
       badge: "O nás",
       h2a: "Kto stojí za",
       h2b: "Telio",
-      cartesiaSupport: "Vývoj hlasovej AI a asistenta Telio je podporený programom Cartesia Startups a grantom Google for Startups.",
+      cartesiaSupport: "Vývoj hlasovej AI a asistenta Telio je podporený programom Cartesia Startups a grantom Google\u00A0for\u00A0Startups.",
       kamil: {
         name: "Kamil",
         role: "Spoluzakladateľ & AI Architekt",
@@ -554,7 +554,7 @@ export const translations = {
       productLinks: ["Funkcie", "Možnosti použitia", "Cenník", "Zmeny"],
       industryLinks: ["Reštaurácia", "Taxi & doprava", "Zdravotníctvo", "Rozvoz jedla", "Salóny"],
       companyLinks: ["O nás", "Ochrana súkromia", "Podmienky služby", "Kontakt"],
-      copyright: "© 2025 Telio. Všetky práva vyhradené. Peťo & Kamil ♥",
+      copyright: "© 2025 Telio. Všetky práva vyhradené. Peťo & Kamil\u00A0♥",
     },
     privacy: {
       title: "Ochrana osobných údajov",

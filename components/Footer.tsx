@@ -56,13 +56,13 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6"
           style={{ borderTop: "1px solid var(--border)", marginTop: "48px", paddingTop: "32px" }}>
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+          <p className="text-xs whitespace-nowrap" style={{ color: "var(--text-muted)" }}>
             {t.footer.copyright.replace("2025", String(year))}
           </p>
 
           {/* Support badges */}
           <div className="flex flex-col lg:flex-row items-center gap-4 lg:gap-6">
-            <span className="text-[10px] uppercase tracking-widest font-medium opacity-50 text-white max-w-[340px] text-center lg:text-right leading-relaxed">
+            <span className="text-[10px] uppercase tracking-widest font-medium opacity-50 text-white max-w-[420px] text-center lg:text-right leading-relaxed">
               {t.aboutUs.cartesiaSupport}
             </span>
             <div className="flex items-center gap-3">
