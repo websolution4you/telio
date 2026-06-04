@@ -546,7 +546,7 @@ export const translations = {
       trust: ["14 dní zadarmo", "Zrušenie kedykoľvek"],
     },
     footer: {
-      tagline: "Váš AI hlasový agent 24/7 pre slovenské firmy. Nikdy nestratíte zákazníka.",
+      tagline: "Váš AI hlasový agent 24/7, s ktorým už nikdy nestratíte žiadneho zákazníka!",
       status: "Systém funguje · Všetky služby online",
       product: "Produkt",
       industries: "Odvetvia",
