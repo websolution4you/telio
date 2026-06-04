@@ -212,11 +212,25 @@ export default function Hero() {
               </div>
 
               <DemoCallButton
-                businessType="pizza"
-                backendUrl="https://hlasovyasistent-65299054235.europe-west3.run.app"
+                businessType={selectedCase}
+                backendUrl="https://hlasovyasistent-652999054235.europe-west3.run.app"
                 customLabel={lang === "sk" ? "Skúšobný hovor" : "Test Call"}
-                color="#FF6B35"
-                icon={<Pizza className="w-5 h-5 relative z-10" />}
+                color={
+                  selectedCase === "pizza"
+                    ? "#FF6B35"
+                    : selectedCase === "clinic"
+                    ? "#00D4FF"
+                    : "#7B61FF"
+                }
+                icon={
+                  selectedCase === "pizza" ? (
+                    <Pizza className="w-5 h-5 relative z-10" />
+                  ) : selectedCase === "clinic" ? (
+                    <ToothIcon className="w-5 h-5 relative z-10" />
+                  ) : (
+                    <Car className="w-5 h-5 relative z-10" />
+                  )
+                }
               />
               <span className="text-xs font-medium px-1 text-center" style={{ color: "var(--text-muted)", opacity: 0.9 }}>
                 {lang === "sk" ? "Vyskúšajte úplne zadarmo nášho hlasového asistenta Telio" : "Try our Telio voice assistant completely for free"}
