@@ -19,7 +19,7 @@ export const translations = {
       badge: "Team",
       h2a: "The minds behind",
       h2b: "Telio",
-      cartesiaSupport: "Voice AI development at Telio is supported by the Cartesia Startups program.",
+      cartesiaSupport: "Voice AI development and the Telio assistant are supported by Cartesia Startups and a Google for Startups grant.",
       kamil: {
         name: "Kamil",
         role: "Co-founder & AI Architect",
@@ -323,7 +323,7 @@ export const translations = {
       badge: "O nás",
       h2a: "Kto stojí za",
       h2b: "Telio",
-      cartesiaSupport: "Vývoj hlasovej AI v Telio je podporený programom Cartesia Startups.",
+      cartesiaSupport: "Vývoj hlasovej AI a asistenta Telio je podporený programom Cartesia Startups a grantom Google for Startups.",
       kamil: {
         name: "Kamil",
         role: "Spoluzakladateľ & AI Architekt",

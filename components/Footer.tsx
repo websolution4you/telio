@@ -60,32 +60,55 @@ export default function Footer() {
             {t.footer.copyright.replace("2025", String(year))}
           </p>
 
-          {/* Cartesia Startups badge */}
-          <div className="flex items-center gap-6">
-            <span className="text-[10px] uppercase tracking-widest font-medium opacity-50 text-white max-w-[400px] text-right leading-relaxed hidden md:block">
+          {/* Support badges */}
+          <div className="flex flex-col lg:flex-row items-center gap-4 lg:gap-6">
+            <span className="text-[10px] uppercase tracking-widest font-medium opacity-50 text-white max-w-[340px] text-center lg:text-right leading-relaxed">
               {t.aboutUs.cartesiaSupport}
             </span>
-            <a
-              href="https://cartesia.ai/startups"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 transition-transform duration-300 hover:scale-105"
-              title="Powered by Cartesia Startups"
-              style={{
-                background: "#ffffff",
-                borderRadius: "10px",
-                padding: "8px 16px",
-                display: "inline-flex",
-                alignItems: "center",
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/cartesia-startups-logo.png"
-                alt="Cartesia Startups"
-                style={{ height: "22px", width: "auto", display: "block" }}
-              />
-            </a>
+            <div className="flex items-center gap-3">
+              <a
+                href="https://cartesia.ai/startups"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 transition-transform duration-300 hover:scale-105"
+                title="Powered by Cartesia Startups"
+                style={{
+                  background: "#ffffff",
+                  borderRadius: "8px",
+                  padding: "6px 12px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/cartesia-startups-logo.png"
+                  alt="Cartesia Startups"
+                  style={{ height: "20px", width: "auto", display: "block" }}
+                />
+              </a>
+              <a
+                href="https://startup.google.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 transition-transform duration-300 hover:scale-105"
+                title="Supported by Google for Startups"
+                style={{
+                  background: "#ffffff",
+                  borderRadius: "8px",
+                  padding: "6px 12px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/google-for-startups.jpg"
+                  alt="Google for Startups"
+                  style={{ height: "20px", width: "auto", display: "block" }}
+                />
+              </a>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
