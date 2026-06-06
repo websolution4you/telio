@@ -122,8 +122,8 @@ export default function Hero() {
 
         {/* Headline */}
         <h1
-          className={`font-extrabold transition-all duration-700 delay-100 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
-          style={{ fontSize: "clamp(3rem, 8vw, 6.5rem)", letterSpacing: "-0.04em", lineHeight: 1.25, marginBottom: "4rem" }}
+          className={`font-semibold transition-all duration-700 delay-100 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+          style={{ fontFamily: "var(--font-poppins), sans-serif", fontSize: "clamp(3rem, 8vw, 6.5rem)", letterSpacing: "-0.04em", lineHeight: 1.25, marginBottom: "4rem" }}
         >
           <span className="text-white">{t.hero.h1a}</span>
           <br />
