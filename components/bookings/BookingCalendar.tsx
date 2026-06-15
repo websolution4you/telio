@@ -287,7 +287,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
         <div className="inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-[0.2em] mb-4 rounded-full border px-4 py-2" style={{ borderColor: "rgba(0,255,209,0.2)", background: "rgba(0,255,209,0.04)", color: "var(--cyan)" }}>
           <CalendarDays className="h-4 w-4" /> Live rezervačný kalendár
         </div>
-        <h2 className="text-3xl font-semibold text-white md:text-5xl" style={{ fontFamily: "var(--font-poppins), sans-serif", tracking: "-0.03em" }}>
+        <h2 className="text-3xl font-semibold text-white md:text-5xl" style={{ fontFamily: "var(--font-poppins), sans-serif", letterSpacing: "-0.03em" }}>
           Dostupnosť kurtov v NTC Bratislava
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 md:text-base" style={{ color: "var(--text-muted)" }}>
