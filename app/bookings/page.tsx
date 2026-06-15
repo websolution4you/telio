@@ -40,7 +40,7 @@ export default function BookingsPage() {
     <main className="min-h-screen grid-bg overflow-hidden" style={{ background: "var(--bg)" }}>
       <Navbar />
 
-      <section className="relative pt-[120px] pb-16 md:pt-[150px] md:pb-24">
+      <section className="relative pt-32 pb-16 md:pt-44 md:pb-24">
         <div
           className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full blur-[90px]"
           style={{ background: "radial-gradient(ellipse, rgba(0,255,209,0.13), rgba(123,97,255,0.08), transparent 68%)" }}
