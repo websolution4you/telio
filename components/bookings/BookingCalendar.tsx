@@ -281,9 +281,9 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
   };
 
   return (
-    <section className="relative" style={{ maxWidth: "86rem", margin: "6rem auto 0", padding: "0 2rem 6rem" }}>
+    <section className="relative mx-auto px-8" style={{ maxWidth: "76rem", margin: "6rem auto 0", paddingBottom: "6rem" }}>
       {/* Centered Heading Section */}
-      <div className="text-center mb-14 flex flex-col items-center">
+      <div className="text-center mb-14 flex flex-col items-center w-full">
         <div className="inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-[0.2em] mb-4 rounded-full border px-4 py-2" style={{ borderColor: "rgba(0,255,209,0.2)", background: "rgba(0,255,209,0.04)", color: "var(--cyan)" }}>
           <CalendarDays className="h-4 w-4" /> Live rezervačný kalendár
         </div>

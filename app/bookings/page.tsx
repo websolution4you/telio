@@ -93,7 +93,7 @@ export default function BookingsPage() {
 
       <BookingCalendar courts={courts} bookings={mockBookings} />
 
-      <section className="relative mx-auto px-8 pb-24" style={{ maxWidth: "86rem" }}>
+      <section className="relative mx-auto px-8 pb-24" style={{ maxWidth: "76rem" }}>
         <div className="rounded-[32px] border p-8 md:p-12 text-center" style={{ borderColor: "var(--border)", background: "linear-gradient(135deg, rgba(0,255,209,0.07), rgba(123,97,255,0.08))" }}>
           <div className="mx-auto mb-12 max-w-3xl flex flex-col items-center">
             <div className="text-xs font-black uppercase tracking-[0.22em]" style={{ color: "var(--cyan)" }}>Architektúra pre ďalší krok</div>
