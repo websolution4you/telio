@@ -281,50 +281,54 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
   };
 
   return (
-    <section className="relative" style={{ maxWidth: "86rem", margin: "0 auto", padding: "0 2rem 6rem" }}>
+    <section className="relative" style={{ maxWidth: "86rem", margin: "6rem auto 0", padding: "0 2rem 6rem" }}>
+      {/* Centered Heading Section */}
+      <div className="text-center mb-14 flex flex-col items-center">
+        <div className="inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-[0.2em] mb-4 rounded-full border px-4 py-2" style={{ borderColor: "rgba(0,255,209,0.2)", background: "rgba(0,255,209,0.04)", color: "var(--cyan)" }}>
+          <CalendarDays className="h-4 w-4" /> Live rezervačný kalendár
+        </div>
+        <h2 className="text-3xl font-semibold text-white md:text-5xl" style={{ fontFamily: "var(--font-poppins), sans-serif", tracking: "-0.03em" }}>
+          Dostupnosť kurtov v NTC Bratislava
+        </h2>
+        <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 md:text-base" style={{ color: "var(--text-muted)" }}>
+          Prehľad voľných a obsadených časov pre tenis a bedminton. Kliknite na prázdne políčko pre okamžitú rezerváciu, alebo vyskúšajte simuláciu hlasového asistenta v pravom paneli.
+        </p>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <div
           className="rounded-[28px] border overflow-hidden"
           style={{ background: "rgba(12,12,20,0.78)", borderColor: "var(--border)", boxShadow: "0 24px 80px rgba(0,0,0,0.25)" }}
         >
-          <div className="flex flex-col gap-5 border-b p-5 md:p-6" style={{ borderColor: "var(--border)" }}>
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div>
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em]" style={{ color: "var(--cyan)" }}>
-                  <CalendarDays className="h-4 w-4" /> Live rezervačný kalendár
-                </div>
-                <h2 className="mt-3 text-2xl font-semibold text-white md:text-3xl" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>
-                  Dostupnosť kurtov v NTC Bratislava
-                </h2>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {(["all", "tennis", "badminton"] as const).map((sport) => (
-                  <button
-                    key={sport}
-                    onClick={() => setSelectedSport(sport)}
-                    className="rounded-full border px-4 py-2 text-sm font-semibold transition-all"
-                    style={{
-                      cursor: "pointer",
-                      borderColor: selectedSport === sport ? "rgba(0,255,209,0.45)" : "var(--border)",
-                      background: selectedSport === sport ? "rgba(0,255,209,0.12)" : "rgba(255,255,255,0.03)",
-                      color: selectedSport === sport ? "var(--cyan)" : "var(--text-muted)",
-                    }}
-                  >
-                    {sportLabels[sport]}
-                  </button>
-                ))}
-              </div>
+          <div className="flex flex-col items-center gap-6 border-b p-6 md:p-8" style={{ borderColor: "var(--border)", background: "rgba(255,255,255,0.01)" }}>
+            {/* Sport selection filters */}
+            <div className="flex flex-wrap justify-center gap-2.5">
+              {(["all", "tennis", "badminton"] as const).map((sport) => (
+                <button
+                  key={sport}
+                  onClick={() => setSelectedSport(sport)}
+                  className="rounded-full border px-5 py-2.5 text-sm font-semibold transition-all hover:bg-white/[0.05]"
+                  style={{
+                    cursor: "pointer",
+                    borderColor: selectedSport === sport ? "rgba(0,255,209,0.45)" : "var(--border)",
+                    background: selectedSport === sport ? "rgba(0,255,209,0.12)" : "rgba(255,255,255,0.03)",
+                    color: selectedSport === sport ? "var(--cyan)" : "var(--text-muted)",
+                  }}
+                >
+                  {sportLabels[sport]}
+                </button>
+              ))}
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            {/* Date selection filters */}
+            <div className="flex gap-3 overflow-x-auto justify-center w-full pb-2 scrollbar-thin">
               {days.map((day) => {
                 const active = sameDay(day, selectedDate);
                 return (
                   <button
                     key={day.toISOString()}
                     onClick={() => setSelectedDate(day)}
-                    className="min-w-[120px] rounded-2xl border px-4 py-3 text-left transition-all"
+                    className="min-w-[125px] rounded-2xl border px-4 py-3.5 text-center transition-all hover:bg-white/[0.04]"
                     style={{
                       cursor: "pointer",
                       borderColor: active ? "rgba(123,97,255,0.55)" : "var(--border)",
@@ -332,8 +336,8 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                       color: active ? "white" : "var(--text-muted)",
                     }}
                   >
-                    <span className="block text-xs uppercase tracking-wide opacity-70">{sameDay(day, startOfDay(new Date())) ? "Dnes" : "Deň"}</span>
-                    <span className="mt-1 block text-sm font-bold capitalize">{formatDate(day)}</span>
+                    <span className="block text-[10px] uppercase tracking-wider opacity-60 font-bold">{sameDay(day, startOfDay(new Date())) ? "Dnes" : "Deň"}</span>
+                    <span className="mt-1.5 block text-sm font-extrabold capitalize">{formatDate(day)}</span>
                   </button>
                 );
               })}
