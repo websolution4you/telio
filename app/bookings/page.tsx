@@ -3,7 +3,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BookingCalendar from "@/components/bookings/BookingCalendar";
 import { courts, mockBookings } from "@/lib/bookings/mockBookings";
-import { Bot, CalendarCheck, MapPin, PhoneCall, Sparkles } from "lucide-react";
+import { MapPin, Sparkles } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Telio Bookings — Rezervácia kurtov NTC Bratislava",
@@ -15,24 +15,6 @@ const stats = [
   { value: "8", label: "indoor tenisových kurtov" },
   { value: "14", label: "bedmintonových kurtov" },
   { value: "24/7", label: "hlasové rezervácie cez Telio" },
-];
-
-const integrationSteps = [
-  {
-    icon: PhoneCall,
-    title: "Hovor zákazníka",
-    text: "Zákazník povie Telio asistentovi šport, dátum, čas, dĺžku hry a počet hráčov.",
-  },
-  {
-    icon: CalendarCheck,
-    title: "Kontrola dostupnosti",
-    text: "Telio skontroluje voľné sloty v Google Calendar API pre konkrétny kurt alebo typ športu.",
-  },
-  {
-    icon: Bot,
-    title: "Zápis rezervácie",
-    text: "Po potvrdení vytvorí udalosť v kalendári a uloží dôležité údaje pre recepciu.",
-  },
 ];
 
 export default function BookingsPage() {
@@ -92,35 +74,6 @@ export default function BookingsPage() {
       </section>
 
       <BookingCalendar courts={courts} bookings={mockBookings} />
-
-      <section className="relative mx-auto px-8 pb-24" style={{ maxWidth: "76rem" }}>
-        <div className="rounded-[32px] border p-8 md:p-12 text-center" style={{ borderColor: "var(--border)", background: "linear-gradient(135deg, rgba(0,255,209,0.07), rgba(123,97,255,0.08))" }}>
-          <div className="mx-auto mb-12 max-w-3xl flex flex-col items-center">
-            <div className="text-xs font-black uppercase tracking-[0.22em]" style={{ color: "var(--cyan)" }}>Architektúra pre ďalší krok</div>
-            <h2 className="mt-4 text-3xl font-semibold text-white md:text-4xl" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>
-              Ako to napojíme na Telio asistenta
-            </h2>
-            <p className="mt-5 text-sm leading-7 md:text-base" style={{ color: "var(--text-muted)" }}>
-              Táto verzia používa bezpečné demo dáta. Následne doplníme serverové API routy pre Google Calendar: získanie dostupnosti, vytvorenie rezervácie, zmenu rezervácie a zrušenie rezervácie. Telio hlasový asistent bude volať rovnaké API ako frontend.
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-3">
-            {integrationSteps.map((step) => {
-              const Icon = step.icon;
-              return (
-                <div key={step.title} className="rounded-3xl border p-6 text-left flex flex-col items-start" style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(5,5,8,0.45)" }}>
-                  <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-2xl" style={{ background: "rgba(0,255,209,0.1)", color: "var(--cyan)" }}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="font-bold text-white text-base">{step.title}</h3>
-                  <p className="mt-3 text-sm leading-6" style={{ color: "var(--text-muted)" }}>{step.text}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
 
       <Footer />
     </main>
