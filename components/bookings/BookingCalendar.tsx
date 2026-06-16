@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { Calendar, Clock, Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, Clock, Plus, Trash2, ChevronLeft, ChevronRight, User, Activity, MessageSquare } from "lucide-react";
 import type { Booking, Court, SportType } from "@/lib/bookings/mockBookings";
 import { openingHours } from "@/lib/bookings/mockBookings";
 
@@ -212,74 +212,89 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
             {/* Court Selector */}
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Kurt</label>
-              <select
-                value={formCourtId}
-                onChange={(e) => setFormCourtId(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3 py-2.5 text-xs text-white focus:border-cyan-500 focus:outline-none"
-              >
-                {visibleCourts.map((court) => (
-                  <option key={court.id} value={court.id}>
-                    {court.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <Activity className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                <select
+                  value={formCourtId}
+                  onChange={(e) => setFormCourtId(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-900/90 pl-10 pr-3 py-2.5 text-xs text-white focus:border-cyan-500 focus:outline-none"
+                >
+                  {visibleCourts.map((court) => (
+                    <option key={court.id} value={court.id}>
+                      {court.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Date Selector */}
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Dátum</label>
-              <input
-                type="date"
-                value={dateStr}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    setSelectedDate(new Date(e.target.value));
-                  }
-                }}
-                className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3 py-2.5 text-xs text-white focus:border-cyan-500 focus:outline-none"
-              />
+              <div className="relative flex items-center">
+                <Calendar className="absolute left-3.5 h-4 w-4 text-slate-400 pointer-events-none" />
+                <input
+                  type="date"
+                  value={dateStr}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setSelectedDate(new Date(e.target.value));
+                    }
+                  }}
+                  className="w-full rounded-xl border border-white/10 bg-slate-900/90 pl-10 pr-3 py-2.5 text-xs text-white focus:border-cyan-500 focus:outline-none relative"
+                />
+              </div>
             </div>
 
             {/* Hour Selector */}
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Čas začiatku (na 1 hod.)</label>
-              <select
-                value={formHour}
-                onChange={(e) => setFormHour(parseInt(e.target.value))}
-                className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3 py-2.5 text-xs text-white focus:border-cyan-500 focus:outline-none"
-              >
-                {hours.map((h) => (
-                  <option key={h} value={h}>
-                    {h}:00 – {h + 1}:00
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                <select
+                  value={formHour}
+                  onChange={(e) => setFormHour(parseInt(e.target.value))}
+                  className="w-full rounded-xl border border-white/10 bg-slate-900/90 pl-10 pr-3 py-2.5 text-xs text-white focus:border-cyan-500 focus:outline-none"
+                >
+                  {hours.map((h) => (
+                    <option key={h} value={h}>
+                      {h}:00 – {h + 1}:00
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Customer Name */}
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Meno zákazníka</label>
-              <input
-                id="customerName"
-                type="text"
-                required
-                placeholder="napr. Kamil Bartko"
-                value={formCustomerName}
-                onChange={(e) => setFormCustomerName(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
-              />
+              <div className="relative flex items-center">
+                <User className="absolute left-3.5 h-4 w-4 text-slate-400 pointer-events-none" />
+                <input
+                  id="customerName"
+                  type="text"
+                  required
+                  placeholder="napr. Kamil Bartko"
+                  value={formCustomerName}
+                  onChange={(e) => setFormCustomerName(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-3 py-2.5 text-xs text-white placeholder-slate-400 focus:border-cyan-500 focus:outline-none"
+                />
+              </div>
             </div>
 
             {/* Booking Title / Note */}
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Poznámka / Názov hry</label>
-              <input
-                type="text"
-                placeholder="napr. Dvojhra - Novák"
-                value={formTitle}
-                onChange={(e) => setFormTitle(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
-              />
+              <div className="relative flex items-center">
+                <MessageSquare className="absolute left-3.5 h-4 w-4 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="napr. Dvojhra - Novák"
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-3 py-2.5 text-xs text-white placeholder-slate-400 focus:border-cyan-500 focus:outline-none"
+                />
+              </div>
             </div>
 
             {/* Error Message */}
@@ -345,8 +360,8 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
             style={{ background: "rgba(12,12,20,0.78)", borderColor: "var(--border)" }}
           >
             {/* Scrollable container for columns */}
-            <div className="overflow-x-auto w-full scrollbar-thin">
-              <div style={{ minWidth: `${120 + visibleCourts.length * 110}px` }}>
+            <div className="overflow-x-auto w-full custom-scrollbar">
+              <div style={{ minWidth: `${100 + visibleCourts.length * 120}px` }}>
                 
                 {/* Horizontal Header Row (Courts) */}
                 <div
@@ -362,45 +377,91 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                   <div className="p-4 border-r text-2xs font-extrabold uppercase tracking-widest text-slate-500 flex items-center justify-center" style={{ borderColor: "var(--border)" }}>
                     Hodiny
                   </div>
-                  {visibleCourts.map((court) => (
-                    <div
-                      key={court.id}
-                      className="p-4 border-r text-center flex flex-col justify-center gap-0.5"
-                      style={{ borderColor: "var(--border)" }}
-                    >
-                      <span className="text-xs font-black text-white whitespace-nowrap">{court.name}</span>
-                      <span className="text-[10px] whitespace-nowrap opacity-60 font-semibold" style={{ color: "var(--text-muted)" }}>{court.surface}</span>
-                    </div>
-                  ))}
+                  {visibleCourts.map((court) => {
+                    const courtNum = court.id.split("-")[1];
+                    const surfaceLabel = court.surface;
+                    const isClay = surfaceLabel.toLowerCase().includes("clay");
+                    const isHard = surfaceLabel.toLowerCase().includes("hard");
+                    return (
+                      <div
+                        key={court.id}
+                        className="p-4 border-r text-center flex flex-col justify-center items-center gap-2"
+                        style={{ borderColor: "var(--border)", background: "rgba(255, 255, 255, 0.01)" }}
+                      >
+                        <div className="flex items-center gap-1.5 justify-center">
+                          <span className="h-5 w-5 rounded-full text-[10px] font-black flex items-center justify-center"
+                            style={{
+                              background: selectedSport === "tennis" ? "rgba(0, 255, 209, 0.1)" : "rgba(167, 139, 250, 0.1)",
+                              color: selectedSport === "tennis" ? "var(--cyan)" : "#A78BFA",
+                              border: `1px solid ${selectedSport === "tennis" ? "rgba(0, 255, 209, 0.2)" : "rgba(167, 139, 250, 0.2)"}`
+                            }}
+                          >
+                            {courtNum}
+                          </span>
+                          <span className="text-xs font-black text-white whitespace-nowrap">
+                            {selectedSport === "tennis" ? `Tenis Kurt` : `Bedminton`}
+                          </span>
+                        </div>
+                        <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                          isClay 
+                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" 
+                            : isHard
+                            ? "bg-blue-500/10 text-blue-300 border border-blue-500/20"
+                            : "bg-purple-500/10 text-purple-300 border border-purple-500/20"
+                        }`}>
+                          {surfaceLabel}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Grid Body */}
                 <div className="relative" style={{ height: `${totalHours * slotHeight}px` }}>
                   
-                  {/* Left Column Time Labels (Vertical hours) & Horizontal background lines */}
-                  {hours.map((hour, idx) => {
-                    const topPos = idx * slotHeight;
-                    return (
-                      <div key={hour} className="absolute left-0 right-0 pointer-events-none" style={{ top: `${topPos}px`, height: `${slotHeight}px` }}>
-                        
-                        {/* Vertical time line indicator */}
+                  {/* Left Column Time Labels (Vertical hours) */}
+                  <div className="absolute left-0 w-[100px] h-full border-r" style={{ borderColor: "var(--border)" }}>
+                    {hours.map((hour, idx) => {
+                      const topPos = idx * slotHeight;
+                      return (
                         <div
-                          className="absolute left-0 w-[100px] border-r flex items-start justify-center pr-2 pt-2 text-2xs font-black font-mono tracking-tighter"
+                          key={hour}
+                          className="absolute right-3 text-2xs font-extrabold font-mono tracking-tighter text-slate-400 flex items-center justify-end"
                           style={{
-                            height: "100%",
-                            borderColor: "var(--border)",
-                            color: "var(--text-muted)",
-                            background: "rgba(12, 12, 20, 0.4)",
+                            top: `${topPos}px`,
+                            transform: "translateY(-50%)",
+                            height: "20px",
                           }}
                         >
                           {hour}:00
                         </div>
+                      );
+                    })}
+                  </div>
 
-                        {/* Horizontal boundary grid line */}
-                        <div className="absolute left-[100px] right-0 border-b w-full" style={{ top: "0", borderColor: "rgba(255,255,255,0.035)", height: "0" }} />
-                      </div>
+                  {/* Horizontal background lines */}
+                  {hours.map((hour, idx) => {
+                    const topPos = idx * slotHeight;
+                    return (
+                      <div
+                        key={hour}
+                        className="absolute left-[100px] right-0 border-b pointer-events-none"
+                        style={{
+                          top: `${topPos}px`,
+                          borderColor: "rgba(255, 255, 255, 0.035)",
+                          height: "0",
+                        }}
+                      />
                     );
                   })}
+                  {/* Bottom boundary line */}
+                  <div
+                    className="absolute left-[100px] right-0 border-b pointer-events-none"
+                    style={{
+                      top: `${totalHours * slotHeight}px`,
+                      borderColor: "rgba(255, 255, 255, 0.035)",
+                    }}
+                  />
 
                   {/* Empty cells buttons grid (clickable slots overlay) */}
                   <div
@@ -435,18 +496,19 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                             return (
                               <div
                                 key={booking.id}
-                                className="absolute left-1.5 right-1.5 rounded-xl border p-2 flex flex-col justify-between overflow-hidden transition-all hover:scale-[1.01] hover:brightness-110 z-10 shadow-lg"
+                                className="absolute left-1.5 right-1.5 rounded-xl border p-2 flex flex-col justify-between overflow-hidden transition-all hover:scale-[1.02] hover:shadow-[0_12px_30px_rgba(0,255,209,0.15)] z-10 shadow-lg"
                                 style={{
                                   top: position.top,
                                   height: position.height,
-                                  background: "linear-gradient(135deg, rgba(0, 255, 209, 0.16), rgba(12, 12, 20, 0.95))",
-                                  borderColor: "rgba(0, 255, 209, 0.4)",
-                                  boxShadow: "0 6px 15px rgba(0, 0, 0, 0.4)",
+                                  background: "rgba(15, 23, 42, 0.85)",
+                                  backdropFilter: "blur(4px)",
+                                  borderColor: "rgba(255, 255, 255, 0.08)",
+                                  borderLeft: `4px solid ${selectedSport === "tennis" ? "var(--cyan)" : "#A78BFA"}`,
                                 }}
                               >
                                 <div className="min-w-0">
-                                  <div className="flex items-center justify-between gap-1">
-                                    <span className="text-[10px] font-black text-cyan-300 truncate tracking-tight uppercase">
+                                  <div className="flex items-center justify-between gap-1 w-full">
+                                    <span className="text-[10px] font-black text-white truncate uppercase tracking-wide">
                                       {booking.title}
                                     </span>
                                     <button
@@ -457,13 +519,16 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                                       <Trash2 className="h-3 w-3" />
                                     </button>
                                   </div>
-                                  <p className="text-[10px] text-white/80 font-bold truncate leading-tight mt-0.5">
+                                  <p className="text-[10px] font-semibold truncate leading-tight mt-1 animate-pulse" style={{ color: "var(--text-muted)" }}>
                                     {booking.customerName}
                                   </p>
                                 </div>
-                                <span className="block text-[9px] font-bold text-slate-400 leading-none">
-                                  {bStart.getHours()}:00 – {bEnd.getHours()}:00
-                                </span>
+                                <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400 leading-none mt-1">
+                                  <Clock className="h-2.5 w-2.5" />
+                                  <span>
+                                    {bStart.getHours()}:00 – {bEnd.getHours()}:00
+                                  </span>
+                                </div>
                               </div>
                             );
                           })}
@@ -479,6 +544,44 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
           </div>
         </div>
       </div>
+
+      <style>{`
+        select {
+          appearance: none !important;
+          background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E") !important;
+          background-position: right 0.75rem center !important;
+          background-repeat: no-repeat !important;
+          background-size: 1.25rem !important;
+          padding-right: 2.5rem !important;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+          background: transparent !important;
+          bottom: 0 !important;
+          color: transparent !important;
+          cursor: pointer !important;
+          height: auto !important;
+          left: 0 !important;
+          position: absolute !important;
+          right: 0 !important;
+          top: 0 !important;
+          width: auto !important;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          height: 6px;
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.02);
+          border-radius: 99px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.12);
+          border-radius: 99px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.25);
+        }
+      `}</style>
     </section>
   );
 }
