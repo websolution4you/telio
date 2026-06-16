@@ -27,7 +27,7 @@ export default function BookingsPage() {
           className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full blur-[90px]"
           style={{ background: "radial-gradient(ellipse, rgba(0,255,209,0.13), rgba(123,97,255,0.08), transparent 68%)" }}
         />
-        <div className="relative z-10 mx-auto px-8 text-center" style={{ maxWidth: "76rem" }}>
+        <div className="relative z-10 mx-auto px-8 text-center" style={{ maxWidth: "76rem", textAlign: "center" }}>
           <div
             className="mx-auto inline-flex items-center gap-3 rounded-full border px-5 py-3 text-xs font-black uppercase tracking-[0.2em]"
             style={{ borderColor: "rgba(0,255,209,0.25)", background: "rgba(0,255,209,0.06)", color: "var(--cyan)" }}
@@ -37,12 +37,12 @@ export default function BookingsPage() {
 
           <h1
             className="mx-auto mt-8 max-w-5xl text-5xl font-semibold tracking-[-0.05em] text-white md:text-7xl"
-            style={{ fontFamily: "var(--font-poppins), sans-serif", lineHeight: 1.05 }}
+            style={{ fontFamily: "var(--font-poppins), sans-serif", lineHeight: 1.05, textAlign: "center" }}
           >
             Rezervačný systém pre <span className="text-gradient">NTC kurty</span>
           </h1>
 
-          <p className="mx-auto mt-7 max-w-3xl text-base leading-8 md:text-lg" style={{ color: "var(--text-muted)" }}>
+          <p className="mx-auto mt-7 max-w-3xl text-base leading-8 md:text-lg" style={{ color: "var(--text-muted)", textAlign: "center" }}>
             Ukážka novej Telio rezervácie pre Národné tenisové centrum v Bratislave. Systém je pripravený pre 8 indoor tenisových kurtov a 14 bedmintonových kurtov — s budúcim napojením na Google Calendar API a hlasového asistenta Telio.
           </p>
 
@@ -63,7 +63,7 @@ export default function BookingsPage() {
               <div
                 key={item.label}
                 className="rounded-3xl border p-6"
-                style={{ background: "rgba(12,12,20,0.72)", borderColor: "var(--border)" }}
+                style={{ background: "rgba(12,12,20,0.72)", borderColor: "var(--border)", textAlign: "center" }}
               >
                 <div className="text-4xl font-black text-white">{item.value}</div>
                 <div className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>{item.label}</div>
