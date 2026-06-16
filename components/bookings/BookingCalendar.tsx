@@ -167,20 +167,20 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
   };
 
   return (
-    <section className="relative mx-auto px-8" style={{ maxWidth: "76rem", margin: "3rem auto 0", paddingBottom: "6rem" }}>
+    <section className="relative w-full flex flex-col items-center px-8" style={{ maxWidth: "76rem", width: "100%", display: "flex", flexDirection: "column", alignItems: "center", margin: "3rem auto 0", paddingBottom: "6rem" }}>
       {/* Centered Heading Section */}
-      <div className="text-center mb-10 flex flex-col items-center w-full">
-        <div className="inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-[0.2em] mb-4 rounded-full border px-4 py-2" style={{ borderColor: "rgba(0,255,209,0.2)", background: "rgba(0,255,209,0.04)", color: "var(--cyan)" }}>
+      <div className="text-center mb-10 flex flex-col items-center w-full" style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div className="inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-[0.2em] mb-4 rounded-full border px-4 py-2" style={{ borderColor: "rgba(0,255,209,0.2)", background: "rgba(0,255,209,0.04)", color: "var(--cyan)", display: "inline-flex" }}>
           <Calendar className="h-4 w-4" /> Rezervačný kalendár
         </div>
-        <h2 className="text-3xl font-semibold text-white md:text-5xl" style={{ fontFamily: "var(--font-poppins), sans-serif", letterSpacing: "-0.03em" }}>
+        <h2 className="text-3xl font-semibold text-white md:text-5xl" style={{ fontFamily: "var(--font-poppins), sans-serif", letterSpacing: "-0.03em", textAlign: "center" }}>
           NTC Bratislava Rezervácie
         </h2>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[300px_1fr] items-start">
+      <div className="grid gap-8 lg:grid-cols-[300px_1fr] items-start w-full" style={{ width: "100%" }}>
         {/* Left Side: Booking Inputs Form */}
-        <aside className="rounded-[24px] border p-6 space-y-6" style={{ background: "rgba(12,12,20,0.78)", borderColor: "var(--border)" }}>
+        <aside className="rounded-[24px] border p-6 space-y-6 w-full" style={{ background: "rgba(12,12,20,0.78)", borderColor: "var(--border)", width: "100%" }}>
           <div>
             <h3 className="text-lg font-bold text-white mb-1">Nová rezervácia</h3>
             <p className="text-xs" style={{ color: "var(--text-muted)" }}>Zvoľte parametre pre 1-hodinový prenájom kurtu.</p>
@@ -314,7 +314,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
         </aside>
 
         {/* Right Side: Google Calendar Style Resource Grid */}
-        <div className="flex flex-col space-y-4 w-full">
+        <div className="flex flex-col space-y-4 w-full min-w-0" style={{ width: "100%", minWidth: 0 }}>
           {/* Calendar Toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border p-3" style={{ background: "rgba(12,12,20,0.4)", borderColor: "var(--border)" }}>
             <div className="flex items-center gap-2">
