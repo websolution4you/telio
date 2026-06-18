@@ -301,11 +301,11 @@ export const translations = {
       endCall: "End Call",
     },
     cookies: {
-      title: "Cookies",
-      text: "We use cookies to enhance your browsing experience, serve personalized content, and analyze our traffic. By clicking \"Accept\", you consent to our use of cookies.",
-      accept: "Accept all",
-      decline: "Decline",
-      more: "Learn more",
+      title: "This website uses cookies",
+      text: "We use cookies to collect and analyze information about site performance and usage, to provide social media features, and to enhance and customize content and advertisements. Cookies are categorized and you can decide which ones to allow.",
+      accept: "Allow all",
+      decline: "Decline all",
+      more: "Customize",
     },
   },
 
@@ -605,11 +605,11 @@ export const translations = {
       endCall: "Ukončiť hovor",
     },
     cookies: {
-      title: "Cookies",
-      text: "Používame súbory cookie, aby sme vám poskytli čo najlepší zážitok na našom webe, personalizovali obsah a analyzovali návštevnosť. Kliknutím na „Prijať všetko“ vyjadrujete súhlas s ich používaním.",
-      accept: "Prijať všetko",
-      decline: "Odmietnuť",
-      more: "Zistiť viac",
+      title: "Táto webstránka používa súbory cookies",
+      text: "Súbory cookie používame na zhromažďovanie a analýzu informácií o výkone a používaní stránok, na poskytovanie funkcií sociálnych médií a na vylepšenie a prispôsobenie obsahu a reklám. Cookies sú kategorizované a viete sa rozhodnúť, ktorú z nich povolíte.",
+      accept: "Povoliť všetko",
+      decline: "Odmietnuť všetko",
+      more: "Prispôsobiť",
     },
   },
 } as const;
