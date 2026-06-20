@@ -268,10 +268,10 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
   };
 
   return (
-    <section className="relative w-full flex flex-col items-center px-4 md:px-8" style={{ maxWidth: "84rem", width: "100%", margin: "0 auto", paddingBottom: "6rem" }}>
+    <section className="relative w-full flex flex-col items-center px-4 md:px-8" style={{ maxWidth: "84rem", width: "100%", margin: "5rem auto 0", paddingBottom: "6rem" }}>
       
       {/* Top Banner / Simulator Notice */}
-      <div className="w-full mb-8 rounded-3xl border p-6 flex flex-col md:flex-row items-center justify-between gap-6" style={{ background: "linear-gradient(135deg, rgba(12,12,20,0.85) 0%, rgba(20,20,35,0.7) 100%)", borderColor: "var(--border)" }}>
+      <div className="w-full mb-12 rounded-3xl border p-6 flex flex-col md:flex-row items-center justify-between gap-6" style={{ background: "linear-gradient(135deg, rgba(12,12,20,0.85) 0%, rgba(20,20,35,0.7) 100%)", borderColor: "var(--border)" }}>
         <div className="flex items-start gap-4">
           <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
             <Info className="h-6 w-6" />
@@ -292,10 +292,10 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
       </div>
 
       {/* Main Container */}
-      <div className="w-full flex flex-col space-y-6">
+      <div className="w-full flex flex-col space-y-10">
         
         {/* NTC-style Sport tabs selection */}
-        <div className="flex flex-wrap gap-2 border-b border-white/5 pb-4">
+        <div className="flex flex-wrap gap-2 border-b border-white/5 pb-6 mb-4">
           {(["badminton", "squash", "tennis", "tennis-clay"] as const).map((sport) => (
             <button
               key={sport}
@@ -317,7 +317,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
         </div>
 
         {/* Toolbar Header (NTC Style layout) */}
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border p-4" style={{ background: "rgba(12,12,20,0.72)", borderColor: "var(--border)" }}>
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border p-4 mb-6" style={{ background: "rgba(12,12,20,0.72)", borderColor: "var(--border)" }}>
           
           <div className="flex items-center gap-2">
             <button

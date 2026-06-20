@@ -3,7 +3,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BookingCalendar from "@/components/bookings/BookingCalendar";
 import { courts, mockBookings } from "@/lib/bookings/mockBookings";
-import { MapPin, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Telio Bookings — Rezervácia kurtov NTC Bratislava",
@@ -41,22 +41,6 @@ export default function BookingsPage() {
           >
             Rezervačný systém pre <span className="text-gradient">NTC kurty</span>
           </h1>
-
-          <p className="mt-7 text-base leading-8 md:text-lg" style={{ color: "var(--text-muted)", textAlign: "center", width: "100%", maxWidth: "48rem", display: "block" }}>
-            Ukážka novej Telio rezervácie pre Národné tenisové centrum v Bratislave. Systém je pripravený pre 8 indoor tenisových kurtov a 14 bedmintonových kurtov — s budúcim napojením na Google Calendar API a hlasového asistenta Telio.
-          </p>
-
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm w-full" style={{ color: "var(--text-muted)", display: "flex", flexWrap: "wrap", justifyContent: "center", width: "100%" }}>
-            <span className="inline-flex items-center gap-2 rounded-full border px-4 py-2" style={{ borderColor: "var(--border)", background: "rgba(255,255,255,0.03)" }}>
-              <MapPin className="h-4 w-4" style={{ color: "var(--cyan)" }} /> Bratislava, Slovensko
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-full border px-4 py-2" style={{ borderColor: "var(--border)", background: "rgba(255,255,255,0.03)" }}>
-              Google Calendar ready
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-full border px-4 py-2" style={{ borderColor: "var(--border)", background: "rgba(255,255,255,0.03)" }}>
-              Voice assistant ready
-            </span>
-          </div>
 
           <div className="mt-12 grid gap-4 md:grid-cols-3 w-full" style={{ width: "100%", maxWidth: "56rem", display: "grid" }}>
             {stats.map((item) => (
