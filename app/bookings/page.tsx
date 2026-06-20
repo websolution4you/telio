@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BookingCalendar from "@/components/bookings/BookingCalendar";
-import { courts, mockBookings } from "@/lib/bookings/mockBookings";
+import { courts } from "@/lib/bookings/mockBookings";
+import { fetchBookingsAction } from "@/app/actions/bookings";
 import { Sparkles } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -17,7 +18,17 @@ const stats = [
   { value: "24/7", label: "hlasové rezervácie cez Telio" },
 ];
 
-export default function BookingsPage() {
+export default async function BookingsPage() {
+  // Fetch initial bookings on the server for a 4-day window (today + 3 days)
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date();
+  end.setDate(end.getDate() + 4);
+  end.setHours(23, 59, 59, 999);
+
+  const res = await fetchBookingsAction(start.toISOString(), end.toISOString());
+  const initialBookings = res.success && res.bookings ? res.bookings : [];
+
   return (
     <main className="min-h-screen grid-bg overflow-hidden" style={{ background: "var(--bg)" }}>
       <Navbar />
@@ -57,7 +68,7 @@ export default function BookingsPage() {
         </div>
       </section>
 
-      <BookingCalendar courts={courts} bookings={mockBookings} />
+      <BookingCalendar courts={courts} bookings={initialBookings} />
 
       <Footer />
     </main>

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import type { Booking, Court, SportType } from "@/lib/bookings/mockBookings";
 import { openingHours } from "@/lib/bookings/mockBookings";
+import { fetchBookingsAction, createBookingAction, deleteBookingAction } from "@/app/actions/bookings";
 
 type BookingCalendarProps = {
   courts: Court[];
@@ -63,9 +64,32 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
   const [formDurationMinutes, setFormDurationMinutes] = useState<number>(60);
   const [errorMsg, setErrorMsg] = useState("");
 
+  const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
-    setLocalBookings(bookings);
-  }, [bookings]);
+    let active = true;
+    async function loadLiveBookings() {
+      setIsLoading(true);
+      const start = new Date(baseDate);
+      start.setHours(0, 0, 0, 0);
+      
+      const end = new Date(baseDate);
+      end.setDate(end.getDate() + viewDaysCount);
+      end.setHours(23, 59, 59, 999);
+
+      const res = await fetchBookingsAction(start.toISOString(), end.toISOString());
+      if (active && res.success && res.bookings) {
+        setLocalBookings(res.bookings);
+      }
+      if (active) {
+        setIsLoading(false);
+      }
+    }
+    loadLiveBookings();
+    return () => {
+      active = false;
+    };
+  }, [baseDate, viewDaysCount]);
 
   // Adjust base date helper
   const adjustDate = (days: number) => {
@@ -157,7 +181,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
     });
   };
 
-  const handleCreateBookingSubmit = (e: React.FormEvent) => {
+  const handleCreateBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSlot) return;
 
@@ -175,8 +199,8 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
       return;
     }
 
-    const newBooking: Booking = {
-      id: `user-booking-${Date.now()}`,
+    setIsLoading(true);
+    const res = await createBookingAction({
       courtId,
       title: formTitle.trim() || (selectedSport.startsWith("tennis") ? "Tenis" : "Bedminton"),
       customerName: formCustomerName.trim() || "Zákazník",
@@ -185,17 +209,31 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
       end: endDateTime.toISOString(),
       status: "confirmed",
       source: formSource,
-    };
+    });
 
-    setLocalBookings((prev) => [...prev, newBooking]);
-    setIsModalOpen(false);
-    setSelectedSlot(null);
+    setIsLoading(false);
+
+    if (res.success && res.booking) {
+      setLocalBookings((prev) => [...prev, res.booking as Booking]);
+      setIsModalOpen(false);
+      setSelectedSlot(null);
+    } else {
+      setErrorMsg(res.error || "Nepodarilo sa vytvoriť rezerváciu. Skontrolujte pripojenie.");
+    }
   };
 
-  const handleDeleteBooking = (id: string, e: React.MouseEvent) => {
+  const handleDeleteBooking = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm("Naozaj chcete zrušiť túto rezerváciu?")) {
-      setLocalBookings((prev) => prev.filter((b) => b.id !== id));
+      setIsLoading(true);
+      const res = await deleteBookingAction(id);
+      setIsLoading(false);
+      
+      if (res.success) {
+        setLocalBookings((prev) => prev.filter((b) => b.id !== id));
+      } else {
+        alert("Nepodarilo sa zrušiť rezerváciu v Google kalendári.");
+      }
     }
   };
 
@@ -370,8 +408,9 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
               </select>
             </div>
 
-            <div className="text-xs font-black px-4 py-2 rounded-full border border-cyan-500/20 text-cyan-300 bg-cyan-500/5">
-              Aktívny filter: {sportLabels[selectedSport]}
+            <div className="text-xs font-black px-4 py-2 rounded-full border border-cyan-500/20 text-cyan-300 bg-cyan-500/5 flex items-center gap-2">
+              {isLoading && <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping" />}
+              {isLoading ? "Načítavam..." : `Aktívny filter: ${sportLabels[selectedSport]}`}
             </div>
           </div>
 
