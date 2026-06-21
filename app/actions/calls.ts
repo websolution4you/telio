@@ -277,7 +277,7 @@ export async function fetchCallsComparisonAction(
                     
                     const vcStartMs = new Date(vc.started_at).getTime();
                     const diffSec = Math.abs(convStartMs - vcStartMs) / 1000;
-                    return diffSec < 30;
+                    return diffSec < 180;
                 });
 
                 const virtualNum = matchedVoip ? matchedVoip.telnyx_number : "Web Widget / Neznáme";
@@ -299,6 +299,9 @@ export async function fetchCallsComparisonAction(
                     status: "completed"
                 };
             });
+
+            // Sort by date descending
+            mappedCalls.sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
 
             // Group by virtual number
             const numberSummaryMap = new Map<string, { 
@@ -569,7 +572,7 @@ export async function fetchCallsComparisonAction(
 
                     if (convStartMs > 0) {
                         const diffSec = Math.abs(callStartMs - convStartMs) / 1000;
-                        return diffSec < 30;
+                        return diffSec < 180;
                     }
                     return false;
                 });

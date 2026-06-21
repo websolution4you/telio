@@ -524,8 +524,8 @@ export default function PocitanieMinutPage() {
                                                         <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 700 }}>
                                                             {call.billed_minutes}
                                                         </td>
-                                                        <td style={{ padding: "12px 14px", textAlign: "right", color: "#fbbf24", fontWeight: 600 }}>
-                                                            ${call.cost_usd.toFixed(3)}
+                                                        <td style={{ padding: "12px 14px", textAlign: "right", color: provider === "elevenlabs" ? "#7B61FF" : "#fbbf24", fontWeight: 600 }}>
+                                                            {provider === "elevenlabs" ? `€${call.cost_usd.toFixed(2)}` : `$${call.cost_usd.toFixed(3)}`}
                                                         </td>
                                                     </tr>
                                                 );
