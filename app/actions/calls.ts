@@ -261,9 +261,13 @@ export async function fetchCallsComparisonAction(
 
             // Map conversations to TelnyxCall array for rendering
             const mappedCalls: TelnyxCall[] = conversations.map(conv => {
-                const duration = conv.metadata?.call_duration_secs || 0;
-                const costUsd = conv.metadata?.cost || 0;
-                const costEur = Math.round((costUsd * 0.92) * 1000) / 1000;
+                const duration = conv.call_duration_secs !== undefined 
+                    ? conv.call_duration_secs 
+                    : (conv.metadata?.call_duration_secs || 0);
+                const costUsd = conv.metadata?.cost;
+                const costEur = costUsd !== undefined 
+                    ? Math.round((costUsd * 0.92) * 1000) / 1000 
+                    : Math.round(((duration / 60) * 0.10) * 1000) / 1000;
                 
                 const convStartMs = conv.start_time_unix_secs 
                     ? conv.start_time_unix_secs * 1000 
@@ -577,10 +581,14 @@ export async function fetchCallsComparisonAction(
                     return false;
                 });
 
-                if (matched && matched.metadata) {
-                    const costUsd = matched.metadata.cost || 0;
-                    // Prepočet z USD na EUR (kurz ~0.92)
-                    elevenlabs_cost_eur = Math.round((costUsd * 0.92) * 1000) / 1000;
+                if (matched) {
+                    const duration = matched.call_duration_secs !== undefined 
+                        ? matched.call_duration_secs 
+                        : (matched.metadata?.call_duration_secs || 0);
+                    const costUsd = matched.metadata?.cost;
+                    elevenlabs_cost_eur = costUsd !== undefined 
+                        ? Math.round((costUsd * 0.92) * 1000) / 1000 
+                        : Math.round(((duration / 60) * 0.10) * 1000) / 1000;
                     is_elevenlabs_real = true;
                 }
             } else if (!hasRealElevenLabsKey) {
