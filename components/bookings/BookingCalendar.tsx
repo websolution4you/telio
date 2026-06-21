@@ -467,28 +467,14 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                       </div>
                       
                       {/* Hour markings */}
-                      <div className="relative w-full h-10">
-                        {timeSlots.map((slot, idx) => {
-                          const percent = (idx / totalSlotsCount) * 100;
-                          const isLast = idx === timeSlots.length - 1;
+                      <div className="grid w-full h-10" style={{ gridTemplateColumns: `repeat(${totalSlotsCount}, 1fr)` }}>
+                        {timeSlots.slice(0, totalSlotsCount).map((slot, idx) => {
                           return (
                             <div 
                               key={idx}
-                              className="absolute flex flex-col items-center"
-                              style={{ left: `${percent}%`, height: '100%', justifyContent: 'flex-end' }}
+                              className="h-full border-r border-white/10 flex items-center pl-2 text-slate-300 font-mono text-[10px] select-none"
                             >
-                              <span 
-                                className={`font-mono text-[10px] text-slate-400 absolute bottom-5 whitespace-nowrap ${
-                                  idx === 0 
-                                    ? "translate-x-3" 
-                                    : isLast 
-                                      ? "-translate-x-[calc(100%-4px)]" 
-                                      : "-translate-x-1/2"
-                                }`}
-                              >
-                                {!isLast && slot.label}
-                              </span>
-                              <div className="h-2.5 w-px bg-white/20 -translate-x-1/2" />
+                              {slot.label}
                             </div>
                           );
                         })}
@@ -517,14 +503,14 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                             <div className="relative h-20 w-full flex items-center group/row">
                               
                               {/* Background slot grid lines & click areas */}
-                              <div className="absolute inset-0 flex w-full h-full">
+                              <div className="absolute inset-0 grid w-full h-full" style={{ gridTemplateColumns: `repeat(${totalSlotsCount}, 1fr)` }}>
                                 {Array.from({ length: totalSlotsCount }).map((_, slotIdx) => {
                                   const targetSlot = timeSlots[slotIdx];
                                   return (
                                     <button
                                       key={slotIdx}
                                       onClick={() => handleCellClick(court.id, date, targetSlot)}
-                                      className="flex-1 h-full border-r border-white/[0.03] hover:bg-cyan-500/[0.02] focus:bg-cyan-500/[0.04] focus:outline-none transition-all flex items-center justify-center text-white/0 hover:text-cyan-400 group/cell"
+                                      className="h-full border-r border-white/10 hover:bg-cyan-500/[0.02] focus:bg-cyan-500/[0.04] focus:outline-none transition-all flex items-center justify-center text-white/0 hover:text-cyan-400 group/cell"
                                       title={`Kliknutím rezervujete od ${targetSlot.label}`}
                                     >
                                       <Plus className="h-4 w-4 opacity-0 group-hover/cell:opacity-100 transition-opacity" />
