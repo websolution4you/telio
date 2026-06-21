@@ -353,29 +353,14 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
         {/* Toolbar Header (NTC Style layout) */}
         <div className="flex flex-wrap items-center justify-between gap-6 rounded-3xl border px-8 py-6 mb-8 min-h-[90px]" style={{ background: "rgba(12,12,20,0.72)", borderColor: "var(--border)" }}>
           
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => adjustDate(-1)}
-                className="p-3 rounded-xl border border-white/10 hover:bg-white/5 text-white transition-colors cursor-pointer hover:border-cyan-500/40 flex-shrink-0"
-                title="Predchádzajúci deň"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setBaseDate(new Date())}
-                className="px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-black text-white transition-colors cursor-pointer hover:border-cyan-500/40 flex-shrink-0"
-              >
-                Dnes
-              </button>
-              <button
-                onClick={() => adjustDate(1)}
-                className="p-3 rounded-xl border border-white/10 hover:bg-white/5 text-white transition-colors cursor-pointer hover:border-cyan-500/40 flex-shrink-0"
-                title="Nasledujúci deň"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
+          {/* Left: Datepicker & Today reset button */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              onClick={() => setBaseDate(new Date())}
+              className="px-4 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-black text-white transition-colors cursor-pointer hover:border-cyan-500/40 flex-shrink-0"
+            >
+              Dnes
+            </button>
 
             <div className="relative flex items-center flex-shrink-0">
               <Calendar className="absolute left-3.5 h-4 w-4 text-cyan-400 pointer-events-none" />
@@ -392,19 +377,31 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
             </div>
           </div>
 
-          {/* Formatted Date prominently displayed in the center */}
-          <div className="hidden md:flex items-center justify-center flex-1 mx-4">
-            <h2 className="text-white font-extrabold text-base tracking-wide text-center">
+          {/* Center: Navigation arrows directly around the date */}
+          <div className="flex items-center justify-center gap-4 flex-1 mx-4 min-w-[280px]">
+            <button
+              onClick={() => adjustDate(-1)}
+              className="p-3 rounded-xl border border-white/10 hover:bg-white/5 text-white transition-colors cursor-pointer hover:border-cyan-500/40 flex-shrink-0"
+              title="Predchádzajúci deň"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+
+            <h2 className="text-white font-extrabold text-base tracking-wide text-center min-w-[180px] select-none">
               {formattedDate}
             </h2>
+
+            <button
+              onClick={() => adjustDate(1)}
+              className="p-3 rounded-xl border border-white/10 hover:bg-white/5 text-white transition-colors cursor-pointer hover:border-cyan-500/40 flex-shrink-0"
+              title="Nasledujúci deň"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
 
+          {/* Right: Active filter status */}
           <div className="flex items-center gap-4 flex-shrink-0">
-            {/* Show formatted date on small screens instead of hiding completely */}
-            <div className="md:hidden text-xs text-slate-300 font-bold">
-              {formattedDate}
-            </div>
-
             <div className="text-xs font-black px-4 py-2.5 rounded-full border border-cyan-500/20 text-cyan-300 bg-cyan-500/5 flex items-center gap-2 flex-shrink-0">
               {isLoading && <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping" />}
               {isLoading ? "Načítavam..." : `Aktívny filter: ${sportLabels[selectedSport]}`}
