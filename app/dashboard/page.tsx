@@ -48,6 +48,17 @@ export default function DashboardIndexPage() {
                             Dashboard Taxi
                         </h2>
                     </a>
+
+                    {/* Počítanie Minút (Telnyx) */}
+                    <a
+                        href="/dashboard/pocitanie_minut"
+                        className="group flex flex-col items-center justify-center p-10 md:p-16 rounded-3xl bg-white/[0.03] border border-white/10 hover:bg-purple-500/10 hover:border-purple-500/50 hover:-translate-y-2 transition-all duration-500 w-[188px] md:w-[280px] aspect-square"
+                    >
+                        <div className="text-4xl md:text-6xl mb-4 md:mb-6 transform group-hover:scale-110 transition-transform duration-500">📞</div>
+                        <h2 className="text-lg md:text-2xl font-bold text-purple-400 tracking-tight text-center leading-tight">
+                            Počítanie minút
+                        </h2>
+                    </a>
                 </div>
             </div>
         </div>

@@ -381,9 +381,9 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
                 </tbody>
             </table>
             
-            {/* Pagination Controls */}
+                        {/* Pagination Controls */}
             {totalPages > 1 && (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "1rem", marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--border)" }}>
                     <button
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
@@ -400,9 +400,54 @@ export default function OrdersTable({ orders }: OrdersTableProps) {
                     >
                         Predošlé
                     </button>
-                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                        Strana <span style={{ color: "#fff", fontWeight: 600 }}>{currentPage}</span> z {totalPages}
+                    
+                    <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                        {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
+                            // Show first few pages, or window around current page if there are many
+                            let pageNum = i + 1;
+                            if (totalPages > 5 && currentPage > 3) {
+                                pageNum = currentPage - 2 + i;
+                                if (pageNum > totalPages) pageNum = totalPages - (4 - i);
+                            }
+                            
+                            return (
+                                <button
+                                    key={pageNum}
+                                    onClick={() => setCurrentPage(pageNum)}
+                                    style={{
+                                        width: "28px",
+                                        height: "28px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        background: currentPage === pageNum ? "rgba(0, 255, 209, 0.1)" : "transparent",
+                                        color: currentPage === pageNum ? "var(--cyan)" : "var(--text-muted)",
+                                        border: currentPage === pageNum ? "1px solid rgba(0, 255, 209, 0.3)" : "1px solid transparent",
+                                        borderRadius: "6px",
+                                        fontSize: "0.75rem",
+                                        fontWeight: currentPage === pageNum ? 700 : 500,
+                                        cursor: "pointer",
+                                        transition: "all 0.2s"
+                                    }}
+                                    onMouseEnter={e => {
+                                        if (currentPage !== pageNum) {
+                                            e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                                            e.currentTarget.style.color = "#fff";
+                                        }
+                                    }}
+                                    onMouseLeave={e => {
+                                        if (currentPage !== pageNum) {
+                                            e.currentTarget.style.background = "transparent";
+                                            e.currentTarget.style.color = "var(--text-muted)";
+                                        }
+                                    }}
+                                >
+                                    {pageNum}
+                                </button>
+                            );
+                        })}
                     </div>
+
                     <button
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
