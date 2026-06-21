@@ -341,6 +341,67 @@ body {
   padding: 2px 8px 2px 8px;
 }
 
+/* NTC Sport Selection Tabs */
+.ntc-sport-tabs-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.ntc-sport-tab-btn {
+  padding: 12px 28px !important;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  background: rgba(12, 12, 20, 0.6) !important;
+  color: var(--text-muted) !important;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 130px;
+  text-align: center;
+  height: 48px !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+}
+
+.ntc-sport-tab-btn:hover {
+  border-color: rgba(0, 255, 209, 0.3) !important;
+  color: #fff !important;
+  background: rgba(0, 255, 209, 0.03) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 255, 209, 0.05);
+}
+
+.ntc-sport-tab-btn-active {
+  border-color: var(--cyan) !important;
+  background: rgba(0, 255, 209, 0.08) !important;
+  color: var(--cyan) !important;
+  box-shadow: 0 0 25px rgba(0, 255, 209, 0.15), inset 0 0 10px rgba(0, 255, 209, 0.03) !important;
+  transform: translateY(-1px);
+}
+
+.ntc-sport-tab-btn-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 15%;
+  right: 15%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+}
+
+
 
 
 

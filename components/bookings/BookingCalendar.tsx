@@ -333,23 +333,14 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
       <div className="w-full flex flex-col space-y-10">
         
         {/* NTC-style Sport tabs selection */}
-        <div className="flex flex-wrap gap-2 border-b border-white/5 pb-6 mb-4">
+        <div className="ntc-sport-tabs-container">
           {(["badminton", "squash", "tennis", "tennis-clay"] as const).map((sport) => (
             <button
               key={sport}
               onClick={() => setSelectedSport(sport)}
-              className="px-5 py-3 text-sm font-black rounded-xl border transition-all cursor-pointer relative overflow-hidden"
-              style={{
-                borderColor: selectedSport === sport ? "var(--cyan)" : "rgba(255, 255, 255, 0.05)",
-                background: selectedSport === sport ? "rgba(0, 255, 209, 0.08)" : "rgba(12, 12, 20, 0.6)",
-                color: selectedSport === sport ? "var(--cyan)" : "var(--text-muted)",
-                boxShadow: selectedSport === sport ? "0 0 20px rgba(0, 255, 209, 0.15)" : "none"
-              }}
+              className={`ntc-sport-tab-btn ${selectedSport === sport ? "ntc-sport-tab-btn-active" : ""}`}
             >
               {sportLabels[sport]}
-              {selectedSport === sport && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
-              )}
             </button>
           ))}
         </div>
