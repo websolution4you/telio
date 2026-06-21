@@ -42,7 +42,7 @@ function getLocalDateString(date: Date) {
 export default function BookingCalendar({ courts, bookings }: BookingCalendarProps) {
   const [selectedSport, setSelectedSport] = useState<SportType>("badminton");
   const [baseDate, setBaseDate] = useState(() => new Date());
-  const [viewDaysCount, setViewDaysCount] = useState<number>(3); // Default to 3 days view
+  const viewDaysCount = 1;
   
   // Interactive Local state for bookings
   const [localBookings, setLocalBookings] = useState<Booking[]>(() => bookings);
@@ -108,6 +108,11 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
     }
     return list;
   }, [baseDate, viewDaysCount]);
+
+  const formattedDate = useMemo(() => {
+    const str = new Intl.DateTimeFormat("sk-SK", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(baseDate);
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }, [baseDate]);
 
   // Filter courts for current sport
   const visibleCourts = useMemo(() => {
@@ -346,31 +351,33 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
         </div>
 
         {/* Toolbar Header (NTC Style layout) */}
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border px-8 py-5 mb-8" style={{ background: "rgba(12,12,20,0.72)", borderColor: "var(--border)" }}>
+        <div className="flex flex-wrap items-center justify-between gap-6 rounded-3xl border px-8 py-6 mb-8 min-h-[90px]" style={{ background: "rgba(12,12,20,0.72)", borderColor: "var(--border)" }}>
           
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => adjustDate(-1)}
-              className="p-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-white transition-colors cursor-pointer hover:border-cyan-500/40"
-              title="Predchádzajúci deň"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setBaseDate(new Date())}
-              className="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-black text-white transition-colors cursor-pointer hover:border-cyan-500/40"
-            >
-              Dnes
-            </button>
-            <button
-              onClick={() => adjustDate(1)}
-              className="p-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-white transition-colors cursor-pointer hover:border-cyan-500/40"
-              title="Nasledujúci deň"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => adjustDate(-1)}
+                className="p-3 rounded-xl border border-white/10 hover:bg-white/5 text-white transition-colors cursor-pointer hover:border-cyan-500/40 flex-shrink-0"
+                title="Predchádzajúci deň"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setBaseDate(new Date())}
+                className="px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-black text-white transition-colors cursor-pointer hover:border-cyan-500/40 flex-shrink-0"
+              >
+                Dnes
+              </button>
+              <button
+                onClick={() => adjustDate(1)}
+                className="p-3 rounded-xl border border-white/10 hover:bg-white/5 text-white transition-colors cursor-pointer hover:border-cyan-500/40 flex-shrink-0"
+                title="Nasledujúci deň"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
 
-            <div className="relative ml-2 flex items-center">
+            <div className="relative flex items-center flex-shrink-0">
               <Calendar className="absolute left-3.5 h-4 w-4 text-cyan-400 pointer-events-none" />
               <input
                 type="date"
@@ -380,26 +387,25 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                     setBaseDate(new Date(e.target.value));
                   }
                 }}
-                className="rounded-xl border border-white/10 bg-slate-950/80 pl-10 pr-4 py-2 text-xs text-white focus:border-cyan-500 focus:outline-none cursor-pointer"
+                className="rounded-xl border border-white/10 bg-slate-950/80 pl-10 pr-4 py-2.5 text-xs text-white focus:border-cyan-500 focus:outline-none cursor-pointer w-40"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 font-bold">Zobrazenie:</span>
-              <select
-                value={viewDaysCount}
-                onChange={(e) => setViewDaysCount(parseInt(e.target.value))}
-                className="rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white focus:border-cyan-500 focus:outline-none cursor-pointer"
-              >
-                <option value={1}>Dnes</option>
-                <option value={3}>Dnes + 3 dni</option>
-                <option value={7}>Dnes + 7 dní</option>
-              </select>
+          {/* Formatted Date prominently displayed in the center */}
+          <div className="hidden md:flex items-center justify-center flex-1 mx-4">
+            <h2 className="text-white font-extrabold text-base tracking-wide text-center">
+              {formattedDate}
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-4 flex-shrink-0">
+            {/* Show formatted date on small screens instead of hiding completely */}
+            <div className="md:hidden text-xs text-slate-300 font-bold">
+              {formattedDate}
             </div>
 
-            <div className="text-xs font-black px-4 py-2 rounded-full border border-cyan-500/20 text-cyan-300 bg-cyan-500/5 flex items-center gap-2">
+            <div className="text-xs font-black px-4 py-2.5 rounded-full border border-cyan-500/20 text-cyan-300 bg-cyan-500/5 flex items-center gap-2 flex-shrink-0">
               {isLoading && <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping" />}
               {isLoading ? "Načítavam..." : `Aktívny filter: ${sportLabels[selectedSport]}`}
             </div>
@@ -430,26 +436,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                 }}
               >
                 
-                {/* Day Header */}
-                <div className="px-8 py-5 flex items-center justify-between border-b border-white/5 bg-white/[0.02]" style={{ backdropFilter: "blur(8px)" }}>
-                  <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1.5 rounded-xl text-xs font-black tracking-wide ${
-                      isToday ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/35" : "bg-white/5 text-white border border-white/10"
-                    }`}>
-                      {new Intl.DateTimeFormat("sk-SK", { weekday: "short" }).format(date).toUpperCase()}{" "}
-                      {date.getDate()}/{date.getMonth() + 1}
-                    </span>
-                    <span className="text-sm font-bold text-slate-400">
-                      {new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(date)}
-                    </span>
-                  </div>
-
-                  {isToday && (
-                    <span className="text-2xs font-extrabold uppercase tracking-widest text-cyan-400 bg-cyan-950/40 px-3 py-1 rounded-full border border-cyan-500/20 animate-pulse">
-                      Dnes
-                    </span>
-                  )}
-                </div>
+                {/* Removed redundant Day Header as date is prominently shown in the toolbar */}
 
                 {/* Grid Layout Container */}
                 <div className="overflow-x-auto w-full custom-scrollbar">
