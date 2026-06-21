@@ -309,7 +309,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
     <section className="relative w-full flex flex-col items-center px-4 md:px-8" style={{ maxWidth: "84rem", width: "100%", margin: "5rem auto 0", paddingBottom: "6rem" }}>
       
       {/* Top Banner / Simulator Notice */}
-      <div className="w-full mb-12 rounded-3xl border p-6 flex flex-col md:flex-row items-center justify-between gap-6" style={{ background: "linear-gradient(135deg, rgba(12,12,20,0.85) 0%, rgba(20,20,35,0.7) 100%)", borderColor: "var(--border)" }}>
+      <div className="w-full rounded-3xl border p-6 flex flex-col md:flex-row items-center justify-between gap-6" style={{ background: "linear-gradient(135deg, rgba(12,12,20,0.85) 0%, rgba(20,20,35,0.7) 100%)", borderColor: "var(--border)", marginBottom: "3rem" }}>
         <div className="flex items-start gap-4">
           <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
             <Info className="h-6 w-6" />
