@@ -293,14 +293,20 @@ export default function PocitanieMinutPage() {
                                 {/* ElevenLabs Card */}
                                 <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "14px", padding: "1.5rem" }}>
                                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                                        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "rgba(255,255,255,0.4)" }}>ELEVENLABS ODHAD</span>
+                                        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "rgba(255,255,255,0.4)" }}>
+                                            {summary.hasRealElevenLabsKey ? "ELEVENLABS NÁKLADY" : "ELEVENLABS ODHAD"}
+                                        </span>
                                         <div style={{ background: "rgba(123, 97, 255, 0.1)", padding: "6px", borderRadius: "8px" }}>
                                             <Layers size={16} style={{ color: "#7B61FF" }} />
                                         </div>
                                     </div>
-                                    <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#7B61FF" }}>€{(summary.totalMinutes * 0.10).toFixed(2)}</div>
+                                    <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#7B61FF" }}>€{summary.totalElevenLabsCostEur.toFixed(2)}</div>
                                     <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)", marginTop: "4px" }}>
-                                        odhad €0.10/min. celkovo: <strong style={{ color: "#fff" }}>~€{((summary.totalCost * 0.92) + (summary.totalMinutes * 0.10)).toFixed(2)}</strong> s VoIP
+                                        {summary.hasRealElevenLabsKey ? (
+                                            <>reálne z API. celkovo: <strong style={{ color: "#fff" }}>~€{((summary.totalCost * 0.92) + summary.totalElevenLabsCostEur).toFixed(2)}</strong> s VoIP</>
+                                        ) : (
+                                            <>odhad €0.10/min. celkovo: <strong style={{ color: "#fff" }}>~€{((summary.totalCost * 0.92) + summary.totalElevenLabsCostEur).toFixed(2)}</strong> s VoIP</>
+                                        )}
                                     </div>
                                 </div>
 
@@ -337,7 +343,9 @@ export default function PocitanieMinutPage() {
                                                 <th style={{ padding: "10px 14px", fontWeight: 600, textAlign: "right" }}>Počet hovorov</th>
                                                 <th style={{ padding: "10px 14px", fontWeight: 600, textAlign: "right" }}>Prevolané minúty</th>
                                                 <th style={{ padding: "10px 14px", fontWeight: 600, textAlign: "right" }}>VoIP náklady (USD)</th>
-                                                <th style={{ padding: "10px 14px", fontWeight: 600, textAlign: "right" }}>ElevenLabs odhad (€)</th>
+                                                <th style={{ padding: "10px 14px", fontWeight: 600, textAlign: "right" }}>
+                                                    {summary?.hasRealElevenLabsKey ? "ElevenLabs náklady (€)" : "ElevenLabs odhad (€)"}
+                                                </th>
                                                 <th style={{ padding: "10px 14px", fontWeight: 600, textAlign: "right" }}>Zákazníci</th>
                                             </tr>
                                         </thead>
@@ -377,7 +385,7 @@ export default function PocitanieMinutPage() {
                                                                     ${item.costUsd.toFixed(3)}
                                                                 </div>
                                                                 <div style={{ flex: "1 1 16%", textAlign: "right", color: "#7B61FF", fontWeight: 600 }}>
-                                                                    €{(item.minutesCount * 0.10).toFixed(2)}
+                                                                    €{item.elevenlabsCostEur.toFixed(2)}
                                                                 </div>
                                                                 <div style={{ flex: "1 1 16%", textAlign: "right", color: "rgba(255,255,255,0.4)" }}>
                                                                     {item.callers.length} unikátnych
@@ -399,7 +407,9 @@ export default function PocitanieMinutPage() {
                                                                                     <th style={{ padding: "6px 8px", fontWeight: 500, textAlign: "right" }}>Hovory</th>
                                                                                     <th style={{ padding: "6px 8px", fontWeight: 500, textAlign: "right" }}>Minúty</th>
                                                                                     <th style={{ padding: "6px 8px", fontWeight: 500, textAlign: "right" }}>VoIP Náklady</th>
-                                                                                    <th style={{ padding: "6px 8px", fontWeight: 500, textAlign: "right" }}>ElevenLabs odhad</th>
+                                                                                    <th style={{ padding: "6px 8px", fontWeight: 500, textAlign: "right" }}>
+                                                                                        {summary?.hasRealElevenLabsKey ? "ElevenLabs náklady" : "ElevenLabs odhad"}
+                                                                                    </th>
                                                                                 </tr>
                                                                             </thead>
                                                                             <tbody>
@@ -418,7 +428,7 @@ export default function PocitanieMinutPage() {
                                                                                             ${c.costUsd.toFixed(3)}
                                                                                         </td>
                                                                                         <td style={{ padding: "8px", textAlign: "right", color: "#7B61FF", fontWeight: 600 }}>
-                                                                                            €{(c.minutesCount * 0.10).toFixed(2)}
+                                                                                            €{c.elevenlabsCostEur.toFixed(2)}
                                                                                         </td>
                                                                                     </tr>
                                                                                 ))}
