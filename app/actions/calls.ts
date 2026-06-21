@@ -294,7 +294,7 @@ export async function fetchCallsComparisonAction(
         }
 
         // Načítanie ElevenLabs konverzácií ak je kľúč prítomný
-        const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
+        const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_LABS_API_KEY;
         const hasRealElevenLabsKey = !!elevenLabsApiKey;
         let elevenLabsConversations: any[] = [];
         if (hasRealElevenLabsKey && elevenLabsApiKey) {
