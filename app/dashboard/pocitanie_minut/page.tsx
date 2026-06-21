@@ -17,7 +17,7 @@ import {
     Layers
 } from "lucide-react";
 
-type ProviderType = "telnyx" | "my-twilio" | "shared-twilio";
+type ProviderType = "telnyx" | "my-twilio" | "shared-twilio" | "elevenlabs";
 
 export default function PocitanieMinutPage() {
     const [loading, setLoading] = useState(true);
@@ -80,6 +80,7 @@ export default function PocitanieMinutPage() {
             case "telnyx": return "Telnyx";
             case "my-twilio": return "Peto Twilio";
             case "shared-twilio": return "Spoločné Twilio";
+            case "elevenlabs": return "ElevenLabs";
         }
     };
 
@@ -89,6 +90,7 @@ export default function PocitanieMinutPage() {
             case "telnyx": return "TELNYX_API_KEY";
             case "my-twilio": return "MY_TWILIO_ACCOUNT_SID & TOKEN";
             case "shared-twilio": return "TWILIO_ACCOUNT_SID & TOKEN";
+            case "elevenlabs": return "ELEVENLABS_API_KEY";
         }
     };
 
@@ -113,11 +115,11 @@ export default function PocitanieMinutPage() {
 
                     {/* Controls */}
                     <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-                        {/* Provider switch (Telnyx / My Twilio / Shared Twilio) */}
+                        {/* Provider switch (Telnyx / Peto Twilio / Shared Twilio / ElevenLabs) */}
                         <div style={{ display: "flex", background: "rgba(255,255,255,0.03)", borderRadius: "10px", padding: "3px", border: "1px solid rgba(255,255,255,0.08)" }}>
-                            {(["telnyx", "my-twilio", "shared-twilio"] as ProviderType[]).map((p) => {
+                            {(["telnyx", "my-twilio", "shared-twilio", "elevenlabs"] as ProviderType[]).map((p) => {
                                 const active = provider === p;
-                                const label = p === "telnyx" ? "Telnyx" : p === "my-twilio" ? "Peto Twilio" : "Spoločné Twilio";
+                                const label = p === "telnyx" ? "Telnyx" : p === "my-twilio" ? "Peto Twilio" : p === "shared-twilio" ? "Spoločné Twilio" : "ElevenLabs";
                                 return (
                                     <button
                                         key={p}
@@ -258,7 +260,7 @@ export default function PocitanieMinutPage() {
                                     </div>
                                     <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#fff" }}>{summary.totalMinutes} min</div>
                                     <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)", marginTop: "4px" }}>
-                                        celkový účtovaný čas ({getProviderLabel()})
+                                        {provider === "elevenlabs" ? "reálny čas asistentov" : `celkový účtovaný čas (${getProviderLabel()})`}
                                     </div>
                                 </div>
 
@@ -276,39 +278,39 @@ export default function PocitanieMinutPage() {
                                     </div>
                                 </div>
 
-                                {/* Cost Card */}
-                                <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "14px", padding: "1.5rem" }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                                        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "rgba(255,255,255,0.4)" }}>VOIP NÁKLADY</span>
-                                        <div style={{ background: "rgba(251, 191, 36, 0.1)", padding: "6px", borderRadius: "8px" }}>
-                                            <Coins size={16} style={{ color: "#fbbf24" }} />
+                                {/* VoIP Cost Card (Only shown for VoIP providers) */}
+                                {provider !== "elevenlabs" && (
+                                    <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "14px", padding: "1.5rem" }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                                            <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "rgba(255,255,255,0.4)" }}>VOIP NÁKLADY</span>
+                                            <div style={{ background: "rgba(251, 191, 36, 0.1)", padding: "6px", borderRadius: "8px" }}>
+                                                <Coins size={16} style={{ color: "#fbbf24" }} />
+                                            </div>
+                                        </div>
+                                        <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#fbbf24" }}>${summary.totalCost.toFixed(2)}</div>
+                                        <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)", marginTop: "4px" }}>
+                                            priemerne <strong style={{ color: "#fff" }}>${(summary.totalCost / (summary.totalCalls || 1)).toFixed(3)}</strong> / hovor
                                         </div>
                                     </div>
-                                    <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#fbbf24" }}>${summary.totalCost.toFixed(2)}</div>
-                                    <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)", marginTop: "4px" }}>
-                                        priemerne <strong style={{ color: "#fff" }}>${(summary.totalCost / (summary.totalCalls || 1)).toFixed(3)}</strong> / hovor
-                                    </div>
-                                </div>
+                                )}
 
-                                {/* ElevenLabs Card */}
-                                <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "14px", padding: "1.5rem" }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                                        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "rgba(255,255,255,0.4)" }}>
-                                            {summary.hasRealElevenLabsKey ? "ELEVENLABS NÁKLADY" : "ELEVENLABS ODHAD"}
-                                        </span>
-                                        <div style={{ background: "rgba(123, 97, 255, 0.1)", padding: "6px", borderRadius: "8px" }}>
-                                            <Layers size={16} style={{ color: "#7B61FF" }} />
+                                {/* ElevenLabs Card (Only shown for ElevenLabs provider) */}
+                                {provider === "elevenlabs" && (
+                                    <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "14px", padding: "1.5rem" }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                                            <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "rgba(255,255,255,0.4)" }}>
+                                                {summary.hasRealElevenLabsKey ? "ELEVENLABS NÁKLADY" : "ELEVENLABS ODHAD"}
+                                            </span>
+                                            <div style={{ background: "rgba(123, 97, 255, 0.1)", padding: "6px", borderRadius: "8px" }}>
+                                                <Layers size={16} style={{ color: "#7B61FF" }} />
+                                            </div>
+                                        </div>
+                                        <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#7B61FF" }}>€{summary.totalElevenLabsCostEur.toFixed(2)}</div>
+                                        <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)", marginTop: "4px" }}>
+                                            {summary.hasRealElevenLabsKey ? "reálne dáta z API" : "odhad €0.10/min (založený na sekundách)"}
                                         </div>
                                     </div>
-                                    <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#7B61FF" }}>€{summary.totalElevenLabsCostEur.toFixed(2)}</div>
-                                    <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)", marginTop: "4px" }}>
-                                        {summary.hasRealElevenLabsKey ? (
-                                            <>reálne z API. celkovo: <strong style={{ color: "#fff" }}>~€{((summary.totalCost * 0.92) + summary.totalElevenLabsCostEur).toFixed(2)}</strong> s VoIP</>
-                                        ) : (
-                                            <>odhad €0.10/min. celkovo: <strong style={{ color: "#fff" }}>~€{((summary.totalCost * 0.92) + summary.totalElevenLabsCostEur).toFixed(2)}</strong> s VoIP</>
-                                        )}
-                                    </div>
-                                </div>
+                                )}
 
                                 {/* Lines Card */}
                                 <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "14px", padding: "1.5rem" }}>
@@ -320,7 +322,7 @@ export default function PocitanieMinutPage() {
                                     </div>
                                     <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#10b981" }}>{numberData.length}</div>
                                     <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)", marginTop: "4px" }}>
-                                        registrovacie virtuálne čísla
+                                        {provider === "elevenlabs" ? "aktívne virtuálne linky" : "registrovacie virtuálne čísla"}
                                     </div>
                                 </div>
                             </div>
