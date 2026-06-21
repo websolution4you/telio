@@ -353,28 +353,16 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
         {/* Toolbar Header (NTC Style layout) */}
         <div className="flex flex-wrap items-center justify-between gap-6 rounded-3xl border px-8 py-6 mb-8 min-h-[90px]" style={{ background: "rgba(12,12,20,0.72)", borderColor: "var(--border)" }}>
           
-          {/* Left: Datepicker & Today reset button */}
+          {/* Left: Today's fixed date button */}
           <div className="flex items-center gap-3 flex-shrink-0">
             <button
               onClick={() => setBaseDate(new Date())}
-              className="px-4 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-black text-white transition-colors cursor-pointer hover:border-cyan-500/40 flex-shrink-0"
+              className="px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-black text-slate-300 transition-colors cursor-pointer hover:border-cyan-500/40 flex items-center gap-2"
+              title="Prejsť na dnešný deň"
             >
-              Dnes
+              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400"></span>
+              Dnes: {new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "numeric", year: "numeric" }).format(new Date())}
             </button>
-
-            <div className="relative flex items-center flex-shrink-0">
-              <Calendar className="absolute left-3.5 h-4 w-4 text-cyan-400 pointer-events-none" />
-              <input
-                type="date"
-                value={getLocalDateString(baseDate)}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    setBaseDate(new Date(e.target.value));
-                  }
-                }}
-                className="rounded-xl border border-white/10 bg-slate-950/80 pl-10 pr-4 py-2.5 text-xs text-white focus:border-cyan-500 focus:outline-none cursor-pointer w-40"
-              />
-            </div>
           </div>
 
           {/* Center: Navigation arrows directly around the date */}
