@@ -611,45 +611,45 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
               </div>
             </div>
 
-            <form onSubmit={handleCreateBookingSubmit} className="space-y-4">
+            <form onSubmit={handleCreateBookingSubmit} className="space-y-5">
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Meno zákazníka</label>
                 <div className="relative flex items-center">
-                  <User className="absolute left-3.5 h-4 w-4 text-slate-500" />
+                  <User className="absolute left-4 h-4 w-4 text-slate-400 z-10 pointer-events-none" />
                   <input
                     type="text"
                     required
                     placeholder="napr. Kamil Bartko"
                     value={formCustomerName}
                     onChange={(e) => setFormCustomerName(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-3 py-2.5 text-xs text-white focus:border-cyan-500 focus:outline-none"
+                    className="ntc-booking-input"
                     autoFocus
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Telefónne číslo</label>
                   <div className="relative flex items-center">
-                    <Phone className="absolute left-3.5 h-4 w-4 text-slate-500" />
+                    <Phone className="absolute left-4 h-4 w-4 text-slate-400 z-10 pointer-events-none" />
                     <input
                       type="text"
                       placeholder="napr. +421..."
                       value={formPhone}
                       onChange={(e) => setFormPhone(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-3 py-2.5 text-xs text-white focus:border-cyan-500 focus:outline-none"
+                      className="ntc-booking-input"
                     />
                   </div>
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Dĺžka rezervácie</label>
-                  <div className="relative">
-                    <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <div className="relative flex items-center">
+                    <Clock className="absolute left-4 h-4 w-4 text-slate-400 z-10 pointer-events-none" />
                     <select
                       value={formDurationMinutes}
                       onChange={(e) => setFormDurationMinutes(parseInt(e.target.value))}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-3 py-2.5 text-xs text-white focus:border-cyan-500 focus:outline-none cursor-pointer"
+                      className="ntc-booking-select"
                     >
                       <option value={30}>30 minút</option>
                       <option value={60}>1 hodina</option>
@@ -663,13 +663,13 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Poznámka / Názov hry</label>
                 <div className="relative flex items-center">
-                  <MessageSquare className="absolute left-3.5 h-4 w-4 text-slate-500" />
+                  <MessageSquare className="absolute left-4 h-4 w-4 text-slate-400 z-10 pointer-events-none" />
                   <input
                     type="text"
                     placeholder="napr. Štvorhra s priateľmi"
                     value={formTitle}
                     onChange={(e) => setFormTitle(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-3 py-2.5 text-xs text-white focus:border-cyan-500 focus:outline-none"
+                    className="ntc-booking-input"
                   />
                 </div>
               </div>
@@ -682,7 +682,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                       key={src}
                       type="button"
                       onClick={() => setFormSource(src)}
-                      className="py-2 px-2 text-[10px] font-bold rounded-xl border text-center transition-all cursor-pointer"
+                      className={`ntc-booking-channel-btn`}
                       style={{
                         borderColor: formSource === src ? "var(--cyan)" : "rgba(255, 255, 255, 0.05)",
                         background: formSource === src ? "rgba(0, 255, 209, 0.08)" : "rgba(255,255,255,0.02)",
@@ -703,7 +703,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
 
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl font-extrabold text-xs tracking-wider uppercase btn-primary cursor-pointer text-center text-white"
+                className="ntc-booking-submit-btn"
               >
                 Vytvoriť rezerváciu
               </button>
