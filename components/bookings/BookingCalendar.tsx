@@ -346,7 +346,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
         </div>
 
         {/* Toolbar Header (NTC Style layout) */}
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border p-4 mb-6" style={{ background: "rgba(12,12,20,0.72)", borderColor: "var(--border)" }}>
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border px-8 py-5 mb-8" style={{ background: "rgba(12,12,20,0.72)", borderColor: "var(--border)" }}>
           
           <div className="flex items-center gap-2">
             <button
@@ -431,7 +431,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
               >
                 
                 {/* Day Header */}
-                <div className="px-6 py-4 flex items-center justify-between border-b border-white/5 bg-white/[0.02]" style={{ backdropFilter: "blur(8px)" }}>
+                <div className="px-8 py-5 flex items-center justify-between border-b border-white/5 bg-white/[0.02]" style={{ backdropFilter: "blur(8px)" }}>
                   <div className="flex items-center gap-3">
                     <span className={`px-3 py-1.5 rounded-xl text-xs font-black tracking-wide ${
                       isToday ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/35" : "bg-white/5 text-white border border-white/10"
@@ -470,16 +470,25 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                       <div className="relative flex w-full h-10 items-center">
                         {timeSlots.map((slot, idx) => {
                           const percent = (idx / totalSlotsCount) * 100;
-                          // Don't show last boundary label text to avoid overflow, just line
                           const isLast = idx === timeSlots.length - 1;
                           return (
                             <div 
                               key={idx}
-                              className="absolute -translate-x-1/2 flex flex-col items-center"
-                              style={{ left: `${percent}%` }}
+                              className="absolute flex flex-col items-center"
+                              style={{ left: `${percent}%`, height: '100%', justifyContent: 'flex-end' }}
                             >
-                              <span className="font-mono text-[10px] text-slate-400">{!isLast && slot.label}</span>
-                              <div className="h-2 w-px bg-white/10 mt-1" />
+                              <span 
+                                className={`font-mono text-[10px] text-slate-400 absolute bottom-5 whitespace-nowrap ${
+                                  idx === 0 
+                                    ? "translate-x-3" 
+                                    : isLast 
+                                      ? "-translate-x-[calc(100%-4px)]" 
+                                      : "-translate-x-1/2"
+                                }`}
+                              >
+                                {!isLast && slot.label}
+                              </span>
+                              <div className="h-2.5 w-px bg-white/20 -translate-x-1/2" />
                             </div>
                           );
                         })}
@@ -525,7 +534,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                               </div>
 
                               {/* Bookings cards overlay */}
-                              <div className="absolute inset-x-2 inset-y-2 pointer-events-none">
+                              <div className="absolute inset-x-0 inset-y-2 pointer-events-none">
                                 <div className="relative w-full h-full">
                                   {courtBookings.map((booking) => {
                                     const style = getBookingStyle(booking, dateString);
@@ -535,7 +544,11 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                                       <div
                                         key={booking.id}
                                         className={`absolute h-full rounded-xl p-2 pointer-events-auto flex flex-col justify-between overflow-hidden shadow-lg transition-all hover:scale-[1.01] hover:shadow-[0_8px_20px_rgba(0,0,0,0.4)] ${meta.bg} ${meta.border}`}
-                                        style={style}
+                                        style={{
+                                          ...style,
+                                          left: `calc(${style.left} + 2px)`,
+                                          width: `calc(${style.width} - 4px)`
+                                        }}
                                       >
                                         <div className="min-w-0">
                                           <div className="flex items-center justify-between gap-1">
