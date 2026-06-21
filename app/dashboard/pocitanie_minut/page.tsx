@@ -78,7 +78,7 @@ export default function PocitanieMinutPage() {
     const getProviderLabel = () => {
         switch (provider) {
             case "telnyx": return "Telnyx";
-            case "my-twilio": return "Moje Twilio";
+            case "my-twilio": return "Peto Twilio";
             case "shared-twilio": return "Spoločné Twilio";
         }
     };
@@ -117,7 +117,7 @@ export default function PocitanieMinutPage() {
                         <div style={{ display: "flex", background: "rgba(255,255,255,0.03)", borderRadius: "10px", padding: "3px", border: "1px solid rgba(255,255,255,0.08)" }}>
                             {(["telnyx", "my-twilio", "shared-twilio"] as ProviderType[]).map((p) => {
                                 const active = provider === p;
-                                const label = p === "telnyx" ? "Telnyx" : p === "my-twilio" ? "Moje Twilio" : "Spoločné Twilio";
+                                const label = p === "telnyx" ? "Telnyx" : p === "my-twilio" ? "Peto Twilio" : "Spoločné Twilio";
                                 return (
                                     <button
                                         key={p}
