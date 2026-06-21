@@ -467,7 +467,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                       </div>
                       
                       {/* Hour markings */}
-                      <div className="relative flex w-full h-10 items-center">
+                      <div className="relative w-full h-10">
                         {timeSlots.map((slot, idx) => {
                           const percent = (idx / totalSlotsCount) * 100;
                           const isLast = idx === timeSlots.length - 1;
