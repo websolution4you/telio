@@ -147,9 +147,9 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
     return courts.filter((court) => court.sport === selectedSport);
   }, [courts, selectedSport]);
 
-  // Interval settings per sport (Tenis / Tenis antuka have 30-min intervals; Badminton / Squash have 1-hour intervals)
-  const isHalfHourInterval = selectedSport === "tennis" || selectedSport === "tennis-clay";
-  const intervalMinutes = isHalfHourInterval ? 30 : 60;
+  // Interval settings per sport (all sports now use 1-hour intervals)
+  const isHalfHourInterval = false;
+  const intervalMinutes = 60;
 
   // Generate list of time slots
   const timeSlots = useMemo(() => {
