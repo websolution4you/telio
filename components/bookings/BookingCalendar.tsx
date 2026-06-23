@@ -94,6 +94,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
   }, [baseDate, viewDaysCount, reloadTrigger]);
 
   useEffect(() => {
+    console.log("Realtime (bookings): Initializing subscription to table 'bookings'...");
     const channel = supabase
       .channel("bookings-realtime")
       .on(
@@ -103,13 +104,17 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
           schema: "public",
           table: "bookings",
         },
-        () => {
+        (payload) => {
+          console.log("Realtime (bookings): Change detected!", payload);
           setReloadTrigger((prev) => prev + 1);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Realtime (bookings) status:", status);
+      });
 
     return () => {
+      console.log("Realtime (bookings): Cleaning up subscription...");
       supabase.removeChannel(channel);
     };
   }, []);
