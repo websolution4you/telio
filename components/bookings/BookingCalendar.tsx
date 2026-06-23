@@ -542,46 +542,15 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                                     return (
                                       <div
                                         key={booking.id}
-                                        className={`absolute h-full rounded-xl p-2 pointer-events-auto flex flex-col justify-between overflow-hidden shadow-lg transition-all hover:scale-[1.01] hover:shadow-[0_8px_20px_rgba(0,0,0,0.4)] ${meta.bg} ${meta.border}`}
+                                        className="absolute h-full rounded-xl pointer-events-auto flex items-center justify-center overflow-hidden border border-red-500/30 bg-red-950/20 shadow-md transition-all"
                                         style={{
                                           ...style,
                                           left: `calc(${style.left} + 2px)`,
                                           width: `calc(${style.width} - 4px)`
                                         }}
+                                        title="Obsadené / Booked"
                                       >
-                                        <div className="min-w-0">
-                                          <div className="flex items-center justify-between gap-1">
-                                            <span className="text-[10px] font-black text-white truncate">
-                                              {booking.title}
-                                            </span>
-                                            {booking.status !== "blocked" && (
-                                              <button
-                                                onClick={(e) => handleDeleteBooking(booking.id, e)}
-                                                className="p-0.5 rounded text-slate-400 hover:text-red-400 hover:bg-red-950/20 transition-colors cursor-pointer pointer-events-auto"
-                                                title="Zrušiť rezerváciu"
-                                              >
-                                                <Trash2 className="h-3 w-3" />
-                                              </button>
-                                            )}
-                                          </div>
-                                          <p className="text-[9px] font-semibold text-slate-300 truncate mt-0.5 leading-tight">
-                                            {booking.customerName}
-                                          </p>
-                                        </div>
-
-                                        <div className="flex items-center justify-between text-[8px] font-bold text-slate-400 mt-1">
-                                          <div className="flex items-center gap-1">
-                                            <Clock className="h-2 w-2" />
-                                            <span>
-                                              {new Date(booking.start).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}
-                                              {" - "}
-                                              {new Date(booking.end).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}
-                                            </span>
-                                          </div>
-                                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${meta.badgeBg}`}>
-                                            {meta.label}
-                                          </span>
-                                        </div>
+                                        <X className="h-7 w-7 text-red-500/80 stroke-[3]" />
                                       </div>
                                     );
                                   })}
