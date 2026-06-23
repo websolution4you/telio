@@ -47,13 +47,21 @@ export default async function BookingsPage() {
           </div>
 
           <h1
-            className="mt-8 text-5xl font-semibold tracking-[-0.05em] text-white md:text-7xl"
-            style={{ fontFamily: "var(--font-poppins), sans-serif", lineHeight: 1.05, textAlign: "center", width: "100%", maxWidth: "64rem", display: "block" }}
+            className="mt-10 text-3xl font-semibold tracking-[-0.04em] text-white md:text-5xl"
+            style={{
+              fontFamily: "var(--font-poppins), sans-serif",
+              lineHeight: 1.2,
+              textAlign: "center",
+              width: "100%",
+              maxWidth: "64rem",
+              display: "block",
+              textShadow: "0 0 25px rgba(123, 97, 255, 0.4), 0 0 50px rgba(123, 97, 255, 0.2)"
+            }}
           >
-            Rezervačný systém pre <span className="text-gradient">NTC kurty</span>
+            Rezervačný systém <span className="text-gradient">NTC</span>
           </h1>
 
-          <div className="mt-12 grid gap-4 md:grid-cols-3 w-full" style={{ width: "100%", maxWidth: "56rem", display: "grid" }}>
+          <div className="mt-20 grid gap-4 md:grid-cols-3 w-full" style={{ width: "100%", maxWidth: "56rem", display: "grid" }}>
             {stats.map((item) => (
               <div
                 key={item.label}
