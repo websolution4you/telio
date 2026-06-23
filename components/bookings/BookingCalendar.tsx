@@ -574,7 +574,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
 
           {/* Modal Content */}
           <div 
-            className="relative w-full max-w-md rounded-3xl border p-6 overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200"
+            className="relative w-full max-w-md rounded-3xl border ntc-booking-modal overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200"
             style={{ background: "rgba(15, 23, 42, 0.95)", borderColor: "var(--border)" }}
           >
             <div className="flex items-center justify-between mb-4">
@@ -590,7 +590,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
               </button>
             </div>
 
-            <div className="mb-4 p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1.5 text-xs text-slate-300">
+            <div className="ntc-booking-info-box space-y-1.5 text-xs text-slate-300">
               <div className="flex justify-between">
                 <span className="text-slate-400">Kurt:</span>
                 <span className="font-bold text-white">

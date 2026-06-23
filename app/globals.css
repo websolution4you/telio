@@ -497,6 +497,32 @@ body {
   }
 }
 
+.ntc-booking-modal {
+  padding: 32px 32px !important;
+  box-sizing: border-box !important;
+}
+
+.ntc-booking-info-box {
+  background: transparent !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-radius: 0 !important;
+  padding: 16px 0 !important;
+  margin-bottom: 24px !important;
+}
+
+@media (max-width: 640px) {
+  .ntc-booking-modal {
+    padding: 24px 20px !important;
+  }
+  .ntc-booking-info-box {
+    padding: 12px 0 !important;
+    margin-bottom: 16px !important;
+  }
+}
+
 
 
 
