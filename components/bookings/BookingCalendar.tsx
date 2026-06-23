@@ -19,6 +19,7 @@ import {
 import type { Booking, Court, SportType } from "@/lib/bookings/mockBookings";
 import { openingHours } from "@/lib/bookings/mockBookings";
 import { fetchBookingsAction, createBookingAction, deleteBookingAction } from "@/app/actions/bookings";
+import { supabase } from "@/lib/supabase";
 
 type BookingCalendarProps = {
   courts: Court[];
@@ -46,6 +47,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
   
   // Interactive Local state for bookings
   const [localBookings, setLocalBookings] = useState<Booking[]>(() => bookings);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
   
   // Modal / Drawer state for creation
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -89,7 +91,28 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
     return () => {
       active = false;
     };
-  }, [baseDate, viewDaysCount]);
+  }, [baseDate, viewDaysCount, reloadTrigger]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("bookings-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "bookings",
+        },
+        () => {
+          setReloadTrigger((prev) => prev + 1);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Adjust base date helper
   const adjustDate = (days: number) => {
