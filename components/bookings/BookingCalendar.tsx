@@ -523,7 +523,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                                     <button
                                       key={slotIdx}
                                       onClick={() => handleCellClick(court.id, date, targetSlot)}
-                                      className="h-full border-r border-white/10 hover:bg-cyan-500/[0.02] focus:bg-cyan-500/[0.04] focus:outline-none transition-all flex items-center justify-center text-white/0 hover:text-cyan-400 group/cell"
+                                      className="h-full border-r border-white/10 hover:bg-cyan-500/[0.02] focus:bg-cyan-500/[0.04] focus:outline-none transition-all flex items-center justify-center text-white/0 hover:text-cyan-400 group/cell cursor-pointer"
                                       title={`Kliknutím rezervujete od ${targetSlot.label}`}
                                     >
                                       <Plus className="h-4 w-4 opacity-0 group-hover/cell:opacity-100 transition-opacity" />
