@@ -270,15 +270,51 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
     }
   };
 
+const getSlovakiaTimeParts = (dateInput: string | Date) => {
+  const date = new Date(dateInput);
+  try {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Europe/Bratislava",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: false
+    });
+    const parts = formatter.formatToParts(date);
+    const getValue = (type: Intl.DateTimeFormatPartTypes) => {
+      const part = parts.find(p => p.type === type);
+      return part ? parseInt(part.value, 10) : 0;
+    };
+    return {
+      year: getValue("year"),
+      month: getValue("month"),
+      day: getValue("day"),
+      hour: getValue("hour"),
+      minute: getValue("minute")
+    };
+  } catch (e) {
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate(),
+      hour: date.getHours(),
+      minute: date.getMinutes()
+    };
+  }
+};
+
   // Get position style for booking on the horizontal timeline
   const getBookingStyle = (booking: Booking, dateStr: string) => {
+    const startParts = getSlovakiaTimeParts(booking.start);
     const start = new Date(booking.start);
     const end = new Date(booking.end);
 
     const totalMinutes = (openingHours.endHour - openingHours.startHour) * 60;
     
-    // Calculate start offset in minutes from openingHours.startHour
-    const startMinutes = (start.getHours() - openingHours.startHour) * 60 + start.getMinutes();
+    // Calculate start offset in minutes from openingHours.startHour using Slovakia timezone
+    const startMinutes = (startParts.hour - openingHours.startHour) * 60 + startParts.minute;
     const durationMinutes = (end.getTime() - start.getTime()) / 60000;
 
     const leftPercent = (startMinutes / totalMinutes) * 100;
@@ -539,6 +575,10 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                                     const style = getBookingStyle(booking, dateString);
                                     const meta = getBookingColor(booking);
                                     
+                                    const startParts = getSlovakiaTimeParts(booking.start);
+                                    const endParts = getSlovakiaTimeParts(booking.end);
+                                    const timeLabel = `${String(startParts.hour).padStart(2, "0")}:${String(startParts.minute).padStart(2, "0")} - ${String(endParts.hour).padStart(2, "0")}:${String(endParts.minute).padStart(2, "0")}`;
+
                                     return (
                                       <div
                                         key={booking.id}
@@ -548,7 +588,7 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
                                           left: `calc(${style.left} + 2px)`,
                                           width: `calc(${style.width} - 4px)`
                                         }}
-                                        title="Obsadené / Booked"
+                                        title={`Obsadené: ${timeLabel}`}
                                       >
                                         <X className="h-7 w-7 text-red-500/80 stroke-[3]" />
                                       </div>
