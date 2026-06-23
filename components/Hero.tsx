@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/i18n";
 import DemoCallButton from "@/components/DemoCallButton";
-import { Headset, Pizza, Car, ChevronDown } from "lucide-react";
+import { Headset, Pizza, Car, ChevronDown, Calendar } from "lucide-react";
 
 function ToothIcon({ className }: { className?: string }) {
   return (
@@ -156,11 +156,11 @@ export default function Hero() {
                   <div className="flex items-center gap-2.5 min-w-0">
                     {selectedCase === "pizza" && <Pizza className="w-4.5 h-4.5 text-[#FF6B35] shrink-0" />}
                     {selectedCase === "clinic" && <ToothIcon className="w-4.5 h-4.5 text-[#00D4FF] shrink-0" />}
-                    {selectedCase === "taxi" && <Car className="w-4.5 h-4.5 text-[#7B61FF] shrink-0" />}
+                    {selectedCase === "taxi" && <Calendar className="w-4.5 h-4.5 text-[#7B61FF] shrink-0" />}
                     <span className="font-semibold tracking-tight truncate">
                       {selectedCase === "pizza" && (lang === "sk" ? "Telio pre pizzeriu" : "Telio for pizzeria")}
                       {selectedCase === "clinic" && (lang === "sk" ? "Telio pre stomatologickú kliniku" : "Telio for dental clinic")}
-                      {selectedCase === "taxi" && (lang === "sk" ? "Telio pre taxislužbu" : "Telio for taxi service")}
+                      {selectedCase === "taxi" && (lang === "sk" ? "Rezervácia kurtov v NTC" : "NTC Court Booking")}
                     </span>
                   </div>
                   <ChevronDown className={`w-4.5 h-4.5 text-white/50 shrink-0 transition-transform duration-250 ${dropdownOpen ? "rotate-180 text-white" : ""} absolute right-4 top-1/2 -translate-y-1/2`} />
@@ -204,8 +204,8 @@ export default function Hero() {
                       }`}
                       style={{ padding: "0.75rem 1rem" }}
                     >
-                      <Car className="w-4.5 h-4.5 text-[#7B61FF] shrink-0" />
-                      <span className="truncate">{lang === "sk" ? "Telio pre taxislužbu" : "Telio for taxi service"}</span>
+                      <Calendar className="w-4.5 h-4.5 text-[#7B61FF] shrink-0" />
+                      <span className="truncate">{lang === "sk" ? "Rezervácia kurtov v NTC" : "NTC Court Booking"}</span>
                     </button>
                   </div>
                 )}
@@ -228,7 +228,7 @@ export default function Hero() {
                   ) : selectedCase === "clinic" ? (
                     <ToothIcon className="w-5 h-5 relative z-10" />
                   ) : (
-                    <Car className="w-5 h-5 relative z-10" />
+                    <Calendar className="w-5 h-5 relative z-10" />
                   )
                 }
               />
