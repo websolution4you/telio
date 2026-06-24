@@ -20,18 +20,14 @@ import type { Booking, Court, SportType } from "@/lib/bookings/mockBookings";
 import { openingHours } from "@/lib/bookings/mockBookings";
 import { fetchBookingsAction, createBookingAction, deleteBookingAction } from "@/app/actions/bookings";
 import { supabase } from "@/lib/supabase";
+import { useLang } from "@/lib/i18n";
 
 type BookingCalendarProps = {
   courts: Court[];
   bookings: Booking[];
 };
 
-const sportLabels: Record<SportType, string> = {
-  badminton: "Bedminton",
-  squash: "Squash",
-  tennis: "Tenis",
-  "tennis-clay": "Tenis antuka",
-};
+// sportLabels is now dynamically defined inside the component based on language
 
 function getLocalDateString(date: Date) {
   const year = date.getFullYear();
@@ -41,6 +37,15 @@ function getLocalDateString(date: Date) {
 }
 
 export default function BookingCalendar({ courts, bookings }: BookingCalendarProps) {
+  const { lang } = useLang();
+
+  const sportLabels: Record<SportType, string> = useMemo(() => ({
+    badminton: lang === "sk" ? "Bedminton" : "Badminton",
+    squash: "Squash",
+    tennis: lang === "sk" ? "Tenis" : "Tennis",
+    "tennis-clay": lang === "sk" ? "Tenis antuka" : "Tennis Clay",
+  }), [lang]);
+
   const [selectedSport, setSelectedSport] = useState<SportType>("badminton");
   const [baseDate, setBaseDate] = useState(() => new Date());
   const viewDaysCount = 1;
