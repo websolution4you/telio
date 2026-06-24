@@ -27,7 +27,7 @@ type BookingCalendarProps = {
 };
 
 const sportLabels: Record<SportType, string> = {
-  badminton: "Badminton",
+  badminton: "Bedminton",
   squash: "Squash",
   tennis: "Tenis",
   "tennis-clay": "Tenis antuka",

@@ -27,7 +27,7 @@ export const courts: Court[] = [
     id: `badminton-${index + 1}`,
     name: `Kurt ${String(index + 1).padStart(2, "0")}`,
     sport: "badminton" as const,
-    surface: "Badminton",
+    surface: "Bedminton",
     location: "NTC bedmintonová hala",
   })),
   ...Array.from({ length: 4 }, (_, index) => ({
