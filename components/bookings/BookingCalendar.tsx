@@ -581,7 +581,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                             style={{ gridTemplateColumns: `100px 1fr` }}
                           >
                             {/* Court Title on Left (Sticky column simulation) */}
-                            <div className="p-3 border-r border-white/5 flex flex-col justify-center bg-slate-950/40">
+                            <div className="p-3 border-r border-white/5 flex flex-col justify-center items-center text-center bg-slate-950/40">
                               <span className="text-xs font-black text-white">{court.name}</span>
                               <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">{court.surface}</span>
                             </div>
