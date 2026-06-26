@@ -668,7 +668,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                     return (
                                       <div
                                         key={booking.id}
-                                        className="absolute h-full rounded-xl pointer-events-auto flex items-center justify-center overflow-hidden border border-red-500/30 bg-red-950/20 shadow-md transition-all"
+                                        className="absolute h-full rounded-xl pointer-events-auto flex items-center justify-center overflow-hidden border border-red-500/30 bg-red-950/20 shadow-md transition-all px-1 text-center"
                                         style={{
                                           ...style,
                                           left: `calc(${style.left} + 2px)`,
@@ -676,7 +676,9 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                         }}
                                         title={`Obsadené: ${timeLabel}`}
                                       >
-                                        <X className="h-7 w-7 text-red-500/80 stroke-[3]" />
+                                        <span className="text-[10px] font-bold text-red-400 font-mono select-none">
+                                          {timeLabel}
+                                        </span>
                                       </div>
                                     );
                                   })}
