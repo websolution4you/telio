@@ -546,7 +546,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                     {/* Time Column Headers */}
                     <div 
                       className="grid border-b border-white/5 text-2xs font-extrabold tracking-wider text-slate-400 bg-white/[0.01]"
-                      style={{ gridTemplateColumns: `140px 1fr` }}
+                      style={{ gridTemplateColumns: `100px 1fr` }}
                     >
                       {/* Left Corner */}
                       <div className="p-3 border-r border-white/5 text-center flex items-center justify-center font-bold text-slate-500">
@@ -578,10 +578,10 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                           <div 
                             key={court.id}
                             className="grid hover:bg-white/[0.01] transition-colors"
-                            style={{ gridTemplateColumns: `140px 1fr` }}
+                            style={{ gridTemplateColumns: `100px 1fr` }}
                           >
                             {/* Court Title on Left (Sticky column simulation) */}
-                            <div className="p-4 border-r border-white/5 flex flex-col justify-center bg-slate-950/40">
+                            <div className="p-3 border-r border-white/5 flex flex-col justify-center bg-slate-950/40">
                               <span className="text-xs font-black text-white">{court.name}</span>
                               <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">{court.surface}</span>
                             </div>
