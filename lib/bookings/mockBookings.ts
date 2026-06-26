@@ -23,7 +23,7 @@ export type Booking = {
 };
 
 export const courts: Court[] = [
-  ...Array.from({ length: 14 }, (_, index) => ({
+  ...Array.from({ length: 10 }, (_, index) => ({
     id: `badminton-${index + 1}`,
     name: `Kurt ${String(index + 1).padStart(2, "0")}`,
     sport: "badminton" as const,
@@ -32,25 +32,21 @@ export const courts: Court[] = [
   })),
   ...Array.from({ length: 4 }, (_, index) => ({
     id: `squash-${index + 1}`,
-    name: `Squash ${String(index + 1).padStart(2, "0")}`,
+    name: `Kurt ${String(index + 1).padStart(2, "0")}`,
     sport: "squash" as const,
     surface: "Squash Court",
     location: "NTC squash centrum",
   })),
-  ...Array.from({ length: 8 }, (_, index) => ({
-    id: `tennis-${index + 1}`,
-    name: `Kurt ${String(index + 1).padStart(2, "0")}`,
-    sport: "tennis" as const,
-    surface: "Hard court",
-    location: "NTC indoor tenisová hala",
-  })),
-  ...Array.from({ length: 4 }, (_, index) => ({
-    id: `tennis-clay-${index + 1}`,
-    name: `Dvorec ${String(index + 1).padStart(2, "0")}`,
-    sport: "tennis-clay" as const,
-    surface: "Antuka",
-    location: "NTC antukové dvorce",
-  })),
+  { id: "tennis-1", name: "Center1", sport: "tennis" as const, surface: "Hard court", location: "NTC indoor tenisová hala" },
+  { id: "tennis-2", name: "Center2", sport: "tennis" as const, surface: "Hard court", location: "NTC indoor tenisová hala" },
+  { id: "tennis-3", name: "Center3", sport: "tennis" as const, surface: "Hard court", location: "NTC indoor tenisová hala" },
+  { id: "tennis-4", name: "Kurt 1", sport: "tennis" as const, surface: "Hard court", location: "NTC indoor tenisová hala" },
+  { id: "tennis-5", name: "Kurt 2", sport: "tennis" as const, surface: "Hard court", location: "NTC indoor tenisová hala" },
+  { id: "tennis-6", name: "Kurt 3", sport: "tennis" as const, surface: "Hard court", location: "NTC indoor tenisová hala" },
+  { id: "tennis-clay-1", name: "Dvorec 01", sport: "tennis-clay" as const, surface: "Antuka", location: "NTC antukové dvorce" },
+  { id: "tennis-clay-2", name: "Dvorec 02", sport: "tennis-clay" as const, surface: "Antuka", location: "NTC antukové dvorce" },
+  { id: "tennis-clay-10", name: "Dvorec 10", sport: "tennis-clay" as const, surface: "Antuka", location: "NTC antukové dvorce" },
+  { id: "tennis-clay-11", name: "Dvorec 11", sport: "tennis-clay" as const, surface: "Antuka", location: "NTC antukové dvorce" },
 ];
 
 const today = new Date();

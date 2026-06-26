@@ -149,8 +149,17 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
 
   // Filter courts for current sport
   const visibleCourts = useMemo(() => {
-    return courts.filter((court) => court.sport === selectedSport);
-  }, [courts, selectedSport]);
+    let list = courts.filter((court) => court.sport === selectedSport);
+    if (selectedSport === "tennis-clay") {
+      const day = baseDate.getDay();
+      const isWeekend = day === 0 || day === 6;
+      if (isWeekend) {
+        // Only Dvorec 01 and Dvorec 02
+        list = list.filter(c => c.id === "tennis-clay-1" || c.id === "tennis-clay-2");
+      }
+    }
+    return list;
+  }, [courts, selectedSport, baseDate]);
 
   // Interval settings per sport (all sports now use 1-hour intervals)
   const isHalfHourInterval = false;
@@ -225,6 +234,30 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
 
     setErrorMsg("");
     const { courtId, date, hour, minute } = selectedSlot;
+
+    // Check block/maintenance times for clay courts
+    if (selectedSport === "tennis-clay") {
+      if (courtId === "tennis-clay-1" || courtId === "tennis-clay-2") {
+        if (hour === 13 || (hour < 13 && hour + formDurationMinutes / 60 > 13)) {
+          setErrorMsg("V čase 13:00 - 14:00 prebieha údržba kurtov.");
+          return;
+        }
+      }
+      if (courtId === "tennis-clay-10" || courtId === "tennis-clay-11") {
+        if (hour === 7) {
+          setErrorMsg("Dvorec 10 a 11 sú mimo prevádzky pred 8:00.");
+          return;
+        }
+        if (hour === 12 || (hour < 12 && hour + formDurationMinutes / 60 > 12)) {
+          setErrorMsg("V čase 12:00 - 13:00 prebieha údržba kurtov.");
+          return;
+        }
+        if (hour >= 16 || hour + formDurationMinutes / 60 > 16.5) {
+          setErrorMsg("Dvorec 10 a 11 sú v prevádzke len do 16:30.");
+          return;
+        }
+      }
+    }
 
     const startDateTime = new Date(date);
     startDateTime.setHours(hour, minute, 0, 0);
@@ -388,7 +421,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
           <span className="text-[#00D4FF] font-black text-sm">8</span> indoor tenisových kurtov
         </span>
         <span className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-white/5 bg-[#0c0c16]/50 backdrop-blur-md shadow-lg">
-          <span className="text-[#7B61FF] font-black text-sm">14</span> bedmintonových kurtov
+          <span className="text-[#7B61FF] font-black text-sm">10</span> bedmintonových kurtov
         </span>
         <span className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-white/5 bg-[#0c0c16]/50 backdrop-blur-md shadow-lg">
           <span className="text-cyan-400 font-black text-sm">24/7</span> hlasové rezervácie cez Telio
@@ -517,7 +550,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                     >
                       {/* Left Corner */}
                       <div className="p-3 border-r border-white/5 text-center flex items-center justify-center font-bold text-slate-500">
-                        Kurt / Dvorec
+                        {selectedSport === "tennis-clay" ? "Dvorec" : "Kurt"}
                       </div>
                       
                       {/* Hour markings */}
@@ -560,6 +593,54 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                               <div className="absolute inset-0 grid w-full h-full" style={{ gridTemplateColumns: `repeat(${totalSlotsCount}, 1fr)` }}>
                                 {Array.from({ length: totalSlotsCount }).map((_, slotIdx) => {
                                   const targetSlot = timeSlots[slotIdx];
+                                  
+                                  // Check block/maintenance times
+                                  const blockStatus = (() => {
+                                    if (selectedSport === "tennis-clay") {
+                                      if (court.id === "tennis-clay-1" || court.id === "tennis-clay-2") {
+                                        if (targetSlot.hour === 13) {
+                                          return { type: "maintenance", label: "Údržba" };
+                                        }
+                                      }
+                                      if (court.id === "tennis-clay-10" || court.id === "tennis-clay-11") {
+                                        if (targetSlot.hour === 7) {
+                                          return { type: "closed", label: "Mimo prevádzky" };
+                                        }
+                                        if (targetSlot.hour === 12) {
+                                          return { type: "maintenance", label: "Údržba" };
+                                        }
+                                        if (targetSlot.hour >= 16) {
+                                          return { type: "closed", label: "Mimo prevádzky" };
+                                        }
+                                      }
+                                    }
+                                    return null;
+                                  })();
+
+                                  if (blockStatus) {
+                                    if (blockStatus.type === "maintenance") {
+                                      return (
+                                        <div
+                                          key={slotIdx}
+                                          className="h-full border-r border-white/10 bg-amber-500/10 flex flex-col items-center justify-center text-center px-1 text-[9px] font-black text-amber-400 select-none border-y border-amber-500/20"
+                                          title="Údržba kurtov"
+                                        >
+                                          <span className="leading-tight text-amber-500/80">Údržba kurtov</span>
+                                        </div>
+                                      );
+                                    } else {
+                                      return (
+                                        <div
+                                          key={slotIdx}
+                                          className="h-full border-r border-white/10 bg-slate-950/70 flex items-center justify-center text-center px-1 text-[9px] font-bold text-slate-600 uppercase select-none"
+                                          title="Mimo prevádzky"
+                                        >
+                                          <span className="block w-full h-full bg-slate-900/40"></span>
+                                        </div>
+                                      );
+                                    }
+                                  }
+
                                   return (
                                     <button
                                       key={slotIdx}
