@@ -47,11 +47,11 @@ FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
 -- Insert sample admin user (password: "admin123")
--- Password hash generated with bcrypt, rounds=10
+-- Password hash generated with SHA-256
 INSERT INTO booking_users (name, email, password_hash, card_number)
 VALUES (
     'Admin User',
     'admin@ntc.sk',
-    '$2a$10$rW8E8VqN5X5VbZJZxQxMJO7K.H4xK9x5L8P5H9x5L8P5H9x5L8P5H',
+    '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9',
     'CARD001'
 ) ON CONFLICT (email) DO NOTHING;
