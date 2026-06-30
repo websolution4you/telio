@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BookingCalendar from "@/components/bookings/BookingCalendar";
+import UserMenu from "@/components/bookings/UserMenu";
 import { courts } from "@/lib/bookings/mockBookings";
 import { fetchBookingsAction } from "@/app/actions/bookings";
+import { getSession } from "@/lib/auth/bookingAuth";
+import { getCoreDb } from "@/lib/server/supabase";
 import { Sparkles } from "lucide-react";
+import type { BookingUser } from "@/lib/auth/bookingAuth";
 
 export const metadata: Metadata = {
   title: "Telio Bookings — Rezervácia kurtov NTC Bratislava",
@@ -19,6 +24,34 @@ const stats = [
 ];
 
 export default async function BookingsPage() {
+  // Check authentication
+  const session = await getSession();
+
+  if (!session) {
+    redirect("/bookings/login");
+  }
+
+  // Get user data
+  const db = getCoreDb();
+  const { data: userData } = await db
+    .from("booking_users")
+    .select("id, name, email, card_number")
+    .eq("id", session.userId)
+    .single();
+
+  const user: BookingUser = userData
+    ? {
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        cardNumber: userData.card_number,
+      }
+    : {
+        id: session.userId,
+        name: session.name,
+        email: session.email,
+      };
+
   // Fetch initial bookings on the server for a 4-day window (today + 3 days)
   const start = new Date();
   start.setHours(0, 0, 0, 0);
@@ -60,6 +93,10 @@ export default async function BookingsPage() {
           >
             Rezervačný systém NTC
           </h1>
+
+          <div className="mt-6">
+            <UserMenu user={user} />
+          </div>
         </div>
       </section>
 

@@ -100,6 +100,13 @@ export default function Navbar() {
             <Link href="/dashboard/pizza" className="btn-primary btn-nav font-semibold">
               Dashboard
             </Link>
+
+            <Link
+              href="/bookings/login"
+              className="px-4 py-2 text-sm font-semibold text-white/80 hover:text-white transition-colors duration-200"
+            >
+              Login
+            </Link>
           </div>
 
           {/* Mobile: lang + hamburger */}
@@ -201,6 +208,21 @@ export default function Navbar() {
                 onClick={() => setMenuOpen(false)}
               >
                 Dashboard
+              </Link>
+
+              {/* Login Button */}
+              <Link
+                href="/bookings/login"
+                className="w-full rounded-xl flex items-center justify-center font-semibold text-base transition-all duration-300"
+                style={{
+                  height: "56px",
+                  background: "rgba(255, 255, 255, 0.05)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  color: "white"
+                }}
+                onClick={() => setMenuOpen(false)}
+              >
+                Login
               </Link>
             </nav>
 
