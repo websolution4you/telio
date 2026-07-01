@@ -29,6 +29,25 @@ export default async function BookingsPage() {
   let user: BookingUser | null = null;
   let initialBookings: any[] = [];
 
+  // Fetch initial bookings (publicly visible)
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date();
+  end.setDate(end.getDate() + 4);
+  end.setHours(23, 59, 59, 999);
+
+  const res = await fetchBookingsAction(start.toISOString(), end.toISOString());
+  
+  let fetchError = null;
+  // Len reálne dáta, žiadne vymyslené (mock) záložné riešenie
+  if (res.success && res.bookings && res.bookings.length > 0) {
+    initialBookings = res.bookings;
+  } else if (!res.success || res.bookings?.length === 0) {
+    // Ak sa vráti chyba alebo je to úplne prázdne (napríklad pre chýbajúce Google API kľúče)
+    fetchError = "Nepodarilo sa načítať rezervácie z Google Kalendára. Skontrolujte konfiguráciu API kľúčov.";
+    initialBookings = [];
+  }
+
   if (session) {
     // Get user data
     const db = getCoreDb();
@@ -50,23 +69,6 @@ export default async function BookingsPage() {
           name: session.name,
           email: session.email,
         };
-
-    // Fetch initial bookings
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setDate(end.getDate() + 4);
-    end.setHours(23, 59, 59, 999);
-
-    const res = await fetchBookingsAction(start.toISOString(), end.toISOString());
-    
-    // Ak Google Kalendár zlyhá (napr. chýbajú API kľúče), použijeme mock dáta na ukážku
-    if (res.success && res.bookings && res.bookings.length > 0) {
-      initialBookings = res.bookings;
-    } else {
-      const { mockBookings } = await import("@/lib/bookings/mockBookings");
-      initialBookings = mockBookings;
-    }
   }
 
   return (
@@ -102,6 +104,14 @@ export default async function BookingsPage() {
           </h1>
         </div>
       </section>
+
+      {fetchError && (
+        <div className="w-full max-w-4xl mx-auto mb-8 px-6 relative z-10">
+          <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-center font-semibold backdrop-blur-md">
+            {fetchError}
+          </div>
+        </div>
+      )}
 
       <BookingAuthWrapper user={user} courts={courts} bookings={initialBookings} />
 
