@@ -14,23 +14,9 @@ CREATE TABLE IF NOT EXISTS booking_users (
 -- Add index on email for faster lookups
 CREATE INDEX IF NOT EXISTS idx_booking_users_email ON booking_users(email);
 
--- Add RLS (Row Level Security) policies
-ALTER TABLE booking_users ENABLE ROW LEVEL SECURITY;
-
--- Policy: Users can only read their own data
-CREATE POLICY "Users can view own profile"
-ON booking_users FOR SELECT
-USING (auth.uid() = id);
-
--- Policy: Anyone can insert (for registration)
-CREATE POLICY "Anyone can register"
-ON booking_users FOR INSERT
-WITH CHECK (true);
-
--- Policy: Users can update their own data
-CREATE POLICY "Users can update own profile"
-ON booking_users FOR UPDATE
-USING (auth.uid() = id);
+-- Disable RLS for custom JWT authentication
+-- (We're using our own JWT system, not Supabase Auth)
+ALTER TABLE booking_users DISABLE ROW LEVEL SECURITY;
 
 -- Create updated_at trigger
 CREATE OR REPLACE FUNCTION update_updated_at_column()

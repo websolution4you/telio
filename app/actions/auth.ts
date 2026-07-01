@@ -25,7 +25,7 @@ export async function loginAction(email: string, password: string) {
             .from("booking_users")
             .select("id, name, email, password_hash, card_number")
             .eq("email", email.toLowerCase().trim())
-            .single();
+            .maybeSingle();
 
         if (dbError || !user) {
             return { success: false, error: "Nesprávny email alebo heslo" };

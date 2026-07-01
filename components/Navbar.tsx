@@ -3,11 +3,39 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n";
+import { useRouter } from "next/navigation";
+import { loginAction } from "@/app/actions/auth";
 
 export default function Navbar() {
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { lang, setLang, t } = useLang();
+  
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const result = await loginAction(email, password);
+      if (result.success) {
+        // Refresh page to apply session changes, or redirect
+        router.refresh();
+      } else {
+        setError(result.error || "Chyba pri prihlasovaní");
+      }
+    } catch (err) {
+      setError("Chyba pri prihlasovaní");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -97,16 +125,43 @@ export default function Navbar() {
               </button>
             </div>
 
-            <Link href="/dashboard/pizza" className="btn-primary btn-nav font-semibold">
-              Dashboard
-            </Link>
-
-            <Link
-              href="/bookings/login"
-              className="px-4 py-2 text-sm font-semibold text-white/80 hover:text-white transition-colors duration-200"
-            >
-              Login
-            </Link>
+            <div className="relative flex flex-col items-end">
+              <Link href="/dashboard/pizza" className="btn-primary btn-nav font-semibold">
+                Dashboard
+              </Link>
+              
+              {/* Login form under Dashboard - PERMANENTLY VISIBLE NOW */}
+              <div className="absolute top-[110%] right-0 w-64 p-4 rounded-xl border border-cyan-500/30 bg-[#050508]/95 backdrop-blur-xl shadow-2xl">
+                <form className="flex flex-col gap-3" onSubmit={handleLogin}>
+                  {error && <div className="text-red-400 text-xs bg-red-500/10 p-2 rounded">{error}</div>}
+                  <input 
+                    type="email" 
+                    placeholder="Login" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                    required
+                    className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-cyan-500 transition-colors" 
+                  />
+                  <input 
+                    type="password" 
+                    placeholder="Heslo" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    required
+                    className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-cyan-500 transition-colors" 
+                  />
+                  <button 
+                    type="submit" 
+                    disabled={loading}
+                    className="bg-gradient-to-r from-[#00FFD1] to-[#7B61FF] text-white font-bold rounded-lg py-2 text-sm mt-1 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {loading ? "ČAKAJTE..." : "PRIHLÁSIŤ"}
+                  </button>
+                </form>
+              </div>
+            </div>
           </div>
 
           {/* Mobile: lang + hamburger */}
@@ -208,21 +263,6 @@ export default function Navbar() {
                 onClick={() => setMenuOpen(false)}
               >
                 Dashboard
-              </Link>
-
-              {/* Login Button */}
-              <Link
-                href="/bookings/login"
-                className="w-full rounded-xl flex items-center justify-center font-semibold text-base transition-all duration-300"
-                style={{
-                  height: "56px",
-                  background: "rgba(255, 255, 255, 0.05)",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  color: "white"
-                }}
-                onClick={() => setMenuOpen(false)}
-              >
-                Login
               </Link>
             </nav>
 
