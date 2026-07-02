@@ -81,12 +81,14 @@ export default async function BookingsPage() {
           style={{ background: "radial-gradient(ellipse, rgba(0,255,209,0.13), rgba(123,97,255,0.08), transparent 68%)" }}
         />
         <div className="relative z-10 w-full flex flex-col items-center justify-center px-8 text-center" style={{ maxWidth: "76rem", width: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
-          <div
-            className="inline-flex items-center gap-3 rounded-full border px-5 py-3 text-xs font-black uppercase tracking-[0.2em]"
-            style={{ borderColor: "rgba(0,255,209,0.25)", background: "rgba(0,255,209,0.06)", color: "var(--cyan)", display: "inline-flex", justifyContent: "center" }}
-          >
-            <Sparkles className="h-4 w-4" /> Telio — Bookings
-          </div>
+          {false && (
+            <div
+              className="inline-flex items-center gap-3 rounded-full border px-5 py-3 text-xs font-black uppercase tracking-[0.2em]"
+              style={{ borderColor: "rgba(0,255,209,0.25)", background: "rgba(0,255,209,0.06)", color: "var(--cyan)", display: "inline-flex", justifyContent: "center" }}
+            >
+              <Sparkles className="h-4 w-4" /> Telio — Bookings
+            </div>
+          )}
 
           <h1
             className="mt-10 text-3xl font-semibold tracking-[-0.04em] text-white md:text-5xl"
