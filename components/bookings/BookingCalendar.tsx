@@ -382,6 +382,16 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
 
   // Get color and layout based on booking details
   const getBookingColor = (booking: Booking) => {
+    if (currentUser && currentUser.id === booking.user_id) {
+      return {
+        bg: "rgba(234, 179, 8, 0.15)", // yellow
+        border: "border-yellow-500/40 border-l-4 border-l-yellow-400",
+        text: "text-yellow-400",
+        badgeBg: "bg-yellow-500/20 text-yellow-300",
+        label: "Vaša rezervácia"
+      };
+    }
+
     if (booking.status === "blocked") {
       return {
         bg: "rgba(245, 158, 11, 0.15)",
@@ -688,21 +698,22 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                     return (
                                       <div
                                         key={booking.id}
-                                        className="absolute h-full rounded-xl pointer-events-auto flex items-center justify-center overflow-hidden border border-red-500/30 bg-red-950/20 shadow-md transition-all px-1 text-center"
+                                        className={`absolute h-full rounded-xl pointer-events-auto flex items-center justify-center overflow-hidden border shadow-md transition-all px-1 text-center ${meta.border}`}
                                         style={{
                                           ...style,
+                                          background: meta.bg,
                                           left: `calc(${style.left} + 2px)`,
                                           width: `calc(${style.width} - 4px)`
                                         }}
-                                        title={`Obsadené: ${timeLabel}`}
+                                        title={`${meta.label}: ${timeLabel}`}
                                       >
-                                        <span className="text-[10px] font-bold text-red-400 font-mono select-none">
+                                        <span className={`text-[10px] font-bold font-mono select-none ${meta.text}`}>
                                           {timeLabel}
                                         </span>
                                         {currentUser && (currentUser.role === 'admin' || currentUser.id === booking.user_id) && (
                                           <button
                                             onClick={(e) => handleDeleteBooking(booking.id, e)}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-red-500/20 text-red-400/70 hover:text-red-400 transition-colors"
+                                            className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-white/10 opacity-70 hover:opacity-100 transition-colors ${meta.text}`}
                                             title="Zmazať rezerváciu"
                                           >
                                             <Trash2 className="h-3 w-3" />
