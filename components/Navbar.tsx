@@ -143,39 +143,7 @@ export default function Navbar() {
                 Dashboard
               </Link>
 
-              {/* Login form under Dashboard */}
-              {authChecked && !currentUser && (
-                <div className="absolute top-[110%] right-0 w-36 p-4 rounded-lg border border-cyan-500/30 bg-[#050508]/95 backdrop-blur-xl shadow-2xl" style={{ marginTop: "30px" }}>
-                  <form className="flex flex-col gap-3" onSubmit={handleLogin}>
-                    {error && <div className="text-red-400 text-[10px] bg-red-500/10 p-2 rounded">{error}</div>}
-                    <input
-                      type="email"
-                      placeholder="Login"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={loading}
-                      required
-                      className="bg-white/5 border border-white/10 rounded px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-cyan-500 transition-colors"
-                    />
-                    <input
-                      type="password"
-                      placeholder="Heslo"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={loading}
-                      required
-                      className="bg-white/5 border border-white/10 rounded px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-cyan-500 transition-colors"
-                    />
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="bg-gradient-to-r from-[#00FFD1] to-[#7B61FF] text-white font-bold rounded py-2 text-[10px] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-                    >
-                      {loading ? "ČAKAJTE..." : "PRIHLÁSIŤ"}
-                    </button>
-                  </form>
-                </div>
-              )}
+              {/* Login form was here, moved outside header to scroll with page */}
 
               {/* Logged in user */}
               {authChecked && currentUser && (
@@ -239,6 +207,44 @@ export default function Navbar() {
           </div>
         </div>
       </header>
+
+      {/* Desktop Login form (absolute to page, scrolls with page) */}
+      {authChecked && !currentUser && (
+        <div className="absolute top-[85px] left-0 right-0 w-full flex justify-center z-[50] pointer-events-none hidden md:flex" style={{ padding: "0 2rem" }}>
+          <div className="w-full relative" style={{ maxWidth: "80rem" }}>
+            <div className="absolute top-0 right-0 w-36 p-4 rounded-lg border border-cyan-500/30 bg-[#050508]/95 backdrop-blur-xl shadow-2xl pointer-events-auto">
+              <form className="flex flex-col gap-3" onSubmit={handleLogin}>
+                {error && <div className="text-red-400 text-[10px] bg-red-500/10 p-2 rounded">{error}</div>}
+                <input
+                  type="email"
+                  placeholder="Login"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  required
+                  className="bg-white/5 border border-white/10 rounded px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-cyan-500 transition-colors"
+                />
+                <input
+                  type="password"
+                  placeholder="Heslo"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  required
+                  className="bg-white/5 border border-white/10 rounded px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-cyan-500 transition-colors"
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-gradient-to-r from-[#00FFD1] to-[#7B61FF] text-white font-bold rounded py-2 text-[10px] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                >
+                  {loading ? "ČAKAJTE..." : "PRIHLÁSIŤ"}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Side Menu */}
       <div
