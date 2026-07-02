@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import BookingCalendar from "./BookingCalendar";
 import LoginForm from "./LoginForm";
 import RegisterForm from "./RegisterForm";
 import UserMenu from "./UserMenu";
+import { getCurrentUserAction } from "@/app/actions/auth";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 import type { Court, Booking } from "@/lib/bookings/mockBookings";
 
@@ -19,41 +20,63 @@ export default function BookingAuthWrapper({ user: initialUser, courts, bookings
     const router = useRouter();
     const [showRegister, setShowRegister] = useState(false);
     const [user, setUser] = useState<BookingUser | null>(initialUser);
+    const [authChecked, setAuthChecked] = useState(!!initialUser);
+
+    useEffect(() => {
+        if (!initialUser) {
+            getCurrentUserAction().then(res => {
+                if (res.success && res.user) {
+                    setUser(res.user);
+                }
+                setAuthChecked(true);
+            });
+        }
+    }, [initialUser]);
 
     const handleSuccess = () => {
         router.refresh();
     };
 
+    // If user is logged in, show calendar with user menu
+    if (user) {
+        return (
+            <div className="relative w-full">
+                <div className="flex justify-center mb-8">
+                    <UserMenu user={user} />
+                </div>
+                <BookingCalendar courts={courts} bookings={bookings} />
+            </div>
+        );
+    }
+
+    // Not logged in - show calendar publicly + mobile login form
     return (
         <div className="relative w-full">
-            <div className="flex justify-center mb-8">
-                {user ? (
-                    <UserMenu user={user} />
-                ) : (
-                    <div className="flex gap-4">
-                        <button 
-                            onClick={() => setShowRegister(false)}
-                            className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
-                        >
-                            Prihlásiť sa
-                        </button>
-                        <span className="text-gray-500">|</span>
-                        <button 
-                            onClick={() => setShowRegister(true)}
-                            className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
-                        >
-                            Registrovať
-                        </button>
+            {/* Mobile login form (hidden on desktop where navbar has it) */}
+            {authChecked && !user && (
+                <div className="md:hidden relative z-10 w-full max-w-sm mx-auto px-6 mb-8">
+                    <div
+                        className="rounded-xl border p-5"
+                        style={{
+                            borderColor: "rgba(0,255,209,0.2)",
+                            background: "rgba(0,0,0,0.6)",
+                            backdropFilter: "blur(10px)",
+                        }}
+                    >
+                        {showRegister ? (
+                            <RegisterForm
+                                onSuccess={handleSuccess}
+                                onSwitchToLogin={() => setShowRegister(false)}
+                            />
+                        ) : (
+                            <LoginForm
+                                onSuccess={handleSuccess}
+                                onSwitchToRegister={() => setShowRegister(true)}
+                            />
+                        )}
                     </div>
-                )}
-            </div>
-
-            {(!user && (showRegister || !showRegister)) ? (
-                /* Ak by sme chceli formulár zobraziť nad kalendárom, dali by sme ho sem, 
-                   ale keďže chceme kalendár ako predtým, môžeme ho tu len zobraziť 
-                   a prihlasovanie nechať na neskôr / iný flow. Pre teraz necháme kalendár zobrazený vždy. */
-                null
-            ) : null}
+                </div>
+            )}
 
             <BookingCalendar courts={courts} bookings={bookings} />
         </div>

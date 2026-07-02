@@ -1,0 +1,13 @@
+{
+  "modelId": "global.anthropic.claude-opus-4-7",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "text": "Say hello in one sentence."
+        }
+      ]
+    }
+  ]
+}

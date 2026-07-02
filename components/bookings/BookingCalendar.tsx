@@ -442,7 +442,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
           </div>
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
-          <span className="px-3 py-1.5 rounded-xl border border-cyan-500/20 bg-cyan-500/5 text-cyan-300 flex items-center gap-1.5">
+          <span className="px-6 py-2.5 rounded-full border border-cyan-500/20 bg-cyan-500/5 text-cyan-300 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span>
             Telio Hlasový asistent ready
           </span>
@@ -472,7 +472,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
           <div className="flex items-center gap-3 flex-shrink-0">
             <button
               onClick={() => setBaseDate(new Date())}
-              className="px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-black text-slate-300 transition-colors cursor-pointer hover:border-cyan-500/40 flex items-center gap-2"
+              className="px-6 py-2.5 rounded-full border border-white/10 hover:bg-white/5 text-xs font-black text-slate-300 transition-colors cursor-pointer hover:border-cyan-500/40 flex items-center gap-2"
               title="Prejsť na dnešný deň"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-cyan-400"></span>
@@ -505,7 +505,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
 
           {/* Right: Active filter status */}
           <div className="flex items-center gap-4 flex-shrink-0">
-            <div className="text-xs font-black px-4 py-2.5 rounded-full border border-cyan-500/20 text-cyan-300 bg-cyan-500/5 flex items-center gap-2 flex-shrink-0">
+            <div className="text-xs font-black px-6 py-2.5 rounded-full border border-cyan-500/20 text-cyan-300 bg-cyan-500/5 flex items-center gap-2 flex-shrink-0">
               {isLoading && <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping" />}
               {isLoading ? "Načítavam..." : `Aktívny filter: ${sportLabels[selectedSport]}`}
             </div>

@@ -16,6 +16,19 @@ export default function Navbar() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    import("@/app/actions/auth").then(({ getCurrentUserAction }) => {
+      getCurrentUserAction().then(res => {
+        if (res.success && res.user) {
+          setCurrentUser(res.user);
+        }
+        setAuthChecked(true);
+      });
+    });
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +38,7 @@ export default function Navbar() {
     try {
       const result = await loginAction(email, password);
       if (result.success) {
-        // Refresh page to apply session changes, or redirect
+        setCurrentUser(result.user);
         router.refresh();
       } else {
         setError(result.error || "Chyba pri prihlasovaní");
@@ -104,7 +117,7 @@ export default function Navbar() {
             <div className="lang-switcher-container flex items-center rounded-lg overflow-hidden">
               <button
                 onClick={() => setLang("sk")}
-                className="px-3 py-1.5 text-xs font-semibold transition-all duration-150"
+                className="px-3 py-1.5 text-xs font-semibold cursor-pointer transition-all duration-150"
                 style={{
                   background: lang === "sk" ? "rgba(0,255,209,0.12)" : "transparent",
                   color: lang === "sk" ? "var(--cyan)" : "var(--text-muted)",
@@ -115,7 +128,7 @@ export default function Navbar() {
               <div className="w-[1px] h-[14px] bg-white/60" style={{ marginLeft: "16px", marginRight: "16px" }} />
               <button
                 onClick={() => setLang("en")}
-                className="px-3 py-1.5 text-xs font-semibold transition-all duration-150"
+                className="px-3 py-1.5 text-xs font-semibold cursor-pointer transition-all duration-150"
                 style={{
                   background: lang === "en" ? "rgba(0,255,209,0.12)" : "transparent",
                   color: lang === "en" ? "var(--cyan)" : "var(--text-muted)",
@@ -129,38 +142,60 @@ export default function Navbar() {
               <Link href="/dashboard/pizza" className="btn-primary btn-nav font-semibold">
                 Dashboard
               </Link>
-              
-              {/* Login form under Dashboard - PERMANENTLY VISIBLE NOW */}
-              <div className="absolute top-[110%] right-0 w-64 p-4 rounded-xl border border-cyan-500/30 bg-[#050508]/95 backdrop-blur-xl shadow-2xl">
-                <form className="flex flex-col gap-3" onSubmit={handleLogin}>
-                  {error && <div className="text-red-400 text-xs bg-red-500/10 p-2 rounded">{error}</div>}
-                  <input 
-                    type="email" 
-                    placeholder="Login" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
-                    required
-                    className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-cyan-500 transition-colors" 
-                  />
-                  <input 
-                    type="password" 
-                    placeholder="Heslo" 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    required
-                    className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-cyan-500 transition-colors" 
-                  />
-                  <button 
-                    type="submit" 
-                    disabled={loading}
-                    className="bg-gradient-to-r from-[#00FFD1] to-[#7B61FF] text-white font-bold rounded-lg py-2 text-sm mt-1 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+
+              {/* Login form under Dashboard */}
+              {authChecked && !currentUser && (
+                <div className="absolute top-[110%] right-0 w-36 p-4 rounded-lg border border-cyan-500/30 bg-[#050508]/95 backdrop-blur-xl shadow-2xl" style={{ marginTop: "30px" }}>
+                  <form className="flex flex-col gap-3" onSubmit={handleLogin}>
+                    {error && <div className="text-red-400 text-[10px] bg-red-500/10 p-2 rounded">{error}</div>}
+                    <input
+                      type="email"
+                      placeholder="Login"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading}
+                      required
+                      className="bg-white/5 border border-white/10 rounded px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-cyan-500 transition-colors"
+                    />
+                    <input
+                      type="password"
+                      placeholder="Heslo"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
+                      required
+                      className="bg-white/5 border border-white/10 rounded px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-cyan-500 transition-colors"
+                    />
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="bg-gradient-to-r from-[#00FFD1] to-[#7B61FF] text-white font-bold rounded py-2 text-[10px] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {loading ? "ČAKAJTE..." : "PRIHLÁSIŤ"}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* Logged in user */}
+              {authChecked && currentUser && (
+                <div className="absolute top-[110%] right-0 flex items-center gap-2">
+                  <span className="text-xs font-medium cursor-pointer" style={{ color: "var(--cyan)" }}>
+                    {currentUser.name}
+                  </span>
+                  <button
+                    onClick={async () => {
+                      const { logoutAction } = await import("@/app/actions/auth");
+                      await logoutAction();
+                      setCurrentUser(null);
+                      router.refresh();
+                    }}
+                    className="text-[10px] text-red-400 hover:text-red-300 cursor-pointer transition-colors"
                   >
-                    {loading ? "ČAKAJTE..." : "PRIHLÁSIŤ"}
+                    Odhlásiť
                   </button>
-                </form>
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -169,7 +204,7 @@ export default function Navbar() {
             <div className="lang-switcher-container flex items-center rounded-md overflow-hidden">
               <button
                 onClick={() => setLang("sk")}
-                className="px-4 py-2 text-xs font-bold transition-all duration-150"
+                className="px-4 py-2 text-xs font-bold cursor-pointer transition-all duration-150"
                 style={{
                   background: lang === "sk" ? "rgba(0,255,209,0.12)" : "transparent",
                   color: lang === "sk" ? "var(--cyan)" : "var(--text-muted)",
@@ -180,7 +215,7 @@ export default function Navbar() {
               <div className="w-[1px] h-[14px] bg-white/60" style={{ marginLeft: "16px", marginRight: "16px" }} />
               <button
                 onClick={() => setLang("en")}
-                className="px-4 py-2 text-xs font-bold transition-all duration-150"
+                className="px-4 py-2 text-xs font-bold cursor-pointer transition-all duration-150"
                 style={{
                   background: lang === "en" ? "rgba(0,255,209,0.12)" : "transparent",
                   color: lang === "en" ? "var(--cyan)" : "var(--text-muted)",
