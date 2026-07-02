@@ -416,38 +416,42 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
     <section className="relative w-full flex flex-col items-center px-4 md:px-8" style={{ maxWidth: "84rem", width: "100%", margin: "3rem auto 0", paddingBottom: "6rem" }}>
       
       {/* Small stats info bar */}
-      <div className="w-full flex flex-wrap justify-center items-center gap-6 text-xs font-bold text-slate-400 mb-8">
-        <span className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-white/5 bg-[#0c0c16]/50 backdrop-blur-md shadow-lg">
-          <span className="text-[#00D4FF] font-black text-sm">8</span> indoor tenisových kurtov
-        </span>
-        <span className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-white/5 bg-[#0c0c16]/50 backdrop-blur-md shadow-lg">
-          <span className="text-[#7B61FF] font-black text-sm">10</span> bedmintonových kurtov
-        </span>
-        <span className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-white/5 bg-[#0c0c16]/50 backdrop-blur-md shadow-lg">
-          <span className="text-cyan-400 font-black text-sm">24/7</span> hlasové rezervácie cez Telio
-        </span>
-      </div>
-
-      {/* Top Banner / Simulator Notice */}
-      <div className="w-full rounded-3xl border p-6 flex flex-col md:flex-row items-center justify-between gap-6" style={{ background: "linear-gradient(135deg, rgba(12,12,20,0.85) 0%, rgba(20,20,35,0.7) 100%)", borderColor: "var(--border)", marginBottom: "3rem" }}>
-        <div className="flex items-start gap-4">
-          <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-            <Info className="h-6 w-6" />
-          </div>
-          <div>
-            <h3 className="text-white font-bold text-lg">Simulátor rezervácií NTC</h3>
-            <p className="text-sm text-slate-400 mt-1 max-w-xl">
-              Tento systém simuluje reálne správanie kalendárov. Kliknutím na voľné políčko v grafe môžete okamžite vytvoriť simulovanú rezerváciu kurtu.
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2 text-xs">
-          <span className="px-6 py-2.5 rounded-full border border-cyan-500/20 bg-cyan-500/5 text-cyan-300 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span>
-            Telio Hlasový asistent ready
+      {false && (
+        <div className="w-full flex flex-wrap justify-center items-center gap-6 text-xs font-bold text-slate-400 mb-8">
+          <span className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-white/5 bg-[#0c0c16]/50 backdrop-blur-md shadow-lg">
+            <span className="text-[#00D4FF] font-black text-sm">8</span> indoor tenisových kurtov
+          </span>
+          <span className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-white/5 bg-[#0c0c16]/50 backdrop-blur-md shadow-lg">
+            <span className="text-[#7B61FF] font-black text-sm">10</span> bedmintonových kurtov
+          </span>
+          <span className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-white/5 bg-[#0c0c16]/50 backdrop-blur-md shadow-lg">
+            <span className="text-cyan-400 font-black text-sm">24/7</span> hlasové rezervácie cez Telio
           </span>
         </div>
-      </div>
+      )}
+
+      {/* Top Banner / Simulator Notice */}
+      {false && (
+        <div className="w-full rounded-3xl border p-6 flex flex-col md:flex-row items-center justify-between gap-6" style={{ background: "linear-gradient(135deg, rgba(12,12,20,0.85) 0%, rgba(20,20,35,0.7) 100%)", borderColor: "var(--border)", marginBottom: "3rem" }}>
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+              <Info className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="text-white font-bold text-lg">Simulátor rezervácií NTC</h3>
+              <p className="text-sm text-slate-400 mt-1 max-w-xl">
+                Tento systém simuluje reálne správanie kalendárov. Kliknutím na voľné políčko v grafe môžete okamžite vytvoriť simulovanú rezerváciu kurtu.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="px-6 py-2.5 rounded-full border border-cyan-500/20 bg-cyan-500/5 text-cyan-300 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span>
+              Telio Hlasový asistent ready
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Main Container */}
       <div className="w-full flex flex-col space-y-10">
