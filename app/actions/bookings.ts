@@ -25,7 +25,8 @@ function parseGCalEvent(event: any) {
     let userId = "";
 
     // Parse structured description lines if they exist
-    const lines = description.split("\n");
+    const cleanDesc = description.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "");
+    const lines = cleanDesc.split(/\r?\n/);
     let hasStructuredLines = false;
 
     for (const line of lines) {
