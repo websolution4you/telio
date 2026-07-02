@@ -207,6 +207,7 @@ export async function createBookingAction(payload: {
             success: true, 
             booking: {
                 id: calendarEventId || dbBooking.id, // Use Google Event ID if sync worked
+                user_id: session.userId,
                 ...payload
             } 
         };
