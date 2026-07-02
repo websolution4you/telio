@@ -204,6 +204,14 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
       alert("Pre vytvorenie rezervácie sa musíte prihlásiť.");
       return;
     }
+
+    const slotTime = new Date(date);
+    slotTime.setHours(slot.hour, slot.minute, 0, 0);
+    
+    if (slotTime < new Date() && currentUser.role !== "admin") {
+      alert("Nemožno vytvoriť rezerváciu v minulosti.");
+      return;
+    }
     
     setSelectedSlot({
       courtId,
