@@ -66,7 +66,7 @@ export async function createSession(user: BookingUser): Promise<string> {
 export async function verifySession(token: string): Promise<SessionPayload | null> {
     try {
         const verified = await jwtVerify(token, JWT_SECRET);
-        return verified.payload as SessionPayload;
+        return verified.payload as unknown as SessionPayload;
     } catch (error) {
         return null;
     }
