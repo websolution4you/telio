@@ -693,12 +693,15 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                     
                                     const startParts = getSlovakiaTimeParts(booking.start);
                                     const endParts = getSlovakiaTimeParts(booking.end);
-                                    const timeLabel = `${String(startParts.hour).padStart(2, "0")}:${String(startParts.minute).padStart(2, "0")} - ${String(endParts.hour).padStart(2, "0")}:${String(endParts.minute).padStart(2, "0")}`;
+                                    const startTimeStr = `${String(startParts.hour).padStart(2, "0")}:${String(startParts.minute).padStart(2, "0")}`;
+                                    const endTimeStr = `${String(endParts.hour).padStart(2, "0")}:${String(endParts.minute).padStart(2, "0")}`;
+                                    const timeLabel = `${startTimeStr} - ${endTimeStr}`;
+                                    const canDelete = currentUser && (currentUser.role === 'admin' || currentUser.id === booking.user_id);
 
                                     return (
                                       <div
                                         key={booking.id}
-                                        className={`absolute h-full rounded-xl pointer-events-auto flex items-center justify-center overflow-hidden border shadow-md transition-all px-1 text-center ${meta.border}`}
+                                        className={`absolute h-full rounded-xl pointer-events-auto flex items-center overflow-hidden border shadow-md transition-all px-2 ${meta.border}`}
                                         style={{
                                           ...style,
                                           background: meta.bg,
@@ -707,13 +710,18 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                         }}
                                         title={`${meta.label}: ${timeLabel}`}
                                       >
-                                        <span className={`text-[10px] font-bold font-mono select-none ${meta.text}`}>
-                                          {timeLabel}
-                                        </span>
-                                        {currentUser && (currentUser.role === 'admin' || currentUser.id === booking.user_id) && (
+                                        <div className={`flex flex-col items-start leading-[1.2] ${canDelete ? 'pr-6' : 'pr-0'} ${meta.text}`}>
+                                          <span className="text-[10px] font-bold font-mono select-none">
+                                            {startTimeStr}
+                                          </span>
+                                          <span className="text-[10px] font-bold font-mono select-none opacity-80">
+                                            {endTimeStr}
+                                          </span>
+                                        </div>
+                                        {canDelete && (
                                           <button
                                             onClick={(e) => handleDeleteBooking(booking.id, e)}
-                                            className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-white/10 opacity-70 hover:opacity-100 transition-colors ${meta.text}`}
+                                            className={`absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-white/10 opacity-70 hover:opacity-100 transition-colors ${meta.text}`}
                                             title="Zmazať rezerváciu"
                                           >
                                             <Trash2 className="h-3 w-3" />
