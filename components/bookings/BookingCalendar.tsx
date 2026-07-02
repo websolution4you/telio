@@ -22,9 +22,12 @@ import { fetchBookingsAction, createBookingAction, deleteBookingAction } from "@
 import { supabase } from "@/lib/supabase";
 import { useLang } from "@/lib/i18n";
 
+import type { BookingUser } from "@/lib/auth/bookingAuth";
+
 type BookingCalendarProps = {
   courts: Court[];
   bookings: Booking[];
+  currentUser?: BookingUser | null;
 };
 
 // sportLabels is now dynamically defined inside the component based on language
@@ -36,7 +39,7 @@ function getLocalDateString(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-export default function BookingCalendar({ courts, bookings }: BookingCalendarProps) {
+export default function BookingCalendar({ courts, bookings, currentUser }: BookingCalendarProps) {
   const { lang } = useLang();
 
   const sportLabels: Record<SportType, string> = useMemo(() => ({
@@ -197,6 +200,11 @@ export default function BookingCalendar({ courts, bookings }: BookingCalendarPro
   const totalSlotsCount = timeSlots.length - 1;
 
   const handleCellClick = (courtId: string, date: Date, slot: { hour: number; minute: number }) => {
+    if (!currentUser) {
+      alert("Pre vytvorenie rezervácie sa musíte prihlásiť.");
+      return;
+    }
+    
     setSelectedSlot({
       courtId,
       date,
@@ -683,6 +691,15 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                         <span className="text-[10px] font-bold text-red-400 font-mono select-none">
                                           {timeLabel}
                                         </span>
+                                        {currentUser && (currentUser.role === 'admin' || currentUser.id === booking.user_id) && (
+                                          <button
+                                            onClick={(e) => handleDeleteBooking(booking.id, e)}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-red-500/20 text-red-400/70 hover:text-red-400 transition-colors"
+                                            title="Zmazať rezerváciu"
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </button>
+                                        )}
                                       </div>
                                     );
                                   })}

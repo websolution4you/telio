@@ -10,7 +10,7 @@ export type Court = {
 
 export type BookingStatus = "confirmed" | "pending" | "blocked";
 
-export type Booking = {
+export interface Booking {
   id: string;
   courtId: string;
   title: string;
@@ -20,7 +20,8 @@ export type Booking = {
   end: string;
   status: BookingStatus;
   source: "voice-assistant" | "web" | "admin" | "google-calendar";
-};
+  user_id?: string;
+}
 
 export const courts: Court[] = [
   ...Array.from({ length: 10 }, (_, index) => ({

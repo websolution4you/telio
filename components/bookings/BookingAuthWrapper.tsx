@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import BookingCalendar from "./BookingCalendar";
 import LoginForm from "./LoginForm";
 import RegisterForm from "./RegisterForm";
-import UserMenu from "./UserMenu";
 import { getCurrentUserAction } from "@/app/actions/auth";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 import type { Court, Booking } from "@/lib/bookings/mockBookings";
@@ -23,7 +22,10 @@ export default function BookingAuthWrapper({ user: initialUser, courts, bookings
     const [authChecked, setAuthChecked] = useState(!!initialUser);
 
     useEffect(() => {
-        if (!initialUser) {
+        if (initialUser) {
+            setUser(initialUser);
+            setAuthChecked(true);
+        } else {
             getCurrentUserAction().then(res => {
                 if (res.success && res.user) {
                     setUser(res.user);
@@ -37,14 +39,11 @@ export default function BookingAuthWrapper({ user: initialUser, courts, bookings
         router.refresh();
     };
 
-    // If user is logged in, show calendar with user menu
+    // If user is logged in, show calendar without redundant user menu
     if (user) {
         return (
             <div className="relative w-full">
-                <div className="flex justify-center mb-8">
-                    <UserMenu user={user} />
-                </div>
-                <BookingCalendar courts={courts} bookings={bookings} />
+                <BookingCalendar courts={courts} bookings={bookings} currentUser={user} />
             </div>
         );
     }
@@ -78,7 +77,7 @@ export default function BookingAuthWrapper({ user: initialUser, courts, bookings
                 </div>
             )}
 
-            <BookingCalendar courts={courts} bookings={bookings} />
+            <BookingCalendar courts={courts} bookings={bookings} currentUser={user} />
         </div>
     );
 }

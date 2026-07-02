@@ -7,6 +7,7 @@ import {
     listCalendarEvents 
 } from "@/lib/server/calendarAdapter";
 import { revalidatePath } from "next/cache";
+import { getSession } from "@/lib/auth/bookingAuth";
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
 
@@ -21,6 +22,7 @@ function parseGCalEvent(event: any) {
     let phone = "";
     let source: "web" | "admin" | "voice-assistant" | "google-calendar" = "google-calendar";
     let notes = "";
+    let userId = "";
 
     // Parse structured description lines if they exist
     const lines = description.split("\n");
@@ -48,6 +50,9 @@ function parseGCalEvent(event: any) {
                 else if (val.includes("Hlas") || val.includes("assistant") || val.includes("voice")) source = "voice-assistant";
             } else if (key === "poznámka" || key === "poznamka" || key === "notes") {
                 notes = val;
+                hasStructuredLines = true;
+            } else if (key === "vlastník id" || key === "vlastnik id" || key === "user id" || key === "userid") {
+                userId = val;
                 hasStructuredLines = true;
             }
         }
@@ -88,7 +93,8 @@ function parseGCalEvent(event: any) {
         start: event.start?.dateTime || event.start?.date || "",
         end: event.end?.dateTime || event.end?.date || "",
         status,
-        source
+        source,
+        user_id: userId || undefined
     };
 }
 
@@ -123,6 +129,11 @@ export async function createBookingAction(payload: {
     source: "web" | "admin" | "voice-assistant" | "google-calendar";
 }) {
     try {
+        const session = await getSession();
+        if (!session) {
+            return { success: false, error: "Pre vytvorenie rezervácie sa musíte prihlásiť." };
+        }
+
         const db = getCoreDb();
 
         console.log(`Creating booking in Supabase for NTC Tenant: ${TENANT_ID}`);
@@ -143,7 +154,8 @@ export async function createBookingAction(payload: {
                 start_at: payload.start,
                 end_at: payload.end,
                 status: payload.status,
-                notes: JSON.stringify(notesObj)
+                notes: JSON.stringify(notesObj),
+                user_id: session.userId
             })
             .select()
             .single();
@@ -159,7 +171,8 @@ export async function createBookingAction(payload: {
             `Zákazník: ${payload.customerName}`,
             `Telefón: ${payload.phone || "Neznáme"}`,
             `Kanál: ${sourceLabel}`,
-            `Poznámka: ${payload.title || ""}`
+            `Poznámka: ${payload.title || ""}`,
+            `Vlastník ID: ${session.userId}`
         ].join("\n");
 
         const courtLabel = payload.courtId.replace("-", " ").toUpperCase();
@@ -205,18 +218,28 @@ export async function createBookingAction(payload: {
 
 export async function deleteBookingAction(id: string) {
     try {
+        const session = await getSession();
+        if (!session) {
+            return { success: false, error: "Nedostatočné oprávnenia." };
+        }
+
         const db = getCoreDb();
         console.log(`Deleting booking ${id} for NTC Tenant: ${TENANT_ID}`);
 
         // 1. Find booking in Supabase database to get the calendar_event_id and internal ID
         const { data: dbBooking, error: selectErr } = await db
             .from("bookings")
-            .select("id, calendar_event_id")
+            .select("id, calendar_event_id, user_id")
             .or(`id.eq.${id},calendar_event_id.eq.${id}`)
             .maybeSingle();
 
         if (selectErr) {
             console.error("Failed to select booking from database:", selectErr.message);
+        }
+
+        if (session.role !== 'admin' && dbBooking?.user_id !== session.userId) {
+            // Also need to check if Google event description has user_id, but for now we enforce via DB
+            return { success: false, error: "Nemáte oprávnenie vymazať túto rezerváciu." };
         }
 
         const targetEventId = dbBooking?.calendar_event_id || id;

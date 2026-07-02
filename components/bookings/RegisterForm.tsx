@@ -15,6 +15,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [cardNumber, setCardNumber] = useState("");
+    const [phone, setPhone] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -30,7 +31,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
         setLoading(true);
 
         try {
-            const result = await registerAction(name, email, password, cardNumber);
+            const result = await registerAction(name, email, password, cardNumber, phone);
 
             if (result.success) {
                 onSuccess();
@@ -97,13 +98,30 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
 
             <div>
                 <input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 rounded-lg border bg-black/30 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 mb-3"
+                    style={{ borderColor: "rgba(0,255,209,0.2)" }}
+                    placeholder="Telefónne číslo (+421...)"
+                    disabled={loading}
+                />
+            </div>
+
+            <div>
+                <input
                     id="cardNumber"
                     type="text"
                     value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value)}
+                    onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    pattern="\d{4}"
+                    title="PIN kód musí obsahovať presne 4 číslice"
+                    required
                     className="w-full px-3 py-2 rounded-lg border bg-black/30 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                     style={{ borderColor: "rgba(0,255,209,0.2)" }}
-                    placeholder="Číslo karty (voliteľné)"
+                    placeholder="4-miestny PIN kód karty"
                     disabled={loading}
                 />
             </div>

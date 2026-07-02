@@ -23,10 +23,13 @@ export async function loginAction(email: string, password: string) {
         // Find user by email
         const { data: user, error: dbError } = await db
             .from("booking_users")
-            .select("id, name, email, password_hash, card_number")
+            .select("id, name, email, password_hash, card_number, phone, role")
             .eq("email", email.toLowerCase().trim())
             .maybeSingle();
 
+        if (dbError) {
+            console.error("Login DB Error:", dbError);
+        }
         if (dbError || !user) {
             return { success: false, error: "Nesprávny email alebo heslo" };
         }
@@ -44,6 +47,7 @@ export async function loginAction(email: string, password: string) {
             name: user.name,
             email: user.email,
             cardNumber: user.card_number,
+            role: user.role,
         };
 
         const token = await createSession(bookingUser);
@@ -60,7 +64,8 @@ export async function registerAction(
     name: string,
     email: string,
     password: string,
-    cardNumber?: string
+    cardNumber?: string,
+    phone?: string
 ) {
     try {
         if (!name || !email || !password) {
@@ -95,8 +100,9 @@ export async function registerAction(
                 email: email.toLowerCase().trim(),
                 password_hash: passwordHash,
                 card_number: cardNumber?.trim() || null,
+                phone: phone?.trim() || null,
             })
-            .select("id, name, email, card_number")
+            .select("id, name, email, card_number, phone, role")
             .single();
 
         if (dbError || !user) {
@@ -110,6 +116,8 @@ export async function registerAction(
             name: user.name,
             email: user.email,
             cardNumber: user.card_number,
+            phone: user.phone,
+            role: user.role,
         };
 
         const token = await createSession(bookingUser);
@@ -144,7 +152,7 @@ export async function getCurrentUserAction() {
 
         const { data: user, error: dbError } = await db
             .from("booking_users")
-            .select("id, name, email, card_number")
+            .select("id, name, email, card_number, phone, role")
             .eq("id", session.userId)
             .single();
 
@@ -158,6 +166,8 @@ export async function getCurrentUserAction() {
             name: user.name,
             email: user.email,
             cardNumber: user.card_number,
+            phone: user.phone,
+            role: user.role,
         };
 
         return { success: true, user: bookingUser };

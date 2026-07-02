@@ -12,12 +12,16 @@ export interface BookingUser {
     name: string;
     email: string;
     cardNumber?: string;
+    phone?: string;
+    role?: "admin" | "user";
 }
 
 export interface SessionPayload {
     userId: string;
     email: string;
     name: string;
+    phone?: string;
+    role: "admin" | "user";
     exp: number;
 }
 
@@ -49,6 +53,8 @@ export async function createSession(user: BookingUser): Promise<string> {
         userId: user.id,
         email: user.email,
         name: user.name,
+        phone: user.phone,
+        role: user.role || "user",
         exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 7 days
     };
 

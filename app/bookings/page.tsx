@@ -53,7 +53,7 @@ export default async function BookingsPage() {
     const db = getCoreDb();
     const { data: userData } = await db
       .from("booking_users")
-      .select("id, name, email, card_number")
+      .select("id, name, email, card_number, role")
       .eq("id", session.userId)
       .single();
 
@@ -63,11 +63,13 @@ export default async function BookingsPage() {
           name: userData.name,
           email: userData.email,
           cardNumber: userData.card_number,
+          role: userData.role,
         }
       : {
           id: session.userId,
           name: session.name,
           email: session.email,
+          role: session.role,
         };
   }
 
