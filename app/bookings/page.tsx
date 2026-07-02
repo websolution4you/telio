@@ -38,7 +38,7 @@ export default async function BookingsPage() {
 
   const res = await fetchBookingsAction(start.toISOString(), end.toISOString());
   
-  let fetchError = null;
+  let fetchError: string | null = null;
   // Len reálne dáta, žiadne vymyslené (mock) záložné riešenie
   if (res.success && res.bookings && res.bookings.length > 0) {
     initialBookings = res.bookings;
