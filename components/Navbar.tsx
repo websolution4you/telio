@@ -168,7 +168,8 @@ export default function Navbar() {
           </div>
 
           {/* Mobile: lang + hamburger */}
-          <div className="md:hidden flex-1 flex items-center justify-end gap-3">
+          <div className="md:hidden flex-1 flex flex-col items-end justify-center relative">
+            <div className="flex items-center justify-end gap-3">
             <div className="lang-switcher-container flex items-center rounded-md overflow-hidden">
               <button
                 onClick={() => setLang("sk")}
@@ -204,9 +205,32 @@ export default function Navbar() {
               <span className="block w-5 h-px bg-white transition-all duration-200"
                 style={{ transform: menuOpen ? "rotate(-45deg) translate(2px, -2px)" : "none" }} />
             </button>
+            </div>
           </div>
         </div>
       </header>
+
+      {/* Mobile Logged In User Info (absolute to page, scrolls with page) */}
+      {authChecked && currentUser && (
+        <div className="absolute top-[85px] left-0 right-0 w-full flex justify-end z-[50] pointer-events-none md:hidden" style={{ padding: "0 1rem" }}>
+          <div className="bg-[#050508]/80 backdrop-blur-md px-4 py-3 rounded-xl border border-white/5 pointer-events-auto shadow-2xl flex flex-col items-end">
+            <span className="text-[11px] font-bold tracking-wider" style={{ color: "var(--cyan)" }}>
+              {currentUser.name}
+            </span>
+            <button
+              onClick={async () => {
+                const { logoutAction } = await import("@/app/actions/auth");
+                await logoutAction();
+                setCurrentUser(null);
+                router.refresh();
+              }}
+              className="text-[10px] text-red-400 hover:text-red-300 transition-colors mt-1.5 uppercase font-bold"
+            >
+              Odhlásiť sa
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Desktop Login form (absolute to page, scrolls with page) */}
       {authChecked && !currentUser && (
@@ -305,6 +329,7 @@ export default function Navbar() {
               >
                 Dashboard
               </Link>
+
             </nav>
 
             {/* Bottom Copyright */}

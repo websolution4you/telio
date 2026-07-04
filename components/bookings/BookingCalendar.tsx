@@ -201,15 +201,15 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
 
   const handleCellClick = (courtId: string, date: Date, slot: { hour: number; minute: number }) => {
     if (!currentUser) {
-      alert("Pre vytvorenie rezervácie sa musíte prihlásiť.");
+      setConfirmModal({ isOpen: true, isError: true, message: "Pre vytvorenie rezervácie sa musíte prihlásiť." });
       return;
     }
 
     const slotTime = new Date(date);
     slotTime.setHours(slot.hour, slot.minute, 0, 0);
     
-    if (slotTime < new Date() && currentUser.role !== "admin") {
-      alert("Nemožno vytvoriť rezerváciu v minulosti.");
+    if (slotTime < new Date()) {
+      setConfirmModal({ isOpen: true, isError: true, message: "Nemožno vytvoriť rezerváciu v minulosti." });
       return;
     }
     
@@ -219,11 +219,10 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
       hour: slot.hour,
       minute: slot.minute,
     });
-    // Set default duration based on intervals
     setFormDurationMinutes(isHalfHourInterval ? 60 : 60); // Default to 60 mins for simplicity
-    setFormCustomerName("");
-    setFormTitle("");
+    setFormCustomerName(currentUser?.name || "");
     setFormPhone("");
+    setFormTitle("");
     setFormSource("web");
     setErrorMsg("");
     setIsModalOpen(true);
@@ -290,7 +289,7 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
     const res = await createBookingAction({
       courtId,
       title: formTitle.trim() || (selectedSport.startsWith("tennis") ? "Tenis" : "Bedminton"),
-      customerName: formCustomerName.trim() || "Zákazník",
+      customerName: formCustomerName.trim() || currentUser?.name || "Zákazník",
       phone: formPhone.trim() || undefined,
       start: startDateTime.toISOString(),
       end: endDateTime.toISOString(),
@@ -309,18 +308,26 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
     }
   };
 
-  const handleDeleteBooking = async (id: string, e: React.MouseEvent) => {
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; bookingId?: string; message?: string; isError?: boolean }>({ isOpen: false });
+
+  const handleDeleteBookingClick = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm("Naozaj chcete zrušiť túto rezerváciu?")) {
-      setIsLoading(true);
-      const res = await deleteBookingAction(id);
-      setIsLoading(false);
-      
-      if (res.success) {
-        setLocalBookings((prev) => prev.filter((b) => b.id !== id));
-      } else {
-        alert("Nepodarilo sa zrušiť rezerváciu v Google kalendári.");
-      }
+    setConfirmModal({ isOpen: true, bookingId: id, message: "Naozaj chcete zrušiť túto rezerváciu?", isError: false });
+  };
+
+  const executeDeleteBooking = async () => {
+    const id = confirmModal.bookingId;
+    if (!id) return;
+    
+    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+    setIsLoading(true);
+    const res = await deleteBookingAction(id);
+    setIsLoading(false);
+    
+    if (res.success) {
+      setLocalBookings((prev) => prev.filter((b) => b.id !== id));
+    } else {
+      setConfirmModal({ isOpen: true, isError: true, message: res.error || "Nepodarilo sa zrušiť rezerváciu v Google kalendári." });
     }
   };
 
@@ -382,11 +389,13 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
 
   // Get color and layout based on booking details
   const getBookingColor = (booking: Booking) => {
+    const baseStyle = "backdrop-blur-md shadow-lg border-t border-r border-b";
+    
     if (currentUser && currentUser.id === booking.user_id) {
       return {
-        bg: "rgba(234, 179, 8, 0.15)", // yellow
-        border: "border-yellow-500/40 border-l-4 border-l-yellow-400",
-        text: "text-yellow-400",
+        bg: "linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(234, 179, 8, 0.05) 100%)",
+        border: `${baseStyle} border-yellow-500/20 border-l-4 border-l-yellow-400`,
+        text: "text-yellow-400 drop-shadow-md",
         badgeBg: "bg-yellow-500/20 text-yellow-300",
         label: "Vaša rezervácia"
       };
@@ -394,9 +403,9 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
 
     if (booking.status === "blocked") {
       return {
-        bg: "rgba(245, 158, 11, 0.15)",
-        border: "border-amber-500/40 border-l-4 border-l-amber-500",
-        text: "text-amber-300",
+        bg: "linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.05) 100%)",
+        border: `${baseStyle} border-amber-500/20 border-l-4 border-l-amber-500`,
+        text: "text-amber-300 drop-shadow-md",
         badgeBg: "bg-amber-500/20 text-amber-300",
         label: "Údržba"
       };
@@ -405,33 +414,33 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
     switch (booking.source) {
       case "voice-assistant":
         return {
-          bg: "rgba(6, 182, 212, 0.15)",
-          border: "border-cyan-500/40 border-l-4 border-l-cyan-400",
-          text: "text-cyan-200",
+          bg: "linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(6, 182, 212, 0.05) 100%)",
+          border: `${baseStyle} border-cyan-500/20 border-l-4 border-l-cyan-400`,
+          text: "text-cyan-200 drop-shadow-md",
           badgeBg: "bg-cyan-500/20 text-cyan-300",
           label: "Telio Hlas"
         };
       case "google-calendar":
         return {
-          bg: "rgba(167, 139, 250, 0.15)",
-          border: "border-purple-500/40 border-l-4 border-l-purple-400",
-          text: "text-purple-200",
+          bg: "linear-gradient(135deg, rgba(167, 139, 250, 0.2) 0%, rgba(167, 139, 250, 0.05) 100%)",
+          border: `${baseStyle} border-purple-500/20 border-l-4 border-l-purple-400`,
+          text: "text-purple-200 drop-shadow-md",
           badgeBg: "bg-purple-500/20 text-purple-300",
           label: "GCal"
         };
       case "admin":
         return {
-          bg: "rgba(239, 68, 68, 0.15)",
-          border: "border-red-500/40 border-l-4 border-l-red-500",
-          text: "text-red-200",
+          bg: "linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.05) 100%)",
+          border: `${baseStyle} border-red-500/20 border-l-4 border-l-red-500`,
+          text: "text-red-200 drop-shadow-md",
           badgeBg: "bg-red-500/20 text-red-300",
           label: "Recepcia"
         };
       default:
         return {
-          bg: "rgba(34, 197, 94, 0.15)",
-          border: "border-green-500/40 border-l-4 border-l-green-400",
-          text: "text-green-200",
+          bg: "linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.05) 100%)",
+          border: `${baseStyle} border-green-500/20 border-l-4 border-l-green-400`,
+          text: "text-green-200 drop-shadow-md",
           badgeBg: "bg-green-500/20 text-green-300",
           label: "Web"
         };
@@ -439,7 +448,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
   };
 
   return (
-    <section className="relative w-full flex flex-col items-center px-4 md:px-8" style={{ maxWidth: "84rem", width: "100%", margin: "3rem auto 0", paddingBottom: "6rem" }}>
+    <section className="relative w-full flex flex-col items-center px-2 md:px-8" style={{ maxWidth: "84rem", width: "100%", margin: "1rem auto 0", paddingBottom: "6rem" }}>
       
       {/* Small stats info bar */}
       {false && (
@@ -480,7 +489,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
       )}
 
       {/* Main Container */}
-      <div className="w-full flex flex-col space-y-10">
+      <div className="w-full flex flex-col space-y-4 md:space-y-6">
         
         {/* NTC-style Sport tabs selection */}
         <div className="ntc-sport-tabs-container">
@@ -496,7 +505,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
         </div>
 
         {/* Toolbar Header (NTC Style layout) */}
-        <div className="flex flex-wrap items-center justify-between gap-6 rounded-3xl border px-8 py-6 mb-8 min-h-[90px]" style={{ background: "rgba(12,12,20,0.72)", borderColor: "var(--border)" }}>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 rounded-3xl border px-4 md:px-8 py-4 mb-4 md:mb-8 min-h-[90px]" style={{ background: "rgba(12,12,20,0.72)", borderColor: "var(--border)" }}>
           
           {/* Left: Today's fixed date button */}
           <div className="flex items-center gap-3 flex-shrink-0">
@@ -533,13 +542,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
             </button>
           </div>
 
-          {/* Right: Active filter status */}
-          <div className="flex items-center gap-4 flex-shrink-0">
-            <div className="text-xs font-black px-6 py-2.5 rounded-full border border-cyan-500/20 text-cyan-300 bg-cyan-500/5 flex items-center gap-2 flex-shrink-0">
-              {isLoading && <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping" />}
-              {isLoading ? "Načítavam..." : `Aktívny filter: ${sportLabels[selectedSport]}`}
-            </div>
-          </div>
+
 
         </div>
 
@@ -573,13 +576,36 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                   {/* Timeline table */}
                   <div className="relative" style={{ minWidth: "900px" }}>
                     
+                    {/* Current Time Indicator (Global) */}
+                    {isToday && (() => {
+                      const now = new Date();
+                      const totalMinutes = (openingHours.endHour - openingHours.startHour) * 60;
+                      const startMinutes = (now.getHours() - openingHours.startHour) * 60 + now.getMinutes();
+                      const nowPercent = (startMinutes / totalMinutes) * 100;
+                      
+                      if (nowPercent >= 0 && nowPercent <= 100) {
+                        return (
+                          <div 
+                            className="absolute top-0 bottom-0 pointer-events-none z-[35]"
+                            style={{ left: `calc(100px + (100% - 100px) * ${nowPercent / 100})` }}
+                          >
+                            {/* Faint dashed line over the whole height */}
+                            <div className="absolute top-0 bottom-0 w-[1px] border-l border-dashed border-cyan-400/40 -translate-x-1/2"></div>
+                            {/* A subtle indicator at the top header */}
+                            <div className="absolute top-[38px] w-[5px] h-[5px] rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(0,255,209,0.8)] -translate-x-1/2"></div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                    
                     {/* Time Column Headers */}
                     <div 
                       className="grid border-b border-white/5 text-2xs font-extrabold tracking-wider text-slate-400 bg-white/[0.01]"
                       style={{ gridTemplateColumns: `100px 1fr` }}
                     >
                       {/* Left Corner */}
-                      <div className="p-3 border-r border-white/5 text-center flex items-center justify-center font-bold text-slate-500">
+                      <div className="sticky left-0 z-30 p-3 border-r border-white/5 text-center flex items-center justify-center font-bold text-slate-500" style={{ background: "rgba(12, 12, 20, 0.95)" }}>
                         {selectedSport === "tennis-clay" ? "Dvorec" : "Kurt"}
                       </div>
                       
@@ -607,11 +633,11 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                         return (
                           <div 
                             key={court.id}
-                            className="grid hover:bg-white/[0.01] transition-colors"
+                            className="grid hover:bg-white/[0.01] transition-colors relative"
                             style={{ gridTemplateColumns: `100px 1fr` }}
                           >
-                            {/* Court Title on Left (Sticky column simulation) */}
-                            <div className="p-3 border-r border-white/5 flex flex-col justify-center items-center text-center bg-slate-950/40">
+                            {/* Court Title on Left */}
+                            <div className="sticky left-0 z-20 p-3 border-r border-white/5 flex flex-col justify-center items-center text-center" style={{ background: "rgba(12, 12, 20, 0.95)" }}>
                               <span className="text-xs font-black text-white">{court.name}</span>
                               <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">{court.surface}</span>
                             </div>
@@ -675,14 +701,16 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                     <button
                                       key={slotIdx}
                                       onClick={() => handleCellClick(court.id, date, targetSlot)}
-                                      className="h-full border-r border-white/10 hover:bg-cyan-500/[0.02] focus:bg-cyan-500/[0.04] focus:outline-none transition-all flex items-center justify-center text-white/0 hover:text-cyan-400 group/cell cursor-pointer"
+                                      className="h-full border-r border-white/5 hover:bg-white/[0.04] focus:bg-white/[0.06] focus:outline-none transition-all flex items-center justify-center text-white/0 hover:text-cyan-400 group/cell cursor-pointer"
                                       title={`Kliknutím rezervujete od ${targetSlot.label}`}
                                     >
-                                      <Plus className="h-4 w-4 opacity-0 group-hover/cell:opacity-100 transition-opacity" />
+                                      <Plus className="h-4 w-4 opacity-0 group-hover/cell:opacity-100 transition-all scale-75 group-hover/cell:scale-100" />
                                     </button>
                                   );
                                 })}
                               </div>
+
+
 
                               {/* Bookings cards overlay */}
                               <div className="absolute inset-x-0 inset-y-2 pointer-events-none">
@@ -701,7 +729,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                     return (
                                       <div
                                         key={booking.id}
-                                        className={`absolute h-full rounded-xl pointer-events-auto flex items-center overflow-hidden border shadow-md transition-all px-2 ${meta.border}`}
+                                        className={`absolute h-full rounded-xl pointer-events-auto flex items-center overflow-hidden transition-all px-2 group/booking hover:z-20 hover:-translate-y-0.5 hover:shadow-xl ${meta.border}`}
                                         style={{
                                           ...style,
                                           background: meta.bg,
@@ -720,11 +748,11 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                         </div>
                                         {canDelete && (
                                           <button
-                                            onClick={(e) => handleDeleteBooking(booking.id, e)}
-                                            className={`absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-white/10 opacity-70 hover:opacity-100 transition-colors ${meta.text}`}
+                                            onClick={(e) => handleDeleteBookingClick(booking.id, e)}
+                                            className={`absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 opacity-0 group-hover/booking:opacity-100 transition-all scale-90 hover:scale-100`}
                                             title="Zmazať rezerváciu"
                                           >
-                                            <Trash2 className="h-3 w-3" />
+                                            <Trash2 className="h-3.5 w-3.5" />
                                           </button>
                                         )}
                                       </div>
@@ -754,130 +782,84 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
           <div 
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-xl"
             onClick={() => setIsModalOpen(false)}
           />
 
           {/* Modal Content */}
           <div 
-            className="relative w-full max-w-md rounded-3xl border ntc-booking-modal overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200"
-            style={{ background: "rgba(15, 23, 42, 0.95)", borderColor: "var(--border)" }}
+            className="relative w-full max-w-md rounded-3xl border border-white/10 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in duration-300"
+            style={{ background: "linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98))" }}
           >
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400">NTC Rezervácia</span>
-                <h3 className="text-lg font-bold text-white mt-0.5">Nová simulovaná rezervácia</h3>
+            <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
+            
+            <div className="p-8">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-400 bg-cyan-400/10 px-2.5 py-1 rounded-full">NTC Rezervácia</span>
+                  <h3 className="text-xl font-bold text-white mt-3">Nová rezervácia</h3>
+                </div>
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-lg border border-white/5 hover:bg-white/5 text-slate-400 hover:text-white transition-colors cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
 
-            <div className="ntc-booking-info-box space-y-1.5 text-xs text-slate-300">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Kurt:</span>
-                <span className="font-bold text-white">
-                  {courts.find((c) => c.id === selectedSlot.courtId)?.name || ""} ({sportLabels[selectedSport]})
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Dátum:</span>
-                <span className="font-bold text-white">
-                  {new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(selectedSlot.date)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Začiatok:</span>
-                <span className="font-bold text-white">
-                  {String(selectedSlot.hour).padStart(2, "0")}:{String(selectedSlot.minute).padStart(2, "0")}
-                </span>
-              </div>
-            </div>
-
-            <form onSubmit={handleCreateBookingSubmit} className="space-y-5">
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Meno zákazníka</label>
-                <div className="relative flex items-center">
-                  <User className="absolute left-4 h-4 w-4 text-slate-400 z-10 pointer-events-none" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="napr. Kamil Bartko"
-                    value={formCustomerName}
-                    onChange={(e) => setFormCustomerName(e.target.value)}
-                    className="ntc-booking-input"
-                    autoFocus
-                  />
+              <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-4 mb-8 space-y-2 text-sm text-slate-300">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-medium">Kurt</span>
+                  <span className="font-bold text-white flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400"></div>
+                    {courts.find((c) => c.id === selectedSlot.courtId)?.name || ""} <span className="text-slate-500 text-xs font-normal">({sportLabels[selectedSport]})</span>
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-medium">Dátum</span>
+                  <span className="font-bold text-white">
+                    {new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(selectedSlot.date)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-medium">Začiatok</span>
+                  <span className="font-bold text-white">
+                    {String(selectedSlot.hour).padStart(2, "0")}:{String(selectedSlot.minute).padStart(2, "0")}
+                  </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form onSubmit={handleCreateBookingSubmit} className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Telefónne číslo</label>
-                  <div className="relative flex items-center">
-                    <Phone className="absolute left-4 h-4 w-4 text-slate-400 z-10 pointer-events-none" />
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 pl-1">Poznámka / Názov hry</label>
+                  <div className="relative flex items-center group">
+                    <MessageSquare className="absolute left-4 h-4 w-4 text-slate-500 group-focus-within:text-cyan-400 transition-colors z-10 pointer-events-none" />
                     <input
                       type="text"
-                      placeholder="napr. +421..."
-                      value={formPhone}
-                      onChange={(e) => setFormPhone(e.target.value)}
-                      className="ntc-booking-input"
+                      placeholder="napr. Štvorhra s priateľmi"
+                      value={formTitle}
+                      onChange={(e) => setFormTitle(e.target.value)}
+                      className="w-full h-14 pl-12 pr-4 text-sm text-white bg-white/5 border border-white/5 rounded-xl outline-none focus:bg-cyan-500/5 focus:border-cyan-500/30 focus:ring-1 focus:ring-cyan-500/30 transition-all placeholder:text-slate-600"
+                      autoFocus
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Dĺžka rezervácie</label>
-                  <div className="relative flex items-center">
-                    <Clock className="absolute left-4 h-4 w-4 text-slate-400 z-10 pointer-events-none" />
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 pl-1">Dĺžka rezervácie</label>
+                  <div className="relative flex items-center group">
+                    <Clock className="absolute left-4 h-4 w-4 text-slate-500 group-focus-within:text-cyan-400 transition-colors z-10 pointer-events-none" />
                     <select
                       value={formDurationMinutes}
                       onChange={(e) => setFormDurationMinutes(parseInt(e.target.value))}
-                      className="ntc-booking-select"
+                      className="w-full h-14 pl-12 pr-10 text-sm text-white bg-white/5 border border-white/5 rounded-xl outline-none focus:bg-cyan-500/5 focus:border-cyan-500/30 focus:ring-1 focus:ring-cyan-500/30 transition-all appearance-none"
                     >
-                      <option value={30}>30 minút</option>
-                      <option value={60}>1 hodina</option>
-                      <option value={90}>1,5 hodiny</option>
-                      <option value={120}>2 hodiny</option>
+                      <option value={30} className="bg-slate-900 text-white">30 minút</option>
+                      <option value={60} className="bg-slate-900 text-white">1 hodina</option>
+                      <option value={90} className="bg-slate-900 text-white">1,5 hodiny</option>
+                      <option value={120} className="bg-slate-900 text-white">2 hodiny</option>
                     </select>
                   </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Poznámka / Názov hry</label>
-                <div className="relative flex items-center">
-                  <MessageSquare className="absolute left-4 h-4 w-4 text-slate-400 z-10 pointer-events-none" />
-                  <input
-                    type="text"
-                    placeholder="napr. Štvorhra s priateľmi"
-                    value={formTitle}
-                    onChange={(e) => setFormTitle(e.target.value)}
-                    className="ntc-booking-input"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Kanál rezervácie</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["web", "voice-assistant", "admin"] as const).map((src) => (
-                    <button
-                      key={src}
-                      type="button"
-                      onClick={() => setFormSource(src)}
-                      className={`ntc-booking-channel-btn`}
-                      style={{
-                        borderColor: formSource === src ? "var(--cyan)" : "rgba(255, 255, 255, 0.05)",
-                        background: formSource === src ? "rgba(0, 255, 209, 0.08)" : "rgba(255,255,255,0.02)",
-                        color: formSource === src ? "var(--cyan)" : "var(--text-muted)"
-                      }}
-                    >
-                      {src === "voice-assistant" ? "Hlas Telio" : src === "admin" ? "Recepcia" : "Web"}
-                    </button>
-                  ))}
                 </div>
               </div>
 
@@ -894,6 +876,57 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                 Vytvoriť rezerváciu
               </button>
             </form>
+          </div>
+        </div>
+        </div>
+      )}
+
+      {/* Confirmation/Error Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            onClick={() => confirmModal.isError ? setConfirmModal({ isOpen: false }) : null}
+          />
+          <div 
+            className="relative w-full max-w-sm rounded-3xl border overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200"
+            style={{ 
+              background: "rgba(15, 23, 42, 0.95)", 
+              borderColor: confirmModal.isError ? "rgba(239, 68, 68, 0.3)" : "var(--border)" 
+            }}
+          >
+            <div className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className={`p-3 rounded-2xl ${confirmModal.isError ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                  {confirmModal.isError ? <X className="h-6 w-6" /> : <Trash2 className="h-6 w-6" />}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">
+                    {confirmModal.isError ? "Chyba" : "Zrušiť rezerváciu"}
+                  </h3>
+                </div>
+              </div>
+              <p className="text-sm text-slate-300 mb-6">
+                {confirmModal.message}
+              </p>
+              
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setConfirmModal({ isOpen: false })}
+                  className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-300 bg-white/5 hover:bg-white/10 transition-colors"
+                >
+                  {confirmModal.isError ? "Zavrieť" : "Nie, ponechať"}
+                </button>
+                {!confirmModal.isError && (
+                  <button
+                    onClick={executeDeleteBooking}
+                    className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-[0_0_15px_rgba(239,68,68,0.3)]"
+                  >
+                    Áno, zrušiť
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

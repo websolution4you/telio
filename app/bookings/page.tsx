@@ -40,10 +40,10 @@ export default async function BookingsPage() {
   
   let fetchError: string | null = null;
   // Len reálne dáta, žiadne vymyslené (mock) záložné riešenie
-  if (res.success && res.bookings && res.bookings.length > 0) {
+  if (res.success && res.bookings) {
     initialBookings = res.bookings;
-  } else if (!res.success || res.bookings?.length === 0) {
-    // Ak sa vráti chyba alebo je to úplne prázdne (napríklad pre chýbajúce Google API kľúče)
+  } else if (!res.success) {
+    // Ak sa vráti chyba (napríklad pre chýbajúce Google API kľúče)
     fetchError = "Nepodarilo sa načítať rezervácie z Google Kalendára. Skontrolujte konfiguráciu API kľúčov.";
     initialBookings = [];
   }
@@ -77,7 +77,7 @@ export default async function BookingsPage() {
     <main className="min-h-screen grid-bg overflow-hidden" style={{ background: "var(--bg)" }}>
       <Navbar />
 
-      <section className="relative pb-16 md:pb-24 w-full flex flex-col items-center justify-center" style={{ paddingTop: "170px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%" }}>
+      <section className="relative pb-16 md:pb-24 w-full flex flex-col items-center justify-center" style={{ paddingTop: "140px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%" }}>
         <div
           className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full blur-[90px]"
           style={{ background: "radial-gradient(ellipse, rgba(0,255,209,0.13), rgba(123,97,255,0.08), transparent 68%)" }}
@@ -93,7 +93,7 @@ export default async function BookingsPage() {
           )}
 
           <h1
-            className="mt-10 text-3xl font-semibold tracking-[-0.04em] text-white md:text-5xl"
+            className="mt-6 text-3xl font-semibold tracking-[-0.04em] text-white md:text-5xl"
             style={{
               fontFamily: "var(--font-poppins), sans-serif",
               lineHeight: 1.2,

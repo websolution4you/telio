@@ -229,11 +229,16 @@ export async function deleteBookingAction(id: string) {
         console.log(`Deleting booking ${id} for NTC Tenant: ${TENANT_ID}`);
 
         // 1. Find booking in Supabase database to get the calendar_event_id and internal ID
-        const { data: dbBooking, error: selectErr } = await db
-            .from("bookings")
-            .select("id, calendar_event_id, user_id")
-            .or(`id.eq.${id},calendar_event_id.eq.${id}`)
-            .maybeSingle();
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+        
+        let query = db.from("bookings").select("id, calendar_event_id, user_id");
+        if (isUuid) {
+            query = query.or(`id.eq.${id},calendar_event_id.eq.${id}`);
+        } else {
+            query = query.eq("calendar_event_id", id);
+        }
+
+        const { data: dbBooking, error: selectErr } = await query.maybeSingle();
 
         if (selectErr) {
             console.error("Failed to select booking from database:", selectErr.message);
