@@ -51,11 +51,11 @@ export default function BookingAuthWrapper({ user: initialUser, courts, bookings
     // Not logged in - show calendar publicly + mobile login form
     return (
         <div className="relative w-full">
-            {/* Mobile login form (hidden on desktop where navbar has it) */}
+            {/* Login / Register form */}
             {authChecked && !user && (
-                <div className="md:hidden relative z-10 w-full max-w-sm mx-auto px-6 mb-8">
+                <div className="relative z-10 w-full max-w-md mx-auto px-4 md:px-0 mb-12">
                     <div
-                        className="rounded-xl border p-5"
+                        className="rounded-2xl border p-6 md:p-8 shadow-2xl"
                         style={{
                             borderColor: "rgba(0,255,209,0.2)",
                             background: "rgba(0,0,0,0.6)",
