@@ -210,24 +210,26 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* Mobile Logged In User Info (absolute to page, scrolls with page) */}
+      {/* Logged In User Info (absolute to page, scrolls with page) */}
       {authChecked && currentUser && (
-        <div className="absolute top-[85px] left-0 right-0 w-full flex justify-end z-[50] pointer-events-none md:hidden" style={{ padding: "0 1rem" }}>
-          <div className="bg-[#050508]/80 backdrop-blur-md px-4 py-3 rounded-xl border border-white/5 pointer-events-auto shadow-2xl flex flex-col items-end">
-            <span className="text-[11px] font-bold tracking-wider" style={{ color: "var(--cyan)" }}>
-              {currentUser.name}
-            </span>
-            <button
-              onClick={async () => {
-                const { logoutAction } = await import("@/app/actions/auth");
-                await logoutAction();
-                setCurrentUser(null);
-                router.refresh();
-              }}
-              className="text-[10px] text-red-400 hover:text-red-300 transition-colors mt-1.5 uppercase font-bold"
-            >
-              Odhlásiť sa
-            </button>
+        <div className="absolute top-[85px] left-0 right-0 w-full flex justify-center z-[50] pointer-events-none px-4 md:px-8">
+          <div className="w-full flex justify-end" style={{ maxWidth: "80rem" }}>
+            <div className="bg-[#050508]/80 backdrop-blur-md px-4 py-3 rounded-xl border border-white/5 pointer-events-auto shadow-2xl flex flex-col items-end">
+              <span className="text-[11px] font-bold tracking-wider" style={{ color: "var(--cyan)" }}>
+                {currentUser.name}
+              </span>
+              <button
+                onClick={async () => {
+                  const { logoutAction } = await import("@/app/actions/auth");
+                  await logoutAction();
+                  setCurrentUser(null);
+                  router.refresh();
+                }}
+                className="text-[10px] text-red-400 hover:text-red-300 transition-colors mt-1.5 uppercase font-bold"
+              >
+                Odhlásiť sa
+              </button>
+            </div>
           </div>
         </div>
       )}
