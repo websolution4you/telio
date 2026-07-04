@@ -79,7 +79,7 @@ export default function Navbar() {
         style={{
           background: scrolled ? "rgba(5,5,8,0.92)" : "transparent",
           backdropFilter: scrolled ? "blur(24px)" : "none",
-          borderBottom: scrolled ? "1px solid rgba(255,255,255,0.06)" : "none",
+          borderBottom: scrolled ? "1px solid rgba(255,255,255,0.06)" : "1px solid transparent",
         }}
       >
         <div className="h-18 flex items-center justify-between" style={{ maxWidth: "80rem", margin: "0 auto", padding: "0 2rem", height: "68px" }}>
