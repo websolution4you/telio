@@ -572,7 +572,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                 {/* Removed redundant Day Header as date is prominently shown in the toolbar */}
 
                 {/* Grid Layout Container */}
-                <div className="overflow-x-auto w-full custom-scrollbar">
+                <div className="overflow-auto w-full custom-scrollbar" style={{ maxHeight: "calc(100vh - 280px)", minHeight: "400px" }}>
                   {/* Timeline table */}
                   <div className="relative" style={{ minWidth: "900px" }}>
                     
@@ -601,11 +601,11 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                     
                     {/* Time Column Headers */}
                     <div 
-                      className="grid border-b border-white/5 text-2xs font-extrabold tracking-wider text-slate-400 bg-white/[0.01]"
-                      style={{ gridTemplateColumns: `100px 1fr` }}
+                      className="grid border-b border-white/5 text-2xs font-extrabold tracking-wider text-slate-400 sticky top-0 z-40 shadow-xl"
+                      style={{ gridTemplateColumns: `100px 1fr`, background: "rgba(12, 12, 20, 0.98)" }}
                     >
                       {/* Left Corner */}
-                      <div className="sticky left-0 z-30 p-3 border-r border-white/5 text-center flex items-center justify-center font-bold text-slate-500" style={{ background: "rgba(12, 12, 20, 0.95)" }}>
+                      <div className="sticky left-0 z-50 p-3 border-r border-white/5 text-center flex items-center justify-center font-bold text-slate-500" style={{ background: "rgba(12, 12, 20, 0.98)" }}>
                         {selectedSport === "tennis-clay" ? "Dvorec" : "Kurt"}
                       </div>
                       
