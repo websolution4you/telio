@@ -841,7 +841,6 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                       value={formTitle}
                       onChange={(e) => setFormTitle(e.target.value)}
                       className="w-full h-14 pl-12 pr-4 text-sm text-white bg-white/5 border border-white/5 rounded-xl outline-none focus:bg-cyan-500/5 focus:border-cyan-500/30 focus:ring-1 focus:ring-cyan-500/30 transition-all placeholder:text-slate-600"
-                      autoFocus
                     />
                   </div>
                 </div>
