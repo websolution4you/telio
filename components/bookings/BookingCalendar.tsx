@@ -572,7 +572,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                 {/* Removed redundant Day Header as date is prominently shown in the toolbar */}
 
                 {/* Grid Layout Container */}
-                <div className="overflow-auto w-full custom-scrollbar" style={{ maxHeight: "calc(100vh - 280px)", minHeight: "400px" }}>
+                <div className="overflow-auto w-full custom-scrollbar" style={{ maxHeight: "65vh" }}>
                   {/* Timeline table */}
                   <div className="relative" style={{ minWidth: "900px" }}>
                     
