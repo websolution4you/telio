@@ -156,7 +156,7 @@ export default function Navbar() {
                       const { logoutAction } = await import("@/app/actions/auth");
                       await logoutAction();
                       setCurrentUser(null);
-                      router.refresh();
+                      window.location.reload();
                     }}
                     className="text-[10px] text-red-400 hover:text-red-300 cursor-pointer transition-colors"
                   >
@@ -222,7 +222,7 @@ export default function Navbar() {
                 const { logoutAction } = await import("@/app/actions/auth");
                 await logoutAction();
                 setCurrentUser(null);
-                router.refresh();
+                window.location.reload();
               }}
               className="text-[10px] text-red-400 hover:text-red-300 transition-colors mt-1.5 uppercase font-bold"
             >

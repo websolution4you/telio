@@ -36,7 +36,7 @@ export default function BookingAuthWrapper({ user: initialUser, courts, bookings
     }, [initialUser]);
 
     const handleSuccess = () => {
-        router.refresh();
+        window.location.reload();
     };
 
     // If user is logged in, show calendar without redundant user menu
