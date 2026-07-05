@@ -253,8 +253,8 @@ export const chatbotKnowledge = {
             en: "Telio is an AI voice assistant for businesses that helps automate calls, reservations, dispatching, and answers to common questions. If you want, I can also briefly explain how it works in practice."
         },
         cena: {
-            sk: "Telio má transparentný mesačný cenník. Starter stojí 99 € mesačne, Business 239 € mesačne a Enterprise je individuálne na mieru. Všetky plány zahŕňajú 14-dňovú skúšobnú dobu zdarma.",
-            en: "Telio has transparent monthly pricing. Starter costs €99 per month, Business €239 per month, and Enterprise is custom-priced. All plans include a 14-day free trial."
+            sk: "Telio má transparentný mesačný cenník. Starter stojí 50 € mesačne, Business 99 € mesačne a Enterprise 400 € mesačne. Všetky plány zahŕňajú 14-dňovú skúšobnú dobu zdarma.",
+            en: "Telio has transparent monthly pricing. Starter costs €50 per month, Business €99 per month, and Enterprise €400 per month. All plans include a 14-day free trial."
         },
         demo: {
             sk: "Na webe sú dostupné ukážky Pizza Demo a Taxi Demo. Ak chcete, môžem stručne vysvetliť rozdiel medzi nimi alebo vás naviesť na ďalší krok.",

@@ -51,7 +51,7 @@ export default function Pricing() {
                 padding: "var(--sp-card-p)",
                 transitionDelay: `${i * 120}ms`,
                 background: plan.highlighted
-                  ? "linear-gradient(135deg, rgba(0,255,209,0.07), rgba(123,97,255,0.07))"
+                  ? "#167add47"
                   : "rgba(12,12,20,0.8)",
                 border: plan.highlighted
                   ? "1px solid rgba(0,255,209,0.25)"
@@ -70,8 +70,8 @@ export default function Pricing() {
               )}
 
               {/* Plan header */}
-              <div className="text-center" style={{ marginBottom: "2.5rem" }}>
-                <div className="font-bold tracking-widest uppercase mb-6"
+              <div className="text-center" style={{ marginBottom: "1.5rem" }}>
+                <div className="font-bold tracking-widest uppercase mb-4"
                   style={{
                     color: plan.highlighted ? "var(--cyan)" : "var(--text-muted)",
                     fontSize: "0.85rem"
@@ -80,7 +80,7 @@ export default function Pricing() {
                 </div>
 
                 {/* Price Display */}
-                <div className="flex flex-col items-center mb-8 min-h-[5rem] justify-center">
+                <div className="flex flex-col items-center mb-4 min-h-[4rem] justify-center">
                   <div className="flex flex-col sm:flex-row items-center sm:items-baseline justify-center gap-1 sm:gap-2 w-full">
                     <span style={{
                       fontSize: plan.price.length > 7 ? "clamp(1.6rem, 3.5vw, 2.2rem)" : "clamp(2.6rem, 5vw, 3.8rem)",
@@ -91,16 +91,15 @@ export default function Pricing() {
                       textAlign: "center",
                       wordBreak: "break-word"
                     }}>
-                      {plan.price}
+                      {plan.price.replace(" €", "")}
                     </span>
                     <span style={{
-                      fontSize: "0.8rem",
-                      fontWeight: 500,
                       color: "var(--text-muted)",
                       opacity: 0.8,
                       whiteSpace: "nowrap"
                     }}>
-                      {plan.priceSub}
+                      {plan.price.includes("€") && <span style={{ fontSize: "1.2rem", fontWeight: 600, marginRight: "0.25rem" }}>€</span>}
+                      <span style={{ fontSize: "0.8rem", fontWeight: 500 }}>{plan.priceSub}</span>
                     </span>
                   </div>
                 </div>
@@ -111,7 +110,7 @@ export default function Pricing() {
               </div>
 
               {/* Divider */}
-              <div className="mb-6 h-px w-full" style={{ background: "var(--border)" }} />
+              <div className="mb-4 h-px w-full" style={{ background: "var(--border)" }} />
 
               {/* Features */}
               <ul className="flex flex-col flex-1" style={{ gap: "var(--sp-item-gap)", marginBottom: "var(--sp-item-gap)" }}>
@@ -128,14 +127,14 @@ export default function Pricing() {
                           strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </span>
-                    <span style={{ lineHeight: 1.5 }}>{f}</span>
+                    <span style={{ lineHeight: 1.3 }}>{f}</span>
                   </li>
                 ))}
               </ul>
 
               {/* Note if exists */}
               {plan.note && (
-                <div className="mt-auto mb-6 text-[10px] sm:text-[11px] text-center italic" 
+                <div className="mt-auto mb-4 text-[10px] sm:text-[11px] text-center italic" 
                   style={{ color: "var(--text-muted)", opacity: 0.8, background: "rgba(0,0,0,0.15)", padding: "10px 14px", borderRadius: "12px", border: "1px solid var(--border)" }}>
                   {plan.note}
                 </div>
