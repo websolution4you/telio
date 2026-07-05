@@ -447,6 +447,89 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
     }
   };
 
+  const scrollContainerRef = (node: HTMLDivElement | null) => {
+    if (!node) return;
+    if ((node as any)._scrollLockInit) return;
+    (node as any)._scrollLockInit = true;
+
+    let isAxisDetermined = false;
+    let lockedAxis: 'x' | 'y' | null = null;
+    let wheelTimeout: ReturnType<typeof setTimeout>;
+
+    node.addEventListener('wheel', (e) => {
+      if (e.ctrlKey) return; 
+
+      if (!isAxisDetermined) {
+        if (Math.abs(e.deltaX) === 0 && Math.abs(e.deltaY) === 0) return;
+        isAxisDetermined = true;
+        lockedAxis = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? 'x' : 'y';
+      }
+
+      if (isAxisDetermined) {
+        if (lockedAxis === 'x' && Math.abs(e.deltaY) > 0) {
+          e.preventDefault();
+          node.scrollLeft += e.deltaX;
+        } else if (lockedAxis === 'y' && Math.abs(e.deltaX) > 0) {
+          e.preventDefault();
+          node.scrollTop += e.deltaY;
+        }
+      }
+
+      clearTimeout(wheelTimeout);
+      wheelTimeout = setTimeout(() => {
+        isAxisDetermined = false;
+        lockedAxis = null;
+      }, 150);
+    }, { passive: false });
+
+    let touchAxisDetermined = false;
+    let touchLockedAxis: 'x' | 'y' | null = null;
+    let startX = 0;
+    let startY = 0;
+    let lastX = 0;
+    let lastY = 0;
+
+    node.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        touchAxisDetermined = false;
+        touchLockedAxis = null;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        lastX = startX;
+        lastY = startY;
+      }
+    }, { passive: true });
+
+    node.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 1) {
+        const x = e.touches[0].clientX;
+        const y = e.touches[0].clientY;
+
+        if (!touchAxisDetermined) {
+          const dx = Math.abs(x - startX);
+          const dy = Math.abs(y - startY);
+          if (dx > 5 || dy > 5) {
+            touchAxisDetermined = true;
+            touchLockedAxis = dx > dy ? 'x' : 'y';
+          }
+        }
+
+        if (touchAxisDetermined) {
+          if (touchLockedAxis === 'x') {
+            e.preventDefault();
+            node.scrollLeft -= (x - lastX);
+          } else if (touchLockedAxis === 'y') {
+            e.preventDefault();
+            node.scrollTop -= (y - lastY);
+          }
+        }
+
+        lastX = x;
+        lastY = y;
+      }
+    }, { passive: false });
+  };
+
   return (
     <section className="relative w-full flex flex-col items-center px-2 md:px-8" style={{ maxWidth: "84rem", width: "100%", margin: "1rem auto 0", paddingBottom: "6rem" }}>
       
@@ -572,7 +655,11 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                 {/* Removed redundant Day Header as date is prominently shown in the toolbar */}
 
                 {/* Grid Layout Container */}
-                <div className="overflow-auto w-full custom-scrollbar" style={{ maxHeight: "65vh" }}>
+                <div 
+                  ref={scrollContainerRef}
+                  className="overflow-auto w-full custom-scrollbar" 
+                  style={{ maxHeight: "65vh" }}
+                >
                   {/* Timeline table */}
                   <div className="relative" style={{ minWidth: "900px" }}>
                     
