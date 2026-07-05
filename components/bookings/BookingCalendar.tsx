@@ -309,6 +309,7 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
   };
 
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; bookingId?: string; message?: string; isError?: boolean }>({ isOpen: false });
+  const [infoModalBooking, setInfoModalBooking] = useState<Booking | null>(null);
 
   const handleDeleteBookingClick = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -816,16 +817,21 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                     return (
                                       <div
                                         key={booking.id}
-                                        className={`absolute h-full rounded-xl pointer-events-auto flex items-center overflow-hidden transition-all px-2 group/booking hover:z-20 hover:-translate-y-0.5 hover:shadow-xl ${meta.border}`}
+                                        onClick={() => {
+                                          if (canDelete) {
+                                            setInfoModalBooking(booking);
+                                          }
+                                        }}
+                                        className={`absolute h-full rounded-xl pointer-events-auto flex items-center overflow-hidden transition-all px-2 group/booking hover:z-20 hover:-translate-y-0.5 hover:shadow-xl ${meta.border} ${canDelete ? 'cursor-pointer' : ''}`}
                                         style={{
                                           ...style,
                                           background: meta.bg,
                                           left: `calc(${style.left} + 2px)`,
                                           width: `calc(${style.width} - 4px)`
                                         }}
-                                        title={`${meta.label}: ${timeLabel}`}
+                                        title={canDelete ? "Kliknite pre detaily" : `${meta.label}: ${timeLabel}`}
                                       >
-                                        <div className={`flex flex-col items-start leading-[1.2] ${canDelete ? 'pr-6' : 'pr-0'} ${meta.text}`}>
+                                        <div className={`flex flex-col items-start leading-[1.2] ${meta.text}`}>
                                           <span className="text-[10px] font-bold font-mono select-none">
                                             {startTimeStr}
                                           </span>
@@ -833,15 +839,6 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                             {endTimeStr}
                                           </span>
                                         </div>
-                                        {canDelete && (
-                                          <button
-                                            onClick={(e) => handleDeleteBookingClick(booking.id, e)}
-                                            className={`absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 opacity-0 group-hover/booking:opacity-100 transition-all scale-90 hover:scale-100`}
-                                            title="Zmazať rezerváciu"
-                                          >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                          </button>
-                                        )}
                                       </div>
                                     );
                                   })}
@@ -924,7 +921,6 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                     <MessageSquare className="absolute left-4 h-4 w-4 text-slate-500 group-focus-within:text-cyan-400 transition-colors z-10 pointer-events-none" />
                     <input
                       type="text"
-                      placeholder="napr. Štvorhra s priateľmi"
                       value={formTitle}
                       onChange={(e) => setFormTitle(e.target.value)}
                       className="w-full h-14 pl-12 pr-4 text-sm text-white bg-white/5 border border-white/5 rounded-xl outline-none focus:bg-cyan-500/5 focus:border-cyan-500/30 focus:ring-1 focus:ring-cyan-500/30 transition-all placeholder:text-slate-600"
@@ -1012,6 +1008,106 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booking Info Modal */}
+      {infoModalBooking && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-xl"
+            onClick={() => setInfoModalBooking(null)}
+          />
+          <div 
+            className="relative w-full max-w-sm rounded-3xl border border-white/10 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in duration-200"
+            style={{ background: "linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98))" }}
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-white">Detail rezervácie</h3>
+                <button 
+                  onClick={() => setInfoModalBooking(null)}
+                  className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4 text-sm text-slate-300 mb-6">
+                {/* Time */}
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-500">Čas</div>
+                    <div className="font-bold text-white">
+                      {new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(new Date(infoModalBooking.start))}
+                      <br/>
+                      {new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" }).format(new Date(infoModalBooking.start))} - {new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" }).format(new Date(infoModalBooking.end))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Name */}
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+                    <User className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-500">Meno</div>
+                    <div className="font-bold text-white">
+                      {infoModalBooking.customerName || "Neznáme"}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Phone */}
+                {infoModalBooking.phone && (
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-green-500/10 text-green-400">
+                      <Phone className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-500">Telefón</div>
+                      <div className="font-bold text-white">
+                        {infoModalBooking.phone}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Note */}
+                {infoModalBooking.title && (
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
+                      <MessageSquare className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-500">Poznámka</div>
+                      <div className="font-bold text-white">
+                        {infoModalBooking.title}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Delete Button */}
+              {currentUser && (currentUser.role === 'admin' || currentUser.id === infoModalBooking.user_id) && (
+                <button
+                  onClick={(e) => {
+                    setInfoModalBooking(null);
+                    handleDeleteBookingClick(infoModalBooking.id, e);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Zrušiť rezerváciu
+                </button>
+              )}
             </div>
           </div>
         </div>
