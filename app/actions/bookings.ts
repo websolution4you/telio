@@ -101,16 +101,42 @@ function parseGCalEvent(event: any) {
 
 export async function fetchBookingsAction(startDateIso: string, endDateIso: string) {
     try {
-        const start = new Date(startDateIso);
-        const end = new Date(endDateIso);
+        const db = getCoreDb();
         
-        console.log(`Fetching bookings from Google Calendar for NTC Tenant: ${TENANT_ID} from ${startDateIso} to ${endDateIso}`);
-        const events = await listCalendarEvents(TENANT_ID, start, end);
+        console.log(`Fetching bookings from Supabase for NTC Tenant: ${TENANT_ID} from ${startDateIso} to ${endDateIso}`);
         
-        // Map Google events to booking objects and filter out those that don't have valid dates
-        const bookings = events
-            .map(parseGCalEvent)
-            .filter(b => b.start && b.end);
+        const { data, error } = await db
+            .from("bookings")
+            .select("*")
+            .eq("tenant_id", TENANT_ID)
+            .gte("end_at", startDateIso)
+            .lte("start_at", endDateIso);
+
+        if (error) {
+            throw new Error(`Database error: ${error.message}`);
+        }
+
+        // Map database events to booking objects
+        const bookings = (data || []).map(row => {
+            let notesObj = { courtId: "", source: "web", notes: "" };
+            try {
+                notesObj = JSON.parse(row.notes || "{}");
+            } catch (e) {
+                console.error("Failed to parse notes JSON:", e);
+            }
+            return {
+                id: row.id,
+                courtId: notesObj.courtId || "badminton-1",
+                title: notesObj.notes || row.customer_name || "Rezervácia",
+                customerName: row.customer_name,
+                phone: row.customer_phone || undefined,
+                start: row.start_at,
+                end: row.end_at,
+                status: row.status as "confirmed" | "blocked",
+                source: (notesObj.source || "web") as any,
+                user_id: row.user_id || undefined
+            };
+        });
 
         return { success: true, bookings };
     } catch (error: any) {
@@ -139,7 +165,7 @@ export async function createBookingAction(payload: {
 
         console.log(`Creating booking in Supabase for NTC Tenant: ${TENANT_ID}`);
         
-        // 1. Insert initial booking into Supabase
+        // Insert booking into Supabase
         const notesObj = {
             courtId: payload.courtId,
             source: payload.source,
@@ -165,49 +191,11 @@ export async function createBookingAction(payload: {
             throw new Error(`Database error: ${dbError.message}`);
         }
 
-        // 2. Format description and sync to Google Calendar
-        const sourceLabel = payload.source === "voice-assistant" ? "Hlas Telio" : payload.source === "admin" ? "Recepcia" : "Web";
-        const description = [
-            `Kurt ID: ${payload.courtId}`,
-            `Zákazník: ${payload.customerName}`,
-            `Telefón: ${payload.phone || "Neznáme"}`,
-            `Kanál: ${sourceLabel}`,
-            `Poznámka: ${payload.title || ""}`,
-            `Vlastník ID: ${session.userId}`
-        ].join("\n");
-
-        const courtLabel = payload.courtId.replace("-", " ").toUpperCase();
-        const summary = payload.status === "blocked" 
-            ? `Údržba: ${courtLabel}`
-            : `Rezervácia: ${courtLabel} (${payload.customerName})`;
-
-        console.log("Syncing to Google Calendar...");
-        const calendarEventId = await createCalendarEvent({
-            tenantId: TENANT_ID,
-            summary,
-            description,
-            start: new Date(payload.start),
-            end: new Date(payload.end),
-            colorId: payload.status === "blocked" ? "5" : payload.source === "voice-assistant" ? "7" : "1" // Banana for blocked, Peacock for voice, Lavender for web
-        });
-
-        // 3. Update Supabase with the calendar_event_id
-        if (calendarEventId) {
-            const { error: updateErr } = await db
-                .from("bookings")
-                .update({ calendar_event_id: calendarEventId })
-                .eq("id", dbBooking.id);
-            
-            if (updateErr) {
-                console.error(`Failed to update calendar_event_id in DB:`, updateErr.message);
-            }
-        }
-
         revalidatePath("/bookings");
         return { 
             success: true, 
             booking: {
-                id: calendarEventId || dbBooking.id, // Use Google Event ID if sync worked
+                id: dbBooking.id,
                 user_id: session.userId,
                 ...payload
             } 
@@ -228,13 +216,14 @@ export async function deleteBookingAction(id: string) {
         const db = getCoreDb();
         console.log(`Deleting booking ${id} for NTC Tenant: ${TENANT_ID}`);
 
-        // 1. Find booking in Supabase database to get the calendar_event_id and internal ID
+        // Find booking in Supabase database to check permissions
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
         
-        let query = db.from("bookings").select("id, calendar_event_id, user_id");
+        let query = db.from("bookings").select("id, user_id");
         if (isUuid) {
-            query = query.or(`id.eq.${id},calendar_event_id.eq.${id}`);
+            query = query.eq("id", id);
         } else {
+            // If they pass some other ID type, fallback search
             query = query.eq("calendar_event_id", id);
         }
 
@@ -244,21 +233,13 @@ export async function deleteBookingAction(id: string) {
             console.error("Failed to select booking from database:", selectErr.message);
         }
 
-        if (session.role !== 'admin' && dbBooking?.user_id !== session.userId) {
-            // Also need to check if Google event description has user_id, but for now we enforce via DB
+        if (dbBooking && session.role !== 'admin' && dbBooking.user_id !== session.userId) {
             return { success: false, error: "Nemáte oprávnenie vymazať túto rezerváciu." };
         }
 
-        const targetEventId = dbBooking?.calendar_event_id || id;
-        const targetDbId = dbBooking?.id;
+        const targetDbId = dbBooking?.id || (isUuid ? id : null);
 
-        // 2. Delete from Google Calendar
-        let gcalSuccess = false;
-        if (targetEventId) {
-            gcalSuccess = await deleteCalendarEvent(TENANT_ID, targetEventId);
-        }
-
-        // 3. Delete from Supabase
+        // Delete from Supabase
         if (targetDbId) {
             const { error: deleteErr } = await db
                 .from("bookings")
@@ -266,11 +247,17 @@ export async function deleteBookingAction(id: string) {
                 .eq("id", targetDbId);
             
             if (deleteErr) {
-                console.error(`Failed to delete booking from DB:`, deleteErr.message);
+                throw new Error(`Database delete error: ${deleteErr.message}`);
             }
-        } else if (id) {
-            // Fallback attempt directly with the ID if we didn't find the record earlier
-            await db.from("bookings").delete().eq("calendar_event_id", id);
+        } else if (id && !isUuid) {
+            // Fallback attempt directly if we didn't find the record
+            const { error: deleteErr } = await db
+                .from("bookings")
+                .delete()
+                .eq("calendar_event_id", id);
+            if (deleteErr) {
+                throw new Error(`Database delete error: ${deleteErr.message}`);
+            }
         }
 
         revalidatePath("/bookings");
@@ -280,3 +267,4 @@ export async function deleteBookingAction(id: string) {
         return { success: false, error: error.message || "Failed to delete booking" };
     }
 }
+
