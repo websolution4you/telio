@@ -209,6 +209,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 0 20px rgba(0, 255, 209, 0.3);
 }
@@ -238,6 +239,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
 }
 

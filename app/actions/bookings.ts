@@ -267,3 +267,217 @@ export async function deleteBookingAction(id: string) {
     }
 }
 
+
+
+export async function fetchUserDashboardDataAction() {
+    try {
+        const session = await getSession();
+        if (!session) return { success: false, error: "Not logged in" };
+
+        const db = getCoreDb();
+        const { data: dbBookings, error } = await db
+            .from("bookings")
+            .select("*")
+            .eq("tenant_id", TENANT_ID)
+            .eq("user_id", session.userId)
+            .order("start_at", { ascending: false });
+
+        if (error) throw new Error(error.message);
+
+        const bookings = (dbBookings || []).map(row => {
+            let notesObj: any = {};
+            try { notesObj = typeof row.notes === "string" ? JSON.parse(row.notes) : (row.notes || {}); } catch (e) {}
+            return {
+                id: row.id,
+                courtId: notesObj.courtId || "unknown",
+                title: notesObj.notes || (row.status === "blocked" ? "Údržba" : "Rezervácia"),
+                customerName: row.customer_name || "Neznámy zákazník",
+                phone: row.customer_phone || undefined,
+                start: row.start_at,
+                end: row.end_at,
+                status: row.status as "confirmed" | "blocked",
+                source: (notesObj.source || "web") as any,
+                user_id: row.user_id
+            };
+        });
+
+        const now = new Date();
+        const nowIso = now.toISOString();
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const currentMonthBookings = bookings.filter(b => b.start >= firstDayOfMonth && b.status === "confirmed");
+        
+        let pastHoursThisMonth = 0;
+        let futureHoursThisMonth = 0;
+        
+        currentMonthBookings.forEach(b => {
+            const start = new Date(b.start).getTime();
+            const end = new Date(b.end).getTime();
+            const duration = (end - start) / (1000 * 60 * 60);
+            
+            if (b.start < nowIso) {
+                pastHoursThisMonth += duration;
+            } else {
+                futureHoursThisMonth += duration;
+            }
+        });
+
+        return { 
+            success: true, 
+            bookings, 
+            stats: { 
+                pastHoursThisMonth,
+                futureHoursThisMonth, 
+                totalBookings: currentMonthBookings.length 
+            } 
+        };
+    } catch (e: any) {
+        console.error("fetchUserDashboardDataAction failed:", e);
+        return { success: false, error: e.message };
+    }
+}
+
+function calculateBookingPrice(courtId: string, startIso: string, endIso: string, hasCard: boolean): number {
+    const start = new Date(startIso);
+    const end = new Date(endIso);
+    const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+    if (durationHours <= 0) return 0;
+
+    const day = start.getDay(); // 0 = Sun, 6 = Sat
+    const hour = start.getHours();
+    const isWeekend = day === 0 || day === 6;
+    
+    let hourlyRate = 0;
+    const court = courtId.toLowerCase();
+
+    if (court.includes("badminton") || court.includes("bedminton")) {
+        if (isWeekend) hourlyRate = 14;
+        else hourlyRate = (hour >= 16 && hour < 22) ? 19 : 13;
+    } else if (court.includes("tennis") || court.includes("tenis")) {
+        if (isWeekend) hourlyRate = 28;
+        else hourlyRate = (hour >= 16 && hour < 22) ? 39 : 29;
+    } else if (court.includes("squash")) {
+        if (isWeekend) hourlyRate = 11;
+        else hourlyRate = (hour >= 16 && hour < 21) ? 15 : 11;
+    }
+
+    if (hourlyRate === 0) return 0; // Unknown or blocked
+
+    if (!hasCard) hourlyRate += 2;
+
+    return hourlyRate * durationHours;
+}
+
+export async function fetchAdminDashboardDataAction() {
+    try {
+        const session = await getSession();
+        if (!session || session.role !== "admin") return { success: false, error: "Not authorized" };
+
+        const db = getCoreDb();
+        const { data: dbBookings, error } = await db
+            .from("bookings")
+            .select("*, booking_users(card_number)")
+            .eq("tenant_id", TENANT_ID)
+            .order("start_at", { ascending: false });
+
+        if (error) throw new Error(error.message);
+
+        const bookings = (dbBookings || []).map(row => {
+            let notesObj: any = {};
+            try { notesObj = typeof row.notes === "string" ? JSON.parse(row.notes) : (row.notes || {}); } catch (e) {}
+            
+            let hasCard = false;
+            if (row.booking_users?.card_number) {
+                hasCard = true;
+            } else {
+                const notesStr = (typeof row.notes === "string" ? row.notes : JSON.stringify(row.notes || {})).toLowerCase();
+                if (notesStr.includes("clenska karta") || notesStr.includes("membership card") || notesStr.includes("členská karta")) {
+                    hasCard = true;
+                }
+            }
+            
+            const price = calculateBookingPrice(notesObj.courtId || "unknown", row.start_at, row.end_at, hasCard);
+            return {
+                id: row.id,
+                courtId: notesObj.courtId || "unknown",
+                title: notesObj.notes || (row.status === "blocked" ? "Údržba" : "Rezervácia"),
+                customerName: row.customer_name || "Neznámy zákazník",
+                phone: row.customer_phone || undefined,
+                start: row.start_at,
+                end: row.end_at,
+                status: row.status as "confirmed" | "blocked",
+                source: (notesObj.source || "web") as any,
+                user_id: row.user_id,
+                price,
+                hasCard
+            };
+        });
+
+        const now = new Date();
+        const nowIso = now.toISOString();
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const currentMonthBookings = bookings.filter(b => b.start >= firstDayOfMonth && b.status === "confirmed");
+        
+        let pastHoursThisMonth = 0;
+        let futureHoursThisMonth = 0;
+        let pastRevenueThisMonth = 0;
+        let futureRevenueThisMonth = 0;
+        const customerHours: Record<string, {name: string, hours: number, count: number, revenue: number}> = {};
+        const heatmap = Array(7).fill(0).map(() => Array(24).fill(0));
+        
+        currentMonthBookings.forEach(b => {
+            // Hours calculation
+            const start = new Date(b.start).getTime();
+            const end = new Date(b.end).getTime();
+            const duration = (end - start) / (1000 * 60 * 60);
+            
+            if (b.start < nowIso) {
+                pastHoursThisMonth += duration;
+                pastRevenueThisMonth += b.price;
+            } else {
+                futureHoursThisMonth += duration;
+                futureRevenueThisMonth += b.price;
+            }
+            
+            // Customer grouping
+            const rawName = b.customerName || "Neznámy zákazník";
+            const key = rawName.trim().toLowerCase();
+            if (!customerHours[key]) {
+                customerHours[key] = { name: rawName.trim(), hours: 0, count: 0, revenue: 0 };
+            }
+            customerHours[key].hours += duration;
+            customerHours[key].count += 1;
+            customerHours[key].revenue += b.price;
+            
+            // Heatmap calculation (0 = Mon, 6 = Sun)
+            const date = new Date(b.start);
+            let day = date.getDay() - 1; 
+            if (day === -1) day = 6;
+            const hour = date.getHours();
+            heatmap[day][hour] += 1;
+        });
+        
+        const topCustomers = Object.values(customerHours)
+            .sort((a, b) => b.revenue - a.revenue)
+            .slice(0, 5);
+            
+        const activeCustomers = Object.keys(customerHours).length;
+
+        return { 
+            success: true, 
+            bookings, 
+            stats: { 
+                pastHoursThisMonth,
+                futureHoursThisMonth,
+                pastRevenueThisMonth,
+                futureRevenueThisMonth,
+                totalBookings: currentMonthBookings.length, 
+                activeCustomers,
+                topCustomers,
+                heatmap
+            } 
+        };
+    } catch (e: any) {
+        console.error("fetchAdminDashboardDataAction failed:", e);
+        return { success: false, error: e.message };
+    }
+}

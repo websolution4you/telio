@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { loginAction } from "@/app/actions/auth";
+import { LayoutDashboard, Calendar, ClipboardList } from "lucide-react";
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { lang, setLang, t } = useLang();
@@ -139,11 +141,12 @@ export default function Navbar() {
             </div>
 
             <div className="relative flex flex-col items-end">
-              <Link href="/dashboard/pizza" className="btn-primary btn-nav font-semibold">
-                Dashboard
-              </Link>
-
-              {/* Login form was here, moved outside header to scroll with page */}
+              <Link 
+                href={pathname?.startsWith("/dashboard") ? (pathname?.includes("/pizza") ? "/pizza" : "/bookings") : (pathname?.includes("/bookings") ? "/dashboard/bookings" : "/dashboard/pizza")} 
+                className="btn-primary btn-nav font-semibold"
+              >
+                {pathname?.startsWith("/dashboard") ? "Rezervácie" : "Dashboard"}
+              </Link>              {/* Login form was here, moved outside header to scroll with page */}
 
               {/* Logged in user */}
               {authChecked && currentUser && (
@@ -170,6 +173,15 @@ export default function Navbar() {
           {/* Mobile: lang + hamburger */}
           <div className="md:hidden flex-1 flex flex-col items-end justify-center relative">
             <div className="flex items-center justify-end gap-3">
+            {authChecked && currentUser && (
+              <Link 
+                href={pathname?.startsWith("/dashboard") ? (pathname?.includes("/pizza") ? "/pizza" : "/bookings") : (pathname?.includes("/bookings") ? "/dashboard/bookings" : "/dashboard/pizza")}
+                className="w-8 h-8 rounded-full bg-cyan-400/20 text-cyan-400 flex items-center justify-center border border-cyan-400/30 shadow-[0_0_10px_rgba(0,255,209,0.2)]"
+                title={pathname?.startsWith("/dashboard") ? "Späť na kalendár" : "Moje rezervácie"}
+              >
+                {pathname?.startsWith("/dashboard") ? <Calendar className="w-4 h-4" /> : <ClipboardList className="w-4 h-4" />}
+              </Link>
+            )}
             <div className="lang-switcher-container flex items-center rounded-md overflow-hidden">
               <button
                 onClick={() => setLang("sk")}
@@ -286,12 +298,12 @@ export default function Navbar() {
 
               {/* Dashboard Button */}
               <Link
-                href="/dashboard/pizza"
+                href={pathname?.startsWith("/dashboard") ? (pathname?.includes("/pizza") ? "/pizza" : "/bookings") : (pathname?.includes("/bookings") ? "/dashboard/bookings" : "/dashboard/pizza")}
                 className="btn-primary w-full rounded-xl flex items-center justify-center font-semibold text-base shadow-[0_0_20px_rgba(0,255,209,0.15)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
                 style={{ height: "56px" }}
                 onClick={() => setMenuOpen(false)}
               >
-                Dashboard
+                {pathname?.startsWith("/dashboard") ? "Rezervácie" : "Dashboard"}
               </Link>
 
             </nav>
