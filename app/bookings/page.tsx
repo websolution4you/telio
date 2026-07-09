@@ -74,7 +74,7 @@ export default async function BookingsPage() {
   }
 
   return (
-    <main className="min-h-screen grid-bg overflow-hidden" style={{ background: "var(--bg)" }}>
+    <main className="min-h-screen overflow-hidden" style={{ background: "var(--bg)" }}>
       <Navbar />
 
       <section className="relative pb-16 md:pb-24 w-full flex flex-col items-center justify-center" style={{ paddingTop: "140px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%" }}>

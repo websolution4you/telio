@@ -124,6 +124,6 @@ export async function listCalendarEvents(tenantId: string, start: Date, end: Dat
         return response.data.items || [];
     } catch (err: any) {
         console.error('Failed to list calendar events:', err.message || err);
-        return [];
+        throw new Error(`Google Calendar API error: ${err.message || 'Unknown error'}`);
     }
 }

@@ -162,7 +162,6 @@ export async function createBookingAction(payload: {
         }
 
         const db = getCoreDb();
-
         console.log(`Creating booking in Supabase for NTC Tenant: ${TENANT_ID}`);
         
         // Insert booking into Supabase

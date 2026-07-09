@@ -613,9 +613,22 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
               <ChevronLeft className="h-4 w-4" />
             </button>
 
-            <h2 className="text-white font-extrabold text-base tracking-wide text-center min-w-[180px] select-none">
-              {formattedDate}
-            </h2>
+            <div className="relative flex items-center justify-center min-w-[180px]">
+              <h2 className="text-white font-extrabold text-base tracking-wide text-center select-none cursor-pointer hover:text-cyan-400 transition-colors">
+                {formattedDate}
+              </h2>
+              <input 
+                type="date"
+                value={getLocalDateString(baseDate)}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setBaseDate(new Date(e.target.value));
+                  }
+                }}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                style={{ colorScheme: "light" }}
+              />
+            </div>
 
             <button
               onClick={() => adjustDate(1)}
@@ -646,10 +659,11 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
             return (
               <div 
                 key={dateString}
-                className="rounded-3xl border overflow-hidden relative shadow-2xl transition-all"
+                className="rounded-3xl border overflow-hidden relative transition-all backdrop-blur-2xl"
                 style={{ 
-                  background: isToday ? "rgba(15, 23, 42, 0.75)" : "rgba(12, 12, 20, 0.8)", 
-                  borderColor: isToday ? "rgba(0, 255, 209, 0.25)" : "var(--border)"
+                  background: isToday ? "rgba(22, 30, 46, 0.65)" : "rgba(24, 24, 32, 0.65)", 
+                  borderColor: isToday ? "rgba(0, 255, 209, 0.3)" : "rgba(255, 255, 255, 0.12)",
+                  boxShadow: isToday ? "0 0 50px rgba(0, 255, 209, 0.08), 0 25px 50px -12px rgba(0,0,0,0.5)" : "0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.02) inset"
                 }}
               >
                 
@@ -703,7 +717,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                           return (
                             <div 
                               key={idx}
-                              className="h-full border-r border-white/10 flex items-center pl-2 text-slate-300 font-mono text-[10px] select-none"
+                              className="h-full border-r border-white/10 flex items-center justify-center text-slate-300 font-mono text-[10px] select-none"
                             >
                               {slot.label}
                             </div>
@@ -761,6 +775,10 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                     return null;
                                   })();
 
+                                  const slotTime = new Date(date);
+                                  slotTime.setHours(targetSlot.hour, targetSlot.minute, 0, 0);
+                                  const isPast = slotTime < new Date();
+
                                   if (blockStatus) {
                                     if (blockStatus.type === "maintenance") {
                                       return (
@@ -776,13 +794,25 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                       return (
                                         <div
                                           key={slotIdx}
-                                          className="h-full border-r border-white/10 bg-slate-950/70 flex items-center justify-center text-center px-1 text-[9px] font-bold text-slate-600 uppercase select-none"
+                                          className="h-full border-r border-white/10 bg-slate-950/70 flex items-center justify-center text-center text-[9px] font-bold text-slate-600 uppercase select-none"
                                           title="Mimo prevádzky"
                                         >
                                           <span className="block w-full h-full bg-slate-900/40"></span>
                                         </div>
                                       );
                                     }
+                                  }
+
+                                  if (isPast) {
+                                    return (
+                                      <div
+                                        key={slotIdx}
+                                        className="h-full border-r border-white/10 bg-slate-950/70 flex items-center justify-center text-center select-none cursor-not-allowed"
+                                        title="Minulosť"
+                                      >
+                                        <span className="block w-full h-full bg-slate-900/40"></span>
+                                      </div>
+                                    );
                                   }
 
                                   return (
