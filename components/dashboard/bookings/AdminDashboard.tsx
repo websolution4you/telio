@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { fetchAdminDashboardDataAction, createBookingAction } from "@/app/actions/bookings";
+import { useLang } from "@/lib/i18n";
 import { Users, Calendar, Activity, Loader2, Wrench, X, Check } from "lucide-react";
 
 export default function AdminDashboard({ session }: { session: any }) {
+    const { t, lang } = useLang();
     const [bookings, setBookings] = useState<any[]>([]);
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -93,15 +95,15 @@ export default function AdminDashboard({ session }: { session: any }) {
             <div className="flex justify-between items-end">
                 <div>
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-400/10 text-cyan-400 text-xs font-bold uppercase tracking-widest mb-3 border border-cyan-400/20">
-                        Admin Prístup
+                        {t.dashboard.adminAccess}
                     </div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Prehľad NTC</h1>
-                    <p className="text-slate-400">Správa všetkých rezervácií a systémové štatistiky.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-white mb-2">{t.dashboard.adminOverview}</h1>
+                    <p className="text-slate-400">{t.dashboard.adminSubtitle}</p>
                 </div>
                 <div className="flex gap-3">
                     <button onClick={() => setIsMaintenanceModalOpen(true)} className="btn-primary px-5 py-2.5 flex items-center gap-2 text-sm">
                         <Wrench className="w-4 h-4" />
-                        Zablokovať kurt (Údržba)
+                        {t.dashboard.blockCourt}
                     </button>
                 </div>
             </div>
@@ -111,7 +113,7 @@ export default function AdminDashboard({ session }: { session: any }) {
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <Activity className="w-24 h-24 text-emerald-400" />
                     </div>
-                    <h3 className="text-slate-400 font-medium mb-1">Odhadované Tržby</h3>
+                    <h3 className="text-slate-400 font-medium mb-1">{t.dashboard.estimatedRevenue}</h3>
                     <div className="text-4xl font-bold text-white">
                         {((stats?.pastRevenueThisMonth || 0) + (stats?.futureRevenueThisMonth || 0)).toFixed(0)} €
                     </div>
@@ -121,7 +123,7 @@ export default function AdminDashboard({ session }: { session: any }) {
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <Activity className="w-24 h-24 text-cyan-400" />
                     </div>
-                    <h3 className="text-slate-400 font-medium mb-1">Zrealizované (Mesiac)</h3>
+                    <h3 className="text-slate-400 font-medium mb-1">{lang === 'en' ? "Realized (Month)" : "Zrealizované (Mesiac)"}</h3>
                     <div className="text-4xl font-bold text-white">{stats?.pastHoursThisMonth?.toFixed(1) || 0} h</div>
                 </div>
 
@@ -129,7 +131,7 @@ export default function AdminDashboard({ session }: { session: any }) {
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <Calendar className="w-24 h-24 text-purple-400" />
                     </div>
-                    <h3 className="text-slate-400 font-medium mb-1">Plánované (Mesiac)</h3>
+                    <h3 className="text-slate-400 font-medium mb-1">{lang === 'en' ? "Planned (Month)" : "Plánované (Mesiac)"}</h3>
                     <div className="text-4xl font-bold text-white">{stats?.futureHoursThisMonth?.toFixed(1) || 0} h</div>
                 </div>
 
@@ -137,7 +139,7 @@ export default function AdminDashboard({ session }: { session: any }) {
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <Users className="w-24 h-24 text-blue-400" />
                     </div>
-                    <h3 className="text-slate-400 font-medium mb-1">Všetky rezervácie</h3>
+                    <h3 className="text-slate-400 font-medium mb-1">{lang === 'en' ? "All bookings" : "Všetky rezervácie"}</h3>
                     <div className="text-4xl font-bold text-white">{stats?.totalBookings || 0}</div>
                 </div>
 
@@ -145,23 +147,23 @@ export default function AdminDashboard({ session }: { session: any }) {
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <Users className="w-24 h-24 text-green-400" />
                     </div>
-                    <h3 className="text-slate-400 font-medium mb-1">Aktívni zákazníci</h3>
+                    <h3 className="text-slate-400 font-medium mb-1">{lang === 'en' ? "Active customers" : "Aktívni zákazníci"}</h3>
                     <div className="text-4xl font-bold text-white">{stats?.activeCustomers || 0}</div>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
                 <div className="md:col-span-2 rounded-3xl border border-white/10 bg-slate-900/50 backdrop-blur-xl p-6 shadow-xl">
-                    <h2 className="text-xl font-bold text-white mb-6">Vyťaženosť (Pondelok - Nedeľa)</h2>
+                    <h2 className="text-xl font-bold text-white mb-6">{lang === 'en' ? "Utilization (Mon - Sun)" : "Vyťaženosť (Pondelok - Nedeľa)"}</h2>
                     <div className="overflow-x-auto">
                         <div className="min-w-[600px]">
                             <div className="grid gap-1 text-center text-xs text-slate-500 mb-2" style={{ gridTemplateColumns: "30px repeat(16, minmax(0, 1fr))" }}>
-                                <div>Deň</div>
+                                <div>{lang === 'en' ? "Day" : "Deň"}</div>
                                 {[...Array(16)].map((_, i) => (
                                     <div key={i}>{i + 7}</div>
                                 ))}
                             </div>
-                            {['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'].map((dayName, dayIndex) => (
+                            {(lang === 'en' ? ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'] : ['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne']).map((dayName, dayIndex) => (
                                 <div key={dayName} className="grid gap-1 mb-1 items-center" style={{ gridTemplateColumns: "30px repeat(16, minmax(0, 1fr))" }}>
                                     <div className="text-xs text-slate-400 font-medium pr-2 text-right">{dayName}</div>
                                     {[...Array(16)].map((_, hourOffset) => {
@@ -173,7 +175,7 @@ export default function AdminDashboard({ session }: { session: any }) {
                                                 key={hourOffset} 
                                                 className="h-8 rounded-md bg-cyan-400 transition-opacity duration-300 hover:opacity-100"
                                                 style={{ opacity }}
-                                                title={`${count} rezervácií`}
+                                                title={`${count} ${t.dashboard.bookings}`}
                                             />
                                         );
                                     })}
@@ -184,7 +186,7 @@ export default function AdminDashboard({ session }: { session: any }) {
                 </div>
 
                 <div className="rounded-3xl border border-white/10 bg-slate-900/50 backdrop-blur-xl p-6 shadow-xl">
-                    <h2 className="text-xl font-bold text-white mb-6">VIP Zákazníci</h2>
+                    <h2 className="text-xl font-bold text-white mb-6">{lang === 'en' ? "VIP Customers" : "VIP Zákazníci"}</h2>
                     <div className="space-y-4">
                         {(stats?.topCustomers || []).map((c: any, i: number) => (
                             <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5">
@@ -203,24 +205,24 @@ export default function AdminDashboard({ session }: { session: any }) {
                             </div>
                         ))}
                         {(!stats?.topCustomers || stats.topCustomers.length === 0) && (
-                            <div className="text-center text-slate-500 py-4">Zatiaľ žiadne dáta.</div>
+                            <div className="text-center text-slate-500 py-4">{t.dashboard.noData}</div>
                         )}
                     </div>
                 </div>
             </div>
 
             <div className="rounded-3xl border border-white/10 bg-slate-900/50 backdrop-blur-xl p-6 shadow-xl mt-4">
-                <h2 className="text-xl font-bold text-white mb-6">Nadchádzajúce rezervácie (Všetci)</h2>
+                <h2 className="text-xl font-bold text-white mb-6">{t.dashboard.upcomingBookings}</h2>
                 
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-white/10 text-slate-400 text-[10px] md:text-sm uppercase tracking-wider">
-                                <th className="pb-3 pr-2 md:pr-4 font-medium">Dátum</th>
-                                <th className="pb-3 pr-2 md:pr-4 font-medium">Čas</th>
-                                <th className="pb-3 pr-2 md:pr-4 font-medium">Zákazník</th>
-                                <th className="pb-3 pr-2 md:pr-4 font-medium">Kurt</th>
-                                <th className="pb-3 font-medium text-center">Stav</th>
+                                <th className="pb-3 pr-2 md:pr-4 font-medium">{t.dashboard.date}</th>
+                                <th className="pb-3 pr-2 md:pr-4 font-medium">{t.dashboard.time}</th>
+                                <th className="pb-3 pr-2 md:pr-4 font-medium">{t.dashboard.customer}</th>
+                                <th className="pb-3 pr-2 md:pr-4 font-medium">{t.dashboard.court}</th>
+                                <th className="pb-3 font-medium text-center">{t.dashboard.status}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
@@ -242,7 +244,7 @@ export default function AdminDashboard({ session }: { session: any }) {
                                                 const rank = stats?.topCustomers ? stats.topCustomers.findIndex((c: any) => c.name.toLowerCase() === (b.customerName || '').trim().toLowerCase()) : -1;
                                                 if (rank >= 0) {
                                                     return (
-                                                        <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-[9px] md:text-[10px] font-bold text-white shadow-sm flex-shrink-0" title={`Top ${rank + 1} Zákazník`}>
+                                                        <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-[9px] md:text-[10px] font-bold text-white shadow-sm flex-shrink-0" title={lang === 'en' ? `Top ${rank + 1} Customer` : `Top ${rank + 1} Zákazník`}>
                                                             {rank + 1}
                                                         </div>
                                                     );
@@ -257,7 +259,7 @@ export default function AdminDashboard({ session }: { session: any }) {
                                             b.status === 'blocked' ? 'bg-orange-500/20 text-orange-400' : 
                                             b.status === 'cancelled' ? 'bg-red-400/10 text-red-400' :
                                             'bg-green-500/20 text-green-400'
-                                        }`} title={b.status === 'blocked' ? 'Údržba' : b.status === 'cancelled' ? 'Zrušené' : 'Potvrdené'}>
+                                        }`} title={b.status === 'blocked' ? t.dashboard.maintenance : b.status === 'cancelled' ? t.dashboard.cancelled : t.dashboard.confirmed}>
                                             {b.status === 'blocked' ? <Wrench className="w-3 h-3 md:w-4 md:h-4" /> : 
                                              b.status === 'cancelled' ? <X className="w-3 h-3 md:w-4 md:h-4" /> : 
                                              <Check className="w-3 h-3 md:w-4 md:h-4" strokeWidth={3} />}
@@ -268,7 +270,7 @@ export default function AdminDashboard({ session }: { session: any }) {
                         </tbody>
                     </table>
                     {futureBookings.length === 0 && (
-                        <div className="py-8 text-center text-slate-400">Žiadne nadchádzajúce rezervácie v systéme.</div>
+                        <div className="py-8 text-center text-slate-400">{t.dashboard.noUpcoming}</div>
                     )}
                 </div>
             </div>
@@ -281,7 +283,7 @@ export default function AdminDashboard({ session }: { session: any }) {
                         <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
                             <h3 className="text-xl font-bold text-white flex items-center gap-2">
                                 <Wrench className="w-5 h-5 text-cyan-400" />
-                                Zablokovať kurt
+                                {lang === 'en' ? "Block court" : "Zablokovať kurt"}
                             </h3>
                             <button onClick={() => setIsMaintenanceModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
                                 <X className="w-6 h-6" />
@@ -289,7 +291,7 @@ export default function AdminDashboard({ session }: { session: any }) {
                         </div>
                         <form onSubmit={handleMaintenanceSubmit} className="p-6 space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-1">Kurt</label>
+                                <label className="block text-sm font-medium text-slate-400 mb-1">{t.dashboard.court}</label>
                                 <select 
                                     value={maintenanceCourt}
                                     onChange={(e) => setMaintenanceCourt(e.target.value)}
@@ -309,7 +311,7 @@ export default function AdminDashboard({ session }: { session: any }) {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-1">Dátum</label>
+                                <label className="block text-sm font-medium text-slate-400 mb-1">{t.dashboard.date}</label>
                                 <input 
                                     type="date"
                                     value={maintenanceDate}
@@ -320,7 +322,7 @@ export default function AdminDashboard({ session }: { session: any }) {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-1">Od</label>
+                                    <label className="block text-sm font-medium text-slate-400 mb-1">{lang === 'en' ? "From" : "Od"}</label>
                                     <input 
                                         type="time"
                                         value={maintenanceStart}
@@ -330,7 +332,7 @@ export default function AdminDashboard({ session }: { session: any }) {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-1">Do</label>
+                                    <label className="block text-sm font-medium text-slate-400 mb-1">{lang === 'en' ? "To" : "Do"}</label>
                                     <input 
                                         type="time"
                                         value={maintenanceEnd}
@@ -342,10 +344,10 @@ export default function AdminDashboard({ session }: { session: any }) {
                             </div>
                             <div className="pt-4 flex gap-3">
                                 <button type="button" onClick={() => setIsMaintenanceModalOpen(false)} className="flex-1 px-4 py-2 rounded-xl border border-white/10 text-white font-medium hover:bg-white/5 transition-colors">
-                                    Zrušiť
+                                    {t.dashboard.cancel}
                                 </button>
                                 <button type="submit" disabled={maintenanceLoading} className="flex-1 btn-primary font-medium flex justify-center items-center">
-                                    {maintenanceLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Zablokovať"}
+                                    {maintenanceLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (lang === 'en' ? "Block" : "Zablokovať")}
                                 </button>
                             </div>
                         </form>
@@ -361,7 +363,7 @@ export default function AdminDashboard({ session }: { session: any }) {
                         <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
                             <h3 className="text-xl font-bold text-white flex items-center gap-2">
                                 <Users className="w-5 h-5 text-cyan-400" />
-                                Profil Zákazníka
+                                {lang === 'en' ? "Customer Profile" : "Profil Zákazníka"}
                             </h3>
                             <button onClick={() => setSelectedCustomerProfile(null)} className="text-slate-400 hover:text-white transition-colors">
                                 <X className="w-6 h-6" />
@@ -374,21 +376,21 @@ export default function AdminDashboard({ session }: { session: any }) {
                             
                             <div className="grid grid-cols-3 gap-3">
                                 <div className="bg-slate-800 rounded-2xl p-4 text-center border border-white/5">
-                                    <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Rezervácie</div>
+                                    <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">{lang === 'en' ? "Bookings" : "Rezervácie"}</div>
                                     <div className="text-xl font-bold text-white">{customerStats.totalBookings}</div>
                                 </div>
                                 <div className="bg-slate-800 rounded-2xl p-4 text-center border border-white/5">
-                                    <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Hodiny</div>
+                                    <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">{lang === 'en' ? "Hours" : "Hodiny"}</div>
                                     <div className="text-xl font-bold text-cyan-400">{customerStats.totalHours.toFixed(1)}</div>
                                 </div>
                                 <div className="bg-slate-800 rounded-2xl p-4 text-center border border-white/5">
-                                    <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Tržby</div>
+                                    <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">{lang === 'en' ? "Revenue" : "Tržby"}</div>
                                     <div className="text-xl font-bold text-emerald-400">{customerStats.totalRevenue.toFixed(2)} €</div>
                                 </div>
                             </div>
 
                             <div>
-                                <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Posledných 5 rezervácií</h4>
+                                <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">{lang === 'en' ? "Last 5 bookings" : "Posledných 5 rezervácií"}</h4>
                                 <div className="space-y-2">
                                     {customerStats.recentBookings.map((b: any, i: number) => (
                                         <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5">

@@ -132,7 +132,7 @@ export async function fetchBookingsAction(startDateIso: string, endDateIso: stri
                 phone: row.customer_phone || undefined,
                 start: row.start_at,
                 end: row.end_at,
-                status: row.status as "confirmed" | "blocked",
+                status: row.status as "confirmed" | "blocked" | "cancelled",
                 source: (notesObj.source || "web") as any,
                 user_id: row.user_id || undefined
             };
@@ -238,24 +238,24 @@ export async function deleteBookingAction(id: string) {
 
         const targetDbId = dbBooking?.id || (isUuid ? id : null);
 
-        // Delete from Supabase
+        // Soft delete in Supabase (mark as cancelled)
         if (targetDbId) {
-            const { error: deleteErr } = await db
+            const { error: updateErr } = await db
                 .from("bookings")
-                .delete()
+                .update({ status: "cancelled" })
                 .eq("id", targetDbId);
             
-            if (deleteErr) {
-                throw new Error(`Database delete error: ${deleteErr.message}`);
+            if (updateErr) {
+                throw new Error(`Database update error: ${updateErr.message}`);
             }
         } else if (id && !isUuid) {
             // Fallback attempt directly if we didn't find the record
-            const { error: deleteErr } = await db
+            const { error: updateErr } = await db
                 .from("bookings")
-                .delete()
+                .update({ status: "cancelled" })
                 .eq("calendar_event_id", id);
-            if (deleteErr) {
-                throw new Error(`Database delete error: ${deleteErr.message}`);
+            if (updateErr) {
+                throw new Error(`Database update error: ${updateErr.message}`);
             }
         }
 
@@ -295,7 +295,7 @@ export async function fetchUserDashboardDataAction() {
                 phone: row.customer_phone || undefined,
                 start: row.start_at,
                 end: row.end_at,
-                status: row.status as "confirmed" | "blocked",
+                status: row.status as "confirmed" | "blocked" | "cancelled",
                 source: (notesObj.source || "web") as any,
                 user_id: row.user_id
             };
@@ -404,7 +404,7 @@ export async function fetchAdminDashboardDataAction() {
                 phone: row.customer_phone || undefined,
                 start: row.start_at,
                 end: row.end_at,
-                status: row.status as "confirmed" | "blocked",
+                status: row.status as "confirmed" | "blocked" | "cancelled",
                 source: (notesObj.source || "web") as any,
                 user_id: row.user_id,
                 price,
@@ -479,5 +479,100 @@ export async function fetchAdminDashboardDataAction() {
     } catch (e: any) {
         console.error("fetchAdminDashboardDataAction failed:", e);
         return { success: false, error: e.message };
+    }
+}
+
+export async function restoreBookingAction(id: string) {
+    try {
+        const session = await getSession();
+        if (!session) {
+            return { success: false, error: "Nedostatočné oprávnenia." };
+        }
+
+        const db = getCoreDb();
+
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+        
+        let query = db.from("bookings").select("id, user_id, tenant_id, start_at, end_at, status");
+        if (isUuid) {
+            query = query.eq("id", id);
+        } else {
+            query = query.eq("calendar_event_id", id);
+        }
+
+        const { data: dbBooking, error: selectErr } = await query.maybeSingle();
+
+        if (!dbBooking) {
+            return { success: false, error: "Rezervácia sa nenašla." };
+        }
+
+        if (session.role !== 'admin' && dbBooking.user_id !== session.userId) {
+            return { success: false, error: "Nemáte oprávnenie obnoviť túto rezerváciu." };
+        }
+
+        // We need the courtId from notes
+        let courtId = "badminton-1";
+        try {
+            // Need to fetch notes to get courtId since it's JSON encoded in notes
+            const { data: noteData } = await db.from("bookings").select("notes").eq("id", dbBooking.id).single();
+            if (noteData?.notes) {
+                const parsed = JSON.parse(noteData.notes);
+                if (parsed.courtId) courtId = parsed.courtId;
+            }
+        } catch (e) {}
+
+        // Check if the slot is still available. Since court_id is in notes, we can't do a simple SQL overlap query on court_id for JSON natively without complex queries in this simple setup. 
+        // Wait, the easiest way is to fetchBookingsAction for that day and use checkConflict logic locally.
+        const startDay = new Date(dbBooking.start_at);
+        startDay.setHours(0, 0, 0, 0);
+        const endDay = new Date(startDay);
+        endDay.setDate(endDay.getDate() + 1);
+
+        const { data: dayBookings } = await db
+            .from("bookings")
+            .select("id, start_at, end_at, status, notes")
+            .eq("tenant_id", dbBooking.tenant_id)
+            .neq("id", dbBooking.id)
+            .neq("status", "cancelled")
+            .gte("end_at", startDay.toISOString())
+            .lte("start_at", endDay.toISOString());
+
+        if (dayBookings) {
+            const targetStart = new Date(dbBooking.start_at).getTime();
+            const targetEnd = new Date(dbBooking.end_at).getTime();
+
+            for (const b of dayBookings) {
+                let bCourt = "badminton-1";
+                try {
+                    const parsed = JSON.parse(b.notes || "{}");
+                    if (parsed.courtId) bCourt = parsed.courtId;
+                } catch (e) {}
+
+                if (bCourt === courtId) {
+                    const bStart = new Date(b.start_at).getTime();
+                    const bEnd = new Date(b.end_at).getTime();
+                    if (targetStart < bEnd && targetEnd > bStart) {
+                        return { success: false, error: "Tento termín už medzičasom niekto obsadil." };
+                    }
+                }
+            }
+        }
+
+        const targetDbId = dbBooking.id;
+
+        const { error: updateErr } = await db
+            .from("bookings")
+            .update({ status: "confirmed" })
+            .eq("id", targetDbId);
+        
+        if (updateErr) {
+            throw new Error(`Database update error: ${updateErr.message}`);
+        }
+
+        revalidatePath("/bookings");
+        return { success: true };
+    } catch (error: any) {
+        console.error("restoreBookingAction failed:", error);
+        return { success: false, error: error.message || "Failed to restore booking" };
     }
 }

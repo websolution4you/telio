@@ -14,7 +14,9 @@ import {
   X, 
   Phone,
   Sparkles,
-  Info
+  Info,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 import type { Booking, Court, SportType } from "@/lib/bookings/mockBookings";
 import { openingHours } from "@/lib/bookings/mockBookings";
@@ -56,6 +58,7 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
   // Interactive Local state for bookings
   const [localBookings, setLocalBookings] = useState<Booking[]>(() => bookings);
   const [reloadTrigger, setReloadTrigger] = useState(0);
+  const [isCompact, setIsCompact] = useState(false);
   
   // Modal / Drawer state for creation
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -235,6 +238,7 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
     return localBookings.some((booking) => {
       if (booking.id === excludeId) return false;
       if (booking.courtId !== courtId) return false;
+      if (booking.status === "cancelled") return false;
       const bStart = new Date(booking.start).getTime();
       const bEnd = new Date(booking.end).getTime();
       
@@ -639,7 +643,16 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
             </button>
           </div>
 
-
+          {/* Right: Zoom Toggle */}
+          <div className="flex items-center justify-end gap-3 flex-shrink-0">
+            <button
+              onClick={() => setIsCompact(!isCompact)}
+              className={`p-3 rounded-xl border transition-colors cursor-pointer flex items-center gap-2 ${isCompact ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-400" : "border-white/10 hover:bg-white/5 text-slate-300 hover:border-cyan-500/40"}`}
+              title={lang === "en" ? "Toggle compact view" : "Prepnúť kompaktné zobrazenie"}
+            >
+              {isCompact ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+            </button>
+          </div>
 
         </div>
 
@@ -653,7 +666,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
             const dateBookings = localBookings.filter((b) => {
               const bookingDateStr = getLocalDateString(new Date(b.start));
               const courtObj = courts.find((c) => c.id === b.courtId);
-              return bookingDateStr === dateString && courtObj?.sport === selectedSport;
+              return bookingDateStr === dateString && courtObj?.sport === selectedSport && b.status !== "cancelled";
             });
 
             return (
@@ -676,7 +689,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                   style={{ maxHeight: "65vh" }}
                 >
                   {/* Timeline table */}
-                  <div className="relative" style={{ minWidth: "900px" }}>
+                  <div className="relative" style={{ minWidth: isCompact ? "auto" : "900px" }}>
                     
                     {/* Current Time Indicator (Global) */}
                     {isToday && (() => {
@@ -704,10 +717,10 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                     {/* Time Column Headers */}
                     <div 
                       className="grid border-b border-white/5 text-2xs font-extrabold tracking-wider text-slate-400 sticky top-0 z-40 shadow-xl"
-                      style={{ gridTemplateColumns: `100px 1fr`, background: "rgba(12, 12, 20, 0.98)" }}
+                      style={{ gridTemplateColumns: `${isCompact ? "60px" : "100px"} 1fr`, background: "rgba(12, 12, 20, 0.98)" }}
                     >
                       {/* Left Corner */}
-                      <div className="sticky left-0 z-50 p-3 border-r border-white/5 text-center flex items-center justify-center font-bold text-slate-500" style={{ background: "rgba(12, 12, 20, 0.98)" }}>
+                      <div className="sticky left-0 z-50 p-2 md:p-3 border-r border-white/5 text-center flex items-center justify-center font-bold text-slate-500 text-[10px] md:text-xs" style={{ background: "rgba(12, 12, 20, 0.98)" }}>
                         {selectedSport === "tennis-clay" ? "Dvorec" : "Kurt"}
                       </div>
                       
@@ -719,7 +732,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                               key={idx}
                               className="h-full border-r border-white/10 flex items-center justify-center text-slate-300 font-mono text-[10px] select-none"
                             >
-                              {slot.label}
+                              {isCompact ? slot.hour : slot.label}
                             </div>
                           );
                         })}
@@ -736,16 +749,16 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                           <div 
                             key={court.id}
                             className="grid hover:bg-white/[0.01] transition-colors relative"
-                            style={{ gridTemplateColumns: `100px 1fr` }}
+                            style={{ gridTemplateColumns: `${isCompact ? "60px" : "100px"} 1fr` }}
                           >
                             {/* Court Title on Left */}
-                            <div className="sticky left-0 z-20 p-3 border-r border-white/5 flex flex-col justify-center items-center text-center" style={{ background: "rgba(12, 12, 20, 0.95)" }}>
-                              <span className="text-xs font-black text-white">{court.name}</span>
-                              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">{court.surface}</span>
+                            <div className="sticky left-0 z-20 p-1 md:p-3 border-r border-white/5 flex flex-col justify-center items-center text-center" style={{ background: "rgba(12, 12, 20, 0.95)" }}>
+                              <span className={`font-black text-white ${isCompact ? "text-[9px]" : "text-xs"}`}>{isCompact ? court.name.replace("Dvorec ", "D").replace("Kurt ", "K") : court.name}</span>
+                              {!isCompact && <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">{court.surface}</span>}
                             </div>
 
                             {/* Timeline Cells and bookings overlay */}
-                            <div className="relative h-20 w-full flex items-center group/row">
+                            <div className={`relative ${isCompact ? "h-12" : "h-20"} w-full flex items-center group/row`}>
                               
                               {/* Background slot grid lines & click areas */}
                               <div className="absolute inset-0 grid w-full h-full" style={{ gridTemplateColumns: `repeat(${totalSlotsCount}, 1fr)` }}>
@@ -787,7 +800,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                           className="h-full border-r border-white/10 bg-amber-500/10 flex flex-col items-center justify-center text-center px-1 text-[9px] font-black text-amber-400 select-none border-y border-amber-500/20"
                                           title="Údržba kurtov"
                                         >
-                                          <span className="leading-tight text-amber-500/80">Údržba kurtov</span>
+                                          <span className="leading-tight text-amber-500/80">{isCompact ? "Ú" : "Údržba kurtov"}</span>
                                         </div>
                                       );
                                     } else {
@@ -831,7 +844,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
 
 
                               {/* Bookings cards overlay */}
-                              <div className="absolute inset-x-0 inset-y-2 pointer-events-none">
+                              <div className={`absolute inset-x-0 ${isCompact ? "inset-y-1" : "inset-y-2"} pointer-events-none`}>
                                 <div className="relative w-full h-full">
                                   {courtBookings.map((booking) => {
                                     const style = getBookingStyle(booking, dateString);
@@ -844,6 +857,21 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                     const timeLabel = `${startTimeStr} - ${endTimeStr}`;
                                     const canDelete = currentUser && (currentUser.role === 'admin' || currentUser.id === booking.user_id);
 
+                                    let finalBg = meta.bg;
+                                    let finalTextColor = meta.text;
+                                    let finalBorder = meta.border;
+
+                                    if (isCompact) {
+                                        if (meta.border.includes('yellow')) { finalBg = 'rgba(234, 179, 8, 0.85)'; finalTextColor = 'text-white drop-shadow-md'; }
+                                        else if (meta.border.includes('amber')) { finalBg = 'rgba(245, 158, 11, 0.85)'; finalTextColor = 'text-white drop-shadow-md'; }
+                                        else if (meta.border.includes('cyan')) { finalBg = 'rgba(6, 182, 212, 0.85)'; finalTextColor = 'text-white drop-shadow-md'; }
+                                        else if (meta.border.includes('purple')) { finalBg = 'rgba(167, 139, 250, 0.85)'; finalTextColor = 'text-white drop-shadow-md'; }
+                                        else if (meta.border.includes('red')) { finalBg = 'rgba(239, 68, 68, 0.85)'; finalTextColor = 'text-white drop-shadow-md'; }
+                                        else if (meta.border.includes('green')) { finalBg = 'rgba(34, 197, 94, 0.85)'; finalTextColor = 'text-white drop-shadow-md'; }
+                                        
+                                        finalBorder = finalBorder.replace('border-l-4', '');
+                                    }
+
                                     return (
                                       <div
                                         key={booking.id}
@@ -852,22 +880,35 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                             setInfoModalBooking(booking);
                                           }
                                         }}
-                                        className={`absolute h-full rounded-xl pointer-events-auto flex items-center overflow-hidden transition-all px-2 group/booking hover:z-20 hover:-translate-y-0.5 hover:shadow-xl ${meta.border} ${canDelete ? 'cursor-pointer' : ''}`}
+                                        className={`absolute h-full rounded-xl pointer-events-auto flex items-center overflow-hidden transition-all ${isCompact ? 'px-0 justify-center' : 'px-2'} group/booking hover:z-20 hover:-translate-y-0.5 hover:shadow-xl ${finalBorder} ${canDelete ? 'cursor-pointer' : ''}`}
                                         style={{
                                           ...style,
-                                          background: meta.bg,
+                                          background: finalBg,
                                           left: `calc(${style.left} + 2px)`,
                                           width: `calc(${style.width} - 4px)`
                                         }}
                                         title={canDelete ? "Kliknite pre detaily" : `${meta.label}: ${timeLabel}`}
                                       >
-                                        <div className={`flex flex-col items-start leading-[1.2] ${meta.text}`}>
-                                          <span className="text-[10px] font-bold font-mono select-none">
-                                            {startTimeStr}
-                                          </span>
-                                          <span className="text-[10px] font-bold font-mono select-none opacity-80">
-                                            {endTimeStr}
-                                          </span>
+                                        <div className={`flex flex-col ${isCompact ? 'items-center justify-center w-full' : 'items-start'} leading-[1.2] ${finalTextColor}`}>
+                                          {isCompact ? (
+                                            <>
+                                              <span className="text-[10px] font-black font-mono select-none">
+                                                {startParts.hour}
+                                              </span>
+                                              <span className="text-[10px] font-black font-mono select-none opacity-80 mt-1">
+                                                {endParts.hour}
+                                              </span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <span className="text-[10px] font-bold font-mono select-none">
+                                                {startTimeStr}
+                                              </span>
+                                              <span className="text-[10px] font-bold font-mono select-none opacity-80">
+                                                {endTimeStr}
+                                              </span>
+                                            </>
+                                          )}
                                         </div>
                                       </div>
                                     );
