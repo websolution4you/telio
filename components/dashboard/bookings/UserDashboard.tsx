@@ -16,7 +16,7 @@ export default function UserDashboard({ session }: { session: any }) {
         async function loadData() {
             const res = await fetchUserDashboardDataAction();
             if (res.success) {
-                setBookings(res.bookings);
+                setBookings(res.bookings || []);
                 setStats(res.stats);
             }
             setLoading(false);
@@ -33,7 +33,7 @@ export default function UserDashboard({ session }: { session: any }) {
         if (res.success) {
             const newData = await fetchUserDashboardDataAction();
             if (newData.success) {
-                setBookings(newData.bookings);
+                setBookings(newData.bookings || []);
                 setStats(newData.stats);
             }
         } else {
@@ -51,7 +51,7 @@ export default function UserDashboard({ session }: { session: any }) {
         if (res.success) {
             const newData = await fetchUserDashboardDataAction();
             if (newData.success) {
-                setBookings(newData.bookings);
+                setBookings(newData.bookings || []);
                 setStats(newData.stats);
             }
         } else {
