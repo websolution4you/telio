@@ -56,7 +56,7 @@ export default function AdminDashboard({ session }: { session: any }) {
                 setIsMaintenanceModalOpen(false);
                 const newData = await fetchAdminDashboardDataAction();
                 if (newData.success) {
-                    setBookings(newData.bookings);
+                    setBookings(newData.bookings || []);
                     setStats(newData.stats);
                 }
             } else {
@@ -72,7 +72,7 @@ export default function AdminDashboard({ session }: { session: any }) {
         async function loadData() {
             const res = await fetchAdminDashboardDataAction();
             if (res.success) {
-                setBookings(res.bookings);
+                setBookings(res.bookings || []);
                 setStats(res.stats);
             }
             setLoading(false);

@@ -8,7 +8,7 @@ export type Court = {
   location: string;
 };
 
-export type BookingStatus = "confirmed" | "pending" | "blocked";
+export type BookingStatus = "confirmed" | "pending" | "blocked" | "cancelled";
 
 export interface Booking {
   id: string;
