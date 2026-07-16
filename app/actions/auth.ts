@@ -78,15 +78,28 @@ export async function registerAction(
 
         const db = getCoreDb();
 
-        // Check if user already exists
-        const { data: existing } = await db
+        // Check if user already exists by email
+        const { data: existingEmail } = await db
             .from("booking_users")
             .select("id")
             .eq("email", email.toLowerCase().trim())
-            .single();
+            .maybeSingle();
 
-        if (existing) {
+        if (existingEmail) {
             return { success: false, error: "Používateľ s týmto emailom už existuje" };
+        }
+
+        // Check if user already exists by phone
+        if (phone?.trim()) {
+            const { data: existingPhone } = await db
+                .from("booking_users")
+                .select("id")
+                .eq("phone", phone.trim())
+                .maybeSingle();
+                
+            if (existingPhone) {
+                return { success: false, error: "Používateľ s týmto telefónnym číslom už existuje" };
+            }
         }
 
         // Hash password
