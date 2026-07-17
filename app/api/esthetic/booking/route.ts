@@ -48,6 +48,24 @@ export async function POST(req: Request) {
     
     // Set consultation duration to 30 minutes
     const startDate = new Date(startIso);
+    
+    // CRITICAL: Prevent booking today or in the past
+    const now = new Date();
+    const slovakDateFormatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Bratislava",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    });
+    const slovakTodayStr = slovakDateFormatter.format(now);
+
+    if (formattedDate <= slovakTodayStr) {
+      return NextResponse.json({
+        success: false,
+        error: "Rezervácie sú možné najskôr od zajtrajšieho dňa. Dnešný deň už nie je možné rezervovať."
+      }, { status: 400 });
+    }
+
     const endDate = new Date(startDate.getTime() + 30 * 60 * 1000);
     const endIso = endDate.toISOString();
 

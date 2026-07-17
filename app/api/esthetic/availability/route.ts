@@ -12,23 +12,6 @@ const CONSULTATION_HOURS = [
   "16:00"
 ];
 
-function getSlovakTimezoneOffset(dateStr: string): string {
-  try {
-    const d = new Date(`${dateStr}T12:00:00`);
-    const s = d.toLocaleString("en-US", { timeZone: "Europe/Bratislava", timeZoneName: "longOffset" });
-    const match = s.match(/GMT([+-]\d+)/);
-    if (match) {
-      const hours = match[1];
-      const sign = hours.startsWith("-") ? "-" : "+";
-      const num = Math.abs(parseInt(hours)).toString().padStart(2, "0");
-      return `${sign}${num}:00`;
-    }
-  } catch (e) {
-    console.error("Error calculating timezone offset:", e);
-  }
-  return "+02:00"; // Default summer fallback
-}
-
 export async function POST(req: Request) {
   try {
     let requestedDate = "";
@@ -36,40 +19,49 @@ export async function POST(req: Request) {
       const body = await req.json();
       requestedDate = body.requested_date || "";
     } catch (e) {
-      // Body might be empty or not JSON, fallback to today
+      // Body might be empty or not JSON
     }
 
-    // Default to today if not provided
+    // Get current date in Bratislava timezone
+    const now = new Date();
+    const slovakDateFormatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Bratislava",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    });
+    const slovakTimeFormatter = new Intl.DateTimeFormat("sk-SK", {
+      timeZone: "Europe/Bratislava",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    });
+
+    const slovakTodayStr = slovakDateFormatter.format(now); // e.g. "2026-07-17"
+    
+    // Calculate tomorrow's date
+    const tomorrowDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const slovakTomorrowStr = slovakDateFormatter.format(tomorrowDate);
+
+    // If requestedDate is not provided or is today/past, advance it to tomorrow
     if (!requestedDate) {
-      const today = new Date();
-      // Format as YYYY-MM-DD in Bratislava time
-      const formatter = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Europe/Bratislava",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit"
-      });
-      requestedDate = formatter.format(today);
+      requestedDate = slovakTomorrowStr;
     } else {
       const dateMatch = requestedDate.match(/^\d{4}-\d{2}-\d{2}/);
       if (dateMatch) {
         requestedDate = dateMatch[0];
+        // If they ask for today or any date in the past, force it to tomorrow
+        if (requestedDate <= slovakTodayStr) {
+          requestedDate = slovakTomorrowStr;
+        }
       } else {
-        // Fallback to today if invalid
-        const today = new Date();
-        const formatter = new Intl.DateTimeFormat("en-CA", {
-          timeZone: "Europe/Bratislava",
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit"
-        });
-        requestedDate = formatter.format(today);
+        requestedDate = slovakTomorrowStr;
       }
     }
 
     const db = getCoreDb();
     
-    // We will query bookings for the next 14 days starting from requestedDate
+    // Query bookings for the next 14 days starting from requestedDate
     const startDate = new Date(`${requestedDate}T00:00:00`);
     const endDate = new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000);
     
@@ -92,20 +84,8 @@ export async function POST(req: Request) {
     const busySlots = new Set<string>();
     const getBratislavaDateTimeKey = (isoString: string, doctorId: string) => {
       const date = new Date(isoString);
-      const slovakDateStr = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Europe/Bratislava",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit"
-      }).format(date);
-      
-      const slovakTimeStr = new Intl.DateTimeFormat("sk-SK", {
-        timeZone: "Europe/Bratislava",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false
-      }).format(date).replace(/\s/g, "").padStart(5, "0");
-
+      const slovakDateStr = slovakDateFormatter.format(date);
+      const slovakTimeStr = slovakTimeFormatter.format(date).replace(/\s/g, "").padStart(5, "0");
       return `${slovakDateStr}_${slovakTimeStr}_${doctorId}`;
     };
 
@@ -129,12 +109,7 @@ export async function POST(req: Request) {
     for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
       if (nextAvailableSlots.length >= 3) break;
 
-      const dateStr = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Europe/Bratislava",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit"
-      }).format(checkDate);
+      const dateStr = slovakDateFormatter.format(checkDate);
 
       // Check if it's a weekend (Saturday = 6, Sunday = 0)
       const dayOfWeek = checkDate.getDay();
