@@ -91,7 +91,7 @@ export default function EstheticPage() {
         </h1>
 
         <p className="text-sm md:text-base text-stone-400 max-w-xl mx-auto leading-relaxed mb-12">
-          Pre zaistenie maximálnej bezpečnosti a najlepších výsledkov vyžaduje každý estetický zákrok predchádzajúcu osobnú konzultáciu s doktorkou. Náš inteligentný hlasový asistent Telio vám pomôže vybrať zákrok a okamžite zarezervuje voľný čas.
+          Pre zaistenie maximálnej bezpečnosti a najlepších výsledkov vyžaduje každý estetický zákrok predchádzajúcu osobnú konzultáciu s doktorkou. Náš inteligentný hlasový asistent Telio vám pomôže vybrať zákrok a okamžite zarezervuje voľný termín.
         </p>
 
         {/* Highlighted Voice Assistant Widget Component */}
