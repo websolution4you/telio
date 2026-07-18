@@ -9,7 +9,7 @@ interface VoiceAuraWidgetProps {
 }
 
 export default function VoiceAuraWidget({
-  initialAgentId = "21m00Tcm4TlvDq8ikWAM" // Default ElevenLabs voice agent placeholder
+  initialAgentId = "agent_3601kxmxvbw9ectv01wanyvq3bwz" // Actual ElevenLabs esthetic clinic agent ID
 }: VoiceAuraWidgetProps) {
   const [agentId, setAgentId] = useState(initialAgentId);
   const [status, setStatus] = useState<"idle" | "connecting" | "active" | "error">("idle");
