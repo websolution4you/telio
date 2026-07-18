@@ -40,31 +40,10 @@ export default function EstheticPage() {
 
       {/* Minimalist Clinical Header */}
       <header className="relative z-20 border-b border-white/5 backdrop-blur-md bg-stone-950/20 w-full">
-        <div className="max-w-7xl mx-auto px-6 min-h-20 py-4 md:py-0 md:h-20 flex items-center justify-between gap-4">
-          <div className="flex flex-col">
-            <span className="font-serif text-xs sm:text-base md:text-lg tracking-[0.12em] md:tracking-[0.15em] font-medium text-amber-50/90 uppercase">
-              Klinika Estetickej Medicíny
-            </span>
-            <span className="text-[8px] sm:text-[9px] md:text-[10px] tracking-[0.25em] md:tracking-[0.3em] font-bold text-amber-400/60 uppercase mt-0.5 md:-mt-0.5">
-              poháňané asistentom Telio
-            </span>
-          </div>
-
-          <div className="hidden md:flex items-center gap-6 text-xs font-semibold tracking-wider text-stone-400">
-            <a href="#procedury" className="hover:text-amber-300 transition-colors uppercase">Zákroky</a>
-            <a href="#kalendar" className="hover:text-amber-300 transition-colors uppercase">Voľné termíny</a>
-            <a href="#telio-voice-assistant" className="hover:text-amber-300 transition-colors uppercase">Hlasový asistent</a>
-          </div>
-
-          <div>
-            <a 
-              href="#telio-voice-assistant" 
-              className="px-4 py-2 rounded-full border border-amber-400/20 text-xs font-semibold tracking-wider uppercase text-amber-300/90 hover:bg-amber-400/5 transition-all flex items-center gap-1.5 whitespace-nowrap"
-            >
-              <Phone className="w-3.5 h-3.5" />
-              <span>Konzultácia</span>
-            </a>
-          </div>
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-center">
+          <span className="font-serif text-xs sm:text-base md:text-lg tracking-[0.12em] md:tracking-[0.15em] font-medium text-amber-50/90 uppercase text-center">
+            Klinika Estetickej Medicíny
+          </span>
         </div>
       </header>
 
