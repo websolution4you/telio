@@ -190,17 +190,17 @@ export default function EstheticCalendar() {
 
       {/* Responsive Calendar View */}
       <div className="overflow-x-auto w-full -mx-4 px-4 md:mx-0 md:px-0 scrollbar-thin">
-        <div className="min-w-[800px] flex flex-col gap-2">
+        <div className="min-w-[800px]">
           
           {/* Calendar Table Headers */}
-          <div className="grid grid-cols-11 gap-2 items-center text-center pb-3 border-b" style={{ borderColor: "rgba(224, 180, 120, 0.08)" }}>
-            <div className="col-span-1 text-xs text-stone-500 font-bold uppercase tracking-wider text-left pl-2">
+          <div className="grid grid-cols-11 border border-white/10 bg-stone-900/20 rounded-t-2xl overflow-hidden text-center items-stretch">
+            <div className="col-span-1 text-xs text-stone-400 font-bold uppercase tracking-wider text-left p-4 border-r border-white/10 flex items-center bg-stone-900/10">
               Lekár / Čas
             </div>
             {visibleDates.map((date, idx) => {
               const info = formatDateLabel(date);
               return (
-                <div key={idx} className="col-span-2 flex flex-col items-center py-2 rounded-xl bg-stone-900/30 border border-white/5 shadow-sm">
+                <div key={idx} className="col-span-2 flex flex-col items-center justify-center py-3 border-r border-white/10 last:border-r-0 bg-stone-900/10">
                   <span className="text-[10px] uppercase font-bold text-amber-400/80 tracking-widest">{info.weekday}</span>
                   <span className="text-xs font-serif text-stone-100 font-medium mt-0.5">{info.label}</span>
                 </div>
@@ -209,56 +209,60 @@ export default function EstheticCalendar() {
           </div>
 
           {/* Grid rows by Hour Slots */}
-          {hourSlots.map((hour) => {
-            return (
-              <div key={hour} className="grid grid-cols-11 gap-2 items-center py-1">
-                {/* Time Indicator column */}
-                <div className="col-span-1 flex items-center gap-1.5 text-xs text-stone-300 font-semibold font-mono pl-2">
-                  <Clock className="w-3.5 h-3.5 text-amber-400/60" />
-                  {`${hour}:00`}
-                </div>
+          <div className="border-x border-b border-white/10 rounded-b-2xl overflow-hidden bg-stone-950/20">
+            {hourSlots.map((hour, rowIdx) => {
+              const isLastRow = rowIdx === hourSlots.length - 1;
+              return (
+                <div key={hour} className={`grid grid-cols-11 items-stretch ${!isLastRow ? "border-b border-white/10" : ""} hover:bg-white/[0.01] transition-colors`}>
+                  {/* Time Indicator column */}
+                  <div className="col-span-1 flex items-center justify-center gap-1.5 text-xs text-stone-300 font-semibold font-mono p-3 border-r border-white/10 bg-stone-900/10">
+                    <Clock className="w-3.5 h-3.5 text-amber-400/60" />
+                    {`${hour}:00`}
+                  </div>
 
-                {/* Day data slots */}
-                {visibleDates.map((date, dayIdx) => {
-                  return (
-                    <div key={dayIdx} className="col-span-2 grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-stone-950/40 border border-white/5 transition-all hover:border-amber-400/10">
-                      {doctors.map((doctor) => {
-                        const status = getSlotStatus(date, hour, doctor.id);
-                        const isBusy = status === "busy";
-                        return (
-                          <div
-                            key={doctor.id}
-                            onClick={() => handleCellClick(date, hour, doctor, status)}
-                            title={`${doctor.name} - ${hour}:00`}
-                            className={`p-2 rounded-lg text-center border text-[9px] font-semibold transition-all duration-200 select-none relative group ${
-                              isBusy
-                                ? "bg-stone-900/40 text-stone-600 border-transparent opacity-30 cursor-not-allowed"
-                                : "bg-amber-400/5 hover:border-amber-400/50 hover:bg-amber-400/10 cursor-pointer text-stone-200"
-                            }`}
-                            style={{
-                              borderColor: isBusy ? "transparent" : "rgba(224, 180, 120, 0.2)",
-                            }}
-                          >
-                            <span className="block truncate opacity-85 group-hover:opacity-100">
-                              {doctor.name.split(" ").slice(-1)[0]}
-                            </span>
-                            
-                            {/* Visual indicator of availability */}
-                            <span className="absolute bottom-1 right-1 w-1 h-1 rounded-full"
+                  {/* Day data slots */}
+                  {visibleDates.map((date, dayIdx) => {
+                    const isLastCol = dayIdx === visibleDates.length - 1;
+                    return (
+                      <div key={dayIdx} className={`col-span-2 grid grid-cols-2 gap-1.5 p-2 ${!isLastCol ? "border-r border-white/10" : ""} bg-stone-900/5`}>
+                        {doctors.map((doctor) => {
+                          const status = getSlotStatus(date, hour, doctor.id);
+                          const isBusy = status === "busy";
+                          return (
+                            <div
+                              key={doctor.id}
+                              onClick={() => handleCellClick(date, hour, doctor, status)}
+                              title={`${doctor.name} - ${hour}:00`}
+                              className={`p-2 rounded-lg text-center border text-[9px] font-semibold transition-all duration-200 select-none relative group ${
+                                isBusy
+                                  ? "bg-stone-900/30 text-stone-600 border-transparent opacity-25 cursor-not-allowed"
+                                  : "bg-amber-400/5 hover:border-amber-400/60 hover:bg-amber-400/10 cursor-pointer text-stone-200"
+                              }`}
                               style={{
-                                backgroundColor: isBusy ? "rgba(120,120,120,0.3)" : "#E0B478",
-                                boxShadow: isBusy ? "none" : "0 0 4px #E0B478"
+                                borderColor: isBusy ? "transparent" : "rgba(224, 180, 120, 0.15)",
                               }}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
+                            >
+                              <span className="block truncate opacity-85 group-hover:opacity-100">
+                                {doctor.name.split(" ").slice(-1)[0]}
+                              </span>
+                              
+                              {/* Visual indicator of availability */}
+                              <span className="absolute bottom-1 right-1 w-1 h-1 rounded-full"
+                                style={{
+                                  backgroundColor: isBusy ? "rgba(120,120,120,0.3)" : "#E0B478",
+                                  boxShadow: isBusy ? "none" : "0 0 4px #E0B478"
+                                }}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
 
         </div>
       </div>
