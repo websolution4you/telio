@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Phone, PhoneOff, Loader2, Sparkles, Settings, Volume2 } from "lucide-react";
+import { Phone, PhoneOff, Loader2, Sparkles, Volume2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface VoiceAuraWidgetProps {
@@ -15,7 +15,6 @@ export default function VoiceAuraWidget({
   const [status, setStatus] = useState<"idle" | "connecting" | "active" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [conversation, setConversation] = useState<any>(null);
-  const [showSettings, setShowSettings] = useState(false);
 
   // Stop session on unmount
   useEffect(() => {
@@ -228,44 +227,6 @@ export default function VoiceAuraWidget({
           </p>
         )}
 
-        {/* Divider / Agent Settings config toggle */}
-        <div className="w-full border-t mt-8 pt-4 flex flex-col items-center" style={{ borderColor: "rgba(224, 180, 120, 0.1)" }}>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-amber-300 transition-colors"
-          >
-            <Settings className="w-3.5 h-3.5" />
-            <span>Nastavenia ID ElevenLabs Agenta</span>
-          </button>
-
-          <AnimatePresence>
-            {showSettings && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="w-full mt-4 overflow-hidden"
-              >
-                <div className="flex flex-col gap-2 p-3 bg-stone-950/40 rounded-2xl border border-amber-500/10">
-                  <label className="text-[10px] text-amber-200/70 font-semibold uppercase tracking-wider">
-                    ElevenLabs Agent ID:
-                  </label>
-                  <input
-                    type="text"
-                    value={agentId}
-                    onChange={(e) => setAgentId(e.target.value)}
-                    placeholder="Sem vložte ID agenta z ElevenLabs"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-stone-900 border text-stone-100 placeholder-stone-600 focus:outline-none focus:border-amber-400/50"
-                    style={{ borderColor: "rgba(224, 180, 120, 0.2)" }}
-                  />
-                  <p className="text-[9px] text-stone-500 leading-normal">
-                    Po výmene tohto ID za ID z vášho ElevenLabs účtu bude hovor okamžite smerovaný na nového agenta estetickej kliniky.
-                  </p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
 
       </div>
     </div>

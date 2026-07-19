@@ -48,17 +48,7 @@ export default function EstheticPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative z-10 pt-20 pb-16 md:py-28 text-center max-w-4xl mx-auto px-6">
-        <div className="inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] mb-8"
-          style={{
-            borderColor: "rgba(224, 180, 120, 0.2)",
-            background: "rgba(224, 180, 120, 0.05)",
-            color: "#E0B478"
-          }}
-        >
-          <Sparkles className="h-3.5 w-3.5" /> Estetický rezervačný kalendár
-        </div>
-
+      <section className="relative z-10 pt-8 pb-16 md:pt-12 md:pb-24 text-center max-w-4xl mx-auto px-6">
         <h1 
           className="text-4xl md:text-6xl font-serif font-light text-stone-100 tracking-wide leading-tight mb-6"
           style={{
