@@ -200,9 +200,9 @@ export default function EstheticCalendar() {
             {visibleDates.map((date, idx) => {
               const info = formatDateLabel(date);
               return (
-                <div key={idx} className="col-span-2 flex flex-col items-center">
-                  <span className="text-[10px] uppercase font-bold text-stone-500 tracking-widest">{info.weekday}</span>
-                  <span className="text-xs font-serif text-stone-200 font-medium mt-0.5">{info.label}</span>
+                <div key={idx} className="col-span-2 flex flex-col items-center py-2 rounded-xl bg-stone-900/30 border border-white/5 shadow-sm">
+                  <span className="text-[10px] uppercase font-bold text-amber-400/80 tracking-widest">{info.weekday}</span>
+                  <span className="text-xs font-serif text-stone-100 font-medium mt-0.5">{info.label}</span>
                 </div>
               );
             })}
@@ -213,15 +213,15 @@ export default function EstheticCalendar() {
             return (
               <div key={hour} className="grid grid-cols-11 gap-2 items-center py-1">
                 {/* Time Indicator column */}
-                <div className="col-span-1 flex items-center gap-1.5 text-xs text-stone-400 font-semibold font-mono pl-2">
-                  <Clock className="w-3.5 h-3.5 text-stone-600" />
+                <div className="col-span-1 flex items-center gap-1.5 text-xs text-stone-300 font-semibold font-mono pl-2">
+                  <Clock className="w-3.5 h-3.5 text-amber-400/60" />
                   {`${hour}:00`}
                 </div>
 
                 {/* Day data slots */}
                 {visibleDates.map((date, dayIdx) => {
                   return (
-                    <div key={dayIdx} className="col-span-2 grid grid-cols-2 gap-1">
+                    <div key={dayIdx} className="col-span-2 grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-stone-950/40 border border-white/5 transition-all hover:border-amber-400/10">
                       {doctors.map((doctor) => {
                         const status = getSlotStatus(date, hour, doctor.id);
                         const isBusy = status === "busy";
@@ -230,17 +230,16 @@ export default function EstheticCalendar() {
                             key={doctor.id}
                             onClick={() => handleCellClick(date, hour, doctor, status)}
                             title={`${doctor.name} - ${hour}:00`}
-                            className={`p-2 rounded-xl text-center border text-[9px] font-semibold transition-all duration-300 select-none relative group ${
+                            className={`p-2 rounded-lg text-center border text-[9px] font-semibold transition-all duration-200 select-none relative group ${
                               isBusy
-                                ? "bg-stone-900/10 text-stone-600 border-stone-950/40 opacity-40 cursor-not-allowed"
-                                : "hover:border-amber-400/40 hover:bg-amber-400/5 cursor-pointer text-stone-300"
+                                ? "bg-stone-900/40 text-stone-600 border-transparent opacity-30 cursor-not-allowed"
+                                : "bg-amber-400/5 hover:border-amber-400/50 hover:bg-amber-400/10 cursor-pointer text-stone-200"
                             }`}
                             style={{
-                              borderColor: isBusy ? "rgba(255, 255, 255, 0.02)" : "rgba(224, 180, 120, 0.12)",
-                              backgroundColor: isBusy ? "transparent" : "rgba(224, 180, 120, 0.02)"
+                              borderColor: isBusy ? "transparent" : "rgba(224, 180, 120, 0.2)",
                             }}
                           >
-                            <span className="block truncate opacity-80 group-hover:opacity-100">
+                            <span className="block truncate opacity-85 group-hover:opacity-100">
                               {doctor.name.split(" ").slice(-1)[0]}
                             </span>
                             
