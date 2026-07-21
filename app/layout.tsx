@@ -19,21 +19,21 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Telio — Your Business, Always on the Line",
+  title: "Telio — AI hlasový asistent a telefonické rezervácie pre firmy",
   description:
-    "Telio je váš AI hlasový agent 24/7. Zdvihne každý hovor, hovorí prirodzene po slovensky, rezervuje termíny, dispečuje taxíky — a nikdy si nezobrať voľno.",
-  keywords: ["AI call agent", "virtual receptionist", "voice AI", "taxi dispatch AI", "restaurant booking AI", "Telio", "Slovakia"],
+    "Telio je váš AI hlasový asistent 24/7. Zdvihne každý hovor, hovorí prirodzene po slovensky, rezervuje termíny v reálnom čase a nikdy si neberie voľno.",
+  keywords: ["AI hlasový asistent", "virtuálna recepčná", "automatizácia hovorov", "telefonické rezervácie", "Telio", "Slovensko", "AI operátor"],
   openGraph: {
-    title: "Telio — Your Business, Always on the Line",
-    description: "24/7 AI voice agent for Slovak businesses. Books tables, dispatches taxis, handles every call.",
+    title: "Telio — AI hlasový asistent a telefonické rezervácie pre firmy",
+    description: "24/7 AI hlasový operátor pre slovenské prevádzky a kliniky. Zabezpečuje rezervácie a dvíha každý hovor.",
     type: "website",
     url: "https://telio.sk",
     siteName: "Telio",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Telio — AI Voice Agent",
-    description: "Never miss a customer call again.",
+    title: "Telio — AI hlasový asistent",
+    description: "Už nikdy nezmeškajte telefonát od vášho zákazníka.",
   },
   robots: { index: true, follow: true },
 };
