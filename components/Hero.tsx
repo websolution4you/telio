@@ -18,7 +18,7 @@ export default function Hero() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [activeEvent, setActiveEvent] = useState(0);
   const [visible, setVisible] = useState(false);
-  const [selectedCase, setSelectedCase] = useState("pizza");
+  const [selectedCase, setSelectedCase] = useState("taxi");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { lang, t } = useLang();
 
@@ -160,7 +160,7 @@ export default function Hero() {
                     <span className="font-semibold tracking-tight truncate">
                       {selectedCase === "pizza" && (lang === "sk" ? "Telio pre pizzeriu" : "Telio for pizzeria")}
                       {selectedCase === "clinic" && (lang === "sk" ? "Telio pre stomatologickú kliniku" : "Telio for dental clinic")}
-                      {selectedCase === "taxi" && (lang === "sk" ? "Rezervácia kurtov v NTC" : "NTC Court Booking")}
+                      {selectedCase === "taxi" && (lang === "sk" ? "Rezervácia kurtov" : "Court Booking")}
                     </span>
                   </div>
                   <ChevronDown className={`w-4.5 h-4.5 text-white/50 shrink-0 transition-transform duration-250 ${dropdownOpen ? "rotate-180 text-white" : ""} absolute right-4 top-1/2 -translate-y-1/2`} />
@@ -168,6 +168,19 @@ export default function Hero() {
 
                 {dropdownOpen && (
                   <div className="absolute left-0 right-0 mt-2 z-[9999] rounded-xl bg-[#0c0c16]/98 border border-white/15 backdrop-blur-2xl shadow-[0_15px_40px_rgba(0,0,0,0.6)] overflow-hidden p-1 flex flex-col gap-0.5">
+                    <button
+                      onClick={() => {
+                        setSelectedCase("taxi");
+                        setDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 rounded-lg text-left text-sm hover:bg-white/10 transition-colors cursor-pointer ${
+                        selectedCase === "taxi" ? "text-white bg-white/8 font-semibold" : "text-white/70"
+                      }`}
+                      style={{ padding: "0.75rem 1rem" }}
+                    >
+                      <Calendar className="w-4.5 h-4.5 text-[#7B61FF] shrink-0" />
+                      <span className="truncate">{lang === "sk" ? "Rezervácia kurtov" : "Court Booking"}</span>
+                    </button>
                     <button
                       onClick={() => {
                         setSelectedCase("pizza");
@@ -193,19 +206,6 @@ export default function Hero() {
                     >
                       <ToothIcon className="w-4.5 h-4.5 text-[#00D4FF] shrink-0" />
                       <span className="truncate">{lang === "sk" ? "Telio pre stomatologickú kliniku" : "Telio for dental clinic"}</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedCase("taxi");
-                        setDropdownOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-2.5 rounded-lg text-left text-sm hover:bg-white/10 transition-colors cursor-pointer ${
-                        selectedCase === "taxi" ? "text-white bg-white/8 font-semibold" : "text-white/70"
-                      }`}
-                      style={{ padding: "0.75rem 1rem" }}
-                    >
-                      <Calendar className="w-4.5 h-4.5 text-[#7B61FF] shrink-0" />
-                      <span className="truncate">{lang === "sk" ? "Rezervácia kurtov v NTC" : "NTC Court Booking"}</span>
                     </button>
                   </div>
                 )}

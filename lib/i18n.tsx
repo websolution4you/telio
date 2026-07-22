@@ -201,7 +201,7 @@ export const translations = {
           price: "50 €",
           priceSub: "/ month",
           description: "Perfect for single locations getting started with AI voice.",
-          features: ["1 AI voice assistant", "100 minutes included / month", "Rate 0.33€ / min after limit"],
+          features: ["100 minutes included / month", "Rate 0.33€ / min after limit"],
           cta: "Try for free", highlighted: false, badge: null,
         },
         {
@@ -538,7 +538,7 @@ export const translations = {
           price: "50 €",
           priceSub: "/ mesiac",
           description: "Ideálne pre začínajúcich podnikateľov a jednotlivcov.",
-          features: ["1 hlasový asistent", "100 minút v cene / mesiac", "Cena 0,33€ / min po prevolaní"],
+          features: ["100 minút v cene / mesiac", "Cena 0,33€ / min po prevolaní"],
           cta: "Vyskúšať zdarma", highlighted: false, badge: null,
         },
         {
