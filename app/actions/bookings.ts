@@ -161,6 +161,16 @@ export async function createBookingAction(payload: {
             return { success: false, error: "Pre vytvorenie rezervácie sa musíte prihlásiť." };
         }
 
+        if (payload.source !== "admin") {
+            const now = new Date();
+            const maxAllowedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14, 23, 59, 59, 999);
+            const bookingStart = new Date(payload.start);
+
+            if (bookingStart > maxAllowedDate) {
+                return { success: false, error: "Rezerváciu je možné vytvoriť maximálne 14 dní vopred." };
+            }
+        }
+
         const db = getCoreDb();
         console.log(`Creating booking in Supabase for NTC Tenant: ${TENANT_ID}`);
         

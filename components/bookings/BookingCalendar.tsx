@@ -130,10 +130,28 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
     };
   }, []);
 
+  const todayStr = useMemo(() => getLocalDateString(new Date()), []);
+  const maxAllowedDateObj = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 14);
+    d.setHours(23, 59, 59, 999);
+    return d;
+  }, []);
+  const maxAllowedDateStr = useMemo(() => getLocalDateString(maxAllowedDateObj), [maxAllowedDateObj]);
+
   // Adjust base date helper
   const adjustDate = (days: number) => {
     const next = new Date(baseDate);
     next.setDate(next.getDate() + days);
+    if (days > 0 && next > maxAllowedDateObj) {
+      setConfirmModal({
+        isOpen: true,
+        isError: true,
+        message: "Rezervácie sú možné maximálne 14 dní vopred."
+      });
+      return;
+    }
     setBaseDate(next);
   };
 
@@ -215,6 +233,11 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
       setConfirmModal({ isOpen: true, isError: true, message: "Nemožno vytvoriť rezerváciu v minulosti." });
       return;
     }
+
+    if (slotTime > maxAllowedDateObj) {
+      setConfirmModal({ isOpen: true, isError: true, message: "Rezerváciu je možné vytvoriť maximálne 14 dní vopred." });
+      return;
+    }
     
     setSelectedSlot({
       courtId,
@@ -280,6 +303,11 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
 
     const startDateTime = new Date(date);
     startDateTime.setHours(hour, minute, 0, 0);
+
+    if (startDateTime > maxAllowedDateObj) {
+      setErrorMsg("Rezerváciu je možné vytvoriť maximálne 14 dní vopred.");
+      return;
+    }
 
     const endDateTime = new Date(startDateTime.getTime() + formDurationMinutes * 60000);
 
@@ -596,7 +624,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 rounded-3xl border px-4 md:px-8 py-4 mb-4 md:mb-8 min-h-[90px]" style={{ background: "rgba(12,12,20,0.72)", borderColor: "var(--border)" }}>
           
           {/* Left: Today's fixed date button */}
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-3 flex-shrink-0 flex-wrap">
             <button
               onClick={() => setBaseDate(new Date())}
               className="px-6 py-2.5 rounded-full border border-white/10 hover:bg-white/5 text-xs font-black text-slate-300 transition-colors cursor-pointer hover:border-cyan-500/40 flex items-center gap-2"
@@ -605,6 +633,10 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
               <span className="h-1.5 w-1.5 rounded-full bg-cyan-400"></span>
               Dnes: {new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "numeric", year: "numeric" }).format(new Date())}
             </button>
+            <span className="px-3 py-1.5 rounded-full border border-cyan-500/20 bg-cyan-500/10 text-[11px] font-semibold text-cyan-300 flex items-center gap-1.5">
+              <Clock className="h-3 w-3 text-cyan-400" />
+              Max. 14 dní vopred
+            </span>
           </div>
 
           {/* Center: Navigation arrows directly around the date */}
@@ -624,9 +656,21 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
               <input 
                 type="date"
                 value={getLocalDateString(baseDate)}
+                min={todayStr}
+                max={maxAllowedDateStr}
                 onChange={(e) => {
                   if (e.target.value) {
-                    setBaseDate(new Date(e.target.value));
+                    const selected = new Date(e.target.value);
+                    if (selected > maxAllowedDateObj) {
+                      setConfirmModal({
+                        isOpen: true,
+                        isError: true,
+                        message: "Rezervácie sú možné maximálne 14 dní vopred."
+                      });
+                      setBaseDate(maxAllowedDateObj);
+                    } else {
+                      setBaseDate(selected);
+                    }
                   }
                 }}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -636,8 +680,13 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
 
             <button
               onClick={() => adjustDate(1)}
-              className="p-3 rounded-xl border border-white/10 hover:bg-white/5 text-white transition-colors cursor-pointer hover:border-cyan-500/40 flex-shrink-0"
-              title="Nasledujúci deň"
+              disabled={getLocalDateString(baseDate) >= maxAllowedDateStr}
+              className={`p-3 rounded-xl border transition-colors flex-shrink-0 ${
+                getLocalDateString(baseDate) >= maxAllowedDateStr
+                  ? "border-white/5 text-slate-600 cursor-not-allowed opacity-40"
+                  : "border-white/10 hover:bg-white/5 text-white cursor-pointer hover:border-cyan-500/40"
+              }`}
+              title={getLocalDateString(baseDate) >= maxAllowedDateStr ? "Rezervácie sú možné max. 14 dní vopred" : "Nasledujúci deň"}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -791,6 +840,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                   const slotTime = new Date(date);
                                   slotTime.setHours(targetSlot.hour, targetSlot.minute, 0, 0);
                                   const isPast = slotTime < new Date();
+                                  const isTooFarInFuture = slotTime > maxAllowedDateObj;
 
                                   if (blockStatus) {
                                     if (blockStatus.type === "maintenance") {
@@ -822,6 +872,18 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                         key={slotIdx}
                                         className="h-full border-r border-white/10 bg-slate-950/70 flex items-center justify-center text-center select-none cursor-not-allowed"
                                         title="Minulosť"
+                                      >
+                                        <span className="block w-full h-full bg-slate-900/40"></span>
+                                      </div>
+                                    );
+                                  }
+
+                                  if (isTooFarInFuture) {
+                                    return (
+                                      <div
+                                        key={slotIdx}
+                                        className="h-full border-r border-white/10 bg-slate-950/70 flex items-center justify-center text-center select-none cursor-not-allowed"
+                                        title="Rezervácie sú možné maximálne 14 dní vopred"
                                       >
                                         <span className="block w-full h-full bg-slate-900/40"></span>
                                       </div>
