@@ -104,7 +104,7 @@ export default async function BookingsPage() {
               textShadow: "0 0 25px rgba(123, 97, 255, 0.4), 0 0 50px rgba(123, 97, 255, 0.2)"
             }}
           >
-            Rezervačný systém NTC
+            Rezervačný systém pre tenisové centrum
           </h1>
         </div>
       </section>
