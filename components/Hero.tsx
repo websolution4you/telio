@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/i18n";
 import DemoCallButton from "@/components/DemoCallButton";
-import { Headset, Pizza, Car, ChevronDown, Calendar } from "lucide-react";
+import { Headset, Pizza, ChevronDown, Calendar } from "lucide-react";
 
 function ToothIcon({ className }: { className?: string }) {
   return (
@@ -146,6 +146,23 @@ export default function Hero() {
           <div className="flex flex-col md:flex-row gap-12 w-full md:w-auto items-start justify-center">
             {/* Pizza Demo / Skúšobný hovor */}
             <div className="flex flex-col gap-5 w-full max-w-[340px] md:w-[340px] items-center">
+              <div className="w-full rounded-xl border border-white/10 bg-[#11111e]/90 p-4 shadow-[0_4px_25px_rgba(0,0,0,0.4)]">
+                <div className="mb-3 flex items-center justify-center gap-2 text-sm font-semibold text-white">
+                  <Headset className="h-4 w-4 text-cyan-400" />
+                  <span>{lang === "sk" ? "Ukážka hovoru s Teliom" : "Sample call with Telio"}</span>
+                </div>
+                <audio
+                  className="h-10 w-full"
+                  controls
+                  preload="metadata"
+                  src="/audio/telio-ukazka-hovoru.mp3"
+                >
+                  {lang === "sk"
+                    ? "Váš prehliadač nepodporuje prehrávanie audia."
+                    : "Your browser does not support audio playback."}
+                </audio>
+              </div>
+
               {/* Dropdown for calling cases */}
               <div className="relative w-full animate-fadeInUp" ref={dropdownRef}>
                 <button
