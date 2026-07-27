@@ -63,6 +63,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [title, setTitle] = useState("");
   const [phone, setPhone] = useState("");
   const [duration, setDuration] = useState(60);
+  const [now, setNow] = useState(() => new Date());
   const today = useMemo(() => { const value = new Date(); value.setHours(0, 0, 0, 0); return value; }, []);
   const maxDate = useMemo(() => { const value = new Date(today); value.setDate(value.getDate() + 14); value.setHours(23, 59, 59, 999); return value; }, [today]);
   const hours = useMemo(() => Array.from({ length: openingHours.endHour - openingHours.startHour }, (_, index) => openingHours.startHour + index), []);
@@ -86,12 +87,24 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const visibleCourts = useMemo(() => {
     let result = courts.filter((court) => court.sport === sport);
     if (sport === "tennis-clay" && [0, 6].includes(date.getDay())) result = result.filter((court) => ["tennis-clay-1", "tennis-clay-2"].includes(court.id));
     return result;
   }, [courts, sport, date]);
   const bookings = useMemo(() => items.filter((booking) => booking.status !== "cancelled" && dateKey(new Date(booking.start)) === dateKey(date) && courts.find((court) => court.id === booking.courtId)?.sport === sport), [items, date, courts, sport]);
+  const isToday = dateKey(date) === dateKey(now);
+  const currentTimePercent = useMemo(() => {
+    const elapsedMinutes = (now.getHours() - openingHours.startHour) * 60 + now.getMinutes();
+    const totalMinutes = (openingHours.endHour - openingHours.startHour) * 60;
+    return Math.max(0, Math.min(100, elapsedMinutes / totalMinutes * 100));
+  }, [now]);
+  const currentTimeLabel = new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" }).format(now);
 
   const moveDate = (days: number) => {
     const next = new Date(date); next.setDate(next.getDate() + days); next.setHours(0, 0, 0, 0);
@@ -102,7 +115,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const openSlot = (courtId: string, hour: number) => {
     if (!currentUser) return setAuth("login");
     const start = new Date(date); start.setHours(hour, 0, 0, 0);
-    if (start < new Date()) return setNotice("Rezerváciu v minulosti nie je možné vytvoriť.");
+    if (start < now) return setNotice("Rezerváciu v minulosti nie je možné vytvoriť.");
     setTitle(""); setPhone(currentUser.phone || ""); setDuration(60); setNotice(""); setSlot({ courtId, date: new Date(date), hour });
   };
   const hasConflict = (courtId: string, start: Date, end: Date) => bookings.some((booking) => booking.courtId === courtId && start < new Date(booking.end) && end > new Date(booking.start));
@@ -128,7 +141,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f7f5] text-slate-900">
+    <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-[1500px] items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/" className="flex items-center gap-3"><b className="grid h-10 w-10 place-items-center rounded-xl bg-slate-950 text-white">T</b><span><strong className="block">TELIO</strong><small className="text-slate-500">Rezervačný systém</small></span></Link>
@@ -136,7 +149,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         </div>
       </header>
       <main className="mx-auto max-w-[1500px] px-4 py-8 sm:px-6 lg:py-12">
-        <div className="mb-8"><span className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700"><ShieldCheck className="h-4 w-4" /> NTC BRATISLAVA</span><h1 className="max-w-5xl text-3xl font-bold tracking-tight sm:text-5xl">Komplexný rezervačný systém hlasového asistenta Telio</h1><p className="mt-4 max-w-3xl text-slate-600">Webové aj hlasové rezervácie sa zobrazujú v jednom aktuálnom a prehľadnom kalendári.</p></div>
+        <div className="mx-auto mb-10 flex w-full max-w-5xl flex-col items-center px-1 text-center sm:mb-12 sm:px-4">
+          <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-700 sm:text-xs"><ShieldCheck className="h-4 w-4" /> Tenisové centrum</span>
+          <h1 className="max-w-4xl text-balance text-3xl font-semibold leading-[1.15] tracking-[-0.035em] text-slate-950 sm:text-4xl md:text-5xl" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>Komplexný rezervačný systém hlasového asistenta Telio</h1>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600 sm:mt-5 sm:text-base sm:leading-7">Webové aj hlasové rezervácie sa zobrazujú v jednom aktuálnom a prehľadnom kalendári.</p>
+        </div>
         {notice && <button onClick={() => setNotice("")} className="mb-5 w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left text-sm font-semibold text-emerald-800">{notice}</button>}
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/60">
           <div className="border-b border-slate-200 p-4 sm:p-6">
@@ -148,8 +165,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             </div>
           </div>
           <div className="overflow-auto"><div className="min-w-[1050px]">
-            <div className="grid border-b bg-slate-50" style={{ gridTemplateColumns: "140px 1fr" }}><b className="sticky left-0 z-30 border-r bg-slate-50 p-4 text-xs text-slate-500">KURT</b><div className="grid" style={{ gridTemplateColumns: `repeat(${hours.length}, 1fr)` }}>{hours.map((hour) => <b key={hour} className="border-r p-4 text-center text-xs text-slate-500">{hour}:00</b>)}</div></div>
-            {visibleCourts.map((court) => <div key={court.id} className="grid border-b" style={{ gridTemplateColumns: "140px 1fr" }}><div className="sticky left-0 z-20 flex min-h-20 flex-col justify-center border-r bg-white px-4"><b>{court.name}</b><small className="text-slate-500">{court.surface}</small></div><div className="relative grid" style={{ gridTemplateColumns: `repeat(${hours.length}, 1fr)` }}>{hours.map((hour) => { const label = blockedLabel(court.id, sport, hour); const past = new Date(date).setHours(hour, 0, 0, 0) < Date.now(); return label ? <div key={hour} className="grid min-h-20 place-items-center border-r bg-amber-50 px-1 text-center text-[10px] font-bold text-amber-700">{label}</div> : past ? <div key={hour} className="min-h-20 border-r bg-slate-100" /> : <button key={hour} onClick={() => openSlot(court.id, hour)} className="group grid min-h-20 place-items-center border-r hover:bg-emerald-50"><Plus className="h-4 w-4 text-emerald-500 opacity-0 group-hover:opacity-100" /></button>; })}<div className="pointer-events-none absolute inset-0">{bookings.filter((booking) => booking.courtId === court.id).map((booking) => { const own = !!currentUser && currentUser.id === booking.user_id; const canManage = own || currentUser?.role === "admin"; return <button key={booking.id} onClick={() => canManage && setDetail(booking)} className={`pointer-events-auto absolute inset-y-2 overflow-hidden rounded-lg border px-2 text-left shadow-sm ${own ? "border-amber-400 bg-amber-300 text-amber-950" : "border-emerald-600 bg-emerald-500 text-white"}`} style={position(booking)} title={canManage ? "Zobraziť detail" : "Obsadené"}><b className="block truncate text-xs">{formatTime(booking.start)}–{formatTime(booking.end)}</b><span className="block truncate text-[10px]">{own ? "Vaša rezervácia" : "Obsadené"}</span></button>; })}</div></div></div>)}
+            <div className="grid border-b bg-slate-50" style={{ gridTemplateColumns: "140px 1fr" }}><b className="sticky left-0 z-30 border-r bg-slate-50 p-4 text-xs text-slate-500">KURT</b><div className="relative grid" style={{ gridTemplateColumns: `repeat(${hours.length}, 1fr)` }}>{hours.map((hour) => <b key={hour} className="border-r p-4 text-center text-xs text-slate-500">{hour}:00</b>)}{isToday && currentTimePercent > 0 && currentTimePercent < 100 && <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-cyan-500" style={{ left: `${currentTimePercent}%` }}><span className="absolute left-1/2 top-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-cyan-600 px-2 py-1 text-[9px] font-extrabold text-white shadow-md">{currentTimeLabel}</span></div>}</div></div>
+            {visibleCourts.map((court) => <div key={court.id} className="grid border-b" style={{ gridTemplateColumns: "140px 1fr" }}><div className="sticky left-0 z-20 flex min-h-20 flex-col justify-center border-r bg-white px-4"><b>{court.name}</b><small className="text-slate-500">{court.surface}</small></div><div className="relative grid" style={{ gridTemplateColumns: `repeat(${hours.length}, 1fr)` }}>{hours.map((hour) => { const label = blockedLabel(court.id, sport, hour); const past = new Date(date).setHours(hour, 0, 0, 0) < now.getTime(); return label ? <div key={hour} className="grid min-h-20 place-items-center border-r bg-amber-50 px-1 text-center text-[10px] font-bold text-amber-700">{label}</div> : past ? <div key={hour} className="min-h-20 border-r bg-slate-100" /> : <button key={hour} onClick={() => openSlot(court.id, hour)} className="group grid min-h-20 place-items-center border-r hover:bg-emerald-50"><Plus className="h-4 w-4 text-emerald-500 opacity-0 group-hover:opacity-100" /></button>; })}{isToday && currentTimePercent > 0 && <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] border-r border-slate-300/80" style={{ width: `${currentTimePercent}%`, background: "repeating-linear-gradient(135deg, rgba(148,163,184,0.12) 0px, rgba(148,163,184,0.12) 5px, rgba(241,245,249,0.38) 5px, rgba(241,245,249,0.38) 10px)" }} />}
+              <div className="pointer-events-none absolute inset-0 z-10">{bookings.filter((booking) => booking.courtId === court.id).map((booking) => { const own = !!currentUser && currentUser.id === booking.user_id; const canManage = own || currentUser?.role === "admin"; return <button key={booking.id} onClick={() => canManage && setDetail(booking)} className={`pointer-events-auto absolute inset-y-2 overflow-hidden rounded-lg border px-2 text-left shadow-sm ${own ? "border-amber-400 bg-amber-300 text-amber-950" : "border-emerald-600 bg-emerald-500 text-white"}`} style={position(booking)} title={canManage ? "Zobraziť detail" : "Obsadené"}><b className="block truncate text-xs">{formatTime(booking.start)}–{formatTime(booking.end)}</b><span className="block truncate text-[10px]">{own ? "Vaša rezervácia" : "Obsadené"}</span></button>; })}</div>{isToday && currentTimePercent > 0 && currentTimePercent < 100 && <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-cyan-500 drop-shadow-sm" style={{ left: `${currentTimePercent}%` }}><span className="absolute -left-[5px] -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-cyan-500 shadow-[0_0_0_3px_rgba(6,182,212,0.18)]" /></div>}</div></div>)}
           </div></div>
         </section>
         <div className="mt-5 flex flex-wrap gap-5 text-sm"><span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-emerald-500" /> Obsadené</span><span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-amber-300" /> Vaša rezervácia</span>{loading && <span className="text-slate-500">Aktualizujem...</span>}</div>
