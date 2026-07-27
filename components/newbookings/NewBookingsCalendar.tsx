@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, LogIn, LogOut, Plus, ShieldCheck } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, LayoutDashboard, LogIn, LogOut, Plus, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { createBookingAction, deleteBookingAction, fetchBookingsAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
 import { supabase } from "@/lib/supabase";
@@ -142,11 +142,31 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
   return (
     <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-[1500px] items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-3"><b className="grid h-10 w-10 place-items-center rounded-xl bg-slate-950 text-white">T</b><span><strong className="block">TELIO</strong><small className="text-slate-500">Rezervačný systém</small></span></Link>
-          {currentUser ? <div className="flex items-center gap-3"><b className="hidden text-sm sm:block">{currentUser.name}</b><button onClick={async () => { await logoutAction(); router.refresh(); }} className="rounded-xl border border-slate-200 p-3" title="Odhlásiť sa"><LogOut className="h-4 w-4" /></button></div> : <button onClick={() => setAuth("login")} className="flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white"><LogIn className="h-4 w-4" /> Prihlásiť</button>}
+      <header className="relative isolate overflow-hidden border-b border-cyan-100/80 bg-gradient-to-r from-white via-cyan-50/80 to-indigo-50/80 shadow-[0_10px_35px_rgba(15,23,42,0.07)]">
+        <div className="pointer-events-none absolute -left-16 -top-24 h-44 w-44 rounded-full bg-cyan-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute -right-12 -top-28 h-48 w-48 rounded-full bg-violet-300/20 blur-3xl" />
+        <div className="relative mx-auto flex min-h-[76px] max-w-[1500px] items-center justify-between gap-2 px-4 py-3 sm:min-h-[86px] sm:gap-4 sm:px-6 lg:px-8">
+          <Link href="/" className="group flex min-w-0 items-center gap-3 sm:gap-4" aria-label="Telio domov">
+            <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-violet-600 text-white shadow-[0_10px_24px_rgba(37,99,235,0.3),inset_0_1px_1px_rgba(255,255,255,0.5)] transition duration-300 group-hover:-translate-y-0.5 group-hover:rotate-[-2deg] sm:h-12 sm:w-12">
+              <span className="text-lg font-extrabold" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>T</span>
+              <Sparkles className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-white p-0.5 text-violet-600 shadow-sm" />
+            </span>
+            <span className="min-w-0"><strong className="block text-base font-extrabold tracking-[0.12em] text-slate-950 sm:text-lg" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>TELIO</strong><span className="block truncate text-[10px] font-semibold tracking-wide text-slate-500 sm:text-xs">Inteligentný rezervačný systém</span></span>
+          </Link>
+          {currentUser ? (
+            <div className="flex items-center gap-1.5 sm:gap-2.5">
+              <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/90 bg-white/75 p-2 shadow-[0_8px_22px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:px-3">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-600 text-white shadow-sm"><UserRound className="h-4 w-4" /></span>
+                <span className="hidden min-w-0 sm:block"><b className="block max-w-36 truncate text-sm">{currentUser.name}</b><small className="block text-[10px] font-medium text-emerald-600">Aktívny účet</small></span>
+              </div>
+              <Link href="/dashboard/bookings" className="relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-indigo-100 bg-white/80 text-indigo-600 shadow-[0_8px_22px_rgba(79,70,229,0.12)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50 hover:shadow-md" title="Moje rezervácie a štatistiky" aria-label="Moje rezervácie a štatistiky"><LayoutDashboard className="h-[18px] w-[18px]" /><span className="absolute right-1 top-1 h-2 w-2 rounded-full border border-white bg-emerald-500" /></Link>
+              <button onClick={async () => { await logoutAction(); router.refresh(); }} className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/90 bg-white/80 text-slate-500 shadow-[0_8px_22px_rgba(15,23,42,0.08)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-red-200 hover:bg-red-50 hover:text-red-600" title="Odhlásiť sa" aria-label="Odhlásiť sa"><LogOut className="h-4 w-4" /></button>
+            </div>
+          ) : (
+            <button onClick={() => setAuth("login")} className="group flex shrink-0 items-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 px-3.5 py-3 text-xs font-bold text-white shadow-[0_10px_24px_rgba(79,70,229,0.3)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(79,70,229,0.38)] sm:px-5 sm:text-sm"><LogIn className="h-4 w-4" /> Prihlásiť</button>
+          )}
         </div>
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/70 to-transparent" />
       </header>
       <main className="mx-auto max-w-[1500px] px-4 py-8 sm:px-6 lg:py-12">
         <div className="mx-auto mb-10 flex w-full max-w-5xl flex-col items-center px-1 text-center sm:mb-12 sm:px-4">
