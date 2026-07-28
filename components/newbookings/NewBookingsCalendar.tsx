@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CalendarDays, ChevronLeft, ChevronRight, Clock, LayoutDashboard, LogIn, LogOut, Plus, ShieldCheck, Sparkles, UserRound } from "lucide-react";
@@ -50,6 +50,7 @@ function clayError(courtId: string, sport: SportType, hour: number, duration: nu
 
 export default function NewBookingsCalendar({ courts, initialBookings, currentUser }: Props) {
   const router = useRouter();
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const [sport, setSport] = useState<SportType>("badminton");
   const [date, setDate] = useState(new Date());
   const [items, setItems] = useState(initialBookings);
@@ -111,11 +112,23 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   }, [now]);
   const currentTimeLabel = new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" }).format(now);
 
-  const moveDate = (days: number) => {
+    const moveDate = (days: number) => {
     const next = new Date(date); next.setDate(next.getDate() + days); next.setHours(0, 0, 0, 0);
     if (next < today) return;
     if (next > maxDate) return setNotice("Rezervácie sú možné maximálne 14 dní vopred.");
     setDate(next);
+  };
+    const selectDate = (value: string) => {
+    if (!value) return;
+    const selected = new Date(`${value}T12:00:00`);
+    if (selected < today || selected > maxDate) return setNotice("Vyberte dátum od dnešného dňa, maximálne 14 dní vopred.");
+    setDate(selected);
+  };
+  const openDatePicker = () => {
+    const input = dateInputRef.current;
+    if (!input) return;
+    if (typeof input.showPicker === "function") input.showPicker();
+    else input.click();
   };
   const openSlot = (courtId: string, hour: number) => {
     if (!currentUser) return setAuth("login");
@@ -185,7 +198,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">{sports.map((item) => <button key={item.id} onClick={() => setSport(item.id)} className={`cursor-pointer rounded-xl border p-3 text-sm font-bold transition duration-200 ${sport === item.id ? "border-slate-950 bg-slate-950 text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 shadow-[0_2px_8px_rgba(15,23,42,0.04)] hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 hover:shadow-sm"}`}>{item.label}</button>)}</div>
             <div className="mt-5 flex flex-col items-center justify-between gap-4 border-t border-slate-100 pt-5 md:flex-row">
               <button onClick={() => setDate(new Date())} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold">Dnes</button>
-              <div className="flex items-center gap-2"><button onClick={() => moveDate(-1)} className="rounded-xl border p-3"><ChevronLeft className="h-4 w-4" /></button><label className="relative flex min-w-[200px] items-center justify-center gap-2 rounded-xl bg-slate-50 px-3 py-3 text-center text-sm font-bold sm:min-w-[280px]"><CalendarDays className="h-4 w-4 text-emerald-600" />{new Intl.DateTimeFormat("sk-SK", { weekday: "long", day: "numeric", month: "long" }).format(date)}<input type="date" min={dateKey(today)} max={dateKey(maxDate)} value={dateKey(date)} onChange={(event) => event.target.value && setDate(new Date(`${event.target.value}T12:00:00`))} className="absolute inset-0 cursor-pointer opacity-0" /></label><button onClick={() => moveDate(1)} className="rounded-xl border p-3"><ChevronRight className="h-4 w-4" /></button></div>
+              <div className="flex items-center gap-2"><button onClick={() => moveDate(-1)} className="rounded-xl border p-3"><ChevronLeft className="h-4 w-4" /></button><div className="relative min-w-[200px] sm:min-w-[280px]"><button type="button" onClick={openDatePicker} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-slate-50 px-3 py-3 text-center text-sm font-bold"><CalendarDays className="h-4 w-4 text-emerald-600" />{new Intl.DateTimeFormat("sk-SK", { weekday: "long", day: "numeric", month: "long" }).format(date)}</button><input ref={dateInputRef} type="date" min={dateKey(today)} max={dateKey(maxDate)} value={dateKey(date)} onChange={(event) => selectDate(event.target.value)} className="pointer-events-none absolute inset-0 h-full w-full opacity-0" tabIndex={-1} aria-label="Vybrať dátum rezervácie" /></div><button onClick={() => moveDate(1)} className="rounded-xl border p-3"><ChevronRight className="h-4 w-4" /></button></div>
               <span className="flex items-center gap-2 text-xs text-slate-500"><Clock className="h-4 w-4" /> Max. 14 dní</span>
             </div>
           </div>
