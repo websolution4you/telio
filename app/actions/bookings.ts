@@ -174,6 +174,35 @@ export async function createBookingAction(payload: {
         const db = getCoreDb();
         console.log(`Creating booking in Supabase for NTC Tenant: ${TENANT_ID}`);
         
+        // 1. Check for overlapping bookings in Supabase for the same court
+        const { data: existingBookings, error: checkError } = await db
+            .from("bookings")
+            .select("id, notes")
+            .eq("tenant_id", TENANT_ID)
+            .neq("status", "cancelled")
+            .lt("start_at", payload.end)
+            .gt("end_at", payload.start);
+
+        if (checkError) {
+            console.error("Failed to check existing bookings:", checkError.message);
+            throw new Error(`Database check error: ${checkError.message}`);
+        }
+
+        const hasConflict = (existingBookings || []).some(row => {
+            let courtId = "";
+            try {
+                const parsed = typeof row.notes === "string" ? JSON.parse(row.notes) : (row.notes || {});
+                courtId = parsed.courtId || "";
+            } catch (e) {
+                console.error("Failed to parse notes JSON:", e);
+            }
+            return courtId === payload.courtId;
+        });
+
+        if (hasConflict) {
+            return { success: false, error: "Vybraný kurt je v tomto čase už zarezervovaný." };
+        }
+
         // Insert booking into Supabase
         const notesObj = {
             courtId: payload.courtId,
