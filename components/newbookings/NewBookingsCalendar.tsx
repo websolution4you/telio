@@ -90,21 +90,34 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     return () => { active = false; };
   }, [date, reload]);
 
-    useEffect(() => {
+  useEffect(() => {
     const timers = voiceHighlightTimers.current;
     const channel = supabase.channel("newbookings-realtime").on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, (payload) => {
       setReload((value) => value + 1);
       if (payload.eventType !== "INSERT") return;
-      const booking = payload.new as Partial<Booking>;
-      if (!booking.id || booking.source !== "voice-assistant") return;
-      setHighlightedVoiceBookings((current) => current.includes(booking.id!) ? current : [...current, booking.id!]);
-      const existingTimer = timers.get(booking.id);
-      if (existingTimer) window.clearTimeout(existingTimer);
-      const timer = window.setTimeout(() => {
-        setHighlightedVoiceBookings((current) => current.filter((id) => id !== booking.id));
-        timers.delete(booking.id!);
-      }, 4_000);
-      timers.set(booking.id, timer);
+
+      const raw = payload.new as any;
+      if (!raw?.id) return;
+
+      let source = raw?.source;
+      if (!source && raw?.notes) {
+        try {
+          const notesObj = typeof raw.notes === "string" ? JSON.parse(raw.notes) : raw.notes;
+          source = notesObj?.source;
+        } catch (e) {}
+      }
+
+      if (source === "voice-assistant") {
+        const bookingId = raw.id;
+        setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
+        const existingTimer = timers.get(bookingId);
+        if (existingTimer) window.clearTimeout(existingTimer);
+        const timer = window.setTimeout(() => {
+          setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
+          timers.delete(bookingId);
+        }, 4000);
+        timers.set(bookingId, timer);
+      }
     }).subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -236,23 +249,31 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       {deleting && <DeleteDialog loading={loading} onCancel={() => setDeleting(null)} onConfirm={remove} />}
       <style jsx global>{`
         @keyframes new-voice-booking-border-pulse {
-          0%, 100% { border-color: rgba(239, 68, 68, 0.65); box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.18), 0 0 12px rgba(220, 38, 38, 0.18); }
-          50% { border-color: rgba(254, 202, 202, 0.95); box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.35), 0 0 20px rgba(220, 38, 38, 0.32); }
+          0%, 100% {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.95), 0 0 16px rgba(239, 68, 68, 0.75);
+          }
+          50% {
+            border-color: #fca5a5 !important;
+            box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.4), 0 0 24px rgba(239, 68, 68, 0.95);
+          }
         }
         @keyframes new-voice-booking-scan {
-          from { transform: translateX(-140%); }
-          to { transform: translateX(440%); }
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(300%); }
         }
-        .voice-booking-highlight { animation: new-voice-booking-border-pulse 1s ease-in-out 4; }
+        .voice-booking-highlight {
+          animation: new-voice-booking-border-pulse 0.8s ease-in-out infinite !important;
+          z-index: 40 !important;
+          border-width: 2px !important;
+        }
         .voice-booking-scan {
           position: absolute;
-          inset-block: -20%;
-          left: 0;
-          width: 30%;
+          inset: 0;
           pointer-events: none;
-          background: linear-gradient(90deg, transparent, rgba(254, 202, 202, 0.2), rgba(239, 68, 68, 0.7), rgba(127, 29, 29, 0.32), transparent);
+          background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.95), rgba(239, 68, 68, 0.2), transparent);
           filter: blur(1px);
-          animation: new-voice-booking-scan 1s ease-in-out 4;
+          animation: new-voice-booking-scan 1.2s linear infinite;
         }
         @media (prefers-reduced-motion: reduce) {
           .voice-booking-highlight { animation: none; border-color: rgba(239, 68, 68, 0.9); }
