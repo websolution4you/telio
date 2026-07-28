@@ -51,6 +51,7 @@ function clayError(courtId: string, sport: SportType, hour: number, duration: nu
 export default function NewBookingsCalendar({ courts, initialBookings, currentUser }: Props) {
   const router = useRouter();
   const dateInputRef = useRef<HTMLInputElement>(null);
+  const voiceHighlightTimers = useRef(new Map<string, number>());
   const [sport, setSport] = useState<SportType>("badminton");
   const [date, setDate] = useState(new Date());
   const [items, setItems] = useState(initialBookings);
@@ -63,8 +64,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [notice, setNotice] = useState("");
   const [title, setTitle] = useState("");
   const [phone, setPhone] = useState("");
-  const [duration, setDuration] = useState(60);
+    const [duration, setDuration] = useState(60);
   const [now, setNow] = useState(() => new Date());
+  const [highlightedVoiceBookings, setHighlightedVoiceBookings] = useState<string[]>([]);
   const today = useMemo(() => { const value = new Date(); value.setHours(0, 0, 0, 0); return value; }, []);
   const maxDate = useMemo(() => { const value = new Date(today); value.setDate(value.getDate() + 14); value.setHours(23, 59, 59, 999); return value; }, [today]);
   const hours = useMemo(() => Array.from({ length: openingHours.endHour - openingHours.startHour }, (_, index) => openingHours.startHour + index), []);
@@ -88,9 +90,27 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     return () => { active = false; };
   }, [date, reload]);
 
-  useEffect(() => {
-    const channel = supabase.channel("newbookings-realtime").on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => setReload((value) => value + 1)).subscribe();
-    return () => { supabase.removeChannel(channel); };
+    useEffect(() => {
+    const timers = voiceHighlightTimers.current;
+    const channel = supabase.channel("newbookings-realtime").on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, (payload) => {
+      setReload((value) => value + 1);
+      if (payload.eventType !== "INSERT") return;
+      const booking = payload.new as Partial<Booking>;
+      if (!booking.id || booking.source !== "voice-assistant") return;
+      setHighlightedVoiceBookings((current) => current.includes(booking.id!) ? current : [...current, booking.id!]);
+      const existingTimer = timers.get(booking.id);
+      if (existingTimer) window.clearTimeout(existingTimer);
+      const timer = window.setTimeout(() => {
+        setHighlightedVoiceBookings((current) => current.filter((id) => id !== booking.id));
+        timers.delete(booking.id!);
+      }, 4_000);
+      timers.set(booking.id, timer);
+    }).subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+      timers.forEach((timer) => window.clearTimeout(timer));
+      timers.clear();
+    };
   }, []);
 
   useEffect(() => {
@@ -205,7 +225,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     <div className="overflow-auto border-t-2 border-slate-300 bg-white"><div className="w-full" style={{ minWidth: `${calendarMinWidth}px` }}>
             <div className="grid border-b-2 border-slate-300 bg-gradient-to-b from-slate-50 to-slate-100/70" style={{ gridTemplateColumns: calendarColumns }}><b className="sticky left-0 z-30 border-r-2 border-slate-300 bg-slate-50 p-4 text-xs font-extrabold tracking-wide text-slate-600">KURT</b><div className="relative grid" style={{ gridTemplateColumns: timeColumns }}>{hours.map((hour, index) => <b key={hour} className={`${index === hours.length - 1 ? "" : "border-r border-slate-200"} p-4 text-center text-xs font-bold text-slate-500`}>{hour}:00</b>)}{isToday && currentTimePercent > 0 && currentTimePercent < 100 && <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-cyan-500" style={{ left: `${currentTimePercent}%` }}><span className="absolute left-1/2 top-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-cyan-600 px-2 py-1 text-[9px] font-extrabold text-white shadow-md">{currentTimeLabel}</span></div>}</div></div>
             {visibleCourts.map((court) => <div key={court.id} className="grid border-b border-slate-200" style={{ gridTemplateColumns: calendarColumns }}><div className="sticky left-0 z-20 flex min-h-20 flex-col justify-center border-r-2 border-slate-300 bg-gradient-to-r from-white to-slate-50/80 px-4 shadow-[3px_0_10px_rgba(15,23,42,0.03)]"><b className="text-slate-900">{court.name}</b><small className="mt-0.5 text-slate-500">{court.surface}</small></div><div className="relative grid" style={{ gridTemplateColumns: timeColumns }}>{hours.map((hour, index) => { const label = blockedLabel(court.id, sport, hour); const past = new Date(date).setHours(hour, 0, 0, 0) < now.getTime(); const rightBorder = index === hours.length - 1 ? "" : "border-r border-slate-200"; return label ? <div key={hour} className={`grid min-h-20 cursor-not-allowed place-items-center bg-amber-50 px-1 text-center text-[10px] font-bold text-amber-700 ${rightBorder}`}>{label}</div> : past ? <div key={hour} className={`min-h-20 cursor-not-allowed bg-slate-100 ${rightBorder}`} /> : <button key={hour} onClick={() => openSlot(court.id, hour)} className={`group grid min-h-20 cursor-pointer place-items-center transition-colors duration-200 hover:bg-emerald-50/80 ${rightBorder}`}><Plus className="h-4 w-4 text-emerald-500 opacity-0 group-hover:opacity-100" /></button>; })}{isToday && currentTimePercent > 0 && <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] border-r border-slate-300/80" style={{ width: `${currentTimePercent}%`, background: "repeating-linear-gradient(135deg, rgba(148,163,184,0.12) 0px, rgba(148,163,184,0.12) 5px, rgba(241,245,249,0.38) 5px, rgba(241,245,249,0.38) 10px)" }} />}
-              <div className="pointer-events-none absolute inset-0 z-10">{bookings.filter((booking) => booking.courtId === court.id).map((booking) => { const own = !!currentUser && currentUser.id === booking.user_id; const canManage = own || currentUser?.role === "admin"; return <button key={booking.id} onClick={() => canManage && setDetail(booking)} className={`pointer-events-auto absolute inset-y-2 overflow-hidden rounded-lg border px-2 text-left shadow-sm ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${own ? "border-amber-400 bg-amber-300 text-amber-950" : "border-emerald-600 bg-emerald-500 text-white"}`} style={position(booking)} title={canManage ? "Zobraziť detail" : "Obsadené"}><b className="block truncate text-xs">{formatTime(booking.start)}–{formatTime(booking.end)}</b><span className="block truncate text-[10px]">{own ? "Vaša rezervácia" : "Obsadené"}</span></button>; })}</div>{isToday && currentTimePercent > 0 && currentTimePercent < 100 && <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-cyan-500 drop-shadow-sm" style={{ left: `${currentTimePercent}%` }}><span className="absolute -left-[5px] -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-cyan-500 shadow-[0_0_0_3px_rgba(6,182,212,0.18)]" /></div>}</div></div>)}
+              <div className="pointer-events-none absolute inset-0 z-10">{bookings.filter((booking) => booking.courtId === court.id).map((booking) => { const own = !!currentUser && currentUser.id === booking.user_id; const canManage = own || currentUser?.role === "admin"; const voiceHighlight = highlightedVoiceBookings.includes(booking.id); return <button key={booking.id} onClick={() => canManage && setDetail(booking)} className={`pointer-events-auto absolute inset-y-2 overflow-hidden rounded-lg border px-2 text-left shadow-sm ${voiceHighlight ? "voice-booking-highlight" : ""} ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${own ? "border-amber-400 bg-amber-300 text-amber-950" : "border-emerald-600 bg-emerald-500 text-white"}`} style={position(booking)} title={canManage ? "Zobraziť detail" : "Obsadené"}>{voiceHighlight && <span className="voice-booking-scan" aria-hidden="true" />}<b className="relative z-[1] block truncate text-xs">{formatTime(booking.start)}–{formatTime(booking.end)}</b><span className="relative z-[1] block truncate text-[10px]">{own ? "Vaša rezervácia" : "Obsadené"}</span></button>; })}</div>{isToday && currentTimePercent > 0 && currentTimePercent < 100 && <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-cyan-500 drop-shadow-sm" style={{ left: `${currentTimePercent}%` }}><span className="absolute -left-[5px] -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-cyan-500 shadow-[0_0_0_3px_rgba(6,182,212,0.18)]" /></div>}</div></div>)}
           </div></div>
         </section>
         <div className="mt-5 flex flex-wrap gap-5 text-sm"><span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-emerald-500" /> Obsadené</span><span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-amber-300" /> Vaša rezervácia</span>{loading && <span className="text-slate-500">Aktualizujem...</span>}</div>
@@ -214,6 +234,31 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       {slot && <CreateBookingDialog court={courts.find((court) => court.id === slot.courtId)} date={slot.date} hour={slot.hour} duration={duration} title={title} phone={phone} error={notice || undefined} loading={loading} onDuration={setDuration} onTitle={setTitle} onPhone={setPhone} onClose={() => setSlot(null)} onSubmit={submit} />}
       {detail && <BookingDetailDialog booking={detail} court={courts.find((court) => court.id === detail.courtId)} canManage={!!currentUser && (currentUser.role === "admin" || currentUser.id === detail.user_id)} onClose={() => setDetail(null)} onDelete={() => setDeleting(detail)} />}
       {deleting && <DeleteDialog loading={loading} onCancel={() => setDeleting(null)} onConfirm={remove} />}
+      <style jsx global>{`
+        @keyframes new-voice-booking-border-pulse {
+          0%, 100% { border-color: rgba(239, 68, 68, 0.65); box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.18), 0 0 12px rgba(220, 38, 38, 0.18); }
+          50% { border-color: rgba(254, 202, 202, 0.95); box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.35), 0 0 20px rgba(220, 38, 38, 0.32); }
+        }
+        @keyframes new-voice-booking-scan {
+          from { transform: translateX(-140%); }
+          to { transform: translateX(440%); }
+        }
+        .voice-booking-highlight { animation: new-voice-booking-border-pulse 1s ease-in-out 4; }
+        .voice-booking-scan {
+          position: absolute;
+          inset-block: -20%;
+          left: 0;
+          width: 30%;
+          pointer-events: none;
+          background: linear-gradient(90deg, transparent, rgba(254, 202, 202, 0.2), rgba(239, 68, 68, 0.7), rgba(127, 29, 29, 0.32), transparent);
+          filter: blur(1px);
+          animation: new-voice-booking-scan 1s ease-in-out 4;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .voice-booking-highlight { animation: none; border-color: rgba(239, 68, 68, 0.9); }
+          .voice-booking-scan { display: none; }
+        }
+      `}</style>
     </div>
   );
 }
