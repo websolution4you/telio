@@ -175,13 +175,19 @@ export async function createBookingAction(payload: {
         console.log(`Creating booking in Supabase for NTC Tenant: ${TENANT_ID}`);
         
         // 1. Check for overlapping bookings in Supabase for the same court
+        const bookingStartMs = new Date(payload.start).getTime();
+        const bookingEndMs = new Date(payload.end).getTime();
+
+        const searchRangeStart = new Date(bookingStartMs - 24 * 60 * 60 * 1000).toISOString();
+        const searchRangeEnd = new Date(bookingEndMs + 24 * 60 * 60 * 1000).toISOString();
+
         const { data: existingBookings, error: checkError } = await db
             .from("bookings")
-            .select("id, notes")
+            .select("id, notes, start_at, end_at")
             .eq("tenant_id", TENANT_ID)
             .neq("status", "cancelled")
-            .lt("start_at", payload.end)
-            .gt("end_at", payload.start);
+            .gte("end_at", searchRangeStart)
+            .lte("start_at", searchRangeEnd);
 
         if (checkError) {
             console.error("Failed to check existing bookings:", checkError.message);
@@ -196,7 +202,12 @@ export async function createBookingAction(payload: {
             } catch (e) {
                 console.error("Failed to parse notes JSON:", e);
             }
-            return courtId === payload.courtId;
+            if (courtId !== payload.courtId) return false;
+
+            const existingStartMs = new Date(row.start_at).getTime();
+            const existingEndMs = new Date(row.end_at).getTime();
+
+            return (existingStartMs < bookingEndMs && existingEndMs > bookingStartMs);
         });
 
         if (hasConflict) {
