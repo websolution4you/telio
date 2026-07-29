@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, LayoutDashboard, LogIn, LogOut, Plus, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, LayoutDashboard, LogIn, LogOut, Plus, ShieldCheck, Sparkles, UserPlus, UserRound } from "lucide-react";
 import { createBookingAction, deleteBookingAction, fetchBookingsAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
 import { supabase } from "@/lib/supabase";
@@ -212,9 +212,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               </div>
               <Link href="/dashboard/newbookings" className="relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-indigo-100 bg-white/80 text-indigo-600 shadow-[0_8px_22px_rgba(79,70,229,0.12)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50 hover:shadow-md" title="Moje rezervácie a štatistiky" aria-label="Moje rezervácie a štatistiky"><LayoutDashboard className="h-[18px] w-[18px]" /><span className="absolute right-1 top-1 h-2 w-2 rounded-full border border-white bg-emerald-500" /></Link>
               <button onClick={async () => { await logoutAction(); router.refresh(); }} className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/90 bg-white/80 text-slate-500 shadow-[0_8px_22px_rgba(15,23,42,0.08)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-red-200 hover:bg-red-50 hover:text-red-600" title="Odhlásiť sa" aria-label="Odhlásiť sa"><LogOut className="h-4 w-4" /></button>
-            </div>
+                        </div>
           ) : (
-            <button onClick={() => setAuth("login")} className="group flex shrink-0 items-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 px-3.5 py-3 text-xs font-bold text-white shadow-[0_10px_24px_rgba(79,70,229,0.3)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(79,70,229,0.38)] sm:px-5 sm:text-sm"><LogIn className="h-4 w-4" /> Prihlásiť</button>
+            <div className="flex shrink-0 items-center gap-2">
+              <button onClick={() => setAuth("register")} className="group flex items-center gap-1.5 rounded-2xl border border-indigo-200 bg-white/85 px-3 py-3 text-xs font-bold text-indigo-700 shadow-[0_8px_22px_rgba(79,70,229,0.12)] backdrop-blur-xl transition duration-300 hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-50 sm:gap-2 sm:px-4 sm:text-sm"><UserPlus className="h-4 w-4" /> Registrovať sa</button>
+              <button onClick={() => setAuth("login")} className="group flex items-center gap-1.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 px-3 py-3 text-xs font-bold text-white shadow-[0_10px_24px_rgba(79,70,229,0.3)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(79,70,229,0.38)] sm:gap-2 sm:px-5 sm:text-sm"><LogIn className="h-4 w-4" /> Prihlásiť</button>
+            </div>
           )}
         </div>
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/70 to-transparent" />
