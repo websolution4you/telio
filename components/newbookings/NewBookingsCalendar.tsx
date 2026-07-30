@@ -202,7 +202,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               <span className="text-lg font-extrabold" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>T</span>
               <Sparkles className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-white p-0.5 text-violet-600 shadow-sm" />
             </span>
-            <span className="min-w-0"><strong className="block text-base font-extrabold tracking-[0.12em] text-slate-950 sm:text-lg" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>TELIO</strong><span className="block truncate text-[10px] font-semibold tracking-wide text-slate-500 sm:text-xs">Inteligentný rezervačný systém</span></span>
+            <span className="min-w-0"><strong className="block text-base font-extrabold tracking-[0.12em] text-slate-950 sm:text-lg" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>TELIO</strong><span className="hidden truncate text-[10px] font-semibold tracking-wide text-slate-500 sm:block sm:text-xs">Inteligentný rezervačný systém</span></span>
           </Link>
           {currentUser ? (
             <div className="flex items-center gap-1.5 sm:gap-2.5">
