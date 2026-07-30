@@ -70,7 +70,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const today = useMemo(() => { const value = new Date(); value.setHours(0, 0, 0, 0); return value; }, []);
   const maxDate = useMemo(() => { const value = new Date(today); value.setDate(value.getDate() + 14); value.setHours(23, 59, 59, 999); return value; }, [today]);
   const hours = useMemo(() => Array.from({ length: openingHours.endHour - openingHours.startHour }, (_, index) => openingHours.startHour + index), []);
-  const courtColumnWidth = 140;
+  const courtColumnWidth = 100;
   const timeColumnMinWidth = 64;
   const calendarMinWidth = courtColumnWidth + hours.length * timeColumnMinWidth;
   const calendarColumns = `${courtColumnWidth}px minmax(${hours.length * timeColumnMinWidth}px, 1fr)`;
