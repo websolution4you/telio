@@ -23,8 +23,8 @@ export const metadata: Metadata = {
   title: {
     default: "Telio — AI hlasový asistent a telefonické rezervácie pre firmy",
     template: "%s | Telio",
-  },
-    description:
+    },
+  description:
     "Telio je váš AI hlasový asistent 24/7. Zdvihne každý hovor, hovorí prirodzene po slovensky, rezervuje termíny v reálnom čase a nikdy si neberie voľno.",
   applicationName: "Telio",
   authors: [{ name: "Telio", url: "https://telio.sk" }],
@@ -68,6 +68,24 @@ export const viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="sk" className="dark">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              window.gtag = gtag;
+              gtag('consent', 'default', {
+                analytics_storage: 'denied',
+                ad_storage: 'denied',
+                ad_user_data: 'denied',
+                ad_personalization: 'denied',
+                wait_for_update: 500
+              });
+            `,
+          }}
+        />
+      </head>
       <body className={`${inter.variable} ${poppins.variable} antialiased`}>
         <GoogleAnalytics />
         <LangProvider>

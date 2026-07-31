@@ -1,17 +1,28 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-66QLEXZFVF";
 const consentKey = "telio-cookie-consent";
 
-export default function GoogleAnalytics() {
-  const [hasConsent, setHasConsent] = useState(false);
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
 
+export default function GoogleAnalytics() {
   useEffect(() => {
     const updateConsent = () => {
-      setHasConsent(localStorage.getItem(consentKey) === "accepted");
+      const granted = localStorage.getItem(consentKey) === "accepted";
+
+      window.gtag?.("consent", "update", {
+        analytics_storage: granted ? "granted" : "denied",
+        ad_storage: "denied",
+        ad_user_data: "denied",
+        ad_personalization: "denied",
+      });
     };
 
     updateConsent();
@@ -24,8 +35,6 @@ export default function GoogleAnalytics() {
     };
   }, []);
 
-  if (!measurementId || !hasConsent) return null;
-
   return (
     <>
       <Script
@@ -34,8 +43,6 @@ export default function GoogleAnalytics() {
       />
       <Script id="google-analytics" strategy="afterInteractive">
         {`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
           gtag('config', '${measurementId}', {
             anonymize_ip: true,
