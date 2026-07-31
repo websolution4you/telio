@@ -1,0 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Interná zóna",
+  robots: { index: false, follow: false, noarchive: true },
+};
+
+export default function InternalLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  return children;
+}
