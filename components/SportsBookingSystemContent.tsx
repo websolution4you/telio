@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { BarChart3, CalendarCheck, Check, LayoutDashboard, PhoneCall, ShieldCheck, Trophy } from "lucide-react";
+import { useRef } from "react";
+import { BarChart3, CalendarCheck, Check, Headphones, LayoutDashboard, PhoneCall, ShieldCheck, Trophy } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { trackEvent } from "@/lib/analytics";
@@ -21,6 +22,8 @@ const sports = [
 ];
 
 export default function SportsBookingSystemContent({ faqs }: { faqs: string[][] }) {
+  const audioTrackedRef = useRef(false);
+
   return (
     <>
       <Navbar />
@@ -39,7 +42,27 @@ export default function SportsBookingSystemContent({ faqs }: { faqs: string[][] 
               <Link href="/newbookings" onClick={() => trackEvent("click_demo_cta", { location: "sports_page_demo" })} className="btn-primary btn-xl w-full sm:w-auto">Vyskúšať rezervačný kalendár</Link>
               <Link href="/#waitlist" onClick={() => trackEvent("click_demo_cta", { location: "sports_page_hero" })} className="btn-ghost btn-xl w-full sm:w-auto">Chcem systém pre športovisko</Link>
             </div>
-            <div className="mx-auto mt-12 grid max-w-3xl grid-cols-2 gap-3 text-sm font-semibold text-white sm:grid-cols-4">
+            <div className="mx-auto mt-12 max-w-xl rounded-2xl border border-white/10 bg-[#0c0c16]/90 p-5 text-left shadow-2xl">
+              <div className="mb-4 flex items-center gap-3 text-sm font-semibold text-white">
+                <Headphones className="h-5 w-5 text-emerald-300" />
+                Vypočujte si ukážku AI telefonickej rezervácie
+              </div>
+              <audio
+                className="h-11 w-full"
+                controls
+                preload="metadata"
+                src="/audio/telio-ukazka-hovoru.mp3"
+                onPlay={() => {
+                  if (!audioTrackedRef.current) {
+                    trackEvent("play_audio_demo", { audio_name: "sports_booking_call", location: "sports_page" });
+                    audioTrackedRef.current = true;
+                  }
+                }}
+              >
+                Váš prehliadač nepodporuje prehrávanie audia.
+              </audio>
+            </div>
+            <div className="mx-auto mt-6 grid max-w-3xl grid-cols-2 gap-3 text-sm font-semibold text-white sm:grid-cols-4">
               {["Tenis", "Squash", "Badminton", "Antuka"].map((sport) => <span key={sport} className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">{sport}</span>)}
             </div>
           </div>
