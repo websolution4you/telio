@@ -100,9 +100,12 @@ export default function PhoneBookingSystemContent({ faqs }: { faqs: string[][] }
                 </article>
               ))}
             </div>
-            <div className="mt-10 text-center">
+            <div className="mt-10 flex flex-col items-center justify-center gap-4 text-center sm:flex-row sm:gap-8">
+              <Link href="/rezervacny-system-pre-sportoviska" className="inline-flex items-center font-semibold text-[#a995ff] transition-opacity hover:opacity-80">
+                Rezervačný systém pre športoviská →
+              </Link>
               <Link href="/ai-hlasovy-asistent-pre-kliniky" className="inline-flex items-center font-semibold text-[#a995ff] transition-opacity hover:opacity-80">
-                Pozrite si riešenie pre kliniky a ambulancie →
+                Riešenie pre kliniky a ambulancie →
               </Link>
             </div>
           </div>

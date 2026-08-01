@@ -23,6 +23,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      url: `${siteUrl}/rezervacny-system-pre-sportoviska`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
       url: `${siteUrl}/ai-hlasovy-asistent-pre-kliniky`,
       lastModified: new Date(),
       changeFrequency: "monthly",
