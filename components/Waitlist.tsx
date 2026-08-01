@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, FormEvent } from "react";
 import { useLang } from "@/lib/i18n";
 import { sendContactFormAction } from "@/app/actions/contact";
+import { trackEvent } from "@/lib/analytics";
 
 export default function Waitlist() {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -46,11 +47,15 @@ export default function Waitlist() {
       });
       
       if (result.success) {
+        trackEvent("generate_lead", {
+          form_name: "homepage_contact",
+          business_type: business,
+        });
         setSubmitted(true);
       } else {
         setError(result.error || "Chyba pri odosielaní.");
-      }
-    } catch (err) {
+            }
+    } catch {
       setError("Nepodarilo sa spojiť so serverom.");
     } finally {
       setLoading(false);

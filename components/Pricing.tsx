@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/i18n";
+import { trackEvent } from "@/lib/analytics";
 
 export default function Pricing() {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -141,7 +142,12 @@ export default function Pricing() {
               )}
 
               {/* CTA */}
-              <a href="#waitlist"
+                            <a
+                href="#waitlist"
+                onClick={() => trackEvent("select_pricing_plan", {
+                  plan_name: plan.name,
+                  plan_price: plan.price,
+                })}
                 className={`text-center btn-xl transition-all duration-200 ${plan.highlighted ? "btn-primary" : "btn-ghost"}`}
                 style={{ marginTop: "var(--sp-badge-mb)" }}
               >

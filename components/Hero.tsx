@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/i18n";
 import DemoCallButton from "@/components/DemoCallButton";
 import { Headset, Pizza, ChevronDown, Calendar } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 function ToothIcon({ className }: { className?: string }) {
   return (
@@ -16,13 +17,17 @@ function ToothIcon({ className }: { className?: string }) {
 export default function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const audioTrackedRef = useRef(false);
   const [activeEvent, setActiveEvent] = useState(0);
   const [visible, setVisible] = useState(false);
   const [selectedCase, setSelectedCase] = useState("taxi");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { lang, t } = useLang();
 
-  useEffect(() => { setVisible(true); }, []);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -150,12 +155,18 @@ export default function Hero() {
                 <div className="mb-3 flex items-center justify-center gap-2 text-sm font-semibold text-white">
                   <Headset className="h-4 w-4 text-cyan-400" />
                   <span>{lang === "sk" ? "Ukážka hovoru s Teliom" : "Sample call with Telio"}</span>
-                </div>
+                                </div>
                 <audio
                   className="h-10 w-full"
                   controls
                   preload="metadata"
                   src="/audio/telio-ukazka-hovoru.mp3"
+                  onPlay={() => {
+                    if (!audioTrackedRef.current) {
+                      trackEvent("play_audio_demo", { audio_name: "telio_sample_call" });
+                      audioTrackedRef.current = true;
+                    }
+                  }}
                 >
                   {lang === "sk"
                     ? "Váš prehliadač nepodporuje prehrávanie audia."

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/i18n";
 import Image from "next/image";
+import { trackEvent } from "@/lib/analytics";
 
 export default function AboutUs() {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -125,6 +126,10 @@ export default function AboutUs() {
                     href={member.linkedin} 
                     target="_blank" 
                     rel="noopener noreferrer"
+                    onClick={() => trackEvent("click_social_link", {
+                      platform: "linkedin",
+                      profile: member.id,
+                    })}
                     className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-full transition-all duration-300 group/link"
                     style={{ 
                       color: "var(--text-muted)", 
