@@ -67,12 +67,17 @@ export default function Footer() {
                   Telefonický rezervačný systém
                 </a>
               </li>
-              <li>
-                <a href="/ai-hlasovy-asistent-pre-kliniky" className="text-sm transition-colors duration-200 hover:text-white" style={{ color: "var(--text-muted)" }}>
-                  AI asistent pre kliniky
-                </a>
-              </li>
-              {t.footer.companyLinks.map((item, i) => (
+                            <li>
+                              <a href="/ai-hlasovy-asistent-pre-kliniky" className="text-sm transition-colors duration-200 hover:text-white" style={{ color: "var(--text-muted)" }}>
+                                AI asistent pre kliniky
+                              </a>
+                            </li>
+                            <li>
+                              <a href="/virtualna-recepcna-pre-zubara" className="text-sm transition-colors duration-200 hover:text-white" style={{ color: "var(--text-muted)" }}>
+                                Virtuálna recepčná pre zubára
+                              </a>
+                            </li>
+                            {t.footer.companyLinks.map((item, i) => (
                 <li key={item}>
                   <a href={companyHrefs[i]} className="text-sm transition-colors duration-200 hover:text-white"
                     style={{ color: "var(--text-muted)" }}>{item}</a>

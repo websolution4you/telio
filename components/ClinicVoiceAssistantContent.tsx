@@ -100,6 +100,11 @@ export default function ClinicVoiceAssistantContent({ faqs }: { faqs: string[][]
                 </article>
               ))}
             </div>
+            <div className="mt-10 text-center">
+              <Link href="/virtualna-recepcna-pre-zubara" className="inline-flex items-center font-semibold text-sky-300 transition-opacity hover:opacity-80">
+                Pozrite si virtuálnu recepčnú pre zubné ambulancie →
+              </Link>
+            </div>
           </div>
         </section>
 
