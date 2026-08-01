@@ -100,6 +100,11 @@ export default function PhoneBookingSystemContent({ faqs }: { faqs: string[][] }
                 </article>
               ))}
             </div>
+            <div className="mt-10 text-center">
+              <Link href="/ai-hlasovy-asistent-pre-kliniky" className="inline-flex items-center font-semibold text-[#a995ff] transition-opacity hover:opacity-80">
+                Pozrite si riešenie pre kliniky a ambulancie →
+              </Link>
+            </div>
           </div>
         </section>
 

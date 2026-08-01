@@ -62,9 +62,14 @@ export default function Footer() {
                   AI hlasový asistent
                 </a>
               </li>
-              <li>
+                            <li>
                 <a href="/telefonicky-rezervacny-system" className="text-sm transition-colors duration-200 hover:text-white" style={{ color: "var(--text-muted)" }}>
                   Telefonický rezervačný systém
+                </a>
+              </li>
+              <li>
+                <a href="/ai-hlasovy-asistent-pre-kliniky" className="text-sm transition-colors duration-200 hover:text-white" style={{ color: "var(--text-muted)" }}>
+                  AI asistent pre kliniky
                 </a>
               </li>
               {t.footer.companyLinks.map((item, i) => (
