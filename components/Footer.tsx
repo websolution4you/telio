@@ -57,9 +57,14 @@ export default function Footer() {
           {/* Links (formerly Company) */}
           <div>
             <ul className="flex flex-col" style={{ gap: "18px", marginTop: "4px" }}>
-              <li>
+                            <li>
                 <a href="/ai-hlasovy-asistent" className="text-sm transition-colors duration-200 hover:text-white" style={{ color: "var(--text-muted)" }}>
                   AI hlasový asistent
+                </a>
+              </li>
+              <li>
+                <a href="/telefonicky-rezervacny-system" className="text-sm transition-colors duration-200 hover:text-white" style={{ color: "var(--text-muted)" }}>
+                  Telefonický rezervačný systém
                 </a>
               </li>
               {t.footer.companyLinks.map((item, i) => (

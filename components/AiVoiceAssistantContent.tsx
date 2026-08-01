@@ -102,6 +102,11 @@ export default function AiVoiceAssistantContent({ faqs }: { faqs: string[][] }) 
                 </article>
               ))}
             </div>
+            <div className="mt-10 text-center">
+              <Link href="/telefonicky-rezervacny-system" className="inline-flex items-center font-semibold text-[var(--cyan)] transition-opacity hover:opacity-80">
+                Zistite viac o telefonickom rezervačnom systéme →
+              </Link>
+            </div>
           </div>
         </section>
 
