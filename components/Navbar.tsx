@@ -3,54 +3,15 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n";
-import { useRouter, usePathname } from "next/navigation";
-import { loginAction } from "@/app/actions/auth";
-import { LayoutDashboard, Calendar, ClipboardList } from "lucide-react";
+
 
 export default function Navbar() {
-  const router = useRouter();
-  const pathname = usePathname();
+  
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { lang, setLang, t } = useLang();
   
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [authChecked, setAuthChecked] = useState(false);
-
-  useEffect(() => {
-    import("@/app/actions/auth").then(({ getCurrentUserAction }) => {
-      getCurrentUserAction().then(res => {
-        if (res.success && res.user) {
-          setCurrentUser(res.user);
-        }
-        setAuthChecked(true);
-      });
-    });
-  }, []);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      const result = await loginAction(email, password);
-      if (result.success) {
-        setCurrentUser(result.user);
-        router.refresh();
-      } else {
-        setError(result.error || "Chyba pri prihlasovaní");
-      }
-    } catch (err) {
-      setError("Chyba pri prihlasovaní");
-    } finally {
-      setLoading(false);
-    }
-  };
+  
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -140,48 +101,17 @@ export default function Navbar() {
               </button>
             </div>
 
-            <div className="relative flex flex-col items-end">
-                            <Link 
-                href="/newbookings"
-                className="btn-primary btn-nav font-semibold"
-              >
-                Rezervačný systém
-              </Link>              {/* Login form was here, moved outside header to scroll with page */}
-
-              {/* Logged in user */}
-              {authChecked && currentUser && (
-                <div className="absolute top-[110%] right-0 flex items-center gap-2">
-                  <span className="text-xs font-medium cursor-pointer" style={{ color: "var(--cyan)" }}>
-                    {currentUser.name}
-                  </span>
-                  <button
-                    onClick={async () => {
-                      const { logoutAction } = await import("@/app/actions/auth");
-                      await logoutAction();
-                      setCurrentUser(null);
-                      window.location.reload();
-                    }}
-                    className="text-[10px] text-red-400 hover:text-red-300 cursor-pointer transition-colors"
-                  >
-                    Odhlásiť
-                  </button>
-                </div>
-              )}
-            </div>
+                        <Link
+              href="/newbookings"
+              className="btn-primary btn-nav font-semibold"
+            >
+              Rezervačný systém
+            </Link>
           </div>
 
           {/* Mobile: lang + hamburger */}
           <div className="md:hidden flex-1 flex flex-col items-end justify-center relative">
-            <div className="flex items-center justify-end gap-3">
-            {authChecked && currentUser && (
-              <Link 
-                href={pathname?.startsWith("/dashboard") ? (pathname?.includes("/pizza") ? "/pizza" : "/bookings") : (pathname?.includes("/bookings") ? "/dashboard/bookings" : "/dashboard/pizza")}
-                className="w-8 h-8 rounded-full bg-cyan-400/20 text-cyan-400 flex items-center justify-center border border-cyan-400/30 shadow-[0_0_10px_rgba(0,255,209,0.2)]"
-                title={pathname?.startsWith("/dashboard") ? "Späť na kalendár" : "Moje rezervácie"}
-              >
-                {pathname?.startsWith("/dashboard") ? <Calendar className="w-4 h-4" /> : <ClipboardList className="w-4 h-4" />}
-              </Link>
-            )}
+                        <div className="flex items-center justify-end gap-3">
             <div className="lang-switcher-container flex items-center rounded-md overflow-hidden">
               <button
                 onClick={() => setLang("sk")}
@@ -222,27 +152,8 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* Mobile Logged In User Info (absolute to page, scrolls with page) */}
-      {authChecked && currentUser && (
-        <div className="absolute top-[85px] left-0 right-0 w-full flex justify-end z-[50] pointer-events-none md:hidden" style={{ padding: "0 1rem" }}>
-          <div className="bg-[#050508]/80 backdrop-blur-md px-4 py-3 rounded-xl border border-white/5 pointer-events-auto shadow-2xl flex flex-col items-end">
-            <span className="text-[11px] font-bold tracking-wider" style={{ color: "var(--cyan)" }}>
-              {currentUser.name}
-            </span>
-            <button
-              onClick={async () => {
-                const { logoutAction } = await import("@/app/actions/auth");
-                await logoutAction();
-                setCurrentUser(null);
-                window.location.reload();
-              }}
-              className="text-[10px] text-red-400 hover:text-red-300 transition-colors mt-1.5 uppercase font-bold"
-            >
-              Odhlásiť sa
-            </button>
-          </div>
-        </div>
-      )}
+      
+
 
 
 
