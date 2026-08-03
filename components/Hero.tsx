@@ -3,25 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/i18n";
 import DemoCallButton from "@/components/DemoCallButton";
-import { Headset, Pizza, ChevronDown, Calendar } from "lucide-react";
+import { Headset, Calendar } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
-function ToothIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M7 3C5.5 3 4.5 4.5 4.5 6C4.5 8.5 6 9.5 6 12C6 15 4 19 4 20C4 21 5 21.5 6 21C7.5 20.25 8.5 19 10 19C11.5 19 12 20 12 20C12 20 12.5 19 14 19C15.5 19 16.5 20.25 18 21C19 21.5 20 21 20 20C20 19 18 15 18 12C18 9.5 19.5 8.5 19.5 6C19.5 4.5 18.5 3 17 3C14 3 13 5.5 12 5.5C11 5.5 10 3 7 3Z" />
-    </svg>
-  );
-}
+
 
 export default function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  
   const audioTrackedRef = useRef(false);
   const [activeEvent, setActiveEvent] = useState(0);
   const [visible, setVisible] = useState(false);
-  const [selectedCase, setSelectedCase] = useState("taxi");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  
   const { lang, t } = useLang();
 
   useEffect(() => {
@@ -29,15 +22,7 @@ export default function Hero() {
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -174,91 +159,12 @@ export default function Hero() {
                 </audio>
               </div>
 
-              {/* Dropdown for calling cases */}
-              <div className="relative w-full animate-fadeInUp" ref={dropdownRef}>
-                <button
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-[#11111e]/90 hover:bg-[#161626]/90 border border-white/10 hover:border-white/20 transition-all text-sm text-white cursor-pointer shadow-[0_4px_25px_rgba(0,0,0,0.4)] relative"
-                  style={{ height: "52px", padding: "0 2.5rem" }}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    {selectedCase === "pizza" && <Pizza className="w-4.5 h-4.5 text-[#FF6B35] shrink-0" />}
-                    {selectedCase === "clinic" && <ToothIcon className="w-4.5 h-4.5 text-[#00D4FF] shrink-0" />}
-                    {selectedCase === "taxi" && <Calendar className="w-4.5 h-4.5 text-[#7B61FF] shrink-0" />}
-                    <span className="font-semibold tracking-tight truncate">
-                      {selectedCase === "pizza" && (lang === "sk" ? "Telio pre pizzeriu" : "Telio for pizzeria")}
-                      {selectedCase === "clinic" && (lang === "sk" ? "Telio pre stomatologickú kliniku" : "Telio for dental clinic")}
-                      {selectedCase === "taxi" && (lang === "sk" ? "Rezervácia kurtov" : "Court Booking")}
-                    </span>
-                  </div>
-                  <ChevronDown className={`w-4.5 h-4.5 text-white/50 shrink-0 transition-transform duration-250 ${dropdownOpen ? "rotate-180 text-white" : ""} absolute right-4 top-1/2 -translate-y-1/2`} />
-                </button>
-
-                {dropdownOpen && (
-                  <div className="absolute left-0 right-0 mt-2 z-[9999] rounded-xl bg-[#0c0c16]/98 border border-white/15 backdrop-blur-2xl shadow-[0_15px_40px_rgba(0,0,0,0.6)] overflow-hidden p-1 flex flex-col gap-0.5">
-                    <button
-                      onClick={() => {
-                        setSelectedCase("taxi");
-                        setDropdownOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-2.5 rounded-lg text-left text-sm hover:bg-white/10 transition-colors cursor-pointer ${
-                        selectedCase === "taxi" ? "text-white bg-white/8 font-semibold" : "text-white/70"
-                      }`}
-                      style={{ padding: "0.75rem 1rem" }}
-                    >
-                      <Calendar className="w-4.5 h-4.5 text-[#7B61FF] shrink-0" />
-                      <span className="truncate">{lang === "sk" ? "Rezervácia kurtov" : "Court Booking"}</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedCase("pizza");
-                        setDropdownOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-2.5 rounded-lg text-left text-sm hover:bg-white/10 transition-colors cursor-pointer ${
-                        selectedCase === "pizza" ? "text-white bg-white/8 font-semibold" : "text-white/70"
-                      }`}
-                      style={{ padding: "0.75rem 1rem" }}
-                    >
-                      <Pizza className="w-4.5 h-4.5 text-[#FF6B35] shrink-0" />
-                      <span className="truncate">{lang === "sk" ? "Telio pre pizzeriu" : "Telio for pizzeria"}</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedCase("clinic");
-                        setDropdownOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-2.5 rounded-lg text-left text-sm hover:bg-white/10 transition-colors cursor-pointer ${
-                        selectedCase === "clinic" ? "text-white bg-white/8 font-semibold" : "text-white/70"
-                      }`}
-                      style={{ padding: "0.75rem 1rem" }}
-                    >
-                      <ToothIcon className="w-4.5 h-4.5 text-[#00D4FF] shrink-0" />
-                      <span className="truncate">{lang === "sk" ? "Telio pre stomatologickú kliniku" : "Telio for dental clinic"}</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <DemoCallButton
-                businessType={selectedCase}
+                            <DemoCallButton
+                businessType="taxi"
                 backendUrl="https://hlasovyasistent-652999054235.europe-west3.run.app"
                 customLabel={lang === "sk" ? "Skúšobný hovor" : "Test Call"}
-                color={
-                  selectedCase === "pizza"
-                    ? "#FF6B35"
-                    : selectedCase === "clinic"
-                    ? "#00D4FF"
-                    : "#7B61FF"
-                }
-                icon={
-                  selectedCase === "pizza" ? (
-                    <Pizza className="w-5 h-5 relative z-10" />
-                  ) : selectedCase === "clinic" ? (
-                    <ToothIcon className="w-5 h-5 relative z-10" />
-                  ) : (
-                    <Calendar className="w-5 h-5 relative z-10" />
-                  )
-                }
+                color="#7B61FF"
+                icon={<Calendar className="w-5 h-5 relative z-10" />}
               />
               <span className="text-xs font-medium px-1 text-center" style={{ color: "var(--text-muted)", opacity: 0.9 }}>
                 {lang === "sk" ? "Vyskúšajte úplne zadarmo nášho hlasového asistenta Telio" : "Try our Telio voice assistant completely for free"}
