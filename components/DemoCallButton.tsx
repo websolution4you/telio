@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Device, Call } from "@twilio/voice-sdk";
 import { useLang } from "@/lib/i18n";
 import { Phone, PhoneOff, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+
 import { trackEvent } from "@/lib/analytics";
 
 interface DemoCallButtonProps {
@@ -22,8 +22,8 @@ export default function DemoCallButton({
     icon,
     color = "#7B61FF"
 }: DemoCallButtonProps) {
-    const { t } = useLang();
-    const router = useRouter();
+        const { t } = useLang();
+
     const deviceRef = useRef<Device | null>(null);
     const [call, setCall] = useState<Call | null>(null);
     const [status, setStatus] = useState<"idle" | "connecting" | "active" | "error">("idle");
@@ -125,11 +125,11 @@ export default function DemoCallButton({
                 console.log("Call accepted");
             });
 
-            newCall.on("disconnect", () => {
+                        newCall.on("disconnect", () => {
                 console.log("Call disconnected event");
                 handleEndCall();
                 setTimeout(() => {
-                    router.push(`/dashboard/${businessType === 'taxi' ? 'taxi' : 'pizza'}?newCall=true`);
+                    window.location.reload();
                 }, 500);
             });
 
@@ -183,8 +183,8 @@ export default function DemoCallButton({
         // Clear error message when manually ending a call or returning to idle
         setErrorMsg(""); 
 
-        // 3. Redirect is handled exclusively in the newCall.on('disconnect') listener 
-        // to avoid React state closure staleness issues. 
+                // The disconnect listener refreshes the current page for the next demo call.
+ 
     };
 
     const label = customLabel || t.demoCall.tryDemo;
