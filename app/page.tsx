@@ -11,8 +11,21 @@ import Waitlist from "@/components/Waitlist";
 import Footer from "@/components/Footer";
 
 export default function Home() {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Telio",
+    url: "https://telio.sk",
+    description: "AI hlasový asistent pre slovenské firmy, ktorý vybavuje hovory a rezervácie 24/7.",
+    areaServed: { "@type": "Country", name: "Slovensko" },
+  };
+
   return (
     <main style={{ background: "var(--bg)" }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }}
+      />
       <Navbar />
       <Hero />
       <AboutTelio />

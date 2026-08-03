@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { Device, Call } from "@twilio/voice-sdk";
 import { useLang } from "@/lib/i18n";
 import { Phone, PhoneOff, Loader2 } from "lucide-react";
-
 import { useRouter } from "next/navigation";
+import { trackEvent } from "@/lib/analytics";
 
 interface DemoCallButtonProps {
     businessType?: string;
@@ -38,7 +38,9 @@ export default function DemoCallButton({
         };
     }, []);
 
-    const handleStartCall = async () => {
+        const handleStartCall = async () => {
+        trackEvent("click_demo_cta", { business_type: businessType });
+
         try {
             setStatus("connecting");
             setErrorMsg("");
@@ -117,7 +119,8 @@ export default function DemoCallButton({
                 },
             });
 
-            newCall.on("accept", () => {
+                        newCall.on("accept", () => {
+                trackEvent("start_demo_call", { business_type: businessType });
                 setStatus("active");
                 console.log("Call accepted");
             });
@@ -137,11 +140,11 @@ export default function DemoCallButton({
                 handleEndCall();
             });
 
-            setCall(newCall);
-        } catch (error: any) {
+                        setCall(newCall);
+        } catch (error: unknown) {
             console.error("Failed to start call:", error);
             setStatus("error");
-            setErrorMsg(error.message || "Unknown error occurred");
+            setErrorMsg(error instanceof Error ? error.message : "Unknown error occurred");
         }
     };
 

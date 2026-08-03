@@ -21,15 +21,14 @@ export default function CookieConsent() {
     }
   }, []);
 
-  const acceptCookies = () => {
-    localStorage.setItem("telio-cookie-consent", "accepted");
+    const saveConsent = (consent: "accepted" | "declined") => {
+    localStorage.setItem("telio-cookie-consent", consent);
+    window.dispatchEvent(new Event("telio-cookie-consent-changed"));
     setIsVisible(false);
   };
 
-  const declineCookies = () => {
-    localStorage.setItem("telio-cookie-consent", "declined");
-    setIsVisible(false);
-  };
+  const acceptCookies = () => saveConsent("accepted");
+  const declineCookies = () => saveConsent("declined");
 
   return (
     <AnimatePresence>

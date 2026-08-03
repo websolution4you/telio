@@ -1,6 +1,7 @@
 "use client";
 
 import { useLang } from "@/lib/i18n";
+import { trackEvent } from "@/lib/analytics";
 
 export default function Footer() {
   const { t } = useLang();
@@ -29,9 +30,22 @@ export default function Footer() {
               <span className="font-semibold text-white">Telio s. r. o.</span>
               <span>Bujnákova 1839/7, 841 01 Bratislava-Dúbravka</span>
               <span>IČO: 57 615 802</span>
-              <div className="flex flex-col mt-0.5">
-                <span>Tel: 0915 962 068</span>
-                <span style={{ paddingLeft: "24px" }}>0905 012 054</span>
+                            <div className="flex flex-col mt-0.5">
+                <a
+                  href="tel:+421915962068"
+                  onClick={() => trackEvent("click_contact", { contact_method: "phone", location: "footer" })}
+                  className="transition-colors duration-200 hover:text-white"
+                >
+                  Tel: 0915 962 068
+                </a>
+                <a
+                  href="tel:+421905012054"
+                  onClick={() => trackEvent("click_contact", { contact_method: "phone", location: "footer" })}
+                  className="transition-colors duration-200 hover:text-white"
+                  style={{ paddingLeft: "24px" }}
+                >
+                  0905 012 054
+                </a>
               </div>
             </div>
             <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
@@ -42,7 +56,32 @@ export default function Footer() {
 
           {/* Links (formerly Company) */}
           <div>
-            <ul className="flex flex-col" style={{ gap: "18px", marginTop: "4px" }}>
+                        <ul className="flex flex-col" style={{ gap: "18px", marginTop: "4px" }}>
+              <li>
+                <a href="/ai-hlasovy-asistent" className="text-sm transition-colors duration-200 hover:text-white" style={{ color: "var(--text-muted)" }}>
+                  AI hlasový asistent
+                </a>
+              </li>
+              <li>
+                <a href="/telefonicky-rezervacny-system" className="text-sm transition-colors duration-200 hover:text-white" style={{ color: "var(--text-muted)" }}>
+                  Telefonický rezervačný systém
+                </a>
+              </li>
+              <li>
+                <a href="/rezervacny-system-pre-sportoviska" className="text-sm transition-colors duration-200 hover:text-white" style={{ color: "var(--text-muted)" }}>
+                  Rezervačný systém pre športoviská
+                </a>
+              </li>
+              <li>
+                <a href="/ai-hlasovy-asistent-pre-kliniky" className="text-sm transition-colors duration-200 hover:text-white" style={{ color: "var(--text-muted)" }}>
+                  AI asistent pre kliniky
+                </a>
+              </li>
+              <li>
+                <a href="/virtualna-recepcna-pre-zubara" className="text-sm transition-colors duration-200 hover:text-white" style={{ color: "var(--text-muted)" }}>
+                  Virtuálna recepčná pre zubára
+                </a>
+              </li>
               {t.footer.companyLinks.map((item, i) => (
                 <li key={item}>
                   <a href={companyHrefs[i]} className="text-sm transition-colors duration-200 hover:text-white"
@@ -111,9 +150,15 @@ export default function Footer() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <a href="mailto:info@telio.sk" className="text-xs transition-colors duration-200 hover:text-white"
-              style={{ color: "var(--text-muted)" }}>info@telio.sk</a>
+                    <div className="flex items-center gap-4">
+            <a
+              href="mailto:info@telio.sk"
+              onClick={() => trackEvent("click_contact", { contact_method: "email", location: "footer" })}
+              className="text-xs transition-colors duration-200 hover:text-white"
+              style={{ color: "var(--text-muted)" }}
+            >
+              info@telio.sk
+            </a>
             <span style={{ color: "var(--border)" }}>·</span>
             <span className="text-xs" style={{ color: "var(--text-muted)" }}>telio.sk</span>
           </div>
