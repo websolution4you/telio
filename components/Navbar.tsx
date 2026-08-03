@@ -141,11 +141,11 @@ export default function Navbar() {
             </div>
 
             <div className="relative flex flex-col items-end">
-              <Link 
-                href={pathname?.startsWith("/dashboard") ? (pathname?.includes("/pizza") ? "/pizza" : "/bookings") : (pathname?.includes("/bookings") ? "/dashboard/bookings" : "/dashboard/pizza")} 
+                            <Link 
+                href="/newbookings"
                 className="btn-primary btn-nav font-semibold"
               >
-                {pathname?.startsWith("/dashboard") ? "Rezervácie" : "Dashboard"}
+                Rezervačný systém
               </Link>              {/* Login form was here, moved outside header to scroll with page */}
 
               {/* Logged in user */}
@@ -296,14 +296,14 @@ export default function Navbar() {
                 </a>
               ))}
 
-              {/* Dashboard Button */}
+                            {/* Reservation system button */}
               <Link
-                href={pathname?.startsWith("/dashboard") ? (pathname?.includes("/pizza") ? "/pizza" : "/bookings") : (pathname?.includes("/bookings") ? "/dashboard/bookings" : "/dashboard/pizza")}
+                href="/newbookings"
                 className="btn-primary w-full rounded-xl flex items-center justify-center font-semibold text-base shadow-[0_0_20px_rgba(0,255,209,0.15)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
                 style={{ height: "56px" }}
                 onClick={() => setMenuOpen(false)}
               >
-                {pathname?.startsWith("/dashboard") ? "Rezervácie" : "Dashboard"}
+                Rezervačný systém
               </Link>
 
             </nav>
