@@ -102,9 +102,11 @@ export default function Navbar() {
             </div>
 
                         <Link
-              href="/newbookings"
-              className="btn-primary btn-nav font-semibold"
-            >
+                          href="/newbookings"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-primary btn-nav font-semibold"
+                        >
               Rezervačný systém
             </Link>
           </div>
@@ -208,8 +210,10 @@ export default function Navbar() {
               ))}
 
                             {/* Reservation system button */}
-              <Link
+                            <Link
                 href="/newbookings"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="btn-primary w-full rounded-xl flex items-center justify-center font-semibold text-base shadow-[0_0_20px_rgba(0,255,209,0.15)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
                 style={{ height: "56px" }}
                 onClick={() => setMenuOpen(false)}
