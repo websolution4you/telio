@@ -54,21 +54,21 @@ export default function UseCases() {
 
         {/* Tabs — centered */}
         <div
-          className={`grid grid-cols-2 md:flex md:flex-wrap justify-center gap-3 transition-all duration-700 delay-100 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+          className={`grid grid-cols-2 md:flex md:flex-nowrap justify-center gap-3 md:gap-2 transition-all duration-700 delay-100 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
           style={{ marginBottom: "var(--sp-header-mb)" }}
         >
           {cases.map((c, i) => (
             <button
               key={c.id}
               onClick={() => setActive(i)}
-              className="flex items-center justify-center md:justify-start gap-3 px-4 md:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-bold transition-all duration-200"
+              className="flex items-center justify-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all duration-200 md:gap-2 md:px-4 md:py-3 md:whitespace-nowrap"
               style={{
                 background: active === i ? "rgba(0,255,209,0.08)" : "rgba(12,12,20,0.8)",
                 border: `1px solid ${active === i ? "rgba(0,255,209,0.3)" : "var(--border)"}`,
                 color: active === i ? "var(--cyan)" : "var(--text-muted)",
               }}
             >
-              <span className="text-lg md:text-xl">{c.emoji}</span>
+              <span className="text-lg md:text-base">{c.emoji}</span>
               <span>{c.label}</span>
             </button>
           ))}
