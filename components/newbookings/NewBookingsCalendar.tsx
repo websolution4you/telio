@@ -50,7 +50,7 @@ function clayError(courtId: string, sport: SportType, hour: number, duration: nu
 
 export default function NewBookingsCalendar({ courts, initialBookings, currentUser }: Props) {
   const router = useRouter();
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  
   const voiceHighlightTimers = useRef(new Map<string, number>());
   const [sport, setSport] = useState<SportType>("badminton");
   const [date, setDate] = useState(new Date());
@@ -157,12 +157,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     if (selected < today || selected > maxDate) return setNotice("Vyberte dátum od dnešného dňa, maximálne 14 dní vopred.");
     setDate(selected);
   };
-  const openDatePicker = () => {
-    const input = dateInputRef.current;
-    if (!input) return;
-    if (typeof input.showPicker === "function") input.showPicker();
-    else input.click();
-  };
+  
   const openSlot = (courtId: string, hour: number) => {
     if (!currentUser) return setAuth("login");
     const start = new Date(date); start.setHours(hour, 0, 0, 0);
@@ -234,7 +229,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">{sports.map((item) => <button key={item.id} onClick={() => setSport(item.id)} className={`cursor-pointer rounded-xl border p-3 text-sm font-bold transition duration-200 ${sport === item.id ? "border-slate-950 bg-slate-950 text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 shadow-[0_2px_8px_rgba(15,23,42,0.04)] hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 hover:shadow-sm"}`}>{item.label}</button>)}</div>
             <div className="mt-5 flex flex-col items-center justify-between gap-4 border-t border-slate-100 pt-5 md:flex-row">
               <button onClick={() => setDate(new Date())} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold">Dnes</button>
-              <div className="flex items-center gap-2"><button onClick={() => moveDate(-1)} className="rounded-xl border p-3"><ChevronLeft className="h-4 w-4" /></button><div className="relative min-w-[200px] sm:min-w-[280px]"><button type="button" onClick={openDatePicker} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-slate-50 px-3 py-3 text-center text-sm font-bold"><CalendarDays className="h-4 w-4 text-emerald-600" />{new Intl.DateTimeFormat("sk-SK", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(date)}</button><input ref={dateInputRef} type="date" min={dateKey(today)} max={dateKey(maxDate)} value={dateKey(date)} onChange={(event) => selectDate(event.target.value)} className="pointer-events-none absolute inset-0 h-full w-full opacity-0" tabIndex={-1} aria-label="Vybrať dátum rezervácie" /></div><button onClick={() => moveDate(1)} className="rounded-xl border p-3"><ChevronRight className="h-4 w-4" /></button></div>
+              <div className="flex items-center gap-2"><button onClick={() => moveDate(-1)} className="rounded-xl border p-3"><ChevronLeft className="h-4 w-4" /></button><label className="relative block min-w-[200px] cursor-pointer sm:min-w-[280px]"><span className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-50 px-3 py-3 text-center text-sm font-bold"><CalendarDays className="h-4 w-4 text-emerald-600" />{new Intl.DateTimeFormat("sk-SK", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(date)}</span><input type="date" min={dateKey(today)} max={dateKey(maxDate)} value={dateKey(date)} onChange={(event) => selectDate(event.target.value)} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" aria-label="Vybrať dátum rezervácie" /></label><button onClick={() => moveDate(1)} className="rounded-xl border p-3"><ChevronRight className="h-4 w-4" /></button></div>
               <span className="flex items-center gap-2 text-xs text-slate-500"><Clock className="h-4 w-4" /> Max. 14 dní</span>
             </div>
           </div>
