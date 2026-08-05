@@ -26,6 +26,53 @@ const sports: { id: SportType; label: string }[] = [
 const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 const formatTime = (value: string) => new Intl.DateTimeFormat("sk-SK", { timeZone: "Europe/Bratislava", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 
+function DatePicker({ value, min, max, onSelect, onClose }: { value: Date; min: Date; max: Date; onSelect: (date: Date) => void; onClose: () => void }) {
+  const [month, setMonth] = useState(() => new Date(value.getFullYear(), value.getMonth(), 1));
+  const firstGridDay = useMemo(() => {
+    const first = new Date(month);
+    const mondayOffset = (first.getDay() + 6) % 7;
+    first.setDate(first.getDate() - mondayOffset);
+    return first;
+  }, [month]);
+  const days = useMemo(() => Array.from({ length: 42 }, (_, index) => {
+    const day = new Date(firstGridDay);
+    day.setDate(day.getDate() + index);
+    day.setHours(12, 0, 0, 0);
+    return day;
+  }), [firstGridDay]);
+  const minMonth = new Date(min.getFullYear(), min.getMonth(), 1);
+  const maxMonth = new Date(max.getFullYear(), max.getMonth(), 1);
+  const canMoveBack = month > minMonth;
+  const canMoveForward = month < maxMonth;
+
+  const moveMonth = (offset: number) => {
+    setMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] grid place-items-center p-4" role="dialog" aria-modal="true" aria-label="Vybrať dátum rezervácie">
+      <button type="button" className="absolute inset-0 bg-slate-950/35 backdrop-blur-sm" onClick={onClose} aria-label="Zavrieť kalendár" />
+      <div className="relative w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
+          <button type="button" disabled={!canMoveBack} onClick={() => moveMonth(-1)} className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 disabled:cursor-not-allowed disabled:opacity-25" aria-label="Predchádzajúci mesiac"><ChevronLeft className="h-4 w-4" /></button>
+          <strong className="text-base capitalize">{new Intl.DateTimeFormat("sk-SK", { month: "long", year: "numeric" }).format(month)}</strong>
+          <button type="button" disabled={!canMoveForward} onClick={() => moveMonth(1)} className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 disabled:cursor-not-allowed disabled:opacity-25" aria-label="Nasledujúci mesiac"><ChevronRight className="h-4 w-4" /></button>
+        </div>
+        <div className="mb-2 grid grid-cols-7 text-center text-xs font-bold text-slate-500">{["Po", "Ut", "St", "Št", "Pi", "So", "Ne"].map((day) => <span key={day} className="py-2">{day}</span>)}</div>
+        <div className="grid grid-cols-7 gap-1">
+          {days.map((day) => {
+            const allowed = day >= min && day <= max;
+            const outsideMonth = day.getMonth() !== month.getMonth();
+            const selected = dateKey(day) === dateKey(value);
+            return <button type="button" key={dateKey(day)} disabled={!allowed} onClick={() => onSelect(day)} className={`aspect-square rounded-xl text-sm font-semibold transition ${selected ? "bg-slate-950 text-white shadow-md" : allowed ? "cursor-pointer text-slate-800 hover:bg-emerald-50 hover:text-emerald-700" : "cursor-not-allowed bg-slate-50/70 text-slate-300 line-through decoration-slate-300"} ${outsideMonth && allowed ? "text-slate-400" : ""}`} aria-label={new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(day)}>{day.getDate()}</button>;
+          })}
+        </div>
+        <p className="mt-4 rounded-xl bg-slate-50 px-3 py-2 text-center text-xs font-medium text-slate-500">Rezerváciu je možné vytvoriť najviac 14 dní vopred.</p>
+      </div>
+    </div>
+  );
+}
+
 function blockedLabel(courtId: string, sport: SportType, hour: number) {
   if (sport !== "tennis-clay") return null;
   if (["tennis-clay-1", "tennis-clay-2"].includes(courtId) && hour === 13) return "Údržba";
@@ -52,8 +99,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const router = useRouter();
   
   const voiceHighlightTimers = useRef(new Map<string, number>());
-  const [sport, setSport] = useState<SportType>("badminton");
+    const [sport, setSport] = useState<SportType>("badminton");
   const [date, setDate] = useState(new Date());
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [items, setItems] = useState(initialBookings);
   const [reload, setReload] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -155,7 +203,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     if (!value) return;
     const selected = new Date(`${value}T12:00:00`);
     if (selected < today || selected > maxDate) return setNotice("Vyberte dátum od dnešného dňa, maximálne 14 dní vopred.");
-    setDate(selected);
+        setDate(selected);
+    setDatePickerOpen(false);
   };
   
   const openSlot = (courtId: string, hour: number) => {
@@ -229,7 +278,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">{sports.map((item) => <button key={item.id} onClick={() => setSport(item.id)} className={`cursor-pointer rounded-xl border p-3 text-sm font-bold transition duration-200 ${sport === item.id ? "border-slate-950 bg-slate-950 text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 shadow-[0_2px_8px_rgba(15,23,42,0.04)] hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 hover:shadow-sm"}`}>{item.label}</button>)}</div>
             <div className="mt-5 flex flex-col items-center justify-between gap-4 border-t border-slate-100 pt-5 md:flex-row">
               <button onClick={() => setDate(new Date())} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold">Dnes</button>
-              <div className="flex items-center gap-2"><button onClick={() => moveDate(-1)} className="rounded-xl border p-3"><ChevronLeft className="h-4 w-4" /></button><label className="relative block min-w-[200px] cursor-pointer sm:min-w-[280px]"><span className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-50 px-3 py-3 text-center text-sm font-bold"><CalendarDays className="h-4 w-4 text-emerald-600" />{new Intl.DateTimeFormat("sk-SK", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(date)}</span><input type="date" min={dateKey(today)} max={dateKey(maxDate)} value={dateKey(date)} onChange={(event) => selectDate(event.target.value)} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" aria-label="Vybrať dátum rezervácie" /></label><button onClick={() => moveDate(1)} className="rounded-xl border p-3"><ChevronRight className="h-4 w-4" /></button></div>
+              <div className="flex items-center gap-2"><button onClick={() => moveDate(-1)} className="rounded-xl border p-3"><ChevronLeft className="h-4 w-4" /></button><button type="button" onClick={() => setDatePickerOpen(true)} className="flex min-w-[200px] cursor-pointer items-center justify-center gap-2 rounded-xl bg-slate-50 px-3 py-3 text-center text-sm font-bold sm:min-w-[280px]" aria-haspopup="dialog"><CalendarDays className="h-4 w-4 text-emerald-600" />{new Intl.DateTimeFormat("sk-SK", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(date)}</button><button onClick={() => moveDate(1)} className="rounded-xl border p-3"><ChevronRight className="h-4 w-4" /></button></div>
               <span className="flex items-center gap-2 text-xs text-slate-500"><Clock className="h-4 w-4" /> Max. 14 dní</span>
             </div>
           </div>
@@ -241,6 +290,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         </section>
         <div className="mt-5 flex flex-wrap gap-5 text-sm"><span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-emerald-500" /> Obsadené</span><span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-amber-300" /> Vaša rezervácia</span>{loading && <span className="text-slate-500">Aktualizujem...</span>}</div>
       </main>
+      {datePickerOpen && <DatePicker value={date} min={today} max={maxDate} onSelect={(selected) => selectDate(dateKey(selected))} onClose={() => setDatePickerOpen(false)} />}
       {auth && <NewBookingAuth mode={auth} onClose={() => setAuth(null)} onSuccess={() => window.location.reload()} />}
       {slot && <CreateBookingDialog court={courts.find((court) => court.id === slot.courtId)} date={slot.date} hour={slot.hour} duration={duration} title={title} phone={phone} error={notice || undefined} loading={loading} onDuration={setDuration} onTitle={setTitle} onPhone={setPhone} onClose={() => setSlot(null)} onSubmit={submit} />}
       {detail && <BookingDetailDialog booking={detail} court={courts.find((court) => court.id === detail.courtId)} canManage={!!currentUser && (currentUser.role === "admin" || currentUser.id === detail.user_id)} onClose={() => setDetail(null)} onDelete={() => setDeleting(detail)} />}
