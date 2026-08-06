@@ -268,7 +268,7 @@ export async function deleteBookingAction(id: string) {
         // Find booking in Supabase database to check permissions
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
         
-        let query = db.from("bookings").select("id, user_id");
+        let query = db.from("bookings").select("id, user_id, start_at, tenant_id");
         if (isUuid) {
             query = query.eq("id", id);
         } else {
@@ -282,11 +282,22 @@ export async function deleteBookingAction(id: string) {
             console.error("Failed to select booking from database:", selectErr.message);
         }
 
-        if (dbBooking && session.role !== 'admin' && dbBooking.user_id !== session.userId) {
-            return { success: false, error: "Nemáte oprávnenie vymazať túto rezerváciu." };
+                if (!dbBooking || dbBooking.tenant_id !== TENANT_ID) {
+            return { success: false, error: "Rezervácia sa nenašla." };
         }
 
-        const targetDbId = dbBooking?.id || (isUuid ? id : null);
+        if (session.role !== "admin" && dbBooking.user_id !== session.userId) {
+            return { success: false, error: "Nemáte oprávnenie zrušiť túto rezerváciu." };
+        }
+
+        if (session.role !== "admin") {
+            const cancellationDeadline = new Date(dbBooking.start_at).getTime() - 24 * 60 * 60 * 1000;
+            if (Date.now() >= cancellationDeadline) {
+                return { success: false, error: "Rezerváciu je možné zrušiť iba viac ako 24 hodín pred jej začiatkom." };
+            }
+        }
+
+        const targetDbId = dbBooking.id;
 
         // Soft delete in Supabase (mark as cancelled)
         if (targetDbId) {
@@ -298,18 +309,11 @@ export async function deleteBookingAction(id: string) {
             if (updateErr) {
                 throw new Error(`Database update error: ${updateErr.message}`);
             }
-        } else if (id && !isUuid) {
-            // Fallback attempt directly if we didn't find the record
-            const { error: updateErr } = await db
-                .from("bookings")
-                .update({ status: "cancelled" })
-                .eq("calendar_event_id", id);
-            if (updateErr) {
-                throw new Error(`Database update error: ${updateErr.message}`);
-            }
-        }
+                }
 
         revalidatePath("/bookings");
+        revalidatePath("/newbookings");
+        revalidatePath("/dashboard/newbookings");
         return { success: true };
     } catch (error: any) {
         console.error("deleteBookingAction failed:", error);

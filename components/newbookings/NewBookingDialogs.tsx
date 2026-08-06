@@ -52,11 +52,12 @@ type DetailProps = {
   booking: Booking;
   court?: Court;
   canManage: boolean;
+  canCancel: boolean;
   onClose: () => void;
   onDelete: () => void;
 };
 
-export function BookingDetailDialog({ booking, court, canManage, onClose, onDelete }: DetailProps) {
+export function BookingDetailDialog({ booking, court, canManage, canCancel, onClose, onDelete }: DetailProps) {
   const formatDate = (value: string) => new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(new Date(value));
   const formatTime = (value: string) => new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bratislava" }).format(new Date(value));
   return (
@@ -70,7 +71,8 @@ export function BookingDetailDialog({ booking, court, canManage, onClose, onDele
           {booking.phone && <Detail icon={Phone} label="Telefón" value={booking.phone} />}
           {booking.title && <Detail icon={MessageSquare} label="Poznámka" value={booking.title} />}
         </div>
-        {canManage && <button onClick={onDelete} className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-bold text-red-700 transition hover:bg-red-100"><Trash2 className="h-4 w-4" /> Zrušiť rezerváciu</button>}
+        {canManage && canCancel && <button onClick={onDelete} className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-bold text-red-700 transition hover:bg-red-100"><Trash2 className="h-4 w-4" /> Zrušiť rezerváciu</button>}
+        {canManage && !canCancel && <p className="mt-7 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-800">Rezerváciu už nie je možné zrušiť. Zrušenie je povolené iba viac ako 24 hodín pred začiatkom.</p>}
       </div>
     </div>
   );
