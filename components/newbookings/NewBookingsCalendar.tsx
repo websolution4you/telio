@@ -109,19 +109,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [slot, setSlot] = useState<Slot | null>(null);
   const [detail, setDetail] = useState<Booking | null>(null);
   const [deleting, setDeleting] = useState<Booking | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [title, setTitle] = useState("");
   const [phone, setPhone] = useState("");
-  const [duration, setDuration] = useState(60);
-
-  const getUserInitials = (name?: string) => {
-    if (!name) return "KB";
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    if (parts[0].length >= 2) return parts[0].substring(0, 2).toUpperCase();
-    return name.substring(0, 2).toUpperCase();
-  };
+    const [duration, setDuration] = useState(60);
   const [now, setNow] = useState(() => new Date());
   const [highlightedVoiceBookings, setHighlightedVoiceBookings] = useState<string[]>([]);
   const today = useMemo(() => { const value = new Date(); value.setHours(0, 0, 0, 0); return value; }, []);
@@ -246,7 +237,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
   return (
     <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-      <header className="relative isolate z-50 overflow-visible border-b border-cyan-100/80 bg-gradient-to-r from-white via-cyan-50/80 to-indigo-50/80 shadow-[0_10px_35px_rgba(15,23,42,0.07)]">
+      <header className="relative isolate overflow-hidden border-b border-cyan-100/80 bg-gradient-to-r from-white via-cyan-50/80 to-indigo-50/80 shadow-[0_10px_35px_rgba(15,23,42,0.07)]">
         <div className="pointer-events-none absolute -left-16 -top-24 h-44 w-44 rounded-full bg-cyan-300/20 blur-3xl" />
         <div className="pointer-events-none absolute -right-12 -top-28 h-48 w-48 rounded-full bg-violet-300/20 blur-3xl" />
         <div className="relative mx-auto flex min-h-[76px] max-w-[1500px] items-center justify-between gap-2 px-4 py-3 sm:min-h-[86px] sm:gap-4 sm:px-6 lg:px-8">
@@ -258,42 +249,14 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             <span className="min-w-0"><strong className="block text-base font-extrabold tracking-[0.12em] text-slate-950 sm:text-lg" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>TELIO</strong><span className="hidden truncate text-[10px] font-semibold tracking-wide text-slate-500 sm:block sm:text-xs">Inteligentný rezervačný systém</span></span>
           </Link>
           {currentUser ? (
-            <div className="relative z-[99999]">
-              <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="relative flex h-11 w-11 items-center justify-center rounded-full border-2 border-black bg-gradient-to-br from-[#CCFF00] to-[#B3E600] text-black shadow-[0_4px_14px_rgba(204,255,0,0.45)] transition hover:scale-105"
-                title={currentUser.name}
-              >
-                <span className="text-sm font-black tracking-wider">{getUserInitials(currentUser.name)}</span>
-                <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[#CCFF00] bg-black text-[8px]">
-                  🎾
-                </span>
-              </button>
-
-              {menuOpen && (
-                <div className="absolute right-0 top-14 z-[99999] w-56 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_12px_36px_rgba(15,23,42,0.15),0_4px_12px_rgba(0,0,0,0.05)]">
-                  <Link
-                    href="/dashboard/newbookings"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 transition hover:bg-slate-100"
-                  >
-                    <LayoutDashboard className="h-4 w-4 text-emerald-600" /> Moje rezervácie a štatistiky
-                  </Link>
-                  <div className="my-1 h-px bg-slate-100" />
-                  <button
-                    onClick={async () => {
-                      setMenuOpen(false);
-                      if (!window.confirm("Chcete sa naozaj odhlásiť?")) return;
-                      await logoutAction();
-                      router.refresh();
-                    }}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold text-red-600 transition hover:bg-red-50"
-                  >
-                    <LogOut className="h-4 w-4 text-red-600" /> Odhlásiť sa
-                  </button>
-                </div>
-              )}
-            </div>
+            <div className="flex items-center gap-1.5 sm:gap-2.5">
+              <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/90 bg-white/75 p-2 shadow-[0_8px_22px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:px-3">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-600 text-white shadow-sm"><UserRound className="h-4 w-4" /></span>
+                <span className="hidden min-w-0 sm:block"><b className="block max-w-36 truncate text-sm">{currentUser.name}</b><small className="block text-[10px] font-medium text-emerald-600">Aktívny účet</small></span>
+              </div>
+              <Link href="/dashboard/newbookings" className="relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-indigo-100 bg-white/80 text-indigo-600 shadow-[0_8px_22px_rgba(79,70,229,0.12)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50 hover:shadow-md" title="Moje rezervácie a štatistiky" aria-label="Moje rezervácie a štatistiky"><LayoutDashboard className="h-[18px] w-[18px]" /><span className="absolute right-1 top-1 h-2 w-2 rounded-full border border-white bg-emerald-500" /></Link>
+              <button onClick={async () => { if (!window.confirm("Chcete sa naozaj odhlásiť?")) return; await logoutAction(); router.refresh(); }} className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-2xl border border-white/90 bg-white/80 text-slate-500 shadow-[0_8px_22px_rgba(15,23,42,0.08)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-red-200 hover:bg-red-50 hover:text-red-600" title="Odhlásiť sa" aria-label="Odhlásiť sa"><LogOut className="h-4 w-4" /></button>
+                        </div>
           ) : (
             <div className="flex shrink-0 items-center gap-2">
               <button onClick={() => setAuth("register")} className="group flex cursor-pointer items-center gap-1.5 rounded-2xl border border-indigo-200 bg-white/85 px-3 py-3 text-xs font-bold text-indigo-700 shadow-[0_8px_22px_rgba(79,70,229,0.12)] backdrop-blur-xl transition duration-300 hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-50 sm:gap-2 sm:px-4 sm:text-sm"><UserPlus className="h-4 w-4" /> Registrovať sa</button>
