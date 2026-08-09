@@ -96,6 +96,63 @@ function clayError(courtId: string, sport: SportType, hour: number, duration: nu
   return null;
 }
 
+function playTennisHitSound() {
+  if (typeof window === "undefined") return;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.08);
+    oscGain.gain.setValueAtTime(1.0, now);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+    osc.connect(oscGain);
+    oscGain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.1);
+
+    const popOsc = ctx.createOscillator();
+    const popGain = ctx.createGain();
+    popOsc.type = "triangle";
+    popOsc.frequency.setValueAtTime(750, now);
+    popOsc.frequency.exponentialRampToValueAtTime(250, now + 0.06);
+    popGain.gain.setValueAtTime(0.7, now);
+    popGain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+    popOsc.connect(popGain);
+    popGain.connect(ctx.destination);
+    popOsc.start(now);
+    popOsc.stop(now + 0.08);
+
+    const bufferSize = Math.floor(ctx.sampleRate * 0.04);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.2));
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(1400, now);
+    filter.Q.setValueAtTime(2, now);
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.6, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+    noise.start(now);
+    noise.stop(now + 0.05);
+  } catch (e) {
+    console.error("Audio play error:", e);
+  }
+}
+
 export default function NewBookingsCalendar({ courts, initialBookings, currentUser }: Props) {
   const router = useRouter();
   
@@ -175,6 +232,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
       if (source === "voice-assistant") {
         const bookingId = raw.id;
+        playTennisHitSound();
         setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
         const existingTimer = timers.get(bookingId);
         if (existingTimer) window.clearTimeout(existingTimer);
@@ -363,12 +421,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       <style jsx global>{`
         @keyframes new-voice-booking-border-pulse {
           0%, 100% {
-            border-color: #ef4444 !important;
-            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.95), 0 0 16px rgba(239, 68, 68, 0.75);
+            border-color: #CCFF00 !important;
+            box-shadow: 0 0 0 3px rgba(204, 255, 0, 0.95), 0 0 18px rgba(204, 255, 0, 0.85);
           }
           50% {
-            border-color: #fca5a5 !important;
-            box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.4), 0 0 24px rgba(239, 68, 68, 0.95);
+            border-color: #eefc42 !important;
+            box-shadow: 0 0 0 5px rgba(204, 255, 0, 0.5), 0 0 28px rgba(204, 255, 0, 1);
           }
         }
         @keyframes new-voice-booking-scan {
@@ -384,12 +442,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           position: absolute;
           inset: 0;
           pointer-events: none;
-          background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.95), rgba(239, 68, 68, 0.2), transparent);
+          background: linear-gradient(90deg, transparent, rgba(204, 255, 0, 0.2), rgba(204, 255, 0, 0.95), rgba(204, 255, 0, 0.2), transparent);
           filter: blur(1px);
           animation: new-voice-booking-scan 1.2s linear infinite;
         }
         @media (prefers-reduced-motion: reduce) {
-          .voice-booking-highlight { animation: none; border-color: rgba(239, 68, 68, 0.9); }
+          .voice-booking-highlight { animation: none; border-color: rgba(204, 255, 0, 0.95); }
           .voice-booking-scan { display: none; }
         }
       `}</style>
