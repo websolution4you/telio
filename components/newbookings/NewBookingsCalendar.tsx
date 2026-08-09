@@ -271,15 +271,15 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 top-14 z-[99999] w-56 rounded-2xl border border-slate-700 bg-slate-900 p-1.5 shadow-2xl backdrop-blur-xl">
+                <div className="absolute right-0 top-14 z-[99999] w-56 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_12px_36px_rgba(15,23,42,0.15),0_4px_12px_rgba(0,0,0,0.05)]">
                   <Link
                     href="/dashboard/newbookings"
                     onClick={() => setMenuOpen(false)}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-100 transition hover:bg-slate-800"
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 transition hover:bg-slate-100"
                   >
-                    <LayoutDashboard className="h-4 w-4 text-[#CCFF00]" /> Moje rezervácie a štatistiky
+                    <LayoutDashboard className="h-4 w-4 text-emerald-600" /> Moje rezervácie a štatistiky
                   </Link>
-                  <div className="my-1 h-px bg-slate-800" />
+                  <div className="my-1 h-px bg-slate-100" />
                   <button
                     onClick={async () => {
                       setMenuOpen(false);
@@ -287,9 +287,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                       await logoutAction();
                       router.refresh();
                     }}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-semibold text-red-400 transition hover:bg-red-950/50"
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold text-red-600 transition hover:bg-red-50"
                   >
-                    <LogOut className="h-4 w-4 text-red-400" /> Odhlásiť sa
+                    <LogOut className="h-4 w-4 text-red-600" /> Odhlásiť sa
                   </button>
                 </div>
               )}
