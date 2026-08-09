@@ -104,11 +104,12 @@ function playTennisHitSound() {
     const ctx = new AudioCtx();
     const now = ctx.currentTime;
 
+    // 1. Tennis Racket Hit
     const osc = ctx.createOscillator();
     const oscGain = ctx.createGain();
     osc.type = "sine";
-    osc.frequency.setValueAtTime(320, now);
-    osc.frequency.exponentialRampToValueAtTime(80, now + 0.08);
+    osc.frequency.setValueAtTime(340, now);
+    osc.frequency.exponentialRampToValueAtTime(75, now + 0.08);
     oscGain.gain.setValueAtTime(1.0, now);
     oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
     osc.connect(oscGain);
@@ -119,8 +120,8 @@ function playTennisHitSound() {
     const popOsc = ctx.createOscillator();
     const popGain = ctx.createGain();
     popOsc.type = "triangle";
-    popOsc.frequency.setValueAtTime(750, now);
-    popOsc.frequency.exponentialRampToValueAtTime(250, now + 0.06);
+    popOsc.frequency.setValueAtTime(780, now);
+    popOsc.frequency.exponentialRampToValueAtTime(240, now + 0.06);
     popGain.gain.setValueAtTime(0.7, now);
     popGain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
     popOsc.connect(popGain);
@@ -128,26 +129,63 @@ function playTennisHitSound() {
     popOsc.start(now);
     popOsc.stop(now + 0.08);
 
-    const bufferSize = Math.floor(ctx.sampleRate * 0.04);
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.2));
+    const snapSize = Math.floor(ctx.sampleRate * 0.04);
+    const snapBuf = ctx.createBuffer(1, snapSize, ctx.sampleRate);
+    const snapData = snapBuf.getChannelData(0);
+    for (let i = 0; i < snapSize; i++) {
+      snapData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (snapSize * 0.2));
     }
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-    const filter = ctx.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.frequency.setValueAtTime(1400, now);
-    filter.Q.setValueAtTime(2, now);
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.6, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-    noise.connect(filter);
-    filter.connect(noiseGain);
-    noiseGain.connect(ctx.destination);
-    noise.start(now);
-    noise.stop(now + 0.05);
+    const snap = ctx.createBufferSource();
+    snap.buffer = snapBuf;
+    const snapFilter = ctx.createBiquadFilter();
+    snapFilter.type = "bandpass";
+    snapFilter.frequency.setValueAtTime(1500, now);
+    snapFilter.Q.setValueAtTime(2, now);
+    const snapGain = ctx.createGain();
+    snapGain.gain.setValueAtTime(0.6, now);
+    snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+    snap.connect(snapFilter);
+    snapFilter.connect(snapGain);
+    snapGain.connect(ctx.destination);
+    snap.start(now);
+    snap.stop(now + 0.05);
+
+    // 2. Short Applause / Clapping Effect
+    const applauseDuration = 1.3;
+    const startApplause = now + 0.1;
+    const applauseMasterGain = ctx.createGain();
+    applauseMasterGain.gain.setValueAtTime(0.001, startApplause);
+    applauseMasterGain.gain.linearRampToValueAtTime(0.35, startApplause + 0.18);
+    applauseMasterGain.gain.exponentialRampToValueAtTime(0.001, startApplause + applauseDuration);
+    applauseMasterGain.connect(ctx.destination);
+
+    const clapCount = 35;
+    for (let i = 0; i < clapCount; i++) {
+      const clapTime = startApplause + Math.pow(Math.random(), 0.85) * 0.95;
+      const clapLen = Math.floor(ctx.sampleRate * 0.03);
+      const clapBuf = ctx.createBuffer(1, clapLen, ctx.sampleRate);
+      const cData = clapBuf.getChannelData(0);
+      for (let j = 0; j < clapLen; j++) {
+        cData[j] = (Math.random() * 2 - 1) * Math.exp(-j / (clapLen * 0.25));
+      }
+      const clapSource = ctx.createBufferSource();
+      clapSource.buffer = clapBuf;
+
+      const clapFilter = ctx.createBiquadFilter();
+      clapFilter.type = "bandpass";
+      clapFilter.frequency.setValueAtTime(900 + Math.random() * 1300, clapTime);
+      clapFilter.Q.setValueAtTime(1.5 + Math.random() * 1.5, clapTime);
+
+      const clapGain = ctx.createGain();
+      clapGain.gain.setValueAtTime(0.25 + Math.random() * 0.35, clapTime);
+
+      clapSource.connect(clapFilter);
+      clapFilter.connect(clapGain);
+      clapGain.connect(applauseMasterGain);
+
+      clapSource.start(clapTime);
+      clapSource.stop(clapTime + 0.035);
+    }
   } catch (e) {
     console.error("Audio play error:", e);
   }
