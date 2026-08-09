@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, LayoutDashboard, LogIn, LogOut, Plus, ShieldCheck, Sparkles, UserPlus, UserRound } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, LayoutDashboard, LogIn, LogOut, Plus, ShieldCheck, Sparkles, UserPlus } from "lucide-react";
+import TennisPlayerIcon from "@/components/icons/TennisPlayerIcon";
 import { createBookingAction, deleteBookingAction, fetchBookingsAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
 import { supabase } from "@/lib/supabase";
@@ -277,7 +278,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                 aria-expanded={userMenuOpen}
               >
                 <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-600 text-white shadow-sm">
-                  <UserRound className="h-4.5 w-4.5" />
+                  <TennisPlayerIcon className="h-4.5 w-4.5" />
                 </span>
               </button>
 
@@ -285,7 +286,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                 <div className="absolute right-0 top-full mt-2.5 w-64 origin-top-right rounded-2xl border border-slate-200/90 bg-white/95 p-2 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
                   <div className="flex items-center gap-3 border-b border-slate-100 px-3 py-3 mb-1">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-600 text-white shadow-sm">
-                      <UserRound className="h-4.5 w-4.5" />
+                      <TennisPlayerIcon className="h-4.5 w-4.5" />
                     </span>
                     <div className="min-w-0 flex-1">
                       <b className="block truncate text-sm font-bold text-slate-900">{currentUser.name}</b>

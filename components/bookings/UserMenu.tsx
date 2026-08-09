@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, User } from "lucide-react";
+import { LogOut } from "lucide-react";
+import TennisPlayerIcon from "@/components/icons/TennisPlayerIcon";
 import { logoutAction } from "@/app/actions/auth";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 
@@ -39,7 +40,7 @@ export default function UserMenu({ user }: UserMenuProps) {
                     color: "var(--cyan)",
                 }}
             >
-                <User className="h-4 w-4" />
+                <TennisPlayerIcon className="h-4 w-4" />
                 <span className="text-sm font-medium">{user.name}</span>
             </button>
 
