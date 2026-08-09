@@ -109,10 +109,19 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [slot, setSlot] = useState<Slot | null>(null);
   const [detail, setDetail] = useState<Booking | null>(null);
   const [deleting, setDeleting] = useState<Booking | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [title, setTitle] = useState("");
   const [phone, setPhone] = useState("");
-    const [duration, setDuration] = useState(60);
+  const [duration, setDuration] = useState(60);
+
+  const getUserInitials = (name?: string) => {
+    if (!name) return "KB";
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    if (parts[0].length >= 2) return parts[0].substring(0, 2).toUpperCase();
+    return name.substring(0, 2).toUpperCase();
+  };
   const [now, setNow] = useState(() => new Date());
   const [highlightedVoiceBookings, setHighlightedVoiceBookings] = useState<string[]>([]);
   const today = useMemo(() => { const value = new Date(); value.setHours(0, 0, 0, 0); return value; }, []);
@@ -249,14 +258,42 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             <span className="min-w-0"><strong className="block text-base font-extrabold tracking-[0.12em] text-slate-950 sm:text-lg" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>TELIO</strong><span className="hidden truncate text-[10px] font-semibold tracking-wide text-slate-500 sm:block sm:text-xs">Inteligentný rezervačný systém</span></span>
           </Link>
           {currentUser ? (
-            <div className="flex items-center gap-1.5 sm:gap-2.5">
-              <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/90 bg-white/75 p-2 shadow-[0_8px_22px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:px-3">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-600 text-white shadow-sm"><UserRound className="h-4 w-4" /></span>
-                <span className="hidden min-w-0 sm:block"><b className="block max-w-36 truncate text-sm">{currentUser.name}</b><small className="block text-[10px] font-medium text-emerald-600">Aktívny účet</small></span>
-              </div>
-              <Link href="/dashboard/newbookings" className="relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-indigo-100 bg-white/80 text-indigo-600 shadow-[0_8px_22px_rgba(79,70,229,0.12)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50 hover:shadow-md" title="Moje rezervácie a štatistiky" aria-label="Moje rezervácie a štatistiky"><LayoutDashboard className="h-[18px] w-[18px]" /><span className="absolute right-1 top-1 h-2 w-2 rounded-full border border-white bg-emerald-500" /></Link>
-              <button onClick={async () => { if (!window.confirm("Chcete sa naozaj odhlásiť?")) return; await logoutAction(); router.refresh(); }} className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-2xl border border-white/90 bg-white/80 text-slate-500 shadow-[0_8px_22px_rgba(15,23,42,0.08)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-red-200 hover:bg-red-50 hover:text-red-600" title="Odhlásiť sa" aria-label="Odhlásiť sa"><LogOut className="h-4 w-4" /></button>
-                        </div>
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="relative flex h-11 w-11 items-center justify-center rounded-full border-2 border-black bg-gradient-to-br from-[#CCFF00] to-[#B3E600] text-black shadow-[0_4px_14px_rgba(204,255,0,0.45)] transition hover:scale-105"
+                title={currentUser.name}
+              >
+                <span className="text-sm font-black tracking-wider">{getUserInitials(currentUser.name)}</span>
+                <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[#CCFF00] bg-black text-[8px]">
+                  🎾
+                </span>
+              </button>
+
+              {menuOpen && (
+                <div className="absolute right-0 top-14 z-50 w-56 rounded-2xl border border-slate-700 bg-slate-900 p-1.5 shadow-2xl backdrop-blur-xl">
+                  <Link
+                    href="/dashboard/newbookings"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-100 transition hover:bg-slate-800"
+                  >
+                    <LayoutDashboard className="h-4 w-4 text-[#CCFF00]" /> Moje rezervácie a štatistiky
+                  </Link>
+                  <div className="my-1 h-px bg-slate-800" />
+                  <button
+                    onClick={async () => {
+                      setMenuOpen(false);
+                      if (!window.confirm("Chcete sa naozaj odhlásiť?")) return;
+                      await logoutAction();
+                      router.refresh();
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-semibold text-red-400 transition hover:bg-red-950/50"
+                  >
+                    <LogOut className="h-4 w-4 text-red-400" /> Odhlásiť sa
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="flex shrink-0 items-center gap-2">
               <button onClick={() => setAuth("register")} className="group flex cursor-pointer items-center gap-1.5 rounded-2xl border border-indigo-200 bg-white/85 px-3 py-3 text-xs font-bold text-indigo-700 shadow-[0_8px_22px_rgba(79,70,229,0.12)] backdrop-blur-xl transition duration-300 hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-50 sm:gap-2 sm:px-4 sm:text-sm"><UserPlus className="h-4 w-4" /> Registrovať sa</button>
@@ -283,9 +320,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             </div>
           </div>
                     <div className="overflow-auto border-t-2 border-slate-300 bg-white"><div className="w-full" style={{ minWidth: `${calendarMinWidth}px` }}>
-            <div className="grid border-b-2 border-slate-300 bg-gradient-to-b from-slate-50 to-slate-100/70" style={{ gridTemplateColumns: calendarColumns }}><b className="sticky left-0 z-30 border-r-2 border-slate-300 bg-slate-50 p-4 text-xs font-extrabold tracking-wide text-slate-600">KURT</b><div className="relative grid" style={{ gridTemplateColumns: timeColumns }}>{hours.map((hour, index) => <b key={hour} className={`${index === hours.length - 1 ? "" : "border-r border-slate-200"} p-4 text-center text-xs font-bold text-slate-500`}>{hour}:00</b>)}{isToday && currentTimePercent > 0 && currentTimePercent < 100 && <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-cyan-500" style={{ left: `${currentTimePercent}%` }}><span className="absolute left-1/2 top-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-cyan-600 px-2 py-1 text-[9px] font-extrabold text-white shadow-md">{currentTimeLabel}</span></div>}</div></div>
+            <div className="grid border-b-2 border-slate-300 bg-gradient-to-b from-slate-50 to-slate-100/70" style={{ gridTemplateColumns: calendarColumns }}><b className="sticky left-0 z-30 border-r-2 border-slate-300 bg-slate-50 p-4 text-xs font-extrabold tracking-wide text-slate-600">KURT</b><div className="relative grid" style={{ gridTemplateColumns: timeColumns }}>{hours.map((hour, index) => <b key={hour} className={`${index === hours.length - 1 ? "" : "border-r border-slate-200"} p-4 text-center text-xs font-bold text-slate-500`}>{hour}:00</b>)}{isToday && currentTimePercent > 0 && currentTimePercent < 100 && <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#CCFF00]" style={{ left: `${currentTimePercent}%` }}><span className="absolute left-1/2 top-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#CCFF00] px-2 py-1 text-[9px] font-black text-black shadow-md border border-[#99CC00]">{currentTimeLabel}</span></div>}</div></div>
             {visibleCourts.map((court) => <div key={court.id} className="grid border-b border-slate-200" style={{ gridTemplateColumns: calendarColumns }}><div className="sticky left-0 z-20 flex min-h-20 flex-col justify-center border-r-2 border-slate-300 bg-gradient-to-r from-white to-slate-50/80 px-4 shadow-[3px_0_10px_rgba(15,23,42,0.03)]"><b className="text-slate-900">{court.name}</b><small className="mt-0.5 text-slate-500">{court.surface}</small></div><div className="relative grid" style={{ gridTemplateColumns: timeColumns }}>{hours.map((hour, index) => { const label = blockedLabel(court.id, sport, hour); const past = new Date(date).setHours(hour, 0, 0, 0) < now.getTime(); const rightBorder = index === hours.length - 1 ? "" : "border-r border-slate-200"; return label ? <div key={hour} className={`grid min-h-20 cursor-not-allowed place-items-center bg-amber-50 px-1 text-center text-[10px] font-bold text-amber-700 ${rightBorder}`}>{label}</div> : past ? <div key={hour} className={`min-h-20 cursor-not-allowed bg-slate-100 ${rightBorder}`} /> : <button key={hour} onClick={() => openSlot(court.id, hour)} className={`group grid min-h-20 cursor-pointer place-items-center transition-colors duration-200 hover:bg-emerald-50/80 ${rightBorder}`}><Plus className="h-4 w-4 text-emerald-500 opacity-0 group-hover:opacity-100" /></button>; })}{isToday && currentTimePercent > 0 && <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] border-r border-slate-300/80" style={{ width: `${currentTimePercent}%`, background: "repeating-linear-gradient(135deg, rgba(148,163,184,0.12) 0px, rgba(148,163,184,0.12) 5px, rgba(241,245,249,0.38) 5px, rgba(241,245,249,0.38) 10px)" }} />}
-              <div className="pointer-events-none absolute inset-0 z-10">{bookings.filter((booking) => booking.courtId === court.id).map((booking) => { const own = !!currentUser && currentUser.id === booking.user_id; const canManage = own || currentUser?.role === "admin"; const voiceHighlight = highlightedVoiceBookings.includes(booking.id); return <button key={booking.id} onClick={() => canManage && setDetail(booking)} className={`pointer-events-auto absolute inset-y-2 overflow-hidden rounded-lg border px-2 text-center shadow-sm ${voiceHighlight ? "voice-booking-highlight" : ""} ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${own ? "border-amber-400 bg-amber-300 text-amber-950" : "border-emerald-600 bg-emerald-500 text-white"}`} style={position(booking)} title={canManage ? "Zobraziť detail" : "Obsadené"}>{voiceHighlight && <span className="voice-booking-scan" aria-hidden="true" />}<b className="relative z-[1] block whitespace-normal break-words text-[clamp(8px,0.7vw,12px)] leading-none [overflow-wrap:anywhere]"><span className="block">{formatTime(booking.start)}</span><span className="block leading-[0.55]" aria-hidden="true">–</span><span className="block">{formatTime(booking.end)}</span></b><span className="relative z-[1] block whitespace-normal break-words text-[clamp(7px,0.6vw,10px)] leading-none [overflow-wrap:anywhere]">{own ? "Vaša rezervácia" : "Obsadené"}</span></button>; })}</div>{isToday && currentTimePercent > 0 && currentTimePercent < 100 && <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-cyan-500 drop-shadow-sm" style={{ left: `${currentTimePercent}%` }} />}</div></div>)}
+              <div className="pointer-events-none absolute inset-0 z-10">{bookings.filter((booking) => booking.courtId === court.id).map((booking) => { const own = !!currentUser && currentUser.id === booking.user_id; const canManage = own || currentUser?.role === "admin"; const voiceHighlight = highlightedVoiceBookings.includes(booking.id); return <button key={booking.id} onClick={() => canManage && setDetail(booking)} className={`pointer-events-auto absolute inset-y-2 overflow-hidden rounded-lg border px-2 text-center shadow-sm ${voiceHighlight ? "voice-booking-highlight" : ""} ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${own ? "border-amber-400 bg-amber-300 text-amber-950" : "border-emerald-600 bg-emerald-500 text-white"}`} style={position(booking)} title={canManage ? "Zobraziť detail" : "Obsadené"}>{voiceHighlight && <span className="voice-booking-scan" aria-hidden="true" />}<b className="relative z-[1] block whitespace-normal break-words text-[clamp(8px,0.7vw,12px)] leading-none [overflow-wrap:anywhere]"><span className="block">{formatTime(booking.start)}</span><span className="block leading-[0.55]" aria-hidden="true">–</span><span className="block">{formatTime(booking.end)}</span></b><span className="relative z-[1] block whitespace-normal break-words text-[clamp(7px,0.6vw,10px)] leading-none [overflow-wrap:anywhere]">{own ? "Vaša rezervácia" : "Obsadené"}</span></button>; })}</div>{isToday && currentTimePercent > 0 && currentTimePercent < 100 && <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#CCFF00] drop-shadow-sm" style={{ left: `${currentTimePercent}%` }} />}</div></div>)}
           </div></div>
         </section>
         <div className="mt-5 flex flex-wrap gap-5 text-sm"><span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-emerald-500" /> Obsadené</span><span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-amber-300" /> Vaša rezervácia</span>{loading && <span className="text-slate-500">Aktualizujem...</span>}</div>
