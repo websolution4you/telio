@@ -118,6 +118,23 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const today = useMemo(() => { const value = new Date(); value.setHours(0, 0, 0, 0); return value; }, []);
   const maxDate = useMemo(() => { const value = new Date(today); value.setDate(value.getDate() + 14); value.setHours(23, 59, 59, 999); return value; }, [today]);
   const hours = useMemo(() => Array.from({ length: openingHours.endHour - openingHours.startHour }, (_, index) => openingHours.startHour + index), []);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    if (userMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [userMenuOpen]);
+
   const courtColumnWidth = 100;
   const timeColumnMinWidth = 64;
   const calendarMinWidth = courtColumnWidth + hours.length * timeColumnMinWidth;
@@ -237,9 +254,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
   return (
     <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-      <header className="relative isolate overflow-hidden border-b border-cyan-100/80 bg-gradient-to-r from-white via-cyan-50/80 to-indigo-50/80 shadow-[0_10px_35px_rgba(15,23,42,0.07)]">
-        <div className="pointer-events-none absolute -left-16 -top-24 h-44 w-44 rounded-full bg-cyan-300/20 blur-3xl" />
-        <div className="pointer-events-none absolute -right-12 -top-28 h-48 w-48 rounded-full bg-violet-300/20 blur-3xl" />
+      <header className="relative isolate z-40 border-b border-cyan-100/80 bg-gradient-to-r from-white via-cyan-50/80 to-indigo-50/80 shadow-[0_10px_35px_rgba(15,23,42,0.07)]">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -left-16 -top-24 h-44 w-44 rounded-full bg-cyan-300/20 blur-3xl" />
+          <div className="absolute -right-12 -top-28 h-48 w-48 rounded-full bg-violet-300/20 blur-3xl" />
+        </div>
         <div className="relative mx-auto flex min-h-[76px] max-w-[1500px] items-center justify-between gap-2 px-4 py-3 sm:min-h-[86px] sm:gap-4 sm:px-6 lg:px-8">
           <Link href="/" className="group flex min-w-0 items-center gap-3 sm:gap-4" aria-label="Telio domov">
             <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-violet-600 text-white shadow-[0_10px_24px_rgba(37,99,235,0.3),inset_0_1px_1px_rgba(255,255,255,0.5)] transition duration-300 group-hover:-translate-y-0.5 group-hover:rotate-[-2deg] sm:h-12 sm:w-12">
@@ -249,14 +268,63 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             <span className="min-w-0"><strong className="block text-base font-extrabold tracking-[0.12em] text-slate-950 sm:text-lg" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>TELIO</strong><span className="hidden truncate text-[10px] font-semibold tracking-wide text-slate-500 sm:block sm:text-xs">Inteligentný rezervačný systém</span></span>
           </Link>
           {currentUser ? (
-            <div className="flex items-center gap-1.5 sm:gap-2.5">
-              <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/90 bg-white/75 p-2 shadow-[0_8px_22px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:px-3">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-600 text-white shadow-sm"><UserRound className="h-4 w-4" /></span>
-                <span className="hidden min-w-0 sm:block"><b className="block max-w-36 truncate text-sm">{currentUser.name}</b><small className="block text-[10px] font-medium text-emerald-600">Aktívny účet</small></span>
-              </div>
-              <Link href="/dashboard/newbookings" className="relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-indigo-100 bg-white/80 text-indigo-600 shadow-[0_8px_22px_rgba(79,70,229,0.12)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50 hover:shadow-md" title="Moje rezervácie a štatistiky" aria-label="Moje rezervácie a štatistiky"><LayoutDashboard className="h-[18px] w-[18px]" /><span className="absolute right-1 top-1 h-2 w-2 rounded-full border border-white bg-emerald-500" /></Link>
-              <button onClick={async () => { if (!window.confirm("Chcete sa naozaj odhlásiť?")) return; await logoutAction(); router.refresh(); }} className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-2xl border border-white/90 bg-white/80 text-slate-500 shadow-[0_8px_22px_rgba(15,23,42,0.08)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-red-200 hover:bg-red-50 hover:text-red-600" title="Odhlásiť sa" aria-label="Odhlásiť sa"><LogOut className="h-4 w-4" /></button>
-                        </div>
+            <div className="relative z-50" ref={userMenuRef}>
+              <button
+                onClick={() => setUserMenuOpen((prev) => !prev)}
+                className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-2xl border border-white/90 bg-white/80 text-emerald-600 shadow-[0_8px_22px_rgba(15,23,42,0.08)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50/50 hover:shadow-md active:translate-y-0"
+                title={currentUser.name}
+                aria-label="Používateľské menu"
+                aria-expanded={userMenuOpen}
+              >
+                <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-600 text-white shadow-sm">
+                  <UserRound className="h-4.5 w-4.5" />
+                </span>
+              </button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 top-full mt-2.5 w-64 origin-top-right rounded-2xl border border-slate-200/90 bg-white/95 p-2 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="flex items-center gap-3 border-b border-slate-100 px-3 py-3 mb-1">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-600 text-white shadow-sm">
+                      <UserRound className="h-4.5 w-4.5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <b className="block truncate text-sm font-bold text-slate-900">{currentUser.name}</b>
+                      <span className="block truncate text-[11px] font-semibold text-emerald-600">
+                        {currentUser.role === "admin" ? "Administrátor" : "Aktívny účet"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Link
+                      href="/dashboard/newbookings"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition duration-150 group"
+                    >
+                      <span className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition duration-150">
+                        <LayoutDashboard className="h-4 w-4" />
+                      </span>
+                      <span>Moje štatistiky</span>
+                    </Link>
+
+                    <button
+                      onClick={async () => {
+                        setUserMenuOpen(false);
+                        if (!window.confirm("Chcete sa naozaj odhlásiť?")) return;
+                        await logoutAction();
+                        router.refresh();
+                      }}
+                      className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-red-600 hover:bg-red-50 transition duration-150 group cursor-pointer"
+                    >
+                      <span className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white transition duration-150">
+                        <LogOut className="h-4 w-4" />
+                      </span>
+                      <span>Odhlásiť sa</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="flex shrink-0 items-center gap-2">
               <button onClick={() => setAuth("register")} className="group flex cursor-pointer items-center gap-1.5 rounded-2xl border border-indigo-200 bg-white/85 px-3 py-3 text-xs font-bold text-indigo-700 shadow-[0_8px_22px_rgba(79,70,229,0.12)] backdrop-blur-xl transition duration-300 hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-50 sm:gap-2 sm:px-4 sm:text-sm"><UserPlus className="h-4 w-4" /> Registrovať sa</button>
