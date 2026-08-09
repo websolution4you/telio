@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
-import TennisPlayerIcon from "@/components/icons/TennisPlayerIcon";
+import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { logoutAction } from "@/app/actions/auth";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 
@@ -33,15 +33,15 @@ export default function UserMenu({ user }: UserMenuProps) {
         <div className="relative">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200"
+                className="flex items-center gap-2.5 px-3 py-1.5 rounded-full transition-all duration-200"
                 style={{
-                    background: "rgba(0,255,209,0.1)",
-                    border: "1px solid rgba(0,255,209,0.3)",
-                    color: "var(--cyan)",
+                    background: "rgba(215, 240, 0, 0.12)",
+                    border: "1px solid rgba(215, 240, 0, 0.35)",
+                    color: "#ffffff",
                 }}
             >
-                <TennisPlayerIcon className="h-4 w-4" />
-                <span className="text-sm font-medium">{user.name}</span>
+                <TennisBallAvatar name={user.name} className="h-7 w-7" textSize="text-[10px]" />
+                <span className="text-sm font-semibold">{user.name}</span>
             </button>
 
             {isOpen && (

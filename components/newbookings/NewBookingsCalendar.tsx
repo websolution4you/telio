@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CalendarDays, ChevronLeft, ChevronRight, Clock, LayoutDashboard, LogIn, LogOut, Plus, ShieldCheck, Sparkles, UserPlus } from "lucide-react";
-import TennisPlayerIcon from "@/components/icons/TennisPlayerIcon";
+import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { createBookingAction, deleteBookingAction, fetchBookingsAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
 import { supabase } from "@/lib/supabase";
@@ -272,22 +272,18 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             <div className="relative z-50" ref={userMenuRef}>
               <button
                 onClick={() => setUserMenuOpen((prev) => !prev)}
-                className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-2xl border border-white/90 bg-white/80 text-emerald-600 shadow-[0_8px_22px_rgba(15,23,42,0.08)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50/50 hover:shadow-md active:translate-y-0"
+                className="shrink-0 cursor-pointer rounded-full p-0.5 transition hover:-translate-y-0.5 active:translate-y-0"
                 title={currentUser.name}
                 aria-label="Používateľské menu"
                 aria-expanded={userMenuOpen}
               >
-                <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-600 text-white shadow-sm">
-                  <TennisPlayerIcon className="h-4.5 w-4.5" />
-                </span>
+                <TennisBallAvatar name={currentUser.name} className="h-10 w-10" textSize="text-xs" />
               </button>
 
               {userMenuOpen && (
                 <div className="absolute right-0 top-full mt-2.5 w-64 origin-top-right rounded-2xl border border-slate-200/90 bg-white/95 p-2 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
                   <div className="flex items-center gap-3 border-b border-slate-100 px-3 py-3 mb-1">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-600 text-white shadow-sm">
-                      <TennisPlayerIcon className="h-4.5 w-4.5" />
-                    </span>
+                    <TennisBallAvatar name={currentUser.name} className="h-10 w-10" textSize="text-sm" />
                     <div className="min-w-0 flex-1">
                       <b className="block truncate text-sm font-bold text-slate-900">{currentUser.name}</b>
                       <span className="block truncate text-[11px] font-semibold text-emerald-600">
