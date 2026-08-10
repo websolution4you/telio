@@ -102,6 +102,9 @@ function playTennisHitSound() {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
+    if (ctx.state === "suspended") {
+      ctx.resume();
+    }
     const now = ctx.currentTime;
 
     // 1. Tennis Racket Hit
@@ -193,9 +196,8 @@ function playTennisHitSound() {
 
 export default function NewBookingsCalendar({ courts, initialBookings, currentUser }: Props) {
   const router = useRouter();
-  
   const voiceHighlightTimers = useRef(new Map<string, number>());
-    const [sport, setSport] = useState<SportType>("badminton");
+  const [sport, setSport] = useState<SportType>("badminton");
   const [date, setDate] = useState(new Date());
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [items, setItems] = useState(initialBookings);
@@ -208,7 +210,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [notice, setNotice] = useState("");
   const [title, setTitle] = useState("");
   const [phone, setPhone] = useState("");
-    const [duration, setDuration] = useState(60);
+  const [duration, setDuration] = useState(60);
   const [now, setNow] = useState(() => new Date());
   const [highlightedVoiceBookings, setHighlightedVoiceBookings] = useState<string[]>([]);
   const today = useMemo(() => { const value = new Date(); value.setHours(0, 0, 0, 0); return value; }, []);
@@ -257,29 +259,20 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       setReload((value) => value + 1);
       if (payload.eventType !== "INSERT") return;
 
+      playTennisHitSound();
+
       const raw = payload.new as any;
       if (!raw?.id) return;
 
-      let source = raw?.source;
-      if (!source && raw?.notes) {
-        try {
-          const notesObj = typeof raw.notes === "string" ? JSON.parse(raw.notes) : raw.notes;
-          source = notesObj?.source;
-        } catch (e) {}
-      }
-
-      if (source === "voice-assistant") {
-        const bookingId = raw.id;
-        playTennisHitSound();
-        setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
-        const existingTimer = timers.get(bookingId);
-        if (existingTimer) window.clearTimeout(existingTimer);
-        const timer = window.setTimeout(() => {
-          setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
-          timers.delete(bookingId);
-        }, 4000);
-        timers.set(bookingId, timer);
-      }
+      const bookingId = raw.id;
+      setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
+      const existingTimer = timers.get(bookingId);
+      if (existingTimer) window.clearTimeout(existingTimer);
+      const timer = window.setTimeout(() => {
+        setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
+        timers.delete(bookingId);
+      }, 4000);
+      timers.set(bookingId, timer);
     }).subscribe();
     return () => {
       supabase.removeChannel(channel);
