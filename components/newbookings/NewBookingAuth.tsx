@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LogIn, UserPlus, X } from "lucide-react";
 import { loginAction, registerAction } from "@/app/actions/auth";
 
