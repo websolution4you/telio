@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 import type { Booking, Court, SportType } from "@/lib/bookings/mockBookings";
 import { openingHours } from "@/lib/bookings/mockBookings";
+import HolographicTennisCourt from "./HolographicTennisCourt";
 import NewBookingAuth from "./NewBookingAuth";
 import { BookingDetailDialog, CreateBookingDialog, DeleteDialog } from "./NewBookingDialogs";
 
@@ -356,6 +357,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               <span className="mt-0.5 rounded-full bg-[#CCFF00] px-1.5 py-0.5 text-[8px] font-black tracking-wider text-black shadow-xs">NTC</span>
             </div>
           </Link>
+          <HolographicTennisCourt />
           {currentUser ? (
             <div className="relative z-50" ref={userMenuRef}>
               <button
