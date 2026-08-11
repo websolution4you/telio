@@ -351,11 +351,16 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         </div>
         <div className="relative mx-auto flex min-h-[76px] max-w-[1500px] items-center justify-between gap-2 px-4 py-3 sm:min-h-[86px] sm:gap-4 sm:px-6 lg:px-8">
           <Link href="/newbookings" className="group flex min-w-0 items-center gap-3 sm:gap-4" aria-label="NTC Rezervácie domov">
-            <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-violet-600 text-white shadow-[0_10px_24px_rgba(37,99,235,0.3),inset_0_1px_1px_rgba(255,255,255,0.5)] transition duration-300 group-hover:-translate-y-0.5 group-hover:rotate-[-2deg] sm:h-12 sm:w-12">
-              <span className="text-lg font-extrabold" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>T</span>
-              <Sparkles className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-white p-0.5 text-violet-600 shadow-sm" />
+            <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-slate-950 text-white shadow-lg transition duration-300 group-hover:-translate-y-0.5 group-hover:rotate-[-2deg] sm:h-12 sm:w-12">
+              <div className="flex flex-col items-center justify-center leading-none">
+                <span className="text-sm leading-none">🎾</span>
+                <span className="mt-0.5 rounded bg-[#CCFF00] px-1 py-0.5 text-[9px] font-black tracking-wider text-black">NTC</span>
+              </div>
             </span>
-            <span className="min-w-0"><strong className="block text-base font-extrabold tracking-[0.12em] text-slate-950 sm:text-lg" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>TELIO</strong><span className="hidden truncate text-[10px] font-semibold tracking-wide text-slate-500 sm:block sm:text-xs">Inteligentný rezervačný systém</span></span>
+            <span className="min-w-0">
+              <strong className="block text-base font-extrabold tracking-[0.12em] text-slate-950 sm:text-lg" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>NTC REZERVÁCIE</strong>
+              <span className="hidden truncate text-[10px] font-semibold tracking-wide text-slate-500 sm:block sm:text-xs">Národné Tenisové Centrum</span>
+            </span>
           </Link>
           {currentUser ? (
             <div className="relative z-50" ref={userMenuRef}>
