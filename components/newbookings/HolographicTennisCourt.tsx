@@ -3,20 +3,20 @@
 import React, { useEffect, useState } from "react";
 
 export default function HolographicTennisCourt() {
-  const [hasAnimated, setHasAnimated] = useState(true); // default true for SSR safety
+  const [hasAnimated, setHasAnimated] = useState(true);
   const [animating, setAnimating] = useState(false);
 
   useEffect(() => {
     try {
-      const alreadyPlayed = sessionStorage.getItem("ntc_holo_court_animated");
+      const alreadyPlayed = sessionStorage.getItem("ntc_clay_court_animated");
       if (!alreadyPlayed) {
         setHasAnimated(false);
         setAnimating(true);
         const timer = setTimeout(() => {
           setAnimating(false);
           setHasAnimated(true);
-          sessionStorage.setItem("ntc_holo_court_animated", "true");
-        }, 2000); // 2.0s animation duration
+          sessionStorage.setItem("ntc_clay_court_animated", "true");
+        }, 2000);
         return () => clearTimeout(timer);
       }
     } catch {
@@ -37,26 +37,28 @@ export default function HolographicTennisCourt() {
   return (
     <div
       onClick={triggerReplay}
-      className="group relative flex h-11 w-36 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-950/85 p-1.5 shadow-[0_0_20px_rgba(6,182,212,0.18)] backdrop-blur-md transition-all duration-300 hover:border-cyan-400/60 hover:shadow-[0_0_25px_rgba(56,189,248,0.35)] sm:h-12 sm:w-56"
-      title="NTC Holo-Court (Kliknite pre zopakovanie animácie)"
-      aria-label="Futuristický holografický tenisový kurt"
+      className="group relative flex h-11 w-44 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border border-orange-200/80 bg-gradient-to-r from-orange-50/90 via-amber-50/70 to-orange-50/90 p-1.5 shadow-[0_4px_16px_rgba(249,115,22,0.12)] backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:border-orange-300 hover:shadow-[0_6px_22px_rgba(249,115,22,0.22)] active:scale-[0.99] sm:h-12 sm:w-64 lg:w-72"
+      title="NTC Antukový kurt (Kliknite pre zopakovanie animácie loptičky)"
+      aria-label="Antukový tenisový kurt"
     >
-      {/* Background Holographic Glow & Grid Lines */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(56,189,248,0.18),transparent_70%)]" />
-      
-      {/* Holographic Scanline Texture */}
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,transparent_50%,rgba(0,0,0,0.4)_50%)] bg-[length:100%_4px] opacity-30" />
+      {/* Light Soft Orange Glow Background */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(251,146,60,0.18),transparent_75%)]" />
 
-      {/* Isometric/Perspective Holographic Court Container */}
+      {/* Perspective Antuka Clay Court Container */}
       <div className="relative flex h-full w-full items-center justify-center px-1">
         <svg
           viewBox="0 0 200 80"
-          className="h-full w-full overflow-visible drop-shadow-[0_0_6px_rgba(56,189,248,0.6)]"
+          className="h-full w-full overflow-visible drop-shadow-[0_2px_8px_rgba(194,65,12,0.25)]"
           preserveAspectRatio="xMidYMid meet"
         >
           <defs>
-            {/* Holographic Line Glow Filter */}
-            <filter id="holo-glow" x="-20%" y="-20%" width="140%" height="140%">
+            {/* Soft Shadow Filter for Lines */}
+            <filter id="clay-line-shadow" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="1" stdDeviation="0.8" floodColor="#7C2D12" floodOpacity="0.4" />
+            </filter>
+
+            {/* Neon Ball Glow */}
+            <filter id="ball-glow" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur stdDeviation="1.5" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
@@ -64,128 +66,116 @@ export default function HolographicTennisCourt() {
               </feMerge>
             </filter>
 
-            {/* Neon Ball Glow */}
-            <filter id="ball-glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="2" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-
-            {/* Linear Gradient for Court Surface */}
-            <linearGradient id="court-grad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#0F172A" stopOpacity="0.8" />
-              <stop offset="50%" stopColor="#0369A1" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#0F172A" stopOpacity="0.8" />
+            {/* Terracotta Antuka Clay Court Surface Gradient */}
+            <linearGradient id="clay-court-grad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#D95A3F" />
+              <stop offset="50%" stopColor="#E26A4F" />
+              <stop offset="100%" stopColor="#C44B31" />
             </linearGradient>
 
-            {/* Ball Motion Trail Gradient */}
+            {/* Motion Trail Gradient */}
             <linearGradient id="trail-grad" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor="#CCFF00" stopOpacity="0" />
-              <stop offset="70%" stopColor="#CCFF00" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#38BDF8" stopOpacity="1" />
+              <stop offset="60%" stopColor="#CCFF00" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#F97316" stopOpacity="1" />
             </linearGradient>
           </defs>
 
-          {/* Perspective Court Floor */}
+          {/* Perspective Clay Court Floor */}
           <polygon
-            points="25,12 175,12 190,68 10,68"
-            fill="url(#court-grad)"
-            stroke="#38BDF8"
-            strokeWidth="1.2"
-            strokeOpacity="0.8"
-            filter="url(#holo-glow)"
+            points="22,10 178,10 192,70 8,70"
+            fill="url(#clay-court-grad)"
+            stroke="#9A3412"
+            strokeWidth="1"
+            className="transition-all duration-300 group-hover:brightness-105"
           />
 
-          {/* Outer Doubles Boundary Lines */}
+          {/* Outer Doubles Boundary Lines (Crisp White) */}
           <polygon
-            points="27,14 173,14 187,66 13,66"
+            points="24,12 176,12 189,68 11,68"
             fill="none"
-            stroke="#38BDF8"
-            strokeWidth="1"
-            strokeOpacity="0.9"
+            stroke="#FFFFFF"
+            strokeWidth="1.2"
+            filter="url(#clay-line-shadow)"
           />
 
           {/* Singles Sidelines */}
-          <line x1="33" y1="14" x2="21" y2="66" stroke="#38BDF8" strokeWidth="0.8" strokeOpacity="0.7" />
-          <line x1="167" y1="14" x2="179" y2="66" stroke="#38BDF8" strokeWidth="0.8" strokeOpacity="0.7" />
+          <line x1="31" y1="12" x2="19" y2="68" stroke="#FFFFFF" strokeWidth="0.9" filter="url(#clay-line-shadow)" />
+          <line x1="169" y1="12" x2="181" y2="68" stroke="#FFFFFF" strokeWidth="0.9" filter="url(#clay-line-shadow)" />
 
           {/* Service Baselines */}
-          <line x1="58" y1="14" x2="52" y2="66" stroke="#38BDF8" strokeWidth="0.8" strokeOpacity="0.7" />
-          <line x1="142" y1="14" x2="148" y2="66" stroke="#38BDF8" strokeWidth="0.8" strokeOpacity="0.7" />
+          <line x1="56" y1="12" x2="49" y2="68" stroke="#FFFFFF" strokeWidth="0.9" filter="url(#clay-line-shadow)" />
+          <line x1="144" y1="12" x2="151" y2="68" stroke="#FFFFFF" strokeWidth="0.9" filter="url(#clay-line-shadow)" />
 
           {/* Center Service Line */}
-          <line x1="55" y1="40" x2="145" y2="40" stroke="#38BDF8" strokeWidth="0.8" strokeOpacity="0.7" />
+          <line x1="52" y1="40" x2="148" y2="40" stroke="#FFFFFF" strokeWidth="0.9" filter="url(#clay-line-shadow)" />
+
+          {/* Center Service Marks */}
+          <line x1="24" y1="40" x2="28" y2="40" stroke="#FFFFFF" strokeWidth="0.9" />
+          <line x1="172" y1="40" x2="176" y2="40" stroke="#FFFFFF" strokeWidth="0.9" />
 
           {/* Middle Net with Posts */}
-          <line x1="100" y1="8" x2="100" y2="72" stroke="#00FF9D" strokeWidth="1.8" filter="url(#holo-glow)" />
-          {/* Net Mesh Accents */}
-          <line x1="100" y1="14" x2="100" y2="66" stroke="#FFFFFF" strokeWidth="0.6" strokeDasharray="2,2" strokeOpacity="0.8" />
-          <circle cx="100" cy="9" r="1.5" fill="#00FF9D" />
-          <circle cx="100" cy="71" r="1.5" fill="#00FF9D" />
-
-          {/* Center Service Mark Marks */}
-          <line x1="27" y1="40" x2="31" y2="40" stroke="#38BDF8" strokeWidth="0.8" />
-          <line x1="169" y1="40" x2="173" y2="40" stroke="#38BDF8" strokeWidth="0.8" />
+          <line x1="100" y1="6" x2="100" y2="74" stroke="#1E293B" strokeWidth="2" />
+          <line x1="100" y1="12" x2="100" y2="68" stroke="#FFFFFF" strokeWidth="1" strokeDasharray="2,1.5" />
+          <circle cx="100" cy="7" r="1.5" fill="#FFFFFF" />
+          <circle cx="100" cy="73" r="1.5" fill="#FFFFFF" />
 
           {/* --- ANIMATION LAYER --- */}
           {animating ? (
             <g>
               {/* Parabolic Holographic Arc Motion Trail */}
               <path
-                d="M 30 50 Q 100 8 170 50"
+                d="M 28 50 Q 100 6 172 48"
                 fill="none"
                 stroke="url(#trail-grad)"
                 strokeWidth="2.5"
                 strokeDasharray="200"
                 strokeDashoffset="200"
                 className="animate-[holoArc_1.8s_easeInOut_forwards]"
-                filter="url(#holo-glow)"
               />
 
-              {/* Animated Tennis Ball moving along the parabolic path */}
+              {/* Animated Yellow Tennis Ball moving along the parabolic path */}
               <g className="animate-[holoBall_1.8s_easeInOut_forwards]">
-                <circle cx="0" cy="0" r="4" fill="#CCFF00" filter="url(#ball-glow)" />
-                <circle cx="0" cy="0" r="2" fill="#FFFFFF" />
+                <circle cx="0" cy="0" r="4.2" fill="#CCFF00" filter="url(#ball-glow)" />
+                <circle cx="0" cy="0" r="2.2" fill="#FFFFFF" />
               </g>
 
-              {/* Landing Impact Shockwave (triggers near 1.6s) */}
+              {/* Landing Impact Shockwave (triggers near 1.5s) */}
               <circle
-                cx="170"
-                cy="50"
+                cx="172"
+                cy="48"
                 r="8"
                 fill="none"
-                stroke="#00FF9D"
+                stroke="#F97316"
                 strokeWidth="1.5"
                 className="animate-[holoPing_0.6s_ease-out_1.5s_forwards] opacity-0"
               />
             </g>
           ) : (
-            /* Static Mode: Ambient Glowing Holographic Ball Resting on Right Baseline Court */
+            /* Static Mode: Classic Tennis Ball Resting on Right Baseline Court */
             <g className="transition-opacity duration-500">
-              {/* Soft pulse ring under resting ball */}
+              {/* Soft ambient pulse ring under resting ball */}
               <circle
-                cx="165"
-                cy="48"
-                r="5"
+                cx="168"
+                cy="46"
+                r="5.5"
                 fill="none"
-                stroke="#00FF9D"
-                strokeWidth="0.8"
-                className="animate-ping opacity-30"
+                stroke="#F97316"
+                strokeWidth="1"
+                className="animate-ping opacity-35"
               />
-              <circle cx="165" cy="48" r="3.5" fill="#CCFF00" filter="url(#ball-glow)" />
-              <circle cx="165" cy="48" r="1.8" fill="#FFFFFF" />
+              <circle cx="168" cy="46" r="3.8" fill="#CCFF00" filter="url(#ball-glow)" />
+              <circle cx="168" cy="46" r="2" fill="#FFFFFF" />
             </g>
           )}
         </svg>
       </div>
 
-      {/* Corner Holographic Accent Lines */}
-      <div className="absolute left-1 top-1 h-1.5 w-1.5 rounded-tl border-l border-t border-cyan-400/80" />
-      <div className="absolute right-1 top-1 h-1.5 w-1.5 rounded-tr border-r border-t border-cyan-400/80" />
-      <div className="absolute bottom-1 left-1 h-1.5 w-1.5 rounded-bl border-b border-l border-cyan-400/80" />
-      <div className="absolute bottom-1 right-1 h-1.5 w-1.5 rounded-br border-b border-r border-cyan-400/80" />
+      {/* Subtle Corner Accent Dots */}
+      <div className="absolute left-1.5 top-1.5 h-1 w-1 rounded-full bg-orange-300/80" />
+      <div className="absolute right-1.5 top-1.5 h-1 w-1 rounded-full bg-orange-300/80" />
+      <div className="absolute bottom-1.5 left-1.5 h-1 w-1 rounded-full bg-orange-300/80" />
+      <div className="absolute bottom-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-orange-400/80" />
 
       {/* CSS Keyframe Animations Inline */}
       <style jsx>{`
@@ -199,20 +189,20 @@ export default function HolographicTennisCourt() {
         }
         @keyframes holoBall {
           0% {
-            transform: translate(30px, 50px) scale(0.7);
+            transform: translate(28px, 50px) scale(0.7);
             opacity: 0;
           }
           10% {
             opacity: 1;
           }
           50% {
-            transform: translate(100px, 14px) scale(1.3);
+            transform: translate(100px, 12px) scale(1.3);
           }
           90% {
             opacity: 1;
           }
           100% {
-            transform: translate(165px, 48px) scale(1);
+            transform: translate(168px, 46px) scale(1);
             opacity: 1;
           }
         }
