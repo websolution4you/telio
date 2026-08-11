@@ -374,9 +374,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     <TennisBallAvatar name={currentUser.name} className="h-10 w-10" textSize="text-sm" />
                     <div className="min-w-0 flex-1">
                       <b className="block truncate text-sm font-bold text-slate-900">{currentUser.name}</b>
-                      <span className="block truncate text-[11px] font-semibold text-emerald-600">
-                        {currentUser.role === "admin" ? "Administrátor" : "Aktívny účet"}
-                      </span>
+                      {currentUser.role === "admin" && (
+                        <span className="block truncate text-[11px] font-semibold text-indigo-600">
+                          Administrátor
+                        </span>
+                      )}
                     </div>
                   </div>
 
