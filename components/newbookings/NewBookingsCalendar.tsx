@@ -353,48 +353,60 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         <div className="relative mx-auto flex min-h-[76px] max-w-[1500px] items-center justify-between gap-2 px-4 py-3 sm:min-h-[86px] sm:gap-4 sm:px-6 lg:px-8">
           <Link href="/newbookings" className="group flex shrink-0 items-center transition hover:scale-105 active:scale-95" aria-label="NTC Domov">
             {/* Desktop PEUGEOT arena Logo Banner on 3D Antuka Clay Court */}
-            <div className="hidden md:flex relative overflow-hidden items-center justify-center rounded-2xl border border-orange-800/50 bg-gradient-to-r from-[#B8442A] via-[#E26A4F] to-[#C44B31] px-5 py-2 shadow-[0_4px_16px_rgba(180,83,9,0.35)] transition duration-300 group-hover:shadow-[0_6px_22px_rgba(180,83,9,0.45)]">
+            <div className="hidden md:flex relative overflow-hidden items-center justify-center rounded-2xl border border-orange-800/60 bg-gradient-to-r from-[#B8442A] via-[#E26A4F] to-[#C44B31] px-5 py-2.5 shadow-[0_4px_16px_rgba(180,83,9,0.38)] transition duration-300 group-hover:shadow-[0_6px_22px_rgba(180,83,9,0.48)]">
               {/* 3D Perspective Clay Court White Lines Overlay */}
               <div className="pointer-events-none absolute inset-0 opacity-30">
-                <svg viewBox="0 0 200 60" className="h-full w-full" preserveAspectRatio="none">
-                  <polygon points="12,4 188,4 196,56 4,56" fill="none" stroke="#FFFFFF" strokeWidth="1.5" />
-                  <line x1="100" y1="4" x2="100" y2="56" stroke="#FFFFFF" strokeWidth="1.5" strokeDasharray="3,2" />
-                  <line x1="48" y1="4" x2="42" y2="56" stroke="#FFFFFF" strokeWidth="1" />
-                  <line x1="152" y1="4" x2="158" y2="56" stroke="#FFFFFF" strokeWidth="1" />
+                <svg viewBox="0 0 220 70" className="h-full w-full" preserveAspectRatio="none">
+                  <polygon points="12,4 208,4 216,66 4,66" fill="none" stroke="#FFFFFF" strokeWidth="1.5" />
+                  <line x1="110" y1="4" x2="110" y2="66" stroke="#FFFFFF" strokeWidth="1.5" strokeDasharray="3,2" />
+                  <line x1="52" y1="4" x2="44" y2="66" stroke="#FFFFFF" strokeWidth="1" />
+                  <line x1="168" y1="4" x2="176" y2="66" stroke="#FFFFFF" strokeWidth="1" />
                 </svg>
               </div>
 
-              {/* PEUGEOT arena Typography & Swoosh */}
-              <div className="relative z-10 flex flex-col items-center justify-center leading-none py-0.5">
-                <span
-                  className="text-sm font-black tracking-[0.28em] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] sm:text-base md:text-lg"
-                  style={{ fontFamily: "var(--font-poppins), sans-serif" }}
-                >
-                  PEUGEOT
-                </span>
-                <div className="relative -mt-0.5 flex items-center justify-center">
-                  <svg viewBox="0 0 140 32" className="h-5 w-28 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] sm:h-6 sm:w-32">
+              {/* Exact Vector PEUGEOT arena Logo */}
+              <div className="relative z-10 flex items-center justify-center">
+                <svg viewBox="0 0 260 70" className="h-10 w-44 sm:h-11 sm:w-52 md:h-12 md:w-60 drop-shadow-[0_2px_6px_rgba(0,0,0,0.85)]" preserveAspectRatio="xMidYMid meet">
+                  {/* Exact Vector PEUGEOT Font */}
+                  <g fill="#FFFFFF">
+                    {/* P */}
+                    <path d="M 12 6 H 32 C 40 6 43 10 43 16 C 43 22 40 26 32 26 H 20 V 42 H 12 V 6 Z M 20 13 V 19 H 31 C 34 19 35 18 35 16 C 35 14 34 13 31 13 Z" />
+                    {/* E */}
+                    <path d="M 48 6 H 75 V 13 H 56 V 20 H 71 V 27 H 56 V 35 H 75 V 42 H 48 Z" />
+                    {/* U */}
+                    <path d="M 80 6 H 88 V 32 C 88 35 91 36 96 36 C 101 36 104 35 104 32 V 6 H 112 V 32 C 112 40 106 43 96 43 C 86 43 80 40 80 32 Z" />
+                    {/* G */}
+                    <path d="M 144 14 C 144 9 139 6 130 6 C 121 6 116 9 116 14 V 34 C 116 39 121 42 130 42 C 139 42 144 39 144 34 V 23 H 130 V 29 H 136 V 33 C 136 36 133 37 130 37 C 126 37 124 35 124 31 V 17 C 124 13 126 11 130 11 C 134 11 136 13 136 17 H 144 Z" />
+                    {/* O */}
+                    <path d="M 149 14 C 149 8 156 6 166 6 C 176 6 183 8 183 14 V 34 C 183 40 176 42 166 42 C 156 42 149 40 149 34 Z M 157 14 C 157 11 160 11 166 11 C 172 11 175 11 175 14 V 34 C 175 37 172 37 166 37 C 160 37 157 37 157 34 Z" />
+                    {/* T */}
+                    <path d="M 188 6 H 220 V 13 H 208 V 42 H 200 V 13 H 188 Z" />
+                  </g>
+
+                  {/* Exact arena Swoosh Ring & Text */}
+                  <g transform="translate(45, 33)">
                     <path
-                      d="M 12 18 C 8 8, 30 2, 75 2 C 120 2, 138 12, 125 24 C 112 32, 50 30, 10 26 C 2 25, 6 18, 12 18 Z"
+                      d="M 15 16 C 0 4, 35 -4, 95 -1 C 155 2, 175 14, 155 27 C 130 38, 45 35, 10 27 C -4 24, 0 16, 15 16 Z"
                       fill="none"
-                      stroke="#FFA500"
-                      strokeWidth="3.5"
+                      stroke="#FF9D00"
+                      strokeWidth="4.5"
                       strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
                     <text
-                      x="35"
-                      y="22"
-                      fill="#FFA500"
+                      x="40"
+                      y="25"
+                      fill="#FF9D00"
                       fontWeight="900"
-                      fontSize="18"
-                      letterSpacing="0.05em"
+                      fontSize="22"
+                      letterSpacing="-0.02em"
                       fontStyle="italic"
-                      style={{ fontFamily: "var(--font-poppins), sans-serif" }}
+                      style={{ fontFamily: "Arial Black, Impact, var(--font-poppins), sans-serif" }}
                     >
                       arena
                     </text>
-                  </svg>
-                </div>
+                  </g>
+                </svg>
               </div>
             </div>
 
