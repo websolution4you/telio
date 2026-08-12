@@ -471,8 +471,45 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           <div className="border-b border-slate-200 p-4 sm:p-6">
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">{sports.map((item) => <button key={item.id} onClick={() => setSport(item.id)} className={`cursor-pointer rounded-xl border p-3 text-sm font-bold transition duration-200 ${sport === item.id ? "border-slate-950 bg-slate-950 text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 shadow-[0_2px_8px_rgba(15,23,42,0.04)] hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 hover:shadow-sm"}`}>{item.label}</button>)}</div>
             <div className="mt-5 flex flex-col items-center justify-between gap-4 border-t border-slate-100 pt-5 md:flex-row">
-              <button onClick={() => setDate(new Date())} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold">Dnes</button>
-              <span className="flex items-center gap-2 text-xs text-slate-500"><Clock className="h-4 w-4" /> Max. 14 dní</span>
+              <button
+                onClick={() => setDate(new Date())}
+                className="cursor-pointer rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold shadow-xs hover:border-slate-400 hover:bg-slate-50 transition"
+              >
+                Dnes
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => moveDate(-1)}
+                  className="cursor-pointer rounded-xl border border-slate-200 p-3 shadow-xs hover:border-slate-400 hover:bg-slate-50 transition"
+                  aria-label="Predchádzajúci deň"
+                >
+                  <ChevronLeft className="h-4 w-4 text-slate-700" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDatePickerOpen(true)}
+                  className="flex min-w-[200px] cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-bold text-slate-800 shadow-xs transition hover:border-emerald-300 hover:bg-emerald-50/50 hover:text-emerald-700 sm:min-w-[280px]"
+                  aria-haspopup="dialog"
+                >
+                  <CalendarDays className="h-4.5 w-4.5 text-emerald-600" />
+                  {new Intl.DateTimeFormat("sk-SK", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  }).format(date)}
+                </button>
+                <button
+                  onClick={() => moveDate(1)}
+                  className="cursor-pointer rounded-xl border border-slate-200 p-3 shadow-xs hover:border-slate-400 hover:bg-slate-50 transition"
+                  aria-label="Nasledujúci deň"
+                >
+                  <ChevronRight className="h-4 w-4 text-slate-700" />
+                </button>
+              </div>
+              <span className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                <Clock className="h-4 w-4 text-slate-400" /> Max. 14 dní
+              </span>
             </div>
           </div>
           <div className="overflow-auto border-t-2 border-slate-300 bg-white">
