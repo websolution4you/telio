@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, ExternalLink, Info, LayoutDashboard, LogIn, LogOut, PhoneCall, Plus, ShieldCheck, Sparkles, UserPlus } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, LayoutDashboard, LogIn, LogOut, Plus, ShieldCheck, Sparkles, UserPlus } from "lucide-react";
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { createBookingAction, deleteBookingAction, fetchBookingsAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
@@ -219,25 +219,20 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const hours = useMemo(() => Array.from({ length: openingHours.endHour - openingHours.startHour }, (_, index) => openingHours.startHour + index), []);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const [ntcMenuOpen, setNtcMenuOpen] = useState(false);
-  const ntcMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setUserMenuOpen(false);
       }
-      if (ntcMenuRef.current && !ntcMenuRef.current.contains(event.target as Node)) {
-        setNtcMenuOpen(false);
-      }
     };
-    if (userMenuOpen || ntcMenuOpen) {
+    if (userMenuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [userMenuOpen, ntcMenuOpen]);
+  }, [userMenuOpen]);
 
   const courtColumnWidth = 100;
   const timeColumnMinWidth = 64;
@@ -356,75 +351,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           <div className="absolute -right-12 -top-28 h-48 w-48 rounded-full bg-violet-300/20 blur-3xl" />
         </div>
         <div className="relative mx-auto flex min-h-[76px] max-w-[1500px] items-center justify-between gap-2 px-4 py-3 sm:min-h-[86px] sm:gap-4 sm:px-6 lg:px-8">
-          <div className="relative z-50" ref={ntcMenuRef}>
-            <button
-              onClick={() => setNtcMenuOpen((prev) => !prev)}
-              className="group flex shrink-0 cursor-pointer items-center transition hover:scale-105 active:scale-95"
-              aria-label="NTC Národné Tenisové Centrum Menu"
-              aria-expanded={ntcMenuOpen}
-              title="NTC Národné Tenisové Centrum"
-            >
-              <div className="flex h-11 w-11 flex-col items-center justify-center rounded-2xl border border-slate-100 bg-white p-1 shadow-md sm:h-12 sm:w-12">
-                <span className="text-sm leading-none">🎾</span>
-                <span className="mt-0.5 rounded-full bg-[#CCFF00] px-1.5 py-0.5 text-[8px] font-black tracking-wider text-black shadow-xs">NTC</span>
-              </div>
-            </button>
-
-            {ntcMenuOpen && (
-              <div className="absolute left-0 top-full mt-2.5 w-60 sm:w-64 origin-top-left rounded-2xl border border-slate-200/90 bg-white/95 p-2 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
-                <div className="flex items-center gap-3 border-b border-slate-100 px-3 py-2.5 mb-1">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-sm">
-                    🎾
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <b className="block truncate text-xs font-bold text-slate-900">Národné Tenisové Centrum</b>
-                    <span className="block truncate text-[10px] font-semibold text-slate-400">ntc.sk</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <Link
-                    href="/newbookings"
-                    onClick={() => setNtcMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition duration-150 group"
-                  >
-                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition duration-150">
-                      <CalendarDays className="h-4 w-4" />
-                    </span>
-                    <span>Rezervačný kalendár</span>
-                  </Link>
-
-                  <a
-                    href="https://www.ntc.sk/profil.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setNtcMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-sky-50 hover:text-sky-600 transition duration-150 group"
-                  >
-                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-sky-50 text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition duration-150">
-                      <Info className="h-4 w-4" />
-                    </span>
-                    <span className="flex-1">O nás</span>
-                    <ExternalLink className="h-3.5 w-3.5 text-slate-400 opacity-60 group-hover:opacity-100" />
-                  </a>
-
-                  <a
-                    href="https://www.ntc.sk/kontakt.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setNtcMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition duration-150 group"
-                  >
-                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition duration-150">
-                      <PhoneCall className="h-4 w-4" />
-                    </span>
-                    <span className="flex-1">Kontakt</span>
-                    <ExternalLink className="h-3.5 w-3.5 text-slate-400 opacity-60 group-hover:opacity-100" />
-                  </a>
-                </div>
-              </div>
-            )}
-          </div>
+          <Link href="/newbookings" className="group flex shrink-0 items-center transition hover:scale-105 active:scale-95" aria-label="NTC Domov">
+            <div className="flex h-11 w-11 flex-col items-center justify-center rounded-2xl border border-slate-100 bg-white p-1 shadow-md sm:h-12 sm:w-12">
+              <span className="text-sm leading-none">🎾</span>
+              <span className="mt-0.5 rounded-full bg-[#CCFF00] px-1.5 py-0.5 text-[8px] font-black tracking-wider text-black shadow-xs">NTC</span>
+            </div>
+          </Link>
           <HolographicTennisCourt />
           {currentUser ? (
             <div className="relative z-50" ref={userMenuRef}>
