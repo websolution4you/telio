@@ -345,10 +345,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
   return (
     <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-      <header className="relative isolate z-40 border-b border-cyan-100/80 bg-gradient-to-r from-white via-cyan-50/80 to-indigo-50/80 shadow-[0_10px_35px_rgba(15,23,42,0.07)]">
+      <header className="relative isolate z-40 border-b border-amber-200/60 bg-gradient-to-r from-yellow-50/70 via-amber-50/60 to-orange-50/70 shadow-[0_10px_35px_rgba(249,115,22,0.06)]">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -left-16 -top-24 h-44 w-44 rounded-full bg-cyan-300/20 blur-3xl" />
-          <div className="absolute -right-12 -top-28 h-48 w-48 rounded-full bg-violet-300/20 blur-3xl" />
+          <div className="absolute -left-16 -top-24 h-44 w-44 rounded-full bg-yellow-300/25 blur-3xl" />
+          <div className="absolute -right-12 -top-28 h-48 w-48 rounded-full bg-orange-300/20 blur-3xl" />
         </div>
         <div className="relative mx-auto flex min-h-[76px] max-w-[1500px] items-center justify-between gap-2 px-4 py-3 sm:min-h-[86px] sm:gap-4 sm:px-6 lg:px-8">
           <Link href="/newbookings" className="group flex shrink-0 items-center transition hover:scale-105 active:scale-95" aria-label="NTC Domov">
@@ -451,7 +451,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             </div>
           )}
         </div>
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/70 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
       </header>
       <main className="mx-auto max-w-[1500px] px-4 py-8 sm:px-6 lg:py-12">
         <div className="mx-auto mb-10 flex w-full max-w-5xl flex-col items-center px-1 text-center sm:mb-12 sm:px-4">
