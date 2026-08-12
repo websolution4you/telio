@@ -371,10 +371,17 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               >
                 NÁRODNÉ TENIS
                 <span className="inline-flex items-center justify-center mx-[1px]">
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-5 sm:w-5 md:h-5 md:w-5 drop-shadow-[0_0_6px_rgba(204,255,0,0.9)]" fill="none">
-                    <circle cx="12" cy="12" r="10" fill="#CCFF00" />
-                    <path d="M4.5 9.5 C8 11.5, 12.5 11.5, 16 9" stroke="#1E293B" strokeWidth="1.8" strokeLinecap="round" />
-                    <path d="M8 15 C11.5 12.5, 16 12.5, 19.5 15" stroke="#1E293B" strokeWidth="1.8" strokeLinecap="round" />
+                  <svg viewBox="0 0 36 36" className="h-4 w-4 sm:h-5 sm:w-5 md:h-5.5 md:w-5.5 drop-shadow-[0_0_8px_rgba(204,255,0,0.85)]" fill="none">
+                    <defs>
+                      <radialGradient id="ntcTitleBallGrad" cx="35%" cy="30%" r="70%">
+                        <stop offset="0%" stopColor="#f7ff57" />
+                        <stop offset="60%" stopColor="#d2f500" />
+                        <stop offset="100%" stopColor="#9ec200" />
+                      </radialGradient>
+                    </defs>
+                    <circle cx="18" cy="18" r="17.5" fill="url(#ntcTitleBallGrad)" />
+                    <path d="M 5,5 C 13,11 13,25 5,31" stroke="#ffffff" strokeWidth="2.8" strokeLinecap="round" opacity="0.95" />
+                    <path d="M 31,5 C 23,11 23,25 31,31" stroke="#ffffff" strokeWidth="2.8" strokeLinecap="round" opacity="0.95" />
                   </svg>
                 </span>
                 VÉ CENTRUM
