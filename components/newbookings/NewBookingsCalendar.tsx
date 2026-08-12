@@ -367,20 +367,22 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               {/* Exact Vector PEUGEOT arena Logo */}
               <div className="relative z-10 flex items-center justify-center">
                 <svg viewBox="0 0 260 70" className="h-10 w-44 sm:h-11 sm:w-52 md:h-12 md:w-60 drop-shadow-[0_2px_6px_rgba(0,0,0,0.85)]" preserveAspectRatio="xMidYMid meet">
-                  {/* Exact Vector PEUGEOT Font */}
+                  {/* Exact Vector PEUGEOT Font (P-E-U-G-E-O-T) */}
                   <g fill="#FFFFFF">
                     {/* P */}
-                    <path d="M 12 6 H 32 C 40 6 43 10 43 16 C 43 22 40 26 32 26 H 20 V 42 H 12 V 6 Z M 20 13 V 19 H 31 C 34 19 35 18 35 16 C 35 14 34 13 31 13 Z" />
+                    <path d="M 10 8 H 28 C 34 8 38 11 38 17 C 38 23 34 26 28 26 H 18 V 40 H 10 Z M 18 14 V 20 H 27 C 30 20 31 19 31 17 C 31 15 30 14 27 14 Z" />
                     {/* E */}
-                    <path d="M 48 6 H 75 V 13 H 56 V 20 H 71 V 27 H 56 V 35 H 75 V 42 H 48 Z" />
+                    <path d="M 44 8 H 70 V 14 H 52 V 21 H 67 V 27 H 52 V 34 H 70 V 40 H 44 Z" />
                     {/* U */}
-                    <path d="M 80 6 H 88 V 32 C 88 35 91 36 96 36 C 101 36 104 35 104 32 V 6 H 112 V 32 C 112 40 106 43 96 43 C 86 43 80 40 80 32 Z" />
+                    <path d="M 76 8 H 84 V 30 C 84 34 87 35 92 35 C 97 35 100 34 100 30 V 8 H 108 V 30 C 108 38 102 41 92 41 C 82 41 76 38 76 30 Z" />
                     {/* G */}
-                    <path d="M 144 14 C 144 9 139 6 130 6 C 121 6 116 9 116 14 V 34 C 116 39 121 42 130 42 C 139 42 144 39 144 34 V 23 H 130 V 29 H 136 V 33 C 136 36 133 37 130 37 C 126 37 124 35 124 31 V 17 C 124 13 126 11 130 11 C 134 11 136 13 136 17 H 144 Z" />
+                    <path d="M 114 16 C 114 10 119 8 128 8 C 137 8 142 10 142 16 V 19 H 134 V 16 C 134 14 132 13 128 13 C 124 13 122 14 122 16 V 32 C 122 34 124 35 128 35 C 132 35 134 34 134 31 V 27 H 126 V 22 H 142 V 32 C 142 38 137 41 128 41 C 119 41 114 38 114 32 Z" />
+                    {/* E */}
+                    <path d="M 148 8 H 174 V 14 H 156 V 21 H 171 V 27 H 156 V 34 H 174 V 40 H 148 Z" />
                     {/* O */}
-                    <path d="M 149 14 C 149 8 156 6 166 6 C 176 6 183 8 183 14 V 34 C 183 40 176 42 166 42 C 156 42 149 40 149 34 Z M 157 14 C 157 11 160 11 166 11 C 172 11 175 11 175 14 V 34 C 175 37 172 37 166 37 C 160 37 157 37 157 34 Z" />
+                    <path d="M 180 16 C 180 10 186 8 196 8 C 206 8 212 10 212 16 V 32 C 212 38 206 41 196 41 C 186 41 180 38 180 32 Z M 188 16 C 188 14 191 13 196 13 C 201 13 204 14 204 16 V 32 C 204 34 201 35 196 35 C 191 35 188 34 188 32 Z" />
                     {/* T */}
-                    <path d="M 188 6 H 220 V 13 H 208 V 42 H 200 V 13 H 188 Z" />
+                    <path d="M 218 8 H 250 V 14 H 238 V 40 H 230 V 14 H 218 Z" />
                   </g>
 
                   {/* Exact arena Swoosh Ring & Text */}
