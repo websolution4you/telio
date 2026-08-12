@@ -352,7 +352,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         </div>
         <div className="relative mx-auto flex min-h-[76px] max-w-[1500px] items-center justify-between gap-2 px-4 py-3 sm:min-h-[86px] sm:gap-4 sm:px-6 lg:px-8">
           <Link href="/newbookings" className="group flex shrink-0 items-center transition hover:scale-105 active:scale-95" aria-label="NTC Domov">
-            {/* Desktop PEUGEOT arena Logo Banner on 3D Antuka Clay Court */}
+            {/* Desktop NÁRODNÉ TENIS-O-VÉ CENTRUM Logo Banner on 3D Antuka Clay Court */}
             <div className="hidden md:flex relative overflow-hidden items-center justify-center rounded-2xl border border-orange-800/60 bg-gradient-to-r from-[#B8442A] via-[#E26A4F] to-[#C44B31] px-5 py-2.5 shadow-[0_4px_16px_rgba(180,83,9,0.38)] transition duration-300 group-hover:shadow-[0_6px_22px_rgba(180,83,9,0.48)]">
               {/* 3D Perspective Clay Court White Lines Overlay */}
               <div className="pointer-events-none absolute inset-0 opacity-30">
@@ -364,52 +364,21 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                 </svg>
               </div>
 
-              {/* Exact Vector PEUGEOT arena Logo */}
-              <div className="relative z-10 flex items-center justify-center">
-                <svg viewBox="0 0 260 70" className="h-10 w-44 sm:h-11 sm:w-52 md:h-12 md:w-60 drop-shadow-[0_2px_6px_rgba(0,0,0,0.85)]" preserveAspectRatio="xMidYMid meet">
-                  {/* Exact Vector PEUGEOT Font (P-E-U-G-E-O-T) */}
-                  <g fill="#FFFFFF">
-                    {/* P */}
-                    <path d="M 10 8 H 28 C 34 8 38 11 38 17 C 38 23 34 26 28 26 H 18 V 40 H 10 Z M 18 14 V 20 H 27 C 30 20 31 19 31 17 C 31 15 30 14 27 14 Z" />
-                    {/* E */}
-                    <path d="M 44 8 H 70 V 14 H 52 V 21 H 67 V 27 H 52 V 34 H 70 V 40 H 44 Z" />
-                    {/* U */}
-                    <path d="M 76 8 H 84 V 30 C 84 34 87 35 92 35 C 97 35 100 34 100 30 V 8 H 108 V 30 C 108 38 102 41 92 41 C 82 41 76 38 76 30 Z" />
-                    {/* G */}
-                    <path d="M 114 16 C 114 10 119 8 128 8 C 137 8 142 10 142 16 V 19 H 134 V 16 C 134 14 132 13 128 13 C 124 13 122 14 122 16 V 32 C 122 34 124 35 128 35 C 132 35 134 34 134 31 V 27 H 126 V 22 H 142 V 32 C 142 38 137 41 128 41 C 119 41 114 38 114 32 Z" />
-                    {/* E */}
-                    <path d="M 148 8 H 174 V 14 H 156 V 21 H 171 V 27 H 156 V 34 H 174 V 40 H 148 Z" />
-                    {/* O */}
-                    <path d="M 180 16 C 180 10 186 8 196 8 C 206 8 212 10 212 16 V 32 C 212 38 206 41 196 41 C 186 41 180 38 180 32 Z M 188 16 C 188 14 191 13 196 13 C 201 13 204 14 204 16 V 32 C 204 34 201 35 196 35 C 191 35 188 34 188 32 Z" />
-                    {/* T */}
-                    <path d="M 218 8 H 250 V 14 H 238 V 40 H 230 V 14 H 218 Z" />
-                  </g>
-
-                  {/* Exact arena Swoosh Ring & Text */}
-                  <g transform="translate(45, 33)">
-                    <path
-                      d="M 15 16 C 0 4, 35 -4, 95 -1 C 155 2, 175 14, 155 27 C 130 38, 45 35, 10 27 C -4 24, 0 16, 15 16 Z"
-                      fill="none"
-                      stroke="#FF9D00"
-                      strokeWidth="4.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <text
-                      x="40"
-                      y="25"
-                      fill="#FF9D00"
-                      fontWeight="900"
-                      fontSize="22"
-                      letterSpacing="-0.02em"
-                      fontStyle="italic"
-                      style={{ fontFamily: "Arial Black, Impact, var(--font-poppins), sans-serif" }}
-                    >
-                      arena
-                    </text>
-                  </g>
-                </svg>
-              </div>
+              {/* NÁRODNÉ TENIS [🎾] VÉ CENTRUM Typography */}
+              <span
+                className="relative z-10 flex items-center gap-0.5 text-sm font-black uppercase tracking-wider text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] sm:text-base md:text-lg"
+                style={{ fontFamily: "var(--font-poppins), sans-serif" }}
+              >
+                NÁRODNÉ TENIS
+                <span className="inline-flex items-center justify-center mx-[1px]">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-5 sm:w-5 md:h-5 md:w-5 drop-shadow-[0_0_6px_rgba(204,255,0,0.9)]" fill="none">
+                    <circle cx="12" cy="12" r="10" fill="#CCFF00" />
+                    <path d="M4.5 9.5 C8 11.5, 12.5 11.5, 16 9" stroke="#1E293B" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M8 15 C11.5 12.5, 16 12.5, 19.5 15" stroke="#1E293B" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                </span>
+                VÉ CENTRUM
+              </span>
             </div>
 
             {/* Mobile & Mobile App Compact Icon Badge */}
