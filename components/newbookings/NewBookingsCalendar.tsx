@@ -570,21 +570,39 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       {deleting && <DeleteDialog loading={loading} onCancel={() => setDeleting(null)} onConfirm={remove} />}
       <style jsx global>{`
         @keyframes new-voice-booking-border-pulse {
-          0%, 100% {
-            border-color: #CCFF00 !important;
-            box-shadow: 0 0 0 3px rgba(204, 255, 0, 0.95), 0 0 18px rgba(204, 255, 0, 0.85);
+          0% {
+            border-color: #FF6B00 !important;
+            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.95), 0 0 22px rgba(255, 107, 0, 0.9), inset 0 0 12px rgba(255, 107, 0, 0.5);
+            transform: scale(1.02);
+          }
+          25% {
+            border-color: #FF9E00 !important;
+            box-shadow: 0 0 0 5px rgba(255, 158, 0, 0.95), 0 0 34px rgba(255, 158, 0, 0.95), inset 0 0 18px rgba(255, 158, 0, 0.6);
+            transform: scale(1.05);
           }
           50% {
-            border-color: #eefc42 !important;
-            box-shadow: 0 0 0 5px rgba(204, 255, 0, 0.5), 0 0 28px rgba(204, 255, 0, 1);
+            border-color: #FF6B00 !important;
+            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.95), 0 0 22px rgba(255, 107, 0, 0.9), inset 0 0 12px rgba(255, 107, 0, 0.5);
+            transform: scale(1.03);
+          }
+          75% {
+            border-color: #FF9E00 !important;
+            box-shadow: 0 0 0 5px rgba(255, 158, 0, 0.95), 0 0 34px rgba(255, 158, 0, 0.95), inset 0 0 18px rgba(255, 158, 0, 0.6);
+            transform: scale(1.05);
+          }
+          100% {
+            border-color: inherit;
+            box-shadow: none;
+            transform: scale(1);
           }
         }
         @keyframes new-voice-booking-scan {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(300%); }
+          0% { transform: translateX(-100%); opacity: 1; }
+          80% { opacity: 1; }
+          100% { transform: translateX(300%); opacity: 0; }
         }
         .voice-booking-highlight {
-          animation: new-voice-booking-border-pulse 0.8s ease-in-out infinite !important;
+          animation: new-voice-booking-border-pulse 3s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
           z-index: 40 !important;
           border-width: 2px !important;
         }
@@ -592,12 +610,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           position: absolute;
           inset: 0;
           pointer-events: none;
-          background: linear-gradient(90deg, transparent, rgba(204, 255, 0, 0.2), rgba(204, 255, 0, 0.95), rgba(204, 255, 0, 0.2), transparent);
+          background: linear-gradient(90deg, transparent, rgba(255, 158, 0, 0.3), rgba(255, 107, 0, 0.95), rgba(255, 158, 0, 0.3), transparent);
           filter: blur(1px);
-          animation: new-voice-booking-scan 1.2s linear infinite;
+          animation: new-voice-booking-scan 3s ease-out forwards;
         }
         @media (prefers-reduced-motion: reduce) {
-          .voice-booking-highlight { animation: none; border-color: rgba(204, 255, 0, 0.95); }
+          .voice-booking-highlight { animation: none; border-color: rgba(255, 107, 0, 0.95); }
           .voice-booking-scan { display: none; }
         }
       `}</style>
