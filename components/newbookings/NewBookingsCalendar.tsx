@@ -272,7 +272,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       const timer = window.setTimeout(() => {
         setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
         timers.delete(bookingId);
-      }, 4000);
+      }, 4500);
       timers.set(bookingId, timer);
     }).subscribe();
     return () => {
@@ -539,7 +539,35 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                                 <line x1="50" y1="5" x2="50" y2="95" stroke="#FFFFFF" strokeWidth="2" strokeDasharray="6,4" />
                               </svg>
                             </div>
-                            {voiceHighlight && <span className="voice-booking-scan" aria-hidden="true" />}
+                            {voiceHighlight && (
+                              <>
+                                <div className="pointer-events-none absolute inset-0 z-30 overflow-visible">
+                                  <svg className="h-full w-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+                                    <rect
+                                      x="2"
+                                      y="2"
+                                      width="96"
+                                      height="96"
+                                      rx="8"
+                                      ry="8"
+                                      fill="none"
+                                      stroke="url(#orangeAgencyLaserGrad)"
+                                      strokeWidth="7"
+                                      className="laser-perimeter-beam"
+                                    />
+                                    <defs>
+                                      <linearGradient id="orangeAgencyLaserGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stopColor="#FFF500" />
+                                        <stop offset="35%" stopColor="#FF6B00" />
+                                        <stop offset="70%" stopColor="#FF0055" />
+                                        <stop offset="100%" stopColor="#FFD700" />
+                                      </linearGradient>
+                                    </defs>
+                                  </svg>
+                                </div>
+                                <span className="voice-booking-scan" aria-hidden="true" />
+                              </>
+                            )}
                             <b className="relative z-[1] block whitespace-normal break-words text-[clamp(8px,0.7vw,12px)] font-black leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] [overflow-wrap:anywhere]">
                               <span className="block">{formatTime(booking.start)}</span>
                               <span className="block leading-[0.55]" aria-hidden="true">–</span>
@@ -569,53 +597,76 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       {detail && <BookingDetailDialog booking={detail} court={courts.find((court) => court.id === detail.courtId)} canManage={!!currentUser && (currentUser.role === "admin" || currentUser.id === detail.user_id)} canCancel={currentUser?.role === "admin" || new Date(detail.start).getTime() - now.getTime() > 24 * 60 * 60 * 1000} onClose={() => setDetail(null)} onDelete={() => setDeleting(detail)} />}
       {deleting && <DeleteDialog loading={loading} onCancel={() => setDeleting(null)} onConfirm={remove} />}
       <style jsx global>{`
-        @keyframes new-voice-booking-border-pulse {
+        @keyframes orange-laser-perimeter-trace {
           0% {
-            border-color: #FF6B00 !important;
-            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.95), 0 0 22px rgba(255, 107, 0, 0.9), inset 0 0 12px rgba(255, 107, 0, 0.5);
-            transform: scale(1.02);
+            stroke-dashoffset: 400;
+            opacity: 1;
+            filter: drop-shadow(0 0 10px #FF6B00) drop-shadow(0 0 20px #FFD700);
           }
-          25% {
-            border-color: #FF9E00 !important;
-            box-shadow: 0 0 0 5px rgba(255, 158, 0, 0.95), 0 0 34px rgba(255, 158, 0, 0.95), inset 0 0 18px rgba(255, 158, 0, 0.6);
-            transform: scale(1.05);
-          }
-          50% {
-            border-color: #FF6B00 !important;
-            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.95), 0 0 22px rgba(255, 107, 0, 0.9), inset 0 0 12px rgba(255, 107, 0, 0.5);
-            transform: scale(1.03);
-          }
-          75% {
-            border-color: #FF9E00 !important;
-            box-shadow: 0 0 0 5px rgba(255, 158, 0, 0.95), 0 0 34px rgba(255, 158, 0, 0.95), inset 0 0 18px rgba(255, 158, 0, 0.6);
-            transform: scale(1.05);
+          85% {
+            stroke-dashoffset: 0;
+            opacity: 1;
+            filter: drop-shadow(0 0 14px #FF4500) drop-shadow(0 0 28px #FFD700);
           }
           100% {
-            border-color: inherit;
-            box-shadow: none;
-            transform: scale(1);
+            stroke-dashoffset: 0;
+            opacity: 0;
           }
         }
-        @keyframes new-voice-booking-scan {
-          0% { transform: translateX(-100%); opacity: 1; }
-          80% { opacity: 1; }
-          100% { transform: translateX(300%); opacity: 0; }
+        @keyframes orange-tile-agency-pulse {
+          0% {
+            box-shadow: 0 0 0 2px #FF6B00, 0 0 20px rgba(255, 107, 0, 0.9), inset 0 0 15px rgba(255, 215, 0, 0.6);
+            transform: scale(1.02);
+          }
+          20% {
+            box-shadow: 0 0 0 4px #FF9E00, 0 0 35px rgba(255, 158, 0, 1), inset 0 0 22px rgba(255, 215, 0, 0.8);
+            transform: scale(1.06);
+          }
+          40% {
+            box-shadow: 0 0 0 2px #FF6B00, 0 0 22px rgba(255, 107, 0, 0.9), inset 0 0 15px rgba(255, 215, 0, 0.6);
+            transform: scale(1.03);
+          }
+          60% {
+            box-shadow: 0 0 0 4px #FF9E00, 0 0 38px rgba(255, 158, 0, 1), inset 0 0 24px rgba(255, 215, 0, 0.8);
+            transform: scale(1.06);
+          }
+          80% {
+            box-shadow: 0 0 0 2px #FF6B00, 0 0 25px rgba(255, 107, 0, 0.8);
+            transform: scale(1.03);
+            opacity: 1;
+          }
+          100% {
+            box-shadow: none;
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+        @keyframes orange-glossy-sweep {
+          0% { transform: translateX(-120%) rotate(15deg); opacity: 0; }
+          15% { opacity: 1; }
+          85% { opacity: 1; }
+          100% { transform: translateX(250%) rotate(15deg); opacity: 0; }
         }
         .voice-booking-highlight {
-          animation: new-voice-booking-border-pulse 3s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
-          z-index: 40 !important;
-          border-width: 2px !important;
+          animation: orange-tile-agency-pulse 4s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+          z-index: 50 !important;
+        }
+        .laser-perimeter-beam {
+          stroke-dasharray: 400;
+          stroke-dashoffset: 400;
+          animation: orange-laser-perimeter-trace 4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
         .voice-booking-scan {
           position: absolute;
-          inset: 0;
+          inset: -10px;
           pointer-events: none;
-          background: linear-gradient(90deg, transparent, rgba(255, 158, 0, 0.3), rgba(255, 107, 0, 0.95), rgba(255, 158, 0, 0.3), transparent);
-          filter: blur(1px);
-          animation: new-voice-booking-scan 3s ease-out forwards;
+          background: linear-gradient(115deg, transparent 20%, rgba(255, 215, 0, 0.4) 40%, rgba(255, 255, 255, 0.95) 50%, rgba(255, 107, 0, 0.5) 60%, transparent 80%);
+          filter: blur(2px);
+          animation: orange-glossy-sweep 4s ease-out forwards;
         }
         @media (prefers-reduced-motion: reduce) {
           .voice-booking-highlight { animation: none; border-color: rgba(255, 107, 0, 0.95); }
+          .laser-perimeter-beam { display: none; }
           .voice-booking-scan { display: none; }
         }
       `}</style>
