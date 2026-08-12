@@ -352,7 +352,23 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         </div>
         <div className="relative mx-auto flex min-h-[76px] max-w-[1500px] items-center justify-between gap-2 px-4 py-3 sm:min-h-[86px] sm:gap-4 sm:px-6 lg:px-8">
           <Link href="/newbookings" className="group flex shrink-0 items-center transition hover:scale-105 active:scale-95" aria-label="NTC Domov">
-            <div className="flex h-11 w-11 flex-col items-center justify-center rounded-2xl border border-slate-100 bg-white p-1 shadow-md sm:h-12 sm:w-12">
+            {/* Desktop Full Logo Banner */}
+            <div className="hidden md:flex items-center gap-1.5 rounded-2xl bg-black px-4 py-2.5 text-white shadow-md border border-slate-800 transition group-hover:border-slate-700">
+              <span className="text-xs font-black tracking-wider uppercase text-white flex items-center gap-0.5 sm:text-sm md:text-base" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>
+                NÁRODNÉ TENIS
+                <span className="inline-flex items-center justify-center mx-[1px]">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-5 sm:w-5 drop-shadow-[0_0_5px_rgba(204,255,0,0.9)]" fill="none">
+                    <circle cx="12" cy="12" r="10" fill="#CCFF00" />
+                    <path d="M4.5 9.5 C8 11.5, 12.5 11.5, 16 9" stroke="#1E293B" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M8 15 C11.5 12.5, 16 12.5, 19.5 15" stroke="#1E293B" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                </span>
+                VÉ CENTRUM
+              </span>
+            </div>
+
+            {/* Mobile & Mobile App Compact Icon Badge */}
+            <div className="flex md:hidden h-11 w-11 flex-col items-center justify-center rounded-2xl border border-slate-100 bg-white p-1 shadow-md sm:h-12 sm:w-12">
               <span className="text-sm leading-none">🎾</span>
               <span className="mt-0.5 rounded-full bg-[#CCFF00] px-1.5 py-0.5 text-[8px] font-black tracking-wider text-black shadow-xs">NTC</span>
             </div>
