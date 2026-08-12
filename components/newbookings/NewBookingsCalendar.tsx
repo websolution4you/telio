@@ -352,19 +352,50 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         </div>
         <div className="relative mx-auto flex min-h-[76px] max-w-[1500px] items-center justify-between gap-2 px-4 py-3 sm:min-h-[86px] sm:gap-4 sm:px-6 lg:px-8">
           <Link href="/newbookings" className="group flex shrink-0 items-center transition hover:scale-105 active:scale-95" aria-label="NTC Domov">
-            {/* Desktop Full Logo Banner */}
-            <div className="hidden md:flex items-center gap-1.5 rounded-2xl bg-black px-4 py-2.5 text-white shadow-md border border-slate-800 transition group-hover:border-slate-700">
-              <span className="text-xs font-black tracking-wider uppercase text-white flex items-center gap-0.5 sm:text-sm md:text-base" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>
-                NÁRODNÉ TENIS
-                <span className="inline-flex items-center justify-center mx-[1px]">
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-5 sm:w-5 drop-shadow-[0_0_5px_rgba(204,255,0,0.9)]" fill="none">
-                    <circle cx="12" cy="12" r="10" fill="#CCFF00" />
-                    <path d="M4.5 9.5 C8 11.5, 12.5 11.5, 16 9" stroke="#1E293B" strokeWidth="1.8" strokeLinecap="round" />
-                    <path d="M8 15 C11.5 12.5, 16 12.5, 19.5 15" stroke="#1E293B" strokeWidth="1.8" strokeLinecap="round" />
-                  </svg>
+            {/* Desktop PEUGEOT arena Logo Banner on 3D Antuka Clay Court */}
+            <div className="hidden md:flex relative overflow-hidden items-center justify-center rounded-2xl border border-orange-800/50 bg-gradient-to-r from-[#B8442A] via-[#E26A4F] to-[#C44B31] px-5 py-2 shadow-[0_4px_16px_rgba(180,83,9,0.35)] transition duration-300 group-hover:shadow-[0_6px_22px_rgba(180,83,9,0.45)]">
+              {/* 3D Perspective Clay Court White Lines Overlay */}
+              <div className="pointer-events-none absolute inset-0 opacity-30">
+                <svg viewBox="0 0 200 60" className="h-full w-full" preserveAspectRatio="none">
+                  <polygon points="12,4 188,4 196,56 4,56" fill="none" stroke="#FFFFFF" strokeWidth="1.5" />
+                  <line x1="100" y1="4" x2="100" y2="56" stroke="#FFFFFF" strokeWidth="1.5" strokeDasharray="3,2" />
+                  <line x1="48" y1="4" x2="42" y2="56" stroke="#FFFFFF" strokeWidth="1" />
+                  <line x1="152" y1="4" x2="158" y2="56" stroke="#FFFFFF" strokeWidth="1" />
+                </svg>
+              </div>
+
+              {/* PEUGEOT arena Typography & Swoosh */}
+              <div className="relative z-10 flex flex-col items-center justify-center leading-none py-0.5">
+                <span
+                  className="text-sm font-black tracking-[0.28em] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] sm:text-base md:text-lg"
+                  style={{ fontFamily: "var(--font-poppins), sans-serif" }}
+                >
+                  PEUGEOT
                 </span>
-                VÉ CENTRUM
-              </span>
+                <div className="relative -mt-0.5 flex items-center justify-center">
+                  <svg viewBox="0 0 140 32" className="h-5 w-28 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] sm:h-6 sm:w-32">
+                    <path
+                      d="M 12 18 C 8 8, 30 2, 75 2 C 120 2, 138 12, 125 24 C 112 32, 50 30, 10 26 C 2 25, 6 18, 12 18 Z"
+                      fill="none"
+                      stroke="#FFA500"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                    />
+                    <text
+                      x="35"
+                      y="22"
+                      fill="#FFA500"
+                      fontWeight="900"
+                      fontSize="18"
+                      letterSpacing="0.05em"
+                      fontStyle="italic"
+                      style={{ fontFamily: "var(--font-poppins), sans-serif" }}
+                    >
+                      arena
+                    </text>
+                  </svg>
+                </div>
+              </div>
             </div>
 
             {/* Mobile & Mobile App Compact Icon Badge */}
