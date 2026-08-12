@@ -460,9 +460,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         </div>
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
       </header>
-      <main className="mx-auto max-w-[1500px] px-4 py-8 sm:px-6 lg:py-12">
-        <div className="mx-auto mb-10 flex w-full max-w-5xl flex-col items-center px-1 text-center sm:mb-12 sm:px-4">
-          <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-700 sm:text-xs"><ShieldCheck className="h-4 w-4" /> Tenisové centrum</span>
+      <main className="mx-auto max-w-[1500px] px-4 py-5 sm:px-6 lg:py-8">
+        <div className="mx-auto mb-6 flex w-full max-w-5xl flex-col items-center px-1 text-center sm:mb-8 sm:px-4">
           <h1 className="max-w-4xl text-balance text-3xl font-semibold leading-[1.15] tracking-[-0.035em] text-slate-950 sm:text-4xl md:text-5xl" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>Komplexný rezervačný systém hlasového asistenta Telio</h1>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600 sm:mt-5 sm:text-base sm:leading-7">Webové aj hlasové rezervácie sa zobrazujú v jednom aktuálnom a prehľadnom kalendári.</p>
         </div>
