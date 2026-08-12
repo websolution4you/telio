@@ -626,7 +626,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             </div>
           </div>
         </section>
-        <div className="mt-5 flex flex-wrap items-center gap-6 text-sm font-semibold"><span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-md border border-emerald-400 bg-gradient-to-br from-[#15803D] to-[#14532D] shadow-xs" /> Obsadené (Trávnatý kurt)</span><span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-md border border-orange-300 bg-gradient-to-br from-[#D95A3F] to-[#C44B31] shadow-xs" /> Vaša rezervácia (Antukový kurt)</span>{loading && <span className="text-slate-500 font-normal">Aktualizujem...</span>}</div>
+        <div className="mt-5 flex flex-wrap items-center gap-6 text-sm font-semibold"><span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-md border border-emerald-400 bg-gradient-to-br from-[#15803D] to-[#14532D] shadow-xs" /> Obsadené</span><span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-md border border-orange-300 bg-gradient-to-br from-[#D95A3F] to-[#C44B31] shadow-xs" /> Vaša rezervácia</span>{loading && <span className="text-slate-500 font-normal">Aktualizujem...</span>}</div>
       </main>
       {datePickerOpen && <DatePicker value={date} min={today} max={maxDate} onSelect={(selected) => selectDate(dateKey(selected))} onClose={() => setDatePickerOpen(false)} />}
       {auth && <NewBookingAuth mode={auth} onClose={() => setAuth(null)} onSuccess={() => window.location.reload()} />}
