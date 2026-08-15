@@ -8,6 +8,8 @@ import {
 } from "@/lib/server/calendarAdapter";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth/bookingAuth";
+import { walletEnabledForUser } from "@/lib/server/wallet";
+
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
 
@@ -154,6 +156,7 @@ export async function createBookingAction(payload: {
     end: string;
     status: "confirmed" | "blocked";
     source: "web" | "admin" | "voice-assistant" | "google-calendar";
+    operationId?: string;
 }) {
     try {
         const session = await getSession();
@@ -214,40 +217,81 @@ export async function createBookingAction(payload: {
             return { success: false, error: "Vybraný kurt je v tomto čase už zarezervovaný." };
         }
 
-        // Insert booking into Supabase
-        const notesObj = {
+                const notesObj = {
             courtId: payload.courtId,
             source: payload.source,
             notes: payload.title
         };
+        const useWallet = payload.source !== "admin" && walletEnabledForUser(session.userId);
 
-        const { data: dbBooking, error: dbError } = await db
-            .from("bookings")
-            .insert({
-                tenant_id: TENANT_ID,
-                customer_name: payload.customerName,
-                customer_phone: payload.phone || null,
-                start_at: payload.start,
-                end_at: payload.end,
-                status: payload.status,
-                notes: JSON.stringify(notesObj),
-                user_id: session.userId
-            })
-            .select()
-            .single();
+        let bookingId: string;
+        let wallet: { chargedEur: number; balanceEur: number; created: boolean } | undefined;
+        if (useWallet) {
+            if (!payload.operationId) {
+                return { success: false, error: "Chýba identifikátor rezervácie. Skúste to znova." };
+            }
+            const sport = payload.courtId.replace(/-\d+$/, "");
+            const { data, error } = await db.rpc("wallet_create_ntc_booking", {
+                p_user_id: session.userId,
+                p_court_id: payload.courtId,
+                p_sport: sport,
+                p_customer_name: payload.customerName,
+                p_customer_phone: payload.phone || "",
+                p_start_at: payload.start,
+                p_end_at: payload.end,
+                p_notes: JSON.stringify(notesObj),
+                p_idempotency_key: payload.operationId,
+            });
+            if (error) {
+                const message = error.message.toLowerCase();
+                if (message.includes("insufficient wallet balance")) {
+                    return { success: false, error: "Nedostatočný zostatok v peňaženke." };
+                }
+                if (message.includes("no longer available")) {
+                    return { success: false, error: "Vybraný kurt je už obsadený." };
+                }
+                throw new Error(`Wallet booking error: ${error.message}`);
+            }
+            const result = data?.[0];
+            if (!result) throw new Error("Wallet booking did not return a result");
+            bookingId = result.booking_id;
+            wallet = {
+                chargedEur: Number(result.charged_eur),
+                balanceEur: Number(result.balance_eur),
+                created: Boolean(result.created),
+            };
+        } else {
+            const { data: dbBooking, error: dbError } = await db
+                .from("bookings")
+                .insert({
+                    tenant_id: TENANT_ID,
+                    court_id: payload.courtId,
+                    sport: payload.courtId.replace(/-\d+$/, ""),
+                    customer_name: payload.customerName,
+                    customer_phone: payload.phone || null,
+                    start_at: payload.start,
+                    end_at: payload.end,
+                    status: payload.status,
+                    notes: JSON.stringify(notesObj),
+                    user_id: session.userId
+                })
+                .select()
+                .single();
 
-        if (dbError) {
-            throw new Error(`Database error: ${dbError.message}`);
+            if (dbError) throw new Error(`Database error: ${dbError.message}`);
+            bookingId = dbBooking.id;
         }
 
         revalidatePath("/bookings");
-        return { 
-            success: true, 
+        revalidatePath("/newbookings");
+        return {
+            success: true,
             booking: {
-                id: dbBooking.id,
+                id: bookingId,
                 user_id: session.userId,
                 ...payload
-            } 
+            },
+            wallet,
         };
     } catch (error: any) {
         console.error("createBookingAction failed:", error);
@@ -258,63 +302,61 @@ export async function createBookingAction(payload: {
 export async function deleteBookingAction(id: string) {
     try {
         const session = await getSession();
-        if (!session) {
-            return { success: false, error: "Nedostatočné oprávnenia." };
-        }
+        if (!session) return { success: false, error: "Nedostatočné oprávnenia." };
 
         const db = getCoreDb();
-        console.log(`Deleting booking ${id} for NTC Tenant: ${TENANT_ID}`);
-
-        // Find booking in Supabase database to check permissions
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-        
         let query = db.from("bookings").select("id, user_id, start_at, tenant_id");
-        if (isUuid) {
-            query = query.eq("id", id);
-        } else {
-            // If they pass some other ID type, fallback search
-            query = query.eq("calendar_event_id", id);
-        }
+        query = isUuid ? query.eq("id", id) : query.eq("calendar_event_id", id);
+        const { data: booking, error: selectError } = await query.maybeSingle();
 
-        const { data: dbBooking, error: selectErr } = await query.maybeSingle();
-
-        if (selectErr) {
-            console.error("Failed to select booking from database:", selectErr.message);
-        }
-
-                if (!dbBooking || dbBooking.tenant_id !== TENANT_ID) {
+        if (selectError) throw new Error(`Database lookup error: ${selectError.message}`);
+        if (!booking || booking.tenant_id !== TENANT_ID) {
             return { success: false, error: "Rezervácia sa nenašla." };
         }
-
-        if (session.role !== "admin" && dbBooking.user_id !== session.userId) {
+        if (session.role !== "admin" && booking.user_id !== session.userId) {
             return { success: false, error: "Nemáte oprávnenie zrušiť túto rezerváciu." };
         }
-
         if (session.role !== "admin") {
-            const cancellationDeadline = new Date(dbBooking.start_at).getTime() - 24 * 60 * 60 * 1000;
+            const cancellationDeadline = new Date(booking.start_at).getTime() - 24 * 60 * 60 * 1000;
             if (Date.now() >= cancellationDeadline) {
                 return { success: false, error: "Rezerváciu je možné zrušiť iba viac ako 24 hodín pred jej začiatkom." };
             }
         }
 
-        const targetDbId = dbBooking.id;
+        let wallet: { refundedEur: number; balanceEur: number; refunded: boolean } | undefined;
+        const { data: charge, error: chargeError } = await db
+            .from("wallet_transactions")
+            .select("id")
+            .eq("booking_id", booking.id)
+            .eq("type", "booking_charge")
+            .maybeSingle();
+        if (chargeError) throw new Error(`Wallet lookup error: ${chargeError.message}`);
 
-        // Soft delete in Supabase (mark as cancelled)
-        if (targetDbId) {
-            const { error: updateErr } = await db
+        if (charge) {
+            const { data, error } = await db.rpc("wallet_refund_ntc_booking", {
+                p_booking_id: booking.id,
+            });
+            if (error) throw new Error(`Wallet refund error: ${error.message}`);
+            const result = data?.[0];
+            if (!result) throw new Error("Wallet refund did not return a result");
+            wallet = {
+                refundedEur: Number(result.refunded_eur),
+                balanceEur: Number(result.balance_eur),
+                refunded: Boolean(result.refunded),
+            };
+        } else {
+            const { error } = await db
                 .from("bookings")
                 .update({ status: "cancelled" })
-                .eq("id", targetDbId);
-            
-            if (updateErr) {
-                throw new Error(`Database update error: ${updateErr.message}`);
-            }
-                }
+                .eq("id", booking.id);
+            if (error) throw new Error(`Database update error: ${error.message}`);
+        }
 
         revalidatePath("/bookings");
         revalidatePath("/newbookings");
         revalidatePath("/dashboard/newbookings");
-        return { success: true };
+        return { success: true, wallet };
     } catch (error: any) {
         console.error("deleteBookingAction failed:", error);
         return { success: false, error: error.message || "Failed to delete booking" };

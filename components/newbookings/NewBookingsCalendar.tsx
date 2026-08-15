@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, LayoutDashboard, LogIn, LogOut, Plus, ShieldCheck, Sparkles, UserPlus } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Plus, ShieldCheck, Sparkles, UserPlus } from "lucide-react";
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { createBookingAction, deleteBookingAction, fetchBookingsAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
+import { addTestWalletCreditAction, getWalletAction } from "@/app/actions/wallet";
+
 import { supabase } from "@/lib/supabase";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 import type { Booking, Court, SportType } from "@/lib/bookings/mockBookings";
@@ -212,6 +214,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [title, setTitle] = useState("");
   const [phone, setPhone] = useState("");
   const [duration, setDuration] = useState(60);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [topUpLoading, setTopUpLoading] = useState<number | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [highlightedVoiceBookings, setHighlightedVoiceBookings] = useState<string[]>([]);
   const today = useMemo(() => { const value = new Date(); value.setHours(0, 0, 0, 0); return value; }, []);
@@ -236,9 +240,22 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
   const courtColumnWidth = 100;
   const timeColumnMinWidth = 64;
-  const calendarMinWidth = courtColumnWidth + hours.length * timeColumnMinWidth;
+    const calendarMinWidth = courtColumnWidth + hours.length * timeColumnMinWidth;
   const calendarColumns = `${courtColumnWidth}px minmax(${hours.length * timeColumnMinWidth}px, 1fr)`;
-  const timeColumns = `repeat(${hours.length}, minmax(${timeColumnMinWidth}px, 1fr))`; 
+  const timeColumns = `repeat(${hours.length}, minmax(${timeColumnMinWidth}px, 1fr))`;
+
+  useEffect(() => {
+    let active = true;
+    if (!currentUser) {
+      setWalletBalance(null);
+      return;
+    }
+    getWalletAction().then((result) => {
+      if (active && result.success && result.enabled) setWalletBalance(result.balanceEur);
+      if (active && (!result.success || !result.enabled)) setWalletBalance(null);
+    });
+    return () => { active = false; };
+  }, [currentUser]);
 
   useEffect(() => {
     let active = true;
@@ -328,17 +345,28 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     const start = new Date(slot.date); start.setHours(slot.hour, 0, 0, 0); const end = new Date(start.getTime() + duration * 60000);
     if (hasConflict(slot.courtId, start, end)) return setNotice("Vybraný kurt je v tomto čase obsadený.");
     setLoading(true);
-    const result = await createBookingAction({ courtId: slot.courtId, title: title.trim() || sports.find((item) => item.id === sport)?.label || "Rezervácia", customerName: currentUser.name, phone: phone || undefined, start: start.toISOString(), end: end.toISOString(), status: "confirmed", source: "web" });
+        const result = await createBookingAction({ courtId: slot.courtId, title: title.trim() || sports.find((item) => item.id === sport)?.label || "Rezervácia", customerName: currentUser.name, phone: phone || undefined, start: start.toISOString(), end: end.toISOString(), status: "confirmed", source: "web", operationId: crypto.randomUUID() });
     setLoading(false);
     if (!result.success || !result.booking) return setNotice(result.error || "Rezerváciu sa nepodarilo vytvoriť.");
-    setItems((current) => [...current, result.booking as Booking]); setSlot(null); setNotice("Rezervácia bola úspešne vytvorená.");
+    if (result.wallet) setWalletBalance(result.wallet.balanceEur);
+    setItems((current) => [...current, result.booking as Booking]); setSlot(null); setNotice(result.wallet ? `Rezervácia bola vytvorená. Odpočítané: ${result.wallet.chargedEur.toFixed(2)} €.` : "Rezervácia bola úspešne vytvorená.");
   };
   const remove = async () => {
     if (!deleting) return; setLoading(true); const result = await deleteBookingAction(deleting.id); setLoading(false);
-    if (!result.success) { setDeleting(null); return setNotice(result.error || "Rezerváciu sa nepodarilo zrušiť."); }
-    setItems((current) => current.filter((booking) => booking.id !== deleting.id)); setDeleting(null); setDetail(null); setNotice("Rezervácia bola zrušená.");
+        if (!result.success) { setDeleting(null); return setNotice(result.error || "Rezerváciu sa nepodarilo zrušiť."); }
+    if (result.wallet) setWalletBalance(result.wallet.balanceEur);
+    setItems((current) => current.filter((booking) => booking.id !== deleting.id)); setDeleting(null); setDetail(null); setNotice(result.wallet ? `Rezervácia bola zrušená. Vrátené: ${result.wallet.refundedEur.toFixed(2)} €.` : "Rezervácia bola zrušená.");
+  };
+    const addTestCredit = async (amountEur: number) => {
+    setTopUpLoading(amountEur);
+    const result = await addTestWalletCreditAction(amountEur, crypto.randomUUID());
+    setTopUpLoading(null);
+    if (!result.success) return setNotice(result.error || "Kredit sa nepodarilo pridať.");
+    setWalletBalance(result.balanceEur);
+    setNotice(`Testovací kredit +${result.amountEur.toFixed(2)} € bol pridaný.`);
   };
   const position = (booking: Booking) => {
+
     const start = new Date(booking.start); const end = new Date(booking.end); const total = (openingHours.endHour - openingHours.startHour) * 60; const offset = (start.getHours() - openingHours.startHour) * 60 + start.getMinutes();
     return { left: `${offset / total * 100}%`, width: `${(end.getTime() - start.getTime()) / 60000 / total * 100}%` };
   };
@@ -395,8 +423,15 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             </div>
           </Link>
           <HolographicTennisCourt />
-          {currentUser ? (
-            <div className="relative z-50" ref={userMenuRef}>
+                    {currentUser ? (
+            <div className="relative z-50 flex items-center gap-2" ref={userMenuRef}>
+              {walletBalance !== null && (
+                <div className="flex h-11 items-center gap-2 rounded-2xl border border-emerald-200 bg-white/90 px-3 text-emerald-700 shadow-[0_8px_20px_rgba(16,185,129,0.14)] backdrop-blur-xl" title="Aktuálny kredit">
+                  <Coins className="h-4 w-4 shrink-0" />
+                  <span className="hidden text-xs font-semibold text-slate-500 sm:inline">Kredit</span>
+                  <strong className="whitespace-nowrap text-sm">{walletBalance.toFixed(2)} €</strong>
+                </div>
+              )}
               <button
                 onClick={() => setUserMenuOpen((prev) => !prev)}
                 className="shrink-0 cursor-pointer rounded-full p-0.5 transition hover:-translate-y-0.5 active:translate-y-0"
@@ -406,6 +441,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               >
                 <TennisBallAvatar name={currentUser.name} className="h-10 w-10" textSize="text-xs" />
               </button>
+
 
               {userMenuOpen && (
                 <div className="absolute right-0 top-full mt-2.5 w-64 origin-top-right rounded-2xl border border-slate-200/90 bg-white/95 p-2 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
@@ -420,6 +456,30 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                       )}
                     </div>
                   </div>
+
+                                                      {walletBalance !== null && (
+                    <div className="mb-1 rounded-xl bg-emerald-50 p-3 text-emerald-700">
+                      <div className="flex items-center justify-between text-sm font-bold">
+                        <span className="flex items-center gap-2"><Coins className="h-4 w-4" /> Peňaženka</span>
+                        <span>{walletBalance.toFixed(2)} €</span>
+                      </div>
+                      <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-600">Testovacie dobitie</p>
+                      <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+                        {[10, 20, 50].map((amount) => (
+                          <button
+                            key={amount}
+                            type="button"
+                            disabled={topUpLoading !== null}
+                            onClick={() => addTestCredit(amount)}
+                            className="cursor-pointer rounded-lg border border-emerald-200 bg-white px-2 py-2 text-xs font-extrabold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-100 disabled:cursor-wait disabled:opacity-50"
+                          >
+                            {topUpLoading === amount ? "..." : `+${amount} €`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
 
                   <div className="space-y-1">
                     <Link
