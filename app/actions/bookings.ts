@@ -1,6 +1,6 @@
 "use server";
 
-import { getCoreDb } from "@/lib/server/supabase";
+import { getCoreDb, getCoreServiceDb } from "@/lib/server/supabase";
 import { 
     createCalendarEvent, 
     deleteCalendarEvent, 
@@ -231,7 +231,8 @@ export async function createBookingAction(payload: {
                 return { success: false, error: "Chýba identifikátor rezervácie. Skúste to znova." };
             }
             const sport = payload.courtId.replace(/-\d+$/, "");
-            const { data, error } = await db.rpc("wallet_create_ntc_booking", {
+            const walletDb = getCoreServiceDb();
+            const { data, error } = await walletDb.rpc("wallet_create_ntc_booking", {
                 p_user_id: session.userId,
                 p_court_id: payload.courtId,
                 p_sport: sport,
@@ -325,7 +326,8 @@ export async function deleteBookingAction(id: string) {
         }
 
         let wallet: { refundedEur: number; balanceEur: number; refunded: boolean } | undefined;
-        const { data: charge, error: chargeError } = await db
+                const walletDb = getCoreServiceDb();
+        const { data: charge, error: chargeError } = await walletDb
             .from("wallet_transactions")
             .select("id")
             .eq("booking_id", booking.id)
@@ -334,7 +336,7 @@ export async function deleteBookingAction(id: string) {
         if (chargeError) throw new Error(`Wallet lookup error: ${chargeError.message}`);
 
         if (charge) {
-            const { data, error } = await db.rpc("wallet_refund_ntc_booking", {
+            const { data, error } = await walletDb.rpc("wallet_refund_ntc_booking", {
                 p_booking_id: booking.id,
             });
             if (error) throw new Error(`Wallet refund error: ${error.message}`);

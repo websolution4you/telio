@@ -18,12 +18,17 @@ export function getCoreDb() {
     if (hasSharedDbConfig()) {
         return getSharedDb();
     }
+    return getCoreServiceDb();
+}
+
+export function getCoreServiceDb() {
     return createNamedClient(
         process.env.CORE_SUPABASE_URL,
         process.env.CORE_SUPABASE_SERVICE_ROLE_KEY,
         "CORE"
     );
 }
+
 
 export function getSharedDb() {
     return createNamedClient(

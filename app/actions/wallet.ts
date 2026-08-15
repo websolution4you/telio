@@ -1,7 +1,7 @@
 "use server";
 
 import { getSession } from "@/lib/auth/bookingAuth";
-import { getCoreDb } from "@/lib/server/supabase";
+import { getCoreServiceDb } from "@/lib/server/supabase";
 import { walletEnabledForUser } from "@/lib/server/wallet";
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
@@ -13,7 +13,7 @@ export async function getWalletAction() {
   const enabled = walletEnabledForUser(session.userId);
   if (!enabled) return { success: true as const, enabled: false, balanceEur: null };
 
-  const db = getCoreDb();
+  const db = getCoreServiceDb();
   const { data, error } = await db.rpc("wallet_get_balance", {
     p_tenant_id: TENANT_ID,
     p_user_id: session.userId,
@@ -44,7 +44,7 @@ export async function addTestWalletCreditAction(amountEur: number, operationId: 
     return { success: false as const, error: "Neplatný identifikátor operácie." };
   }
 
-  const db = getCoreDb();
+  const db = getCoreServiceDb();
   const { data, error } = await db.rpc("wallet_manual_adjustment", {
     p_tenant_id: TENANT_ID,
     p_user_id: session.userId,
