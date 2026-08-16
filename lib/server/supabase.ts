@@ -53,7 +53,7 @@ export function getCoreServiceDb() {
             }
         }
 
-        console.info("CORE Supabase wallet diagnostics", {
+        console.error("CORE Supabase wallet diagnostics", {
             urlProjectRef,
             keyType,
             keyRole,
@@ -61,10 +61,8 @@ export function getCoreServiceDb() {
         });
     }
 
-    return createNamedClient(url, key, "CORE");
+        return createNamedClient(url, key, "CORE");
 }
-
-
 
 export function getSharedDb() {
     return createNamedClient(
