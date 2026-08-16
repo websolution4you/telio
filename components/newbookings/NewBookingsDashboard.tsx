@@ -106,7 +106,7 @@ function WalletHistory({ balanceEur, transactions }: { balanceEur: number; trans
       </div>
       <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-4 sm:px-6">
         <div className="mb-2 flex items-center justify-between gap-3"><p className="text-sm font-bold text-slate-800">Dobiť kredit kartou</p><span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Stripe test mode</span></div>
-        <div className="grid grid-cols-3 gap-2">{[10, 20, 50].map((amount) => <button key={amount} type="button" disabled={loadingAmount !== null} onClick={() => startCheckout(amount)} className="rounded-xl border border-emerald-200 bg-white px-2 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-50">{loadingAmount === amount ? "Otváram..." : `${amount} €`}</button>)}</div>
+        <div className="flex flex-wrap items-center gap-2">{[10, 20, 50].map((amount) => <button key={amount} type="button" disabled={loadingAmount !== null} onClick={() => startCheckout(amount)} className="min-w-[76px] rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-50">{loadingAmount === amount ? "Otváram..." : `${amount} €`}</button>)}</div>
         {checkoutError && <p className="mt-2 text-xs font-semibold text-red-600">{checkoutError}</p>}
       </div>
       {transactions.length ? (
