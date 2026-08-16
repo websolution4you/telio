@@ -31,6 +31,78 @@ export async function getWalletAction() {
   };
 }
 
+export async function getWalletHistoryAction() {
+  const session = await getSession();
+  if (!session) return { success: false as const, enabled: false, error: "Not logged in" };
+  if (!walletEnabledForUser(session.userId)) {
+    return { success: true as const, enabled: false, balanceEur: null, transactions: [] };
+  }
+
+  const db = getCoreServiceDb();
+  const [{ data: balanceData, error: balanceError }, { data: rows, error: historyError }] = await Promise.all([
+    db.rpc("wallet_get_balance", {
+      p_tenant_id: TENANT_ID,
+      p_user_id: session.userId,
+    }),
+    db
+      .from("wallet_transactions")
+      .select("id, amount_eur, type, booking_id, created_at, metadata")
+      .eq("tenant_id", TENANT_ID)
+      .eq("user_id", session.userId)
+      .order("created_at", { ascending: false })
+      .limit(100),
+  ]);
+
+  if (balanceError || historyError) {
+    console.error("getWalletHistoryAction failed:", balanceError || historyError);
+    return { success: false as const, enabled: true, error: "Históriu kreditu sa nepodarilo načítať." };
+  }
+
+  const bookingIds = [...new Set((rows || []).map((row) => row.booking_id).filter(Boolean))];
+  const bookingsById = new Map<string, { startAt: string; courtId: string | null }>();
+  if (bookingIds.length) {
+    const { data: bookings, error: bookingsError } = await db
+      .from("bookings")
+      .select("id, start_at, court_id, notes")
+      .eq("tenant_id", TENANT_ID)
+      .in("id", bookingIds);
+
+    if (bookingsError) {
+      console.error("getWalletHistoryAction booking lookup failed:", bookingsError);
+    } else {
+      for (const booking of bookings || []) {
+        let courtId = booking.court_id as string | null;
+        if (!courtId && booking.notes) {
+          try {
+            const notes = typeof booking.notes === "string" ? JSON.parse(booking.notes) : booking.notes;
+            courtId = notes?.courtId || null;
+          } catch {}
+        }
+        bookingsById.set(booking.id, { startAt: booking.start_at, courtId });
+      }
+    }
+  }
+
+  const balanceEur = balanceData?.[0] ? Number(balanceData[0].balance_eur) : 0;
+  let runningBalance = balanceEur;
+  const transactions = (rows || []).map((row) => {
+    const amountEur = Number(row.amount_eur);
+    const balanceAfterEur = runningBalance;
+    runningBalance -= amountEur;
+    return {
+      id: row.id,
+      type: row.type as "payment" | "booking_charge" | "refund" | "manual_adjustment" | "bonus",
+      amountEur,
+      balanceAfterEur,
+      createdAt: row.created_at,
+      booking: row.booking_id ? bookingsById.get(row.booking_id) || null : null,
+      reason: typeof row.metadata?.reason === "string" ? row.metadata.reason : null,
+    };
+  });
+
+  return { success: true as const, enabled: true, balanceEur, transactions };
+}
+
 export async function addTestWalletCreditAction(amountEur: number, operationId: string) {
   const session = await getSession();
   if (!session) return { success: false as const, error: "Pre dobitie sa musíte prihlásiť." };

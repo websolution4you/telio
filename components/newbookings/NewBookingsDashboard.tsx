@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, ArrowLeft, CalendarDays, Clock3, LayoutDashboard, Loader2, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { Activity, ArrowDownLeft, ArrowLeft, ArrowUpRight, CalendarDays, Clock3, Coins, LayoutDashboard, Loader2, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { deleteBookingAction, fetchUserDashboardDataAction, restoreBookingAction } from "@/app/actions/bookings";
+import { getWalletHistoryAction } from "@/app/actions/wallet";
+
 import type { SessionPayload } from "@/lib/auth/bookingAuth";
 import NewBookingsAdminDashboard from "./NewBookingsAdminDashboard";
 
@@ -23,9 +25,22 @@ type Stats = {
 
 type PendingAction = { type: "delete" | "restore"; booking: BookingItem } | null;
 
+type WalletTransaction = {
+  id: string;
+  type: "payment" | "booking_charge" | "refund" | "manual_adjustment" | "bonus";
+  amountEur: number;
+  balanceAfterEur: number;
+  createdAt: string;
+  booking: { startAt: string; courtId: string | null } | null;
+  reason: string | null;
+};
+
+
 const formatDate = (value: string) => new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(new Date(value));
 const formatTime = (value: string) => new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 const formatHours = (value = 0) => value.toFixed(1).replace(".0", "");
+const formatEur = (value: number) => new Intl.NumberFormat("sk-SK", { style: "currency", currency: "EUR" }).format(value);
+
 const courtName = (value: string) => value.replace("tennis-clay", "Antuka").replace("badminton", "Bedminton").replace("tennis", "Tenis").replace("squash", "Squash").replace("-", " ");
 
 const statTones = {
@@ -60,6 +75,42 @@ function BookingSection({ title, empty, bookings, future = false, now, onAction 
   return <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_15px_45px_rgba(15,23,42,0.06)] sm:p-6"><h2 className="mb-5 text-xl font-bold text-slate-950">{title}</h2>{bookings.length ? <div className="space-y-3">{bookings.map((booking) => <BookingRow key={booking.id} booking={booking} future={future} now={now} onAction={onAction} />)}</div> : <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">{empty}</div>}</section>;
 }
 
+function WalletHistory({ balanceEur, transactions }: { balanceEur: number; transactions: WalletTransaction[] }) {
+  const labels: Record<WalletTransaction["type"], string> = {
+    payment: "Dobitie kartou",
+    booking_charge: "Platba za rezerváciu",
+    refund: "Vrátenie za rezerváciu",
+    manual_adjustment: "Testovacie dobitie",
+    bonus: "Bonusový kredit",
+  };
+
+  return (
+    <section className="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-[0_15px_45px_rgba(15,23,42,0.06)]">
+      <div className="flex flex-col gap-4 bg-gradient-to-r from-emerald-600 to-teal-600 p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-100">Peňaženka</p><h2 className="mt-1 text-xl font-bold">Kredit a transakcie</h2></div>
+        <div className="flex items-center gap-3 rounded-2xl bg-white/15 px-4 py-3 backdrop-blur"><Coins className="h-5 w-5" /><div><small className="block text-[10px] font-semibold uppercase tracking-wider text-emerald-100">Aktuálny kredit</small><strong className="text-xl">{formatEur(balanceEur)}</strong></div></div>
+      </div>
+      {transactions.length ? (
+        <div className="divide-y divide-slate-100">
+          {transactions.map((transaction) => {
+            const positive = transaction.amountEur > 0;
+            const detail = transaction.booking
+              ? `${transaction.booking.courtId ? courtName(transaction.booking.courtId) : "Rezervácia"} · ${formatDate(transaction.booking.startAt)} o ${formatTime(transaction.booking.startAt)}`
+              : transaction.reason;
+            return (
+              <div key={transaction.id} className="flex items-center gap-3 px-5 py-4 sm:px-6">
+                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${positive ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>{positive ? <ArrowDownLeft className="h-5 w-5" /> : <ArrowUpRight className="h-5 w-5" />}</span>
+                <div className="min-w-0 flex-1"><b className="block text-sm text-slate-900">{labels[transaction.type]}</b><p className="truncate text-xs text-slate-500">{detail || `${formatDate(transaction.createdAt)} o ${formatTime(transaction.createdAt)}`}</p><p className="mt-1 text-[10px] text-slate-400">{formatDate(transaction.createdAt)}, {formatTime(transaction.createdAt)}</p></div>
+                <div className="text-right"><strong className={`block whitespace-nowrap text-sm ${positive ? "text-emerald-600" : "text-red-600"}`}>{positive ? "+" : ""}{formatEur(transaction.amountEur)}</strong><small className="whitespace-nowrap text-[10px] text-slate-400">Zostatok {formatEur(transaction.balanceAfterEur)}</small></div>
+              </div>
+            );
+          })}
+        </div>
+      ) : <div className="p-8 text-center text-sm text-slate-500">Zatiaľ nemáš žiadne pohyby kreditu.</div>}
+    </section>
+  );
+}
+
 export default function NewBookingsDashboard({ currentUser }: { currentUser: SessionPayload }) {
   return currentUser.role === "admin" ? <AdminDashboardPage /> : <UserDashboardPage currentUser={currentUser} />;
 }
@@ -76,29 +127,36 @@ function AdminDashboardPage() {
 function UserDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [stats, setStats] = useState<Stats>({});
+  const [wallet, setWallet] = useState<{ balanceEur: number; transactions: WalletTransaction[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [pending, setPending] = useState<PendingAction>(null);
   const [now] = useState(() => Date.now());
 
-  const loadData = useCallback(async () => {
-    const result = await fetchUserDashboardDataAction();
+    const loadData = useCallback(async () => {
+    const [bookingResult, walletResult] = await Promise.all([
+      fetchUserDashboardDataAction(),
+      getWalletHistoryAction(),
+    ]);
     setError("");
-    if (result.success) { setBookings((result.bookings || []) as BookingItem[]); setStats((result.stats || {}) as Stats); }
-    else setError(result.error || "Dáta sa nepodarilo načítať.");
+    if (bookingResult.success) {
+      setBookings((bookingResult.bookings || []) as BookingItem[]);
+      setStats((bookingResult.stats || {}) as Stats);
+    } else {
+      setError(bookingResult.error || "Dáta sa nepodarilo načítať.");
+    }
+    if (walletResult.success && walletResult.enabled) {
+      setWallet({ balanceEur: walletResult.balanceEur || 0, transactions: walletResult.transactions as WalletTransaction[] });
+    } else {
+      setWallet(null);
+      if (!walletResult.success && walletResult.enabled) setError(walletResult.error || "Históriu kreditu sa nepodarilo načítať.");
+    }
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    fetchUserDashboardDataAction().then((result) => {
-      if (!active) return;
-      if (result.success) { setBookings((result.bookings || []) as BookingItem[]); setStats((result.stats || {}) as Stats); }
-      else setError(result.error || "Dáta sa nepodarilo načítať.");
-      setLoading(false);
-    });
-    return () => { active = false; };
-  }, []);
+    useEffect(() => {
+    loadData();
+  }, [loadData]);
   const future = useMemo(() => bookings.filter((item) => new Date(item.start).getTime() > now).sort((a, b) => +new Date(a.start) - +new Date(b.start)), [bookings, now]);
   const past = useMemo(() => bookings.filter((item) => new Date(item.start).getTime() <= now).sort((a, b) => +new Date(b.start) - +new Date(a.start)), [bookings, now]);
 
@@ -120,7 +178,7 @@ function UserDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
       <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:py-12">
         <div className="mb-8"><span className="mb-3 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-indigo-700"><LayoutDashboard className="h-3.5 w-3.5" /> Moje rezervácie</span><h1 className="text-3xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-4xl" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>Vitaj, {currentUser.name}</h1><p className="mt-2 text-sm text-slate-500">Tvoje rezervácie a osobná športová štatistika.</p></div>
         {error && <button onClick={() => setError("")} className="mb-6 w-full rounded-2xl border border-red-200 bg-red-50 p-4 text-left text-sm font-semibold text-red-700">{error}</button>}
-        {loading && !bookings.length ? <div className="grid min-h-[360px] place-items-center"><Loader2 className="h-8 w-8 animate-spin text-cyan-600" /></div> : <div className="space-y-8"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><StatCard icon={Clock3} label="Odohrané tento mesiac" value={`${formatHours(stats.pastHoursThisMonth)} hod.`} tone="cyan" /><StatCard icon={CalendarDays} label="Naplánované tento mesiac" value={`${formatHours(stats.futureHoursThisMonth)} hod.`} tone="indigo" /><StatCard icon={Activity} label="Počet rezervácií tento mesiac" value={String(stats.totalBookings || 0)} tone="emerald" /></div><div className="grid gap-6 lg:grid-cols-2"><BookingSection title="Nadchádzajúce termíny" empty="Nemáš žiadne aktívne rezervácie." bookings={future} future now={now} onAction={setPending} /><BookingSection title="História rezervácií" empty="Zatiaľ nemáš históriu rezervácií." bookings={past} now={now} onAction={setPending} /></div></div>}
+        {loading && !bookings.length ? <div className="grid min-h-[360px] place-items-center"><Loader2 className="h-8 w-8 animate-spin text-cyan-600" /></div> : <div className="space-y-8">{wallet && <WalletHistory balanceEur={wallet.balanceEur} transactions={wallet.transactions} />}<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><StatCard icon={Clock3} label="Odohrané tento mesiac" value={`${formatHours(stats.pastHoursThisMonth)} hod.`} tone="cyan" /><StatCard icon={CalendarDays} label="Naplánované tento mesiac" value={`${formatHours(stats.futureHoursThisMonth)} hod.`} tone="indigo" /><StatCard icon={Activity} label="Počet rezervácií tento mesiac" value={String(stats.totalBookings || 0)} tone="emerald" /></div><div className="grid gap-6 lg:grid-cols-2"><BookingSection title="Nadchádzajúce termíny" empty="Nemáš žiadne aktívne rezervácie." bookings={future} future now={now} onAction={setPending} /><BookingSection title="História rezervácií" empty="Zatiaľ nemáš históriu rezervácií." bookings={past} now={now} onAction={setPending} /></div></div>}
       </main>
       {pending && <div className="fixed inset-0 z-[100] grid place-items-center p-4"><button className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setPending(null)} aria-label="Zavrieť" /><div className="relative w-full max-w-sm rounded-3xl border border-white bg-white p-6 text-center shadow-2xl"><span className={`mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl ${pending.type === "delete" ? "bg-red-50 text-red-600" : "bg-cyan-50 text-cyan-600"}`}>{pending.type === "delete" ? <Trash2 className="h-6 w-6" /> : <RefreshCw className="h-6 w-6" />}</span><h2 className="text-xl font-bold">{pending.type === "delete" ? "Zrušiť rezerváciu?" : "Obnoviť rezerváciu?"}</h2><p className="mt-2 text-sm text-slate-500">{formatDate(pending.booking.start)}, {formatTime(pending.booking.start)} – {formatTime(pending.booking.end)}</p><div className="mt-6 grid grid-cols-2 gap-3"><button onClick={() => setPending(null)} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold">Späť</button><button onClick={confirm} disabled={loading} className={`rounded-xl px-4 py-3 text-sm font-bold text-white ${pending.type === "delete" ? "bg-red-600" : "bg-cyan-600"}`}>{loading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Potvrdiť"}</button></div></div></div>}
     </div>

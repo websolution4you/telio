@@ -656,7 +656,24 @@ export async function restoreBookingAction(id: string) {
             }
         }
 
-        const targetDbId = dbBooking.id;
+                const targetDbId = dbBooking.id;
+
+        const walletDb = getCoreServiceDb();
+        const { data: refund, error: refundLookupError } = await walletDb
+            .from("wallet_transactions")
+            .select("id")
+            .eq("booking_id", targetDbId)
+            .eq("type", "refund")
+            .maybeSingle();
+        if (refundLookupError) {
+            throw new Error(`Wallet lookup error: ${refundLookupError.message}`);
+        }
+        if (refund) {
+            return {
+                success: false,
+                error: "Refundovanú rezerváciu nie je možné obnoviť. Vytvorte si novú rezerváciu.",
+            };
+        }
 
         const { error: updateErr } = await db
             .from("bookings")
