@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, ArrowDownLeft, ArrowLeft, ArrowUpRight, CalendarDays, Clock3, Coins, LayoutDashboard, Loader2, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { deleteBookingAction, fetchUserDashboardDataAction, restoreBookingAction } from "@/app/actions/bookings";
-import { createWalletCheckoutAction, getWalletHistoryAction } from "@/app/actions/wallet";
+import { createWalletCheckoutAction, getWalletHistoryAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
 
 import type { SessionPayload } from "@/lib/auth/bookingAuth";
 import NewBookingsAdminDashboard from "./NewBookingsAdminDashboard";
@@ -147,6 +147,7 @@ function UserDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [stats, setStats] = useState<Stats>({});
   const [wallet, setWallet] = useState<{ balanceEur: number; transactions: WalletTransaction[] } | null>(null);
+  const [walletNotice, setWalletNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [pending, setPending] = useState<PendingAction>(null);
@@ -173,8 +174,27 @@ function UserDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
     setLoading(false);
   }, []);
 
-    useEffect(() => {
-    loadData();
+      useEffect(() => {
+    let active = true;
+    const finishWalletReturn = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const checkoutSessionId = params.get("session_id");
+      const walletStatus = params.get("wallet");
+      if (walletStatus === "cancelled") {
+        setWalletNotice("Dobíjanie kreditu bolo zrušené.");
+      }
+      if (walletStatus === "success" && checkoutSessionId) {
+        setWalletNotice("Overujem platbu a pripisujem kredit...");
+        const result = await reconcileWalletCheckoutAction(checkoutSessionId);
+        if (active) {
+          setWalletNotice(result.success ? "Platba bola úspešne prijatá a kredit bol pripísaný." : result.error || "Platbu sa zatiaľ nepodarilo potvrdiť.");
+          window.history.replaceState({}, "", window.location.pathname);
+        }
+      }
+      await loadData();
+    };
+    finishWalletReturn();
+    return () => { active = false; };
   }, [loadData]);
   const future = useMemo(() => bookings.filter((item) => new Date(item.start).getTime() > now).sort((a, b) => +new Date(a.start) - +new Date(b.start)), [bookings, now]);
   const past = useMemo(() => bookings.filter((item) => new Date(item.start).getTime() <= now).sort((a, b) => +new Date(b.start) - +new Date(a.start)), [bookings, now]);
@@ -196,6 +216,7 @@ function UserDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
       </header>
       <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:py-12">
         <div className="mb-8"><span className="mb-3 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-indigo-700"><LayoutDashboard className="h-3.5 w-3.5" /> Moje rezervácie</span><h1 className="text-3xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-4xl" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>Vitaj, {currentUser.name}</h1><p className="mt-2 text-sm text-slate-500">Tvoje rezervácie a osobná športová štatistika.</p></div>
+        {walletNotice && <button onClick={() => setWalletNotice("")} className="mb-6 w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left text-sm font-semibold text-emerald-700">{walletNotice}</button>}
         {error && <button onClick={() => setError("")} className="mb-6 w-full rounded-2xl border border-red-200 bg-red-50 p-4 text-left text-sm font-semibold text-red-700">{error}</button>}
         {loading && !bookings.length ? <div className="grid min-h-[360px] place-items-center"><Loader2 className="h-8 w-8 animate-spin text-cyan-600" /></div> : <div className="space-y-8">{wallet && <WalletHistory balanceEur={wallet.balanceEur} transactions={wallet.transactions} />}<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><StatCard icon={Clock3} label="Odohrané tento mesiac" value={`${formatHours(stats.pastHoursThisMonth)} hod.`} tone="cyan" /><StatCard icon={CalendarDays} label="Naplánované tento mesiac" value={`${formatHours(stats.futureHoursThisMonth)} hod.`} tone="indigo" /><StatCard icon={Activity} label="Počet rezervácií tento mesiac" value={String(stats.totalBookings || 0)} tone="emerald" /></div><div className="grid gap-6 lg:grid-cols-2"><BookingSection title="Nadchádzajúce termíny" empty="Nemáš žiadne aktívne rezervácie." bookings={future} future now={now} onAction={setPending} /><BookingSection title="História rezervácií" empty="Zatiaľ nemáš históriu rezervácií." bookings={past} now={now} onAction={setPending} /></div></div>}
       </main>

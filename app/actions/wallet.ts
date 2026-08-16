@@ -104,6 +104,61 @@ export async function getWalletHistoryAction() {
   return { success: true as const, enabled: true, balanceEur, transactions };
 }
 
+export async function reconcileWalletCheckoutAction(checkoutSessionId: string) {
+  const session = await getSession();
+  if (!session) return { success: false as const, error: "Pre overenie platby sa musíte prihlásiť." };
+  if (!walletEnabledForUser(session.userId)) {
+    return { success: false as const, error: "Dobíjanie kreditu nie je pre tento účet povolené." };
+  }
+  if (!/^cs_[A-Za-z0-9_]+$/.test(checkoutSessionId)) {
+    return { success: false as const, error: "Neplatná Stripe session." };
+  }
+
+  try {
+    const checkout = await getStripe().checkout.sessions.retrieve(checkoutSessionId);
+    if (checkout.payment_status !== "paid" || checkout.status !== "complete") {
+      return { success: false as const, pending: true, error: "Platba ešte čaká na potvrdenie." };
+    }
+    if (checkout.metadata?.userId !== session.userId || checkout.metadata?.tenantId !== TENANT_ID) {
+      return { success: false as const, error: "Platba nepatrí k tomuto účtu." };
+    }
+
+    const paymentId = checkout.metadata?.paymentId;
+    if (!paymentId) return { success: false as const, error: "Platba nemá interný identifikátor." };
+
+    const db = getCoreServiceDb();
+    const { data: payment, error: paymentError } = await db
+      .from("payments")
+      .select("id, amount_eur, provider, provider_payment_id")
+      .eq("id", paymentId)
+      .eq("tenant_id", TENANT_ID)
+      .eq("user_id", session.userId)
+      .maybeSingle();
+    if (paymentError || !payment) return { success: false as const, error: "Internú platbu sa nepodarilo nájsť." };
+
+    const stripeAmount = checkout.amount_total ? checkout.amount_total / 100 : 0;
+    if (payment.provider !== "stripe" || Number(payment.amount_eur) !== stripeAmount) {
+      return { success: false as const, error: "Suma platby sa nezhoduje." };
+    }
+
+    const { data, error } = await db.rpc("wallet_process_successful_payment", {
+      p_payment_id: payment.id,
+      p_provider_payment_id: checkout.id,
+      p_provider_metadata: {
+        stripe_checkout_session_id: checkout.id,
+        stripe_payment_status: checkout.payment_status,
+        source: "verified_success_return",
+      },
+    });
+    if (error) throw error;
+
+    return { success: true as const, balanceEur: data?.[0] ? Number(data[0].balance_eur) : null };
+  } catch (error) {
+    console.error("reconcileWalletCheckoutAction failed:", error);
+    return { success: false as const, error: "Platbu sa nepodarilo potvrdiť." };
+  }
+}
+
 export async function createWalletCheckoutAction(amountEur: number, operationId: string) {
   const session = await getSession();
   if (!session) return { success: false as const, error: "Pre dobitie sa musíte prihlásiť." };
@@ -146,7 +201,8 @@ export async function createWalletCheckoutAction(amountEur: number, operationId:
       customer_email: session.email,
       metadata: { paymentId: payment.id, userId: session.userId, tenantId: TENANT_ID },
       payment_intent_data: { metadata: { paymentId: payment.id, userId: session.userId, tenantId: TENANT_ID } },
-      success_url: `${getAppUrl()}/dashboard/newbookings?wallet=success`,
+      success_url: `${getAppUrl()}/dashboard/newbookings?wallet=success&session_id={CHECKOUT_SESSION_ID}`, 
+ 
       cancel_url: `${getAppUrl()}/dashboard/newbookings?wallet=cancelled`,
     }, { idempotencyKey });
 
