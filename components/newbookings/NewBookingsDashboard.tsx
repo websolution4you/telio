@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, ArrowDownLeft, ArrowLeft, ArrowUpRight, CalendarDays, Clock3, Coins, LayoutDashboard, Loader2, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { deleteBookingAction, fetchUserDashboardDataAction, restoreBookingAction } from "@/app/actions/bookings";
-import { getWalletHistoryAction } from "@/app/actions/wallet";
+import { createWalletCheckoutAction, getWalletHistoryAction } from "@/app/actions/wallet";
 
 import type { SessionPayload } from "@/lib/auth/bookingAuth";
 import NewBookingsAdminDashboard from "./NewBookingsAdminDashboard";
@@ -76,6 +76,20 @@ function BookingSection({ title, empty, bookings, future = false, now, onAction 
 }
 
 function WalletHistory({ balanceEur, transactions }: { balanceEur: number; transactions: WalletTransaction[] }) {
+  const [loadingAmount, setLoadingAmount] = useState<number | null>(null);
+  const [checkoutError, setCheckoutError] = useState("");
+
+  const startCheckout = async (amountEur: number) => {
+    setLoadingAmount(amountEur);
+    setCheckoutError("");
+    const result = await createWalletCheckoutAction(amountEur, crypto.randomUUID());
+    if (!result.success || !result.url) {
+      setCheckoutError(result.error || "Platobnú stránku sa nepodarilo otvoriť.");
+      setLoadingAmount(null);
+      return;
+    }
+    window.location.assign(result.url);
+  };
   const labels: Record<WalletTransaction["type"], string> = {
     payment: "Dobitie kartou",
     booking_charge: "Platba za rezerváciu",
@@ -89,6 +103,11 @@ function WalletHistory({ balanceEur, transactions }: { balanceEur: number; trans
       <div className="flex flex-col gap-4 bg-gradient-to-r from-emerald-600 to-teal-600 p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-100">Peňaženka</p><h2 className="mt-1 text-xl font-bold">Kredit a transakcie</h2></div>
         <div className="flex items-center gap-3 rounded-2xl bg-white/15 px-4 py-3 backdrop-blur"><Coins className="h-5 w-5" /><div><small className="block text-[10px] font-semibold uppercase tracking-wider text-emerald-100">Aktuálny kredit</small><strong className="text-xl">{formatEur(balanceEur)}</strong></div></div>
+      </div>
+      <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-4 sm:px-6">
+        <div className="mb-2 flex items-center justify-between gap-3"><p className="text-sm font-bold text-slate-800">Dobiť kredit kartou</p><span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Stripe test mode</span></div>
+        <div className="grid grid-cols-3 gap-2">{[10, 20, 50].map((amount) => <button key={amount} type="button" disabled={loadingAmount !== null} onClick={() => startCheckout(amount)} className="rounded-xl border border-emerald-200 bg-white px-2 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-50">{loadingAmount === amount ? "Otváram..." : `${amount} €`}</button>)}</div>
+        {checkoutError && <p className="mt-2 text-xs font-semibold text-red-600">{checkoutError}</p>}
       </div>
       {transactions.length ? (
         <div className="divide-y divide-slate-100">

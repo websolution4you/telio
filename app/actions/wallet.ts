@@ -3,6 +3,7 @@
 import { getSession } from "@/lib/auth/bookingAuth";
 import { getCoreServiceDb } from "@/lib/server/supabase";
 import { walletEnabledForUser } from "@/lib/server/wallet";
+import { getAppUrl, getStripe } from "@/lib/server/stripe";
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
 
@@ -101,6 +102,61 @@ export async function getWalletHistoryAction() {
   });
 
   return { success: true as const, enabled: true, balanceEur, transactions };
+}
+
+export async function createWalletCheckoutAction(amountEur: number, operationId: string) {
+  const session = await getSession();
+  if (!session) return { success: false as const, error: "Pre dobitie sa musíte prihlásiť." };
+  if (!walletEnabledForUser(session.userId)) {
+    return { success: false as const, error: "Dobíjanie kreditu nie je pre tento účet povolené." };
+  }
+  if (![10, 20, 50].includes(amountEur)) {
+    return { success: false as const, error: "Nepovolená suma dobitia." };
+  }
+  if (!operationId || operationId.length > 100) {
+    return { success: false as const, error: "Neplatný identifikátor operácie." };
+  }
+
+  const db = getCoreServiceDb();
+  const idempotencyKey = `stripe-checkout:${session.userId}:${operationId}`;
+  const { data: payment, error: paymentError } = await db
+    .from("payments")
+    .insert({
+      tenant_id: TENANT_ID,
+      user_id: session.userId,
+      amount_eur: amountEur,
+      provider: "stripe",
+      idempotency_key: idempotencyKey,
+      status: "pending",
+      metadata: { source: "wallet_checkout", environment: process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown" },
+    })
+    .select("id")
+    .single();
+
+  if (paymentError || !payment) {
+    console.error("createWalletCheckoutAction payment insert failed:", paymentError);
+    return { success: false as const, error: "Platbu sa nepodarilo pripraviť." };
+  }
+
+  try {
+    const stripe = getStripe();
+    const checkout = await stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: [{ price_data: { currency: "eur", product_data: { name: `Dobitie Telio kreditu (${amountEur} €)` }, unit_amount: amountEur * 100 }, quantity: 1 }],
+      customer_email: session.email,
+      metadata: { paymentId: payment.id, userId: session.userId, tenantId: TENANT_ID },
+      payment_intent_data: { metadata: { paymentId: payment.id, userId: session.userId, tenantId: TENANT_ID } },
+      success_url: `${getAppUrl()}/dashboard/newbookings?wallet=success`,
+      cancel_url: `${getAppUrl()}/dashboard/newbookings?wallet=cancelled`,
+    }, { idempotencyKey });
+
+    await db.from("payments").update({ provider_payment_id: checkout.id, status: "processing" }).eq("id", payment.id);
+    return { success: true as const, url: checkout.url };
+  } catch (error) {
+    console.error("createWalletCheckoutAction Stripe failed:", error);
+    await db.from("payments").update({ status: "failed", error_message: "Stripe Checkout creation failed" }).eq("id", payment.id);
+    return { success: false as const, error: "Platobnú stránku sa nepodarilo vytvoriť." };
+  }
 }
 
 export async function addTestWalletCreditAction(amountEur: number, operationId: string) {
