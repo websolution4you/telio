@@ -174,26 +174,28 @@ function UserDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
     setLoading(false);
   }, []);
 
-      useEffect(() => {
+        useEffect(() => {
     let active = true;
-    const finishWalletReturn = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const checkoutSessionId = params.get("session_id");
-      const walletStatus = params.get("wallet");
-      if (walletStatus === "cancelled") {
-        setWalletNotice("Dobíjanie kreditu bolo zrušené.");
-      }
-      if (walletStatus === "success" && checkoutSessionId) {
-        setWalletNotice("Overujem platbu a pripisujem kredit...");
-        const result = await reconcileWalletCheckoutAction(checkoutSessionId);
-        if (active) {
-          setWalletNotice(result.success ? "Platba bola úspešne prijatá a kredit bol pripísaný." : result.error || "Platbu sa zatiaľ nepodarilo potvrdiť.");
-          window.history.replaceState({}, "", window.location.pathname);
-        }
-      }
-      await loadData();
-    };
-    finishWalletReturn();
+    const params = new URLSearchParams(window.location.search);
+    const checkoutSessionId = params.get("session_id");
+    const walletStatus = params.get("wallet");
+
+    if (walletStatus || checkoutSessionId) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    if (walletStatus === "cancelled") {
+      setWalletNotice("Dobíjanie kreditu bolo zrušené.");
+    }
+    if (walletStatus === "success" && checkoutSessionId) {
+      setWalletNotice("Overujem platbu a pripisujem kredit...");
+      reconcileWalletCheckoutAction(checkoutSessionId).then((result) => {
+        if (!active) return;
+        setWalletNotice(result.success ? "Platba bola úspešne prijatá a kredit bol pripísaný." : result.error || "Platbu sa zatiaľ nepodarilo potvrdiť.");
+        return loadData();
+      });
+    }
+
+    loadData();
     return () => { active = false; };
   }, [loadData]);
   const future = useMemo(() => bookings.filter((item) => new Date(item.start).getTime() > now).sort((a, b) => +new Date(a.start) - +new Date(b.start)), [bookings, now]);
