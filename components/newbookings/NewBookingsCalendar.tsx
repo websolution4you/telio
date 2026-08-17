@@ -416,64 +416,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               </span>
             </div>
 
-            {/* Mobile Logo: Compact Connected NT + Tennis Ball with C (Seamlessly joined) */}
-            <div className="flex md:hidden items-center py-1 transition group-hover:scale-105">
-              <svg
-                viewBox="0 0 70 36"
-                className="h-8 w-auto sm:h-9"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <defs>
-                  <radialGradient id="ntcBallGradB" cx="35%" cy="30%" r="70%">
-                    <stop offset="0%" stopColor="#faff66" />
-                    <stop offset="55%" stopColor="#ccff00" />
-                    <stop offset="100%" stopColor="#8ec600" />
-                  </radialGradient>
-                  <filter id="ntcShadowB" x="-10%" y="-10%" width="125%" height="125%">
-                    <feDropShadow dx="0.5" dy="1" stdDeviation="0.8" floodColor="#0f172a" floodOpacity="0.12" />
-                  </filter>
-                </defs>
-
-                {/* Connected Slanted NT Monogram */}
-                <g transform="skewX(-14)" filter="url(#ntcShadowB)" fill="#0f172a">
-                  {/* Left leg of N */}
-                  <rect x="3" y="3" width="8.5" height="30" rx="1.5" />
-                  {/* Diagonal of N */}
-                  <polygon points="3,3 11.5,3 26,33 17.5,33" />
-                  {/* Shortened right leg of N connecting up into T's top bar */}
-                  <path d="M 17.5,33 L 26,33 L 26,12.5 C 26,11.5 25,10.5 23.5,10.5 L 17.5,10.5 Z" />
-                  {/* Top horizontal crossbar of T bridging directly from N */}
-                  <path d="M 15.5,3 L 42,3 C 43,3 43.5,3.8 43.5,4.8 L 43.5,9.2 C 43.5,10.2 43,11 42,11 L 15.5,11 C 14.5,11 14,10.2 14,9.2 L 14,4.8 C 14,3.8 14.5,3 15.5,3 Z" />
-                  {/* Vertical stem of T */}
-                  <rect x="28" y="10.5" width="8.5" height="22.5" rx="1.5" />
-                </g>
-
-                {/* Tennis Ball directly next to T (No black border, natural seams) */}
-                <g transform="translate(52, 18)">
-                  {/* Ball circle - NO border line */}
-                  <circle cx="0" cy="0" r="14.5" fill="url(#ntcBallGradB)" />
-                  {/* Soft white tennis seams */}
-                  <path d="M -11,-7.5 C -5,-3.8 -5,3.8 -11,7.5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" opacity="0.95" />
-                  <path d="M 11,-7.5 C 5,-3.8 5,3.8 11,7.5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" opacity="0.95" />
-                  {/* Slanted Letter C */}
-                  <g transform="skewX(-14)">
-                    <text
-                      x="0"
-                      y="6.5"
-                      textAnchor="middle"
-                      fill="#0f172a"
-                      style={{
-                        fontFamily: "var(--font-poppins), 'Arial Black', Impact, sans-serif",
-                        fontWeight: 900,
-                      }}
-                      fontSize="18"
-                    >
-                      C
-                    </text>
-                  </g>
-                </g>
-              </svg>
+            {/* Mobile & Mobile App Compact Icon Badge */}
+            <div className="flex md:hidden h-11 w-11 flex-col items-center justify-center rounded-2xl border border-slate-100 bg-white p-1 shadow-md sm:h-12 sm:w-12">
+              <span className="text-sm leading-none">🎾</span>
+              <span className="mt-0.5 rounded-full bg-[#CCFF00] px-1.5 py-0.5 text-[8px] font-black tracking-wider text-black shadow-xs">NTC</span>
             </div>
           </Link>
           <HolographicTennisCourt />
