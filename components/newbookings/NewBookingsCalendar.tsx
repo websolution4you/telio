@@ -417,46 +417,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             </div>
 
             {/* Mobile & Mobile App Compact Logo Badge */}
-            <div className="flex md:hidden items-center justify-center rounded-2xl border border-slate-800 bg-[#0c1017] px-3 py-1.5 shadow-[0_4px_14px_rgba(0,0,0,0.35)] transition group-hover:border-slate-700">
-              <svg viewBox="0 0 74 30" className="h-7 w-auto sm:h-8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <radialGradient id="mobileTennisBallGrad" cx="35%" cy="30%" r="70%">
-                    <stop offset="0%" stopColor="#faff66" />
-                    <stop offset="55%" stopColor="#ccff00" />
-                    <stop offset="100%" stopColor="#82b800" />
-                  </radialGradient>
-                  <filter id="ntShadow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feDropShadow dx="1" dy="1.5" stdDeviation="0.8" floodColor="#000000" floodOpacity="0.9" />
-                  </filter>
-                </defs>
-                <g filter="url(#ntShadow)">
-                  {/* Slanted bold NT typography */}
-                  <text
-                    x="2"
-                    y="23"
-                    fill="#FFFFFF"
-                    stroke="#000000"
-                    strokeWidth="1.6"
-                    paintOrder="stroke fill"
-                    style={{
-                      fontFamily: "'Arial Black', Impact, 'Montserrat', sans-serif",
-                      fontWeight: 900,
-                      fontStyle: "italic",
-                      letterSpacing: "-0.5px",
-                    }}
-                    fontSize="24"
-                  >
-                    NT
-                  </text>
-                </g>
-                {/* 3D Slanted Tennis Ball (completing NTC) */}
-                <g transform="translate(46, 2) rotate(8, 12, 13)">
-                  <ellipse cx="12" cy="13" rx="11" ry="12.5" fill="url(#mobileTennisBallGrad)" stroke="#000000" strokeWidth="1.8" />
-                  {/* Ball seams */}
-                  <path d="M 3.5,4.5 C 9,8.5 9,17.5 3.5,21.5" stroke="#162902" strokeWidth="1.7" strokeLinecap="round" opacity="0.9" />
-                  <path d="M 20.5,4.5 C 15,8.5 15,17.5 20.5,21.5" stroke="#162902" strokeWidth="1.7" strokeLinecap="round" opacity="0.9" />
-                </g>
-              </svg>
+            <div className="relative flex md:hidden h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-900 shadow-[0_4px_16px_rgba(0,0,0,0.35)] transition group-hover:scale-105 group-hover:border-lime-400/60 sm:h-12 sm:w-12">
+              <img
+                src="/ntc-logo-icon.jpg"
+                alt="NTC Národné Tenisové Centrum"
+                className="h-full w-full object-cover"
+              />
             </div>
           </Link>
           <HolographicTennisCourt />
