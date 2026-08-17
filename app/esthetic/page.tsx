@@ -1,21 +1,8 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Outfit } from "next/font/google";
 import { Sparkles, Phone, ShieldCheck, Heart, User, ChevronRight } from "lucide-react";
 import VoiceAuraWidget from "@/components/esthetic/VoiceAuraWidget";
 import ProcedureDetails from "@/components/esthetic/ProcedureDetails";
 import EstheticCalendar from "@/components/esthetic/EstheticCalendar";
-
-const cormorant = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-cormorant",
-});
-
-const outfit = Outfit({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-outfit",
-});
 
 export const metadata: Metadata = {
   title: "Klinika Estetickej Medicíny — Telio Konzultácie",
@@ -25,10 +12,10 @@ export const metadata: Metadata = {
 export default function EstheticPage() {
   return (
     <main 
-      className={`${cormorant.variable} ${outfit.variable} min-h-screen text-stone-200 antialiased relative overflow-hidden`}
+      className="min-h-screen text-stone-200 antialiased relative overflow-hidden font-sans"
       style={{
         backgroundColor: "#08060a",
-        fontFamily: "var(--font-outfit), sans-serif",
+        fontFamily: "'Outfit', var(--font-poppins), system-ui, sans-serif",
       }}
     >
       {/* Premium ambient glows */}
