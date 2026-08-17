@@ -426,7 +426,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     {currentUser ? (
             <div className="relative z-50 flex items-center gap-2" ref={userMenuRef}>
               {walletBalance !== null && (
-                <div className="flex h-11 items-center gap-2 rounded-2xl border border-emerald-200 bg-white/90 px-3 text-emerald-700 shadow-[0_8px_20px_rgba(16,185,129,0.14)] backdrop-blur-xl" title="Aktuálny kredit">
+                <div className="hidden sm:flex h-11 items-center gap-2 rounded-2xl border border-emerald-200 bg-white/90 px-3 text-emerald-700 shadow-[0_8px_20px_rgba(16,185,129,0.14)] backdrop-blur-xl" title="Aktuálny kredit">
                   <Coins className="h-4 w-4 shrink-0" />
                   <span className="hidden text-xs font-semibold text-slate-500 sm:inline">Kredit</span>
                   <strong className="whitespace-nowrap text-sm">{walletBalance.toFixed(2)} €</strong>
