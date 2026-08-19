@@ -426,10 +426,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     {currentUser ? (
             <div className="relative z-50 flex items-center gap-2" ref={userMenuRef}>
               {walletBalance !== null && (
-                <div className="flex h-11 items-center gap-2 rounded-2xl border border-[#d2f500] bg-white/95 px-3 text-emerald-700 shadow-[0_4px_16px_rgba(210,245,0,0.25)] backdrop-blur-xl" title="Aktuálny kredit">
-                  <Coins className="h-4 w-4 shrink-0" />
-                  <span className="hidden text-xs font-semibold text-slate-500 sm:inline">Kredit</span>
-                  <strong className="whitespace-nowrap text-sm">{walletBalance.toFixed(2)} €</strong>
+                <div className="flex h-11 items-center gap-2 rounded-2xl border border-[#d2f500] bg-white/95 px-3 text-slate-900 shadow-[0_4px_16px_rgba(210,245,0,0.25)] backdrop-blur-xl" title="Aktuálny kredit">
+                  <Coins className="h-4 w-4 shrink-0 text-slate-700" />
+                  <span className="hidden text-xs font-semibold text-slate-900 sm:inline">Kredit</span>
+                  <strong className="whitespace-nowrap text-sm font-bold text-slate-900">{walletBalance.toFixed(2)} €</strong>
                 </div>
               )}
               <button
@@ -457,13 +457,13 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     </div>
                   </div>
 
-                                                      {walletBalance !== null && (
-                    <div className="mb-1 rounded-xl bg-emerald-50 p-3 text-emerald-700">
-                      <div className="flex items-center justify-between text-sm font-bold">
-                        <span className="flex items-center gap-2"><Coins className="h-4 w-4" /> Peňaženka</span>
-                        <span>{walletBalance.toFixed(2)} €</span>
+                  {walletBalance !== null && (
+                    <div className="mb-1 rounded-xl bg-slate-50 p-3 text-slate-900 border border-slate-100">
+                      <div className="flex items-center justify-between text-sm font-bold text-slate-900">
+                        <span className="flex items-center gap-2"><Coins className="h-4 w-4 text-slate-700" /> Peňaženka</span>
+                        <span className="text-slate-900">{walletBalance.toFixed(2)} €</span>
                       </div>
-                      <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-600">Testovacie dobitie</p>
+                      <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Testovacie dobitie</p>
                       <div className="mt-1.5 grid grid-cols-3 gap-1.5">
                         {[10, 20, 50].map((amount) => (
                           <button
@@ -471,7 +471,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                             type="button"
                             disabled={topUpLoading !== null}
                             onClick={() => addTestCredit(amount)}
-                            className="cursor-pointer rounded-lg border border-emerald-200 bg-white px-2 py-2 text-xs font-extrabold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-100 disabled:cursor-wait disabled:opacity-50"
+                            className="cursor-pointer rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-extrabold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 disabled:cursor-wait disabled:opacity-50"
                           >
                             {topUpLoading === amount ? "..." : `+${amount} €`}
                           </button>
