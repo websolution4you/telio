@@ -458,7 +458,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                   </div>
 
                   {walletBalance !== null && (
-                    <div className="mb-1 rounded-xl bg-slate-50 p-3 text-slate-900 border border-slate-100">
+                    <div className="mb-1 rounded-xl bg-gradient-to-br from-yellow-50/90 via-amber-50/80 to-orange-50/60 p-3 text-slate-900 border border-amber-200/70 shadow-xs">
                       <div className="flex items-center justify-between text-sm font-bold text-slate-900">
                         <span className="flex items-center gap-2"><Coins className="h-4 w-4 text-slate-700" /> Peňaženka</span>
                         <span className="text-slate-900">{walletBalance.toFixed(2)} €</span>
@@ -471,7 +471,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                             type="button"
                             disabled={topUpLoading !== null}
                             onClick={() => addTestCredit(amount)}
-                            className="cursor-pointer rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-extrabold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 disabled:cursor-wait disabled:opacity-50"
+                            className="cursor-pointer rounded-lg border border-amber-200/80 bg-white/90 px-2 py-2 text-xs font-extrabold text-slate-900 shadow-xs transition hover:border-amber-400 hover:bg-white disabled:cursor-wait disabled:opacity-50"
                           >
                             {topUpLoading === amount ? "..." : `+${amount} €`}
                           </button>
