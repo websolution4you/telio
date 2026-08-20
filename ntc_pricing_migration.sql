@@ -1,5 +1,5 @@
 -- ============================================================================
--- NTC Dynamic Pricing & Wallet Functions (Final Clean Version)
+-- NTC Dynamic Pricing & Wallet Functions (Include all NOT NULL columns)
 -- ============================================================================
 
 -- 1. Aktualizácia funkcie wallet_create_ntc_booking
@@ -66,8 +66,8 @@ BEGIN
     FOR UPDATE;
 
     IF v_wallet_id IS NULL THEN
-        INSERT INTO public.wallets (user_id, balance_eur)
-        VALUES (p_user_id, 0.00)
+        INSERT INTO public.wallets (tenant_id, user_id, balance_eur)
+        VALUES (v_tenant_id, p_user_id, 0.00)
         RETURNING wallets.id, wallets.balance_eur INTO v_wallet_id, v_current_balance;
     END IF;
 
@@ -81,7 +81,7 @@ BEGIN
     WHERE b.court_id = p_court_id
       AND b.status NOT IN ('cancelled', 'rejected')
       AND b.start_at < p_end_at
-      AND b.end_at > p_start_at;
+      AND end_at > p_start_at;
 
     IF v_conflict_count > 0 THEN
         RAISE EXCEPTION 'Court % is no longer available in the selected time range.', p_court_id;
@@ -122,9 +122,11 @@ BEGIN
     )
     RETURNING bookings.id INTO v_new_booking_id;
 
-    -- Record transaction
+    -- Record transaction (with wallet_id, tenant_id, user_id)
     INSERT INTO public.wallet_transactions (
         wallet_id,
+        tenant_id,
+        user_id,
         booking_id,
         type,
         amount_eur,
@@ -132,6 +134,8 @@ BEGIN
     )
     VALUES (
         v_wallet_id,
+        v_tenant_id,
+        p_user_id,
         v_new_booking_id,
         'booking_charge',
         v_price,
@@ -168,6 +172,8 @@ DECLARE
     v_charge_amount NUMERIC(10, 2);
     v_current_balance NUMERIC(10, 2);
     v_new_balance NUMERIC(10, 2);
+    v_booking_user_id UUID;
+    v_tenant_id UUID := '595cbb6c-1019-41ae-b1c2-a60c13c8dcdf'::uuid;
 BEGIN
     -- Check if booking was already refunded
     IF EXISTS (
@@ -197,6 +203,11 @@ BEGIN
         RETURN;
     END IF;
 
+    -- Get user_id from booking
+    SELECT b.user_id, b.tenant_id INTO v_booking_user_id, v_tenant_id
+    FROM public.bookings b
+    WHERE b.id = p_booking_id;
+
     -- Lock and refund wallet
     SELECT w.balance_eur INTO v_current_balance
     FROM public.wallets w
@@ -215,6 +226,8 @@ BEGIN
 
     INSERT INTO public.wallet_transactions (
         wallet_id,
+        tenant_id,
+        user_id,
         booking_id,
         type,
         amount_eur,
@@ -222,6 +235,8 @@ BEGIN
     )
     VALUES (
         v_wallet_id,
+        v_tenant_id,
+        v_booking_user_id,
         p_booking_id,
         'booking_refund',
         v_charge_amount,
