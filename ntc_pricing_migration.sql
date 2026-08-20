@@ -1,5 +1,5 @@
 -- ============================================================================
--- NTC Dynamic Pricing & Wallet Functions (Include all NOT NULL columns)
+-- NTC Dynamic Pricing & Wallet Functions (Include idempotency_key column)
 -- ============================================================================
 
 -- 1. Aktualizácia funkcie wallet_create_ntc_booking
@@ -39,7 +39,7 @@ BEGIN
     INTO v_existing_tx
     FROM public.wallet_transactions t
     JOIN public.wallets w ON w.id = t.wallet_id
-    WHERE (t.metadata->>'idempotency_key' = p_idempotency_key)
+    WHERE t.idempotency_key = p_idempotency_key
     LIMIT 1;
 
     IF FOUND THEN
@@ -122,7 +122,7 @@ BEGIN
     )
     RETURNING bookings.id INTO v_new_booking_id;
 
-    -- Record transaction (with wallet_id, tenant_id, user_id)
+    -- Record transaction (with idempotency_key)
     INSERT INTO public.wallet_transactions (
         wallet_id,
         tenant_id,
@@ -130,6 +130,7 @@ BEGIN
         booking_id,
         type,
         amount_eur,
+        idempotency_key,
         metadata
     )
     VALUES (
@@ -139,6 +140,7 @@ BEGIN
         v_new_booking_id,
         'booking_charge',
         v_price,
+        p_idempotency_key,
         jsonb_build_object(
             'court_id', p_court_id,
             'sport', p_sport,
@@ -146,8 +148,7 @@ BEGIN
             'end_at', p_end_at,
             'has_card', v_has_card,
             'price_eur', v_price,
-            'balance_after_eur', v_new_balance,
-            'idempotency_key', p_idempotency_key
+            'balance_after_eur', v_new_balance
         )
     );
 
@@ -231,6 +232,7 @@ BEGIN
         booking_id,
         type,
         amount_eur,
+        idempotency_key,
         metadata
     )
     VALUES (
@@ -240,6 +242,7 @@ BEGIN
         p_booking_id,
         'booking_refund',
         v_charge_amount,
+        'refund_' || p_booking_id::text,
         jsonb_build_object('refund_for_charge_id', v_tx_id, 'refund_amount', v_charge_amount, 'balance_after_eur', v_new_balance)
     );
 
