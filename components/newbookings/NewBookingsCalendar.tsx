@@ -690,8 +690,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       {datePickerOpen && <DatePicker value={date} min={today} max={maxDate} onSelect={(selected) => selectDate(dateKey(selected))} onClose={() => setDatePickerOpen(false)} />}
       {auth && <NewBookingAuth mode={auth} onClose={() => setAuth(null)} onSuccess={() => window.location.reload()} />}
       {slot && <CreateBookingDialog court={courts.find((court) => court.id === slot.courtId)} date={slot.date} hour={slot.hour} duration={duration} title={title} phone={phone} hasCard={Boolean(currentUser?.cardNumber && currentUser.cardNumber.trim().length > 0)} error={notice || undefined} loading={loading} onDuration={setDuration} onTitle={setTitle} onPhone={setPhone} onClose={() => setSlot(null)} onSubmit={submit} />}
-      {detail && <BookingDetailDialog booking={detail} court={courts.find((court) => court.id === detail.courtId)} canManage={!!currentUser && (currentUser.role === "admin" || currentUser.id === detail.user_id)} canCancel={currentUser?.role === "admin" || new Date(detail.start).getTime() - now.getTime() > 24 * 60 * 60 * 1000} onClose={() => setDetail(null)} onDelete={() => setDeleting(detail)} />}
-      {deleting && <DeleteDialog loading={loading} onCancel={() => setDeleting(null)} onConfirm={remove} />}
+      {detail && <BookingDetailDialog booking={detail} court={courts.find((court) => court.id === detail.courtId)} canManage={!!currentUser && (currentUser.role === "admin" || currentUser.id === detail.user_id)} canCancel={currentUser?.role === "admin" || new Date(detail.start).getTime() - now.getTime() > 24 * 60 * 60 * 1000} error={notice || undefined} onClose={() => { setDetail(null); setNotice(""); }} onDelete={() => { setNotice(""); setDeleting(detail); }} />}
+      {deleting && <DeleteDialog loading={loading} error={notice || undefined} onCancel={() => { setDeleting(null); setNotice(""); }} onConfirm={remove} />}
       <style jsx global>{`
         @keyframes orange-laser-perimeter-trace {
           0% {

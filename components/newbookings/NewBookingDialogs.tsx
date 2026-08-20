@@ -105,11 +105,12 @@ type DetailProps = {
   court?: Court;
   canManage: boolean;
   canCancel: boolean;
+  error?: string;
   onClose: () => void;
   onDelete: () => void;
 };
 
-export function BookingDetailDialog({ booking, court, canManage, canCancel, onClose, onDelete }: DetailProps) {
+export function BookingDetailDialog({ booking, court, canManage, canCancel, error, onClose, onDelete }: DetailProps) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -125,6 +126,13 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, onCl
       <button aria-label="Zavrieť" className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative max-h-[90vh] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-8">
         <DialogHeader title="Detail rezervácie" subtitle={court?.name || "Rezervované športovisko"} onClose={onClose} />
+        
+        {error && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700 sm:text-sm">
+            {error}
+          </div>
+        )}
+
         <div className="space-y-2.5 sm:space-y-3">
           <Detail icon={Clock3} label="Termín" value={`${formatDate(booking.start)}, ${formatTime(booking.start)} – ${formatTime(booking.end)}`} />
           <Detail icon={User} label="Meno" value={booking.customerName || "Neznáme"} />
@@ -146,7 +154,7 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, onCl
   );
 }
 
-export function DeleteDialog({ loading, onCancel, onConfirm }: { loading: boolean; onCancel: () => void; onConfirm: () => void }) {
+export function DeleteDialog({ loading, error, onCancel, onConfirm }: { loading: boolean; error?: string; onCancel: () => void; onConfirm: () => void }) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -165,6 +173,11 @@ export function DeleteDialog({ loading, onCancel, onConfirm }: { loading: boolea
         <p className="mt-2 text-xs leading-5 text-slate-600 sm:text-sm sm:leading-6">
           Táto rezervácia bude označená ako zrušená. Naozaj chcete pokračovať?
         </p>
+        {error && (
+          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-2.5 text-xs font-medium text-red-700">
+            {error}
+          </div>
+        )}
         <div className="mt-5 grid grid-cols-2 gap-2.5 sm:mt-6 sm:gap-3">
           <button onClick={onCancel} className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs font-bold text-slate-700 sm:px-4 sm:py-3 sm:text-sm">
             Ponechať
