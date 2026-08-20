@@ -1,5 +1,5 @@
 -- ============================================================================
--- NTC Dynamic Pricing & Wallet Functions (Include idempotency_key column)
+-- NTC Dynamic Pricing & Wallet Functions (Fix sign constraint: charge is negative)
 -- ============================================================================
 
 -- 1. Aktualizácia funkcie wallet_create_ntc_booking
@@ -35,7 +35,7 @@ DECLARE
     v_conflict_count INT;
 BEGIN
     -- Idempotency check
-    SELECT t.booking_id, t.amount_eur, w.balance_eur, false AS created
+    SELECT t.booking_id, ABS(t.amount_eur), w.balance_eur, false AS created
     INTO v_existing_tx
     FROM public.wallet_transactions t
     JOIN public.wallets w ON w.id = t.wallet_id
@@ -122,7 +122,7 @@ BEGIN
     )
     RETURNING bookings.id INTO v_new_booking_id;
 
-    -- Record transaction (with idempotency_key)
+    -- Record transaction (amount_eur is negative for booking_charge)
     INSERT INTO public.wallet_transactions (
         wallet_id,
         tenant_id,
@@ -139,7 +139,7 @@ BEGIN
         p_user_id,
         v_new_booking_id,
         'booking_charge',
-        v_price,
+        -v_price,
         p_idempotency_key,
         jsonb_build_object(
             'court_id', p_court_id,
@@ -191,8 +191,8 @@ BEGIN
         RETURN;
     END IF;
 
-    -- Find original charge
-    SELECT t.id, t.wallet_id, t.amount_eur
+    -- Find original charge (and take absolute value)
+    SELECT t.id, t.wallet_id, ABS(t.amount_eur)
     INTO v_tx_id, v_wallet_id, v_charge_amount
     FROM public.wallet_transactions t
     WHERE t.booking_id = p_booking_id AND t.type = 'booking_charge'
