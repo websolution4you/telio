@@ -1,5 +1,5 @@
 -- ============================================================================
--- NTC Dynamic Pricing & Wallet Functions (Fix ambiguous column references)
+-- NTC Dynamic Pricing & Wallet Functions (Fix tenant_id UUID type)
 -- ============================================================================
 
 -- 1. Aktualizácia funkcie wallet_create_ntc_booking
@@ -31,7 +31,7 @@ DECLARE
     v_new_balance NUMERIC(10, 2);
     v_new_booking_id UUID;
     v_existing_tx RECORD;
-    v_tenant_id TEXT := '595cbb6c-1019-41ae-b1c2-a60c13c8dcdf';
+    v_tenant_id UUID := '595cbb6c-1019-41ae-b1c2-a60c13c8dcdf'::uuid;
     v_conflict_count INT;
 BEGIN
     -- Idempotency check
@@ -81,7 +81,7 @@ BEGIN
     WHERE b.court_id = p_court_id
       AND b.status NOT IN ('cancelled', 'rejected')
       AND b.start_at < p_end_at
-      AND b.end_at > p_start_at;
+      AND end_at > p_start_at;
 
     IF v_conflict_count > 0 THEN
         RAISE EXCEPTION 'Court % is no longer available in the selected time range.', p_court_id;
@@ -153,86 +153,5 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 2. Aktualizácia funkcie wallet_refund_ntc_booking
-DROP FUNCTION IF EXISTS public.wallet_refund_ntc_booking(UUID);
-
-CREATE OR REPLACE FUNCTION public.wallet_refund_ntc_booking(
-    p_booking_id UUID
-)
-RETURNS TABLE (
-    refunded_eur NUMERIC,
-    balance_eur NUMERIC,
-    refunded BOOLEAN
-) AS $$
-DECLARE
-    v_tx_id UUID;
-    v_wallet_id UUID;
-    v_charge_amount NUMERIC(10, 2);
-    v_current_balance NUMERIC(10, 2);
-    v_new_balance NUMERIC(10, 2);
-BEGIN
-    IF EXISTS (
-        SELECT 1 FROM public.wallet_transactions wt
-        WHERE wt.booking_id = p_booking_id AND wt.type = 'booking_refund'
-    ) THEN
-        SELECT w.balance_eur INTO v_current_balance
-        FROM public.wallet_transactions t
-        JOIN public.wallets w ON w.id = t.wallet_id
-        WHERE t.booking_id = p_booking_id AND t.type = 'booking_refund'
-        LIMIT 1;
-
-        RETURN QUERY SELECT 0.00, COALESCE(v_current_balance, 0.00), false;
-        RETURN;
-    END IF;
-
-    SELECT t.id, t.wallet_id, t.amount_eur
-    INTO v_tx_id, v_wallet_id, v_charge_amount
-    FROM public.wallet_transactions t
-    WHERE t.booking_id = p_booking_id AND t.type = 'booking_charge'
-    LIMIT 1;
-
-    IF v_tx_id IS NULL THEN
-        UPDATE public.bookings b SET status = 'cancelled' WHERE b.id = p_booking_id;
-        RETURN QUERY SELECT 0.00, 0.00, false;
-        RETURN;
-    END IF;
-
-    SELECT w.balance_eur INTO v_current_balance
-    FROM public.wallets w
-    WHERE w.id = v_wallet_id
-    FOR UPDATE;
-
-    v_new_balance := v_current_balance + v_charge_amount;
-
-    UPDATE public.wallets w
-    SET balance_eur = v_new_balance, updated_at = now()
-    WHERE w.id = v_wallet_id;
-
-    UPDATE public.bookings b
-    SET status = 'cancelled'
-    WHERE b.id = p_booking_id;
-
-    INSERT INTO public.wallet_transactions (
-        wallet_id,
-        booking_id,
-        type,
-        amount_eur,
-        balance_after_eur,
-        metadata
-    )
-    VALUES (
-        v_wallet_id,
-        p_booking_id,
-        'booking_refund',
-        v_charge_amount,
-        v_new_balance,
-        jsonb_build_object('refund_for_charge_id', v_tx_id, 'refund_amount', v_charge_amount)
-    );
-
-    RETURN QUERY SELECT v_charge_amount, v_new_balance, true;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- Pridelenie práv
 GRANT EXECUTE ON FUNCTION public.wallet_create_ntc_booking(UUID, TEXT, TEXT, TEXT, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, TEXT, TEXT) TO service_role;
-GRANT EXECUTE ON FUNCTION public.wallet_refund_ntc_booking(UUID) TO service_role;
