@@ -9,6 +9,7 @@ import {
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth/bookingAuth";
 import { walletEnabledForUser } from "@/lib/server/wallet";
+import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
@@ -262,6 +263,9 @@ export async function createBookingAction(payload: {
                 created: Boolean(result.created),
             };
         } else {
+            const durationMin = Math.round((bookingEndMs - bookingStartMs) / 60000);
+            const calculatedPrice = calculateNtcBookingPrice(payload.courtId, payload.start, durationMin, false).totalPriceEur;
+
             const { data: dbBooking, error: dbError } = await db
                 .from("bookings")
                 .insert({
@@ -274,7 +278,8 @@ export async function createBookingAction(payload: {
                     end_at: payload.end,
                     status: payload.status,
                     notes: JSON.stringify(notesObj),
-                    user_id: session.userId
+                    user_id: session.userId,
+                    price_eur: calculatedPrice
                 })
                 .select()
                 .single();

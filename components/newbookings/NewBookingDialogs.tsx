@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { Clock3, MessageSquare, Phone, Trash2, User, X } from "lucide-react";
 import type { Booking, Court } from "@/lib/bookings/mockBookings";
+import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 
 type CreateDialogProps = {
   court?: Court;
@@ -11,6 +12,7 @@ type CreateDialogProps = {
   duration: number;
   title: string;
   phone: string;
+  hasCard?: boolean;
   error?: string;
   loading: boolean;
   onDuration: (value: number) => void;
@@ -28,6 +30,16 @@ export function CreateBookingDialog(props: CreateDialogProps) {
     };
   }, []);
 
+  const bookingDate = new Date(props.date);
+  bookingDate.setHours(props.hour, 0, 0, 0);
+
+  const pricing = calculateNtcBookingPrice(
+    props.court?.sport || "badminton",
+    bookingDate,
+    props.duration,
+    Boolean(props.hasCard)
+  );
+
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4">
       <button aria-label="Zavrieť" className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={props.onClose} />
@@ -39,6 +51,19 @@ export function CreateBookingDialog(props: CreateDialogProps) {
           <Info label="Dátum" value={new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(props.date)} />
           <Info label="Začiatok" value={`${String(props.hour).padStart(2, "0")}:00`} />
           <Info label="Trvanie" value={`${props.duration} min.`} />
+          <div className="col-span-2 flex items-center justify-between border-t border-slate-200/80 pt-2.5 mt-0.5">
+            <span className="font-semibold text-slate-600">Cena rezervácie:</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-base font-black text-slate-950 sm:text-lg">
+                {pricing.formattedPrice}
+              </span>
+              {pricing.isMemberRate && (
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-300/60">
+                  Členská zľava
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
         {props.error && (
