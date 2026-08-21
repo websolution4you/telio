@@ -146,18 +146,13 @@ function AdminDashboardPage() {
 function UserDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [stats, setStats] = useState<Stats>({});
-  const [wallet, setWallet] = useState<{ balanceEur: number; transactions: WalletTransaction[] } | null>(null);
-  const [walletNotice, setWalletNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [pending, setPending] = useState<PendingAction>(null);
   const [now] = useState(() => Date.now());
 
-    const loadData = useCallback(async () => {
-    const [bookingResult, walletResult] = await Promise.all([
-      fetchUserDashboardDataAction(),
-      getWalletHistoryAction(),
-    ]);
+  const loadData = useCallback(async () => {
+    const bookingResult = await fetchUserDashboardDataAction();
     setError("");
     if (bookingResult.success) {
       setBookings((bookingResult.bookings || []) as BookingItem[]);
@@ -165,39 +160,13 @@ function UserDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
     } else {
       setError(bookingResult.error || "Dáta sa nepodarilo načítať.");
     }
-    if (walletResult.success && walletResult.enabled) {
-      setWallet({ balanceEur: walletResult.balanceEur || 0, transactions: walletResult.transactions as WalletTransaction[] });
-    } else {
-      setWallet(null);
-      if (!walletResult.success && walletResult.enabled) setError(walletResult.error || "Históriu kreditu sa nepodarilo načítať.");
-    }
     setLoading(false);
   }, []);
 
-        useEffect(() => {
-    let active = true;
-    const params = new URLSearchParams(window.location.search);
-    const checkoutSessionId = params.get("session_id");
-    const walletStatus = params.get("wallet");
-
-    if (walletStatus || checkoutSessionId) {
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-    if (walletStatus === "cancelled") {
-      setWalletNotice("Dobíjanie kreditu bolo zrušené.");
-    }
-    if (walletStatus === "success" && checkoutSessionId) {
-      setWalletNotice("Overujem platbu a pripisujem kredit...");
-      reconcileWalletCheckoutAction(checkoutSessionId).then((result) => {
-        if (!active) return;
-        setWalletNotice(result.success ? "Platba bola úspešne prijatá a kredit bol pripísaný." : result.error || "Platbu sa zatiaľ nepodarilo potvrdiť.");
-        return loadData();
-      });
-    }
-
+  useEffect(() => {
     loadData();
-    return () => { active = false; };
   }, [loadData]);
+
   const future = useMemo(() => bookings.filter((item) => new Date(item.start).getTime() > now).sort((a, b) => +new Date(a.start) - +new Date(b.start)), [bookings, now]);
   const past = useMemo(() => bookings.filter((item) => new Date(item.start).getTime() <= now).sort((a, b) => +new Date(b.start) - +new Date(a.start)), [bookings, now]);
 
@@ -214,13 +183,53 @@ function UserDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
     <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
       <header className="relative isolate overflow-hidden border-b border-cyan-100/80 bg-gradient-to-r from-white via-cyan-50/80 to-indigo-50/80 shadow-[0_10px_35px_rgba(15,23,42,0.07)]">
         <div className="pointer-events-none absolute -left-16 -top-24 h-44 w-44 rounded-full bg-cyan-300/20 blur-3xl" /><div className="pointer-events-none absolute -right-12 -top-28 h-48 w-48 rounded-full bg-violet-300/20 blur-3xl" />
-        <div className="relative mx-auto flex min-h-[76px] max-w-[1400px] items-center justify-between gap-3 px-4 py-3 sm:min-h-[86px] sm:px-6"><Link href="/newbookings" className="flex items-center gap-3"><span className="relative grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-violet-600 text-white shadow-[0_10px_24px_rgba(37,99,235,0.3)]"><b>T</b><Sparkles className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-white p-0.5 text-violet-600" /></span><span><b className="block tracking-[0.12em]">TELIO</b><small className="text-slate-500">Prehľad rezervácií</small></span></Link><Link href="/newbookings" className="flex items-center gap-2 rounded-2xl border border-white bg-white/80 px-3 py-2.5 text-xs font-bold text-slate-700 shadow-sm hover:-translate-y-0.5 sm:px-4 sm:text-sm"><ArrowLeft className="h-4 w-4" /><span className="hidden sm:inline">Späť na kalendár</span></Link></div>
+        <div className="relative mx-auto flex min-h-[76px] max-w-[1400px] items-center justify-between gap-3 px-4 py-3 sm:min-h-[86px] sm:px-6">
+          <Link href="/newbookings" className="flex items-center gap-3">
+            <span className="relative grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-violet-600 text-white shadow-[0_10px_24px_rgba(37,99,235,0.3)]">
+              <b>T</b>
+              <Sparkles className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-white p-0.5 text-violet-600" />
+            </span>
+            <span>
+              <b className="block tracking-[0.12em]">TELIO</b>
+              <small className="text-slate-500">Prehľad rezervácií</small>
+            </span>
+          </Link>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              href="/dashboard/transactions"
+              className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-white/90 px-3 py-2.5 text-xs font-bold text-emerald-700 shadow-xs hover:-translate-y-0.5 hover:bg-emerald-50 sm:px-4 sm:text-sm"
+            >
+              <Coins className="h-4 w-4 text-emerald-600" />
+              <span className="hidden sm:inline">Moje transakcie</span>
+            </Link>
+            <Link
+              href="/newbookings"
+              className="flex items-center gap-2 rounded-2xl border border-white bg-white/80 px-3 py-2.5 text-xs font-bold text-slate-700 shadow-sm hover:-translate-y-0.5 sm:px-4 sm:text-sm"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Späť na kalendár</span>
+            </Link>
+          </div>
+        </div>
       </header>
       <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:py-12">
         <div className="mb-8"><span className="mb-3 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-indigo-700"><LayoutDashboard className="h-3.5 w-3.5" /> Moje rezervácie</span><h1 className="text-3xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-4xl" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>Vitaj, {currentUser.name}</h1><p className="mt-2 text-sm text-slate-500">Tvoje rezervácie a osobná športová štatistika.</p></div>
-        {walletNotice && <button onClick={() => setWalletNotice("")} className="mb-6 w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left text-sm font-semibold text-emerald-700">{walletNotice}</button>}
         {error && <button onClick={() => setError("")} className="mb-6 w-full rounded-2xl border border-red-200 bg-red-50 p-4 text-left text-sm font-semibold text-red-700">{error}</button>}
-        {loading && !bookings.length ? <div className="grid min-h-[360px] place-items-center"><Loader2 className="h-8 w-8 animate-spin text-cyan-600" /></div> : <div className="space-y-8">{wallet && <WalletHistory balanceEur={wallet.balanceEur} transactions={wallet.transactions} />}<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><StatCard icon={Clock3} label="Odohrané tento mesiac" value={`${formatHours(stats.pastHoursThisMonth)} hod.`} tone="cyan" /><StatCard icon={CalendarDays} label="Naplánované tento mesiac" value={`${formatHours(stats.futureHoursThisMonth)} hod.`} tone="indigo" /><StatCard icon={Activity} label="Počet rezervácií tento mesiac" value={String(stats.totalBookings || 0)} tone="emerald" /></div><div className="grid gap-6 lg:grid-cols-2"><BookingSection title="Nadchádzajúce termíny" empty="Nemáš žiadne aktívne rezervácie." bookings={future} future now={now} onAction={setPending} /><BookingSection title="História rezervácií" empty="Zatiaľ nemáš históriu rezervácií." bookings={past} now={now} onAction={setPending} /></div></div>}
+        {loading && !bookings.length ? (
+          <div className="grid min-h-[360px] place-items-center"><Loader2 className="h-8 w-8 animate-spin text-cyan-600" /></div>
+        ) : (
+          <div className="space-y-8">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <StatCard icon={Clock3} label="Odohrané tento mesiac" value={`${formatHours(stats.pastHoursThisMonth)} hod.`} tone="cyan" />
+              <StatCard icon={CalendarDays} label="Naplánované tento mesiac" value={`${formatHours(stats.futureHoursThisMonth)} hod.`} tone="indigo" />
+              <StatCard icon={Activity} label="Počet rezervácií tento mesiac" value={String(stats.totalBookings || 0)} tone="emerald" />
+            </div>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <BookingSection title="Nadchádzajúce termíny" empty="Nemáš žiadne aktívne rezervácie." bookings={future} future now={now} onAction={setPending} />
+              <BookingSection title="História rezervácií" empty="Zatiaľ nemáš históriu rezervácií." bookings={past} now={now} onAction={setPending} />
+            </div>
+          </div>
+        )}
       </main>
       {pending && <div className="fixed inset-0 z-[100] grid place-items-center p-4"><button className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setPending(null)} aria-label="Zavrieť" /><div className="relative w-full max-w-sm rounded-3xl border border-white bg-white p-6 text-center shadow-2xl"><span className={`mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl ${pending.type === "delete" ? "bg-red-50 text-red-600" : "bg-cyan-50 text-cyan-600"}`}>{pending.type === "delete" ? <Trash2 className="h-6 w-6" /> : <RefreshCw className="h-6 w-6" />}</span><h2 className="text-xl font-bold">{pending.type === "delete" ? "Zrušiť rezerváciu?" : "Obnoviť rezerváciu?"}</h2><p className="mt-2 text-sm text-slate-500">{formatDate(pending.booking.start)}, {formatTime(pending.booking.start)} – {formatTime(pending.booking.end)}</p><div className="mt-6 grid grid-cols-2 gap-3"><button onClick={() => setPending(null)} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold">Späť</button><button onClick={confirm} disabled={loading} className={`rounded-xl px-4 py-3 text-sm font-bold text-white ${pending.type === "delete" ? "bg-red-600" : "bg-cyan-600"}`}>{loading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Potvrdiť"}</button></div></div></div>}
     </div>

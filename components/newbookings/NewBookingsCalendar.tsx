@@ -483,6 +483,17 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
                   <div className="space-y-1">
                     <Link
+                      href="/dashboard/transactions"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition duration-150 group"
+                    >
+                      <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition duration-150">
+                        <Coins className="h-4 w-4" />
+                      </span>
+                      <span>Moje transakcie</span>
+                    </Link>
+
+                    <Link
                       href="/dashboard/newbookings"
                       onClick={() => setUserMenuOpen(false)}
                       className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition duration-150 group"
