@@ -1,0 +1,3409 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "TatraPayPlus API",
+    "version": "1.6.0_2026-06-11"
+  },
+  "servers": [
+    {
+      "url": "https://api.tatrabanka.sk/tatrapayplus/sandbox",
+      "description": "TatraPayPlus API sandbox"
+    }
+  ],
+  "paths": {
+    "/v1/payments": {
+      "post": {
+        "summary": "Initiate payment intent",
+        "description": "Initiate payment intent",
+        "operationId": "initiatePayment",
+        "tags": [
+          "TatraPayPlus API"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/X-Request-ID"
+          },
+          {
+            "$ref": "#/components/parameters/IP-Address"
+          },
+          {
+            "$ref": "#/components/parameters/Redirect-URI"
+          },
+          {
+            "$ref": "#/components/parameters/Preferred-Method"
+          },
+          {
+            "$ref": "#/components/parameters/Preferred-Provider"
+          },
+          {
+            "$ref": "#/components/parameters/Accept-Language"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/initiatePaymentBody"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/OK_201_InitiatePaymentResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST_400"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED_401"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN_403"
+          },
+          "404": {
+            "$ref": "#/components/responses/NOT_FOUND_404"
+          },
+          "405": {
+            "$ref": "#/components/responses/METHOD_NOT_ALLOWED_405"
+          },
+          "406": {
+            "$ref": "#/components/responses/NOT_ACCEPTABLE_406"
+          },
+          "408": {
+            "$ref": "#/components/responses/REQUEST_TIMEOUT_408"
+          },
+          "409": {
+            "$ref": "#/components/responses/CONFLICT_409"
+          },
+          "415": {
+            "$ref": "#/components/responses/UNSUPPORTED_MEDIA_TYPE_415"
+          },
+          "429": {
+            "$ref": "#/components/responses/TOO_MANY_REQUESTS_429"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_SERVER_ERROR_500"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE_503"
+          }
+        }
+      }
+    },
+    "/v1/payments/methods": {
+      "get": {
+        "summary": "Payment methods list",
+        "description": "Payment methods list",
+        "operationId": "getMethods",
+        "tags": [
+          "TatraPayPlus API",
+          "TatraPayPlus DirectAPI"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/X-Request-ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OK_200_PaymentMethodsList"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST_400"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED_401"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN_403"
+          },
+          "404": {
+            "$ref": "#/components/responses/NOT_FOUND_404"
+          },
+          "405": {
+            "$ref": "#/components/responses/METHOD_NOT_ALLOWED_405"
+          },
+          "406": {
+            "$ref": "#/components/responses/NOT_ACCEPTABLE_406"
+          },
+          "408": {
+            "$ref": "#/components/responses/REQUEST_TIMEOUT_408"
+          },
+          "409": {
+            "$ref": "#/components/responses/CONFLICT_409"
+          },
+          "415": {
+            "$ref": "#/components/responses/UNSUPPORTED_MEDIA_TYPE_415"
+          },
+          "429": {
+            "$ref": "#/components/responses/TOO_MANY_REQUESTS_429"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_SERVER_ERROR_500"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE_503"
+          }
+        }
+      }
+    },
+    "/v1/payments/{payment-id}/status": {
+      "get": {
+        "summary": "Payment intent status",
+        "description": "Payment intent status",
+        "operationId": "getPaymentIntentStatus",
+        "tags": [
+          "TatraPayPlus API",
+          "TatraPayPlus DirectAPI"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Payment-id"
+          },
+          {
+            "$ref": "#/components/parameters/X-Request-ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OK_200_PaymentIntentStatus"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST_400"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED_401"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN_403"
+          },
+          "404": {
+            "$ref": "#/components/responses/NOT_FOUND_404"
+          },
+          "405": {
+            "$ref": "#/components/responses/METHOD_NOT_ALLOWED_405"
+          },
+          "406": {
+            "$ref": "#/components/responses/NOT_ACCEPTABLE_406"
+          },
+          "408": {
+            "$ref": "#/components/responses/REQUEST_TIMEOUT_408"
+          },
+          "409": {
+            "$ref": "#/components/responses/CONFLICT_409"
+          },
+          "415": {
+            "$ref": "#/components/responses/UNSUPPORTED_MEDIA_TYPE_415"
+          },
+          "429": {
+            "$ref": "#/components/responses/TOO_MANY_REQUESTS_429"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_SERVER_ERROR_500"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE_503"
+          }
+        }
+      }
+    },
+    "/v1/payments/{payment-id}": {
+      "patch": {
+        "summary": "Update payment intent",
+        "description": "Update payment intent. Only available for payments initiated by the CARD_PAY, DIRECT_API method.",
+        "operationId": "updatePaymentIntent",
+        "tags": [
+          "TatraPayPlus API",
+          "TatraPayPlus DirectAPI"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Payment-id"
+          },
+          {
+            "$ref": "#/components/parameters/X-Request-ID"
+          },
+          {
+            "$ref": "#/components/parameters/Idempotency-Key"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/updatePaymentBody"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OK_200_PaymentIntentUpdate"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST_400"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED_401"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN_403"
+          },
+          "404": {
+            "$ref": "#/components/responses/NOT_FOUND_404"
+          },
+          "405": {
+            "$ref": "#/components/responses/METHOD_NOT_ALLOWED_405"
+          },
+          "406": {
+            "$ref": "#/components/responses/NOT_ACCEPTABLE_406"
+          },
+          "408": {
+            "$ref": "#/components/responses/REQUEST_TIMEOUT_408"
+          },
+          "409": {
+            "$ref": "#/components/responses/CONFLICT_409"
+          },
+          "415": {
+            "$ref": "#/components/responses/UNSUPPORTED_MEDIA_TYPE_415"
+          },
+          "429": {
+            "$ref": "#/components/responses/TOO_MANY_REQUESTS_429"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_SERVER_ERROR_500"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE_503"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Cancel payment intent.",
+        "description": "Cancel payment intent. Available in general if authorizationStatus is NEW. This method is also available for payments initiated by the PAY_LATER payment method, but only if the status is CUSTOMER_CREATION_IN_PROGRESS.",
+        "operationId": "cancelPaymentIntent",
+        "tags": [
+          "TatraPayPlus API"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Payment-id"
+          },
+          {
+            "$ref": "#/components/parameters/X-Request-ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OK_200_PaymentIntentCancelation"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST_400"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED_401"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN_403"
+          },
+          "404": {
+            "$ref": "#/components/responses/NOT_FOUND_404"
+          },
+          "405": {
+            "$ref": "#/components/responses/METHOD_NOT_ALLOWED_405"
+          },
+          "406": {
+            "$ref": "#/components/responses/NOT_ACCEPTABLE_406"
+          },
+          "408": {
+            "$ref": "#/components/responses/REQUEST_TIMEOUT_408"
+          },
+          "409": {
+            "$ref": "#/components/responses/CONFLICT_409"
+          },
+          "415": {
+            "$ref": "#/components/responses/UNSUPPORTED_MEDIA_TYPE_415"
+          },
+          "429": {
+            "$ref": "#/components/responses/TOO_MANY_REQUESTS_429"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_SERVER_ERROR_500"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE_503"
+          }
+        }
+      }
+    },
+    "/v1/payments/loans/precalculation": {
+      "put": {
+        "summary": "Loan precalculation",
+        "description": "Loan precalculation",
+        "operationId": "loanPrecalculation",
+        "tags": [
+          "TatraPayPlus API"
+        ],
+        "security": [
+          {
+            "oAuth2ClientCredentials": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/X-Request-ID"
+          },
+          {
+            "$ref": "#/components/parameters/IP-Address"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/basicCalculationRequestBody"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OK_200_BasicCalculation"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST_400"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED_401"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN_403"
+          },
+          "404": {
+            "$ref": "#/components/responses/NOT_FOUND_404"
+          },
+          "405": {
+            "$ref": "#/components/responses/METHOD_NOT_ALLOWED_405"
+          },
+          "406": {
+            "$ref": "#/components/responses/NOT_ACCEPTABLE_406"
+          },
+          "408": {
+            "$ref": "#/components/responses/REQUEST_TIMEOUT_408"
+          },
+          "409": {
+            "$ref": "#/components/responses/CONFLICT_409"
+          },
+          "415": {
+            "$ref": "#/components/responses/UNSUPPORTED_MEDIA_TYPE_415"
+          },
+          "429": {
+            "$ref": "#/components/responses/TOO_MANY_REQUESTS_429"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_SERVER_ERROR_500"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE_503"
+          }
+        }
+      }
+    },
+    "/v1/payments-direct": {
+      "post": {
+        "summary": "Create direct transaction request",
+        "description": "After obtaining the token from the Google Pay API or Apple Pay API, you need to send the token along with other payment details to the TatraPayPlus API.",
+        "operationId": "createDirectTransactionRequest",
+        "tags": [
+          "TatraPayPlus DirectAPI"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/X-Request-ID"
+          },
+          {
+            "$ref": "#/components/parameters/IP-Address"
+          },
+          {
+            "$ref": "#/components/parameters/Redirect-URI"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/initiateDirectTransaction"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OK_201_InitiateDirectAPITransactionResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST_400"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED_401"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN_403"
+          },
+          "404": {
+            "$ref": "#/components/responses/NOT_FOUND_404"
+          },
+          "405": {
+            "$ref": "#/components/responses/METHOD_NOT_ALLOWED_405"
+          },
+          "406": {
+            "$ref": "#/components/responses/NOT_ACCEPTABLE_406"
+          },
+          "408": {
+            "$ref": "#/components/responses/REQUEST_TIMEOUT_408"
+          },
+          "409": {
+            "$ref": "#/components/responses/CONFLICT_409"
+          },
+          "415": {
+            "$ref": "#/components/responses/UNSUPPORTED_MEDIA_TYPE_415"
+          },
+          "429": {
+            "$ref": "#/components/responses/TOO_MANY_REQUESTS_429"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_SERVER_ERROR_500"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE_503"
+          }
+        }
+      }
+    },
+    "/v1/appearances": {
+      "post": {
+        "summary": "Set appearance parameters for TatraPayPlus",
+        "description": "Set appearance parameters for TatraPayPlus",
+        "operationId": "setAppearance",
+        "tags": [
+          "TatraPayPlus Appearance API"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/X-Request-ID"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/appearanceBody"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/OK_201_Appearance_created"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST_400"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED_401"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN_403"
+          },
+          "404": {
+            "$ref": "#/components/responses/NOT_FOUND_404"
+          },
+          "405": {
+            "$ref": "#/components/responses/METHOD_NOT_ALLOWED_405"
+          },
+          "406": {
+            "$ref": "#/components/responses/NOT_ACCEPTABLE_406"
+          },
+          "408": {
+            "$ref": "#/components/responses/REQUEST_TIMEOUT_408"
+          },
+          "409": {
+            "$ref": "#/components/responses/CONFLICT_409"
+          },
+          "415": {
+            "$ref": "#/components/responses/UNSUPPORTED_MEDIA_TYPE_415"
+          },
+          "429": {
+            "$ref": "#/components/responses/TOO_MANY_REQUESTS_429"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_SERVER_ERROR_500"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE_503"
+          }
+        }
+      }
+    },
+    "/v1/appearances/logo": {
+      "post": {
+        "summary": "Set logo for TatraPayPlus",
+        "description": "Logo appearance request body.  Logo must follow these rules:\nMaxLength: 256px\nMaxHeight: 64px\n",
+        "operationId": "setLogo",
+        "tags": [
+          "TatraPayPlus Appearance API"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/X-Request-ID"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/logoBody"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/OK_201_Logo_created"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST_400"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED_401"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN_403"
+          },
+          "404": {
+            "$ref": "#/components/responses/NOT_FOUND_404"
+          },
+          "405": {
+            "$ref": "#/components/responses/METHOD_NOT_ALLOWED_405"
+          },
+          "406": {
+            "$ref": "#/components/responses/NOT_ACCEPTABLE_406"
+          },
+          "408": {
+            "$ref": "#/components/responses/REQUEST_TIMEOUT_408"
+          },
+          "409": {
+            "$ref": "#/components/responses/CONFLICT_409"
+          },
+          "415": {
+            "$ref": "#/components/responses/UNSUPPORTED_MEDIA_TYPE_415"
+          },
+          "429": {
+            "$ref": "#/components/responses/TOO_MANY_REQUESTS_429"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_SERVER_ERROR_500"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE_503"
+          }
+        }
+      }
+    },
+    "/v1/payments-comfortpay": {
+      "post": {
+        "summary": "Initiate Comfort Pay transaction request",
+        "description": "ComfortPay card transaction execution. Using card identification obtained after successful card registration through CardPay payment method",
+        "operationId": "createComfortPayTransactionRequest",
+        "tags": [
+          "TatraPayPlus ComfortPay API"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/X-Request-ID"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/initiateComfortPayBody"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/OK_201_InitiateComfortPayResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST_400_CP"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED_401"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN_403"
+          },
+          "404": {
+            "$ref": "#/components/responses/NOT_FOUND_404"
+          },
+          "405": {
+            "$ref": "#/components/responses/METHOD_NOT_ALLOWED_405"
+          },
+          "406": {
+            "$ref": "#/components/responses/NOT_ACCEPTABLE_406"
+          },
+          "408": {
+            "$ref": "#/components/responses/REQUEST_TIMEOUT_408"
+          },
+          "409": {
+            "$ref": "#/components/responses/CONFLICT_409"
+          },
+          "415": {
+            "$ref": "#/components/responses/UNSUPPORTED_MEDIA_TYPE_415"
+          },
+          "429": {
+            "$ref": "#/components/responses/TOO_MANY_REQUESTS_429"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_SERVER_ERROR_500"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE_503"
+          }
+        }
+      }
+    },
+    "/v1/payments-comfortpay/{payment-id}/status": {
+      "get": {
+        "summary": "ComfortPay transaction status",
+        "description": "Status of ComfortPay transaction execution.",
+        "operationId": "getComfortPayTransactionStatus",
+        "tags": [
+          "TatraPayPlus ComfortPay API"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/X-Request-ID"
+          },
+          {
+            "$ref": "#/components/parameters/ComfortPay-Payment-id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OK_200_GetComfortPayStatusResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST_400_CP"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED_401"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN_403"
+          },
+          "404": {
+            "$ref": "#/components/responses/NOT_FOUND_404"
+          },
+          "405": {
+            "$ref": "#/components/responses/METHOD_NOT_ALLOWED_405"
+          },
+          "406": {
+            "$ref": "#/components/responses/NOT_ACCEPTABLE_406"
+          },
+          "408": {
+            "$ref": "#/components/responses/REQUEST_TIMEOUT_408"
+          },
+          "409": {
+            "$ref": "#/components/responses/CONFLICT_409"
+          },
+          "415": {
+            "$ref": "#/components/responses/UNSUPPORTED_MEDIA_TYPE_415"
+          },
+          "429": {
+            "$ref": "#/components/responses/TOO_MANY_REQUESTS_429"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_SERVER_ERROR_500"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE_503"
+          }
+        }
+      }
+    },
+    "/v1/payments-comfortpay/{payment-id}": {
+      "patch": {
+        "summary": "Update ComfortPay transaction",
+        "description": "Update ComfortPay transaction. Use original (parent) paymentId as URL parameter.",
+        "operationId": "updateComfortPayTransactionRequest",
+        "tags": [
+          "TatraPayPlus ComfortPay API"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/X-Request-ID"
+          },
+          {
+            "$ref": "#/components/parameters/ComfortPay-Payment-id"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/updateComfortPayTransactionBody"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OK_200_ComfortPayTransactionUpdate"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST_400_CP"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED_401"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN_403"
+          },
+          "404": {
+            "$ref": "#/components/responses/NOT_FOUND_404"
+          },
+          "405": {
+            "$ref": "#/components/responses/METHOD_NOT_ALLOWED_405"
+          },
+          "406": {
+            "$ref": "#/components/responses/NOT_ACCEPTABLE_406"
+          },
+          "408": {
+            "$ref": "#/components/responses/REQUEST_TIMEOUT_408"
+          },
+          "409": {
+            "$ref": "#/components/responses/CONFLICT_409"
+          },
+          "415": {
+            "$ref": "#/components/responses/UNSUPPORTED_MEDIA_TYPE_415"
+          },
+          "429": {
+            "$ref": "#/components/responses/TOO_MANY_REQUESTS_429"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_SERVER_ERROR_500"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE_503"
+          }
+        }
+      }
+    },
+    "/v1/cards-comfortpay/{card-id}": {
+      "get": {
+        "summary": "ComfortPay card details",
+        "description": "Obtain registered ComfortPay card details.",
+        "operationId": "getComfortPayCardDetails",
+        "tags": [
+          "TatraPayPlus ComfortPay API"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/X-Request-ID"
+          },
+          {
+            "$ref": "#/components/parameters/ComfortPay-Card-id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OK_200_GetComfortPayCardResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST_400_CP"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED_401"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN_403"
+          },
+          "404": {
+            "$ref": "#/components/responses/NOT_FOUND_404"
+          },
+          "405": {
+            "$ref": "#/components/responses/METHOD_NOT_ALLOWED_405"
+          },
+          "406": {
+            "$ref": "#/components/responses/NOT_ACCEPTABLE_406"
+          },
+          "408": {
+            "$ref": "#/components/responses/REQUEST_TIMEOUT_408"
+          },
+          "409": {
+            "$ref": "#/components/responses/CONFLICT_409"
+          },
+          "415": {
+            "$ref": "#/components/responses/UNSUPPORTED_MEDIA_TYPE_415"
+          },
+          "429": {
+            "$ref": "#/components/responses/TOO_MANY_REQUESTS_429"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_SERVER_ERROR_500"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE_503"
+          }
+        }
+      },
+      "delete": {
+        "summary": "ComfortPay card unregister",
+        "description": "Unregister ComfortPay card and delete existing card token.",
+        "operationId": "deleteComfortPayCard",
+        "tags": [
+          "TatraPayPlus ComfortPay API"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/X-Request-ID"
+          },
+          {
+            "$ref": "#/components/parameters/ComfortPay-Card-id"
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/NO_CONTENT_204"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST_400_CP"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED_401"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN_403"
+          },
+          "404": {
+            "$ref": "#/components/responses/NOT_FOUND_404"
+          },
+          "405": {
+            "$ref": "#/components/responses/METHOD_NOT_ALLOWED_405"
+          },
+          "406": {
+            "$ref": "#/components/responses/NOT_ACCEPTABLE_406"
+          },
+          "408": {
+            "$ref": "#/components/responses/REQUEST_TIMEOUT_408"
+          },
+          "409": {
+            "$ref": "#/components/responses/CONFLICT_409"
+          },
+          "415": {
+            "$ref": "#/components/responses/UNSUPPORTED_MEDIA_TYPE_415"
+          },
+          "429": {
+            "$ref": "#/components/responses/TOO_MANY_REQUESTS_429"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_SERVER_ERROR_500"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE_503"
+          }
+        }
+      }
+    },
+    "/v1/cards-comfortpay/{card-id}/metadata": {
+      "get": {
+        "summary": "ComfortPay card metadata",
+        "description": "Obtain registered ComfortPay card metadata.",
+        "operationId": "getComfortPayCardMetadata",
+        "tags": [
+          "TatraPayPlus ComfortPay API"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/X-Request-ID"
+          },
+          {
+            "$ref": "#/components/parameters/ComfortPay-Card-id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OK_200_GetComfortPayCardMetadataResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST_400_CP"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED_401"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN_403"
+          },
+          "404": {
+            "$ref": "#/components/responses/NOT_FOUND_404"
+          },
+          "405": {
+            "$ref": "#/components/responses/METHOD_NOT_ALLOWED_405"
+          },
+          "406": {
+            "$ref": "#/components/responses/NOT_ACCEPTABLE_406"
+          },
+          "408": {
+            "$ref": "#/components/responses/REQUEST_TIMEOUT_408"
+          },
+          "409": {
+            "$ref": "#/components/responses/CONFLICT_409"
+          },
+          "415": {
+            "$ref": "#/components/responses/UNSUPPORTED_MEDIA_TYPE_415"
+          },
+          "429": {
+            "$ref": "#/components/responses/TOO_MANY_REQUESTS_429"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_SERVER_ERROR_500"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE_503"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "oAuth2ClientCredentials": {
+        "type": "oauth2",
+        "description": "See https://datatracker.ietf.org/doc/html/rfc6749#section-4.4",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "https://api.tatrabanka.sk/tatrapayplus/sandbox/auth/oauth/v2/token",
+            "scopes": {
+              "TATRAPAYPLUS": "access to TatraPay Plus API"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "basicCalculationResponseItem": {
+        "type": "object",
+        "required": [
+          "loanInterestRate",
+          "installmentAmount",
+          "loanDuration",
+          "preference",
+          "mainPreference",
+          "capacityValidity",
+          "rpmn",
+          "totalAmount",
+          "loanFee"
+        ],
+        "properties": {
+          "loanInterestRate": {
+            "$ref": "#/components/schemas/loanInterestRate"
+          },
+          "installmentAmount": {
+            "$ref": "#/components/schemas/installmentAmount"
+          },
+          "loanDuration": {
+            "$ref": "#/components/schemas/loanDuration"
+          },
+          "preference": {
+            "$ref": "#/components/schemas/preference"
+          },
+          "mainPreference": {
+            "$ref": "#/components/schemas/mainPreference"
+          },
+          "capacityValidity": {
+            "$ref": "#/components/schemas/capacityValidity"
+          },
+          "rpmn": {
+            "$ref": "#/components/schemas/rpmn"
+          },
+          "totalAmount": {
+            "$ref": "#/components/schemas/totalAmount"
+          },
+          "loanFee": {
+            "$ref": "#/components/schemas/loanFee"
+          }
+        }
+      },
+      "loanInterestRate": {
+        "type": "number",
+        "format": "double",
+        "description": "Loan interest rate"
+      },
+      "installmentAmount": {
+        "type": "number",
+        "format": "double",
+        "description": "Installment amount"
+      },
+      "loanDuration": {
+        "type": "integer",
+        "description": "Loan duration"
+      },
+      "preference": {
+        "type": "boolean",
+        "description": "Preferred maturity of loan offer (max 3)"
+      },
+      "mainPreference": {
+        "type": "boolean",
+        "description": "Main preferred maturity of loan offer (max 1)"
+      },
+      "capacityValidity": {
+        "type": "boolean",
+        "description": "Loan offer is valid with respect to entered capacity"
+      },
+      "rpmn": {
+        "type": "number",
+        "format": "double",
+        "description": "Calculated RPMN"
+      },
+      "totalAmount": {
+        "type": "number",
+        "format": "double",
+        "description": "Total amount of the order including all fees, insurance, shipping,...",
+        "minimum": 100,
+        "maximum": 40000,
+        "multipleOf": 0.01,
+        "example": 156.95
+      },
+      "loanAmount": {
+        "type": "number",
+        "format": "double",
+        "description": "Loan amount in EUR",
+        "minimum": 100,
+        "maximum": 40000,
+        "multipleOf": 0.01,
+        "example": 156.95
+      },
+      "loanFee": {
+        "type": "number",
+        "format": "double"
+      },
+      "basicCalculationResponse": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "$ref": "#/components/schemas/basicCalculationResponseItem"
+        }
+      },
+      "basicCalculationRequest": {
+        "type": "object",
+        "required": [
+          "loanAmount"
+        ],
+        "properties": {
+          "paymentMethod": {
+            "description": "Only if isPrecalculationAllowed = true",
+            "type": "string",
+            "enum": [
+              "PAY_LATER"
+            ]
+          },
+          "loanAmount": {
+            "$ref": "#/components/schemas/loanAmount"
+          },
+          "capacityInfo": {
+            "$ref": "#/components/schemas/capacityInfo"
+          }
+        }
+      },
+      "paymentIntentStatusResponse": {
+        "description": "\n**TatraPayPlus status response. For each payment method will be sent specific status structure**\n\n| selectedPaymentMethod      | status structure | description|\n| ---------------- | ------------| ------------|\n| BANK_TRANSFER              | bankTransferStatus     ||\n| QR_PAY                   | bankTransferStatus     | Only ACCC is provided. Status will be provided as soon as amount is in target account |\n| CARD_PAY              | cardPayStatusStructure ||\n| PAY_LATER               | payLaterStatus ||\n| DIRECT_API               | cardPayStatusStructure ||\n",
+        "type": "object",
+        "required": [
+          "authorizationStatus"
+        ],
+        "properties": {
+          "selectedPaymentMethod": {
+            "$ref": "#/components/schemas/paymentMethod"
+          },
+          "authorizationStatus": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "PAY_METHOD_SELECTED",
+              "AUTH_DONE",
+              "AUTH_FAILED",
+              "EXPIRED",
+              "CANCELLED_BY_TPP",
+              "CANCELLED_BY_USER"
+            ],
+            "description": "Status of payment intent authorization progress. Be aware, It doesnt indicate payment status! To get payment status see attribute status."
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/cardPayStatusStructure"
+              },
+              {
+                "$ref": "#/components/schemas/bankTransferStatus"
+              },
+              {
+                "$ref": "#/components/schemas/payLaterStatus"
+              }
+            ]
+          }
+        }
+      },
+      "paymentMethodsListResponse": {
+        "description": "TatraPayPlus methods list, in case BANK_TRANSFER method is allowed for client,allowedBankProviders will be also provided",
+        "type": "object",
+        "required": [
+          "paymentMethods"
+        ],
+        "properties": {
+          "paymentMethods": {
+            "$ref": "#/components/schemas/paymentMethods"
+          }
+        }
+      },
+      "appearanceLogoRequest": {
+        "type": "object",
+        "description": "The logo image.",
+        "required": [
+          "logoImage"
+        ],
+        "properties": {
+          "logoImage": {
+            "type": "string",
+            "description": "base64 Encoded image. MaxLength - 256px MaxHeight - 64px, Max size 1MB(base64 encoded string). Supported formats are SVG, JPEG, PNG",
+            "maxLength": 1000000,
+            "format": "byte"
+          }
+        }
+      },
+      "appearanceRequest": {
+        "type": "object",
+        "description": "Attributes that can be customised",
+        "properties": {
+          "theme": {
+            "type": "string",
+            "enum": [
+              "DARK",
+              "LIGHT",
+              "SYSTEM"
+            ],
+            "default": "SYSTEM"
+          },
+          "tintOnAccent": {
+            "$ref": "#/components/schemas/colorAttribute"
+          },
+          "tintAccent": {
+            "$ref": "#/components/schemas/colorAttribute"
+          },
+          "surfaceAccent": {
+            "$ref": "#/components/schemas/colorAttribute"
+          },
+          "infoPayment": {
+            "description": "Whether to show/hide details of payment. Applicable only when using iFrame.",
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "colorAttribute": {
+        "type": "object",
+        "description": "Color attributes for specific theme. Choose colour with sufficient contrast for the specific theme",
+        "properties": {
+          "colorDarkMode": {
+            "$ref": "#/components/schemas/color"
+          },
+          "colorLightMode": {
+            "$ref": "#/components/schemas/color"
+          }
+        }
+      },
+      "color": {
+        "type": "string",
+        "description": "Hexadecimal value of the color",
+        "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$"
+      },
+      "updatePaymentRequest": {
+        "$ref": "#/components/schemas/cardPayUpdateInstruction"
+      },
+      "cardPayUpdateInstruction": {
+        "description": "CardPay update instruction. For CONFIRM_PRE_AUTHORIZATION, CHARGEBACK is amount mandatory.",
+        "type": "object",
+        "required": [
+          "operationType"
+        ],
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "CONFIRM_PRE_AUTHORIZATION",
+              "CANCEL_PRE_AUTHORIZATION",
+              "CHARGEBACK",
+              "REVERSAL"
+            ]
+          },
+          "amount": {
+            "$ref": "#/components/schemas/amountValue"
+          }
+        }
+      },
+      "updateComfortPayTransactionRequest": {
+        "description": "ComfortPay trancation update. For CONFIRM_PRE_AUTHORIZATION, CHARGEBACK is amount mandatory.",
+        "type": "object",
+        "required": [
+          "paymentId",
+          "operationType"
+        ],
+        "properties": {
+          "paymentId": {
+            "$ref": "#/components/schemas/comfortPayPaymentId"
+          },
+          "operationType": {
+            "$ref": "#/components/schemas/comfortPayUpdateOperationType"
+          },
+          "instructedAmount": {
+            "$ref": "#/components/schemas/amount"
+          }
+        }
+      },
+      "initiateDirectTransactionRequest": {
+        "description": "Body for direct transaction initiation",
+        "type": "object",
+        "required": [
+          "amount",
+          "endToEnd",
+          "tdsData",
+          "token"
+        ],
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/amount"
+          },
+          "endToEnd": {
+            "$ref": "#/components/schemas/e2e"
+          },
+          "isPreAuthorization": {
+            "description": "If true - pre-authorization transaction",
+            "type": "boolean"
+          },
+          "tdsData": {
+            "$ref": "#/components/schemas/directTransactionTDSData"
+          },
+          "ipspData": {
+            "$ref": "#/components/schemas/transactionIPSPData"
+          },
+          "token": {
+            "$ref": "#/components/schemas/token"
+          },
+          "cardValidation": {
+            "$ref": "#/components/schemas/cardValidation"
+          }
+        }
+      },
+      "initiateComfortPayRequest": {
+        "description": "Body for ComfortPay transaction initiation",
+        "type": "object",
+        "required": [
+          "paymentId",
+          "basePayment",
+          "comfortPay"
+        ],
+        "properties": {
+          "paymentId": {
+            "$ref": "#/components/schemas/comfortPayPaymentId"
+          },
+          "basePayment": {
+            "$ref": "#/components/schemas/comfortPayBasePayment"
+          },
+          "comfortPay": {
+            "$ref": "#/components/schemas/comfortPayTransfer"
+          }
+        }
+      },
+      "initiatePaymentRequest": {
+        "description": "Body for payment initiation",
+        "type": "object",
+        "required": [
+          "basePayment"
+        ],
+        "properties": {
+          "basePayment": {
+            "$ref": "#/components/schemas/basePayment"
+          },
+          "userData": {
+            "$ref": "#/components/schemas/userData"
+          },
+          "bankTransfer": {
+            "$ref": "#/components/schemas/bankTransfer"
+          },
+          "cardDetail": {
+            "$ref": "#/components/schemas/cardDetail"
+          },
+          "payLater": {
+            "$ref": "#/components/schemas/payLater"
+          }
+        }
+      },
+      "comfortPayStatusResponse": {
+        "type": "object",
+        "required": [
+          "reasonCode"
+        ],
+        "properties": {
+          "reasonCode": {
+            "$ref": "#/components/schemas/cardPayReasonCodes2Chars"
+          },
+          "authorizationCode": {
+            "$ref": "#/components/schemas/paymentAuthorizationCode"
+          }
+        }
+      },
+      "comfortPayCardResponse": {
+        "type": "object",
+        "properties": {
+          "registered": {
+            "description": "Flag whether the card is registered in ComfortPay",
+            "type": "boolean"
+          },
+          "token": {
+            "$ref": "#/components/schemas/comfortPayToken"
+          },
+          "pan": {
+            "$ref": "#/components/schemas/pan"
+          },
+          "network": {
+            "type": "string",
+            "description": "Card network"
+          },
+          "paymentAccountReference": {
+            "$ref": "#/components/schemas/paymentAccountReference"
+          }
+        }
+      },
+      "comfortPayCardMetadataResponse": {
+        "type": "object",
+        "properties": {
+          "issuerBank": {
+            "$ref": "#/components/schemas/issuerBank"
+          },
+          "cardArt": {
+            "$ref": "#/components/schemas/cardArt"
+          }
+        }
+      },
+      "initiateComfortPayResponse": {
+        "type": "object",
+        "required": [
+          "paymentId",
+          "reasonCode"
+        ],
+        "properties": {
+          "paymentId": {
+            "$ref": "#/components/schemas/comfortPayPaymentId"
+          },
+          "reasonCode": {
+            "$ref": "#/components/schemas/cardPayReasonCodes2Chars"
+          },
+          "authorizationCode": {
+            "$ref": "#/components/schemas/paymentAuthorizationCode"
+          }
+        }
+      },
+      "initiatePaymentResponse": {
+        "type": "object",
+        "required": [
+          "paymentId"
+        ],
+        "properties": {
+          "paymentId": {
+            "$ref": "#/components/schemas/paymentId"
+          },
+          "tatraPayPlusUrl": {
+            "$ref": "#/components/schemas/tatraPayPlusUrl"
+          },
+          "availablePaymentMethods": {
+            "type": "array",
+            "description": "List of availability of each possible methods.",
+            "items": {
+              "$ref": "#/components/schemas/availablePaymentMethod"
+            }
+          }
+        }
+      },
+      "directTransactionTaskStatusResponse": {
+        "type": "object",
+        "properties": {
+          "transactionId": {
+            "$ref": "#/components/schemas/transactionId"
+          },
+          "status": {
+            "$ref": "#/components/schemas/directTransactionStatus"
+          },
+          "transactionData": {
+            "$ref": "#/components/schemas/directTransactionData"
+          }
+        }
+      },
+      "initiateDirectTransactionResponse": {
+        "type": "object",
+        "required": [
+          "paymentId"
+        ],
+        "properties": {
+          "paymentId": {
+            "$ref": "#/components/schemas/paymentId"
+          },
+          "redirectFormHtml": {
+            "$ref": "#/components/schemas/directTransactionRedirectFormHtml"
+          }
+        }
+      },
+      "40x_errorBody": {
+        "type": "object",
+        "required": [
+          "errorCode"
+        ],
+        "properties": {
+          "errorCode": {
+            "type": "string",
+            "maxLength": 20,
+            "enum": [
+              "NOT_ALLOWED_OPER",
+              "TOKEN_UNKNOWN",
+              "TOKEN_INVALID",
+              "TOKEN_EXPIRED"
+            ]
+          },
+          "errorDescription": {
+            "type": "string",
+            "maxLength": 1024
+          }
+        }
+      },
+      "400_errorBody_comfortPay": {
+        "type": "object",
+        "properties": {
+          "errorCode": {
+            "type": "string",
+            "maxLength": 20,
+            "enum": [
+              "NO_CONTRACT",
+              "ILLEGAL_ARGUMENT",
+              "PAYMENT_NOT_FOUND",
+              "NOT_ALLOWED_OPER",
+              "DUPLICATE_CALL",
+              "PA_AMOUNT_EXCEEDED",
+              "PA_NOT_FOUND",
+              "PA_ERROR",
+              "PA_NOT_ALLOWED",
+              "CB_AMOUNT_EXCEEDED",
+              "CB_NOT_FOUND",
+              "CB_TOO_OLD",
+              "CB_ERROR",
+              "CB_NOT_ALLOWED",
+              "RV_NOT_ALLOWED",
+              "NEGATIVE_VALUE_NOT_ALLOWED",
+              "INSUFFICIENT_CAPACITY",
+              "CARD_NOT_FOUND",
+              "CARD_UNREGISTERED",
+              "UNKNOWN_MERCHANT",
+              "CAVV_ERROR",
+              "INVALID_AMOUNT"
+            ]
+          },
+          "errorDescription": {
+            "type": "string",
+            "maxLength": 1024
+          }
+        }
+      },
+      "400_errorBody": {
+        "type": "object",
+        "properties": {
+          "errorCode": {
+            "type": "string",
+            "maxLength": 20,
+            "enum": [
+              "NO_CONTRACT",
+              "ILLEGAL_ARGUMENT",
+              "TOT_AMNT_LOW",
+              "TOT_AMNT_MISMATCH",
+              "PAYMENT_NOT_FOUND",
+              "NOT_ALLOWED_OPER",
+              "DUPLICATE_CALL",
+              "PA_AMOUNT_EXCEEDED",
+              "PA_NOT_FOUND",
+              "PA_ERROR",
+              "PA_NOT_ALLOWED",
+              "CB_AMOUNT_EXCEEDED",
+              "CB_NOT_FOUND",
+              "CB_TOO_OLD",
+              "CB_ERROR",
+              "CB_NOT_ALLOWED",
+              "RV_NOT_ALLOWED",
+              "NO_AVAIL_PAY_METH",
+              "LOAN_AMNT_LOW",
+              "LOAN_AMNT_HIGH",
+              "NEGATIVE_VALUE_NOT_ALLOWED",
+              "INSUFFICIENT_CAPACITY"
+            ]
+          },
+          "errorDescription": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "availablePaymentMethods": {
+            "type": "array",
+            "description": "Reason codes of declined methods",
+            "items": {
+              "$ref": "#/components/schemas/availablePaymentMethod"
+            }
+          }
+        }
+      },
+      "directTransactionRedirectFormHtml": {
+        "type": "string",
+        "description": "HTML form. Only for status TDS_AUTH_REQUIRED",
+        "maxLength": 300000
+      },
+      "directTransactionData": {
+        "type": "object",
+        "properties": {
+          "reasonCode": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/cardPayReasonCodes3Chars"
+              },
+              {
+                "$ref": "#/components/schemas/cardPayReasonCodes2Chars"
+              }
+            ]
+          },
+          "paymentAuthorizationCode": {
+            "$ref": "#/components/schemas/paymentAuthorizationCode"
+          }
+        }
+      },
+      "directTransactionStatus": {
+        "type": "string",
+        "enum": [
+          "OK",
+          "FAIL",
+          "TDS_AUTH_REQUIRED"
+        ]
+      },
+      "transactionId": {
+        "description": "This identification of the transaction, available only in state OK and FAIL",
+        "type": "string",
+        "format": "$uuid",
+        "example": "5e8bda08-5521-11ed-bdc3-0242ac120002"
+      },
+      "taskId": {
+        "description": "This identification of the processing transaction job",
+        "type": "string",
+        "format": "$uuid",
+        "example": "5e8bda08-5521-11ed-bdc3-0242ac120002"
+      },
+      "amount": {
+        "type": "object",
+        "required": [
+          "amountValue",
+          "currency"
+        ],
+        "properties": {
+          "amountValue": {
+            "$ref": "#/components/schemas/amountValue"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/currencyCode"
+          }
+        }
+      },
+      "availablePaymentMethod": {
+        "type": "object",
+        "required": [
+          "paymentMethod",
+          "isAvailable"
+        ],
+        "properties": {
+          "paymentMethod": {
+            "$ref": "#/components/schemas/paymentMethod"
+          },
+          "isAvailable": {
+            "type": "boolean",
+            "description": "if true, method will be shown to user. Otherwise reasonCode will be provided"
+          },
+          "reasonCodeMethodAvailability": {
+            "type": "string",
+            "description": "reason code. List of enumeration will be provided in documentation",
+            "enum": [
+              "NO_CONTRACT",
+              "NOT_FEASIBLE_CURRENCY",
+              "OUT_OF_RANGE_AMOUNT",
+              "MANDATORY_STRUCTURE_NOT_PROVIDED"
+            ]
+          },
+          "reasonCodeMethodAvailabilityDescription": {
+            "type": "string",
+            "description": "reason code description"
+          }
+        }
+      },
+      "scaAuthLink": {
+        "description": "sca authorization link",
+        "format": "$url",
+        "type": "string"
+      },
+      "cardPayStatus": {
+        "description": "\n**CardPay status**\n\n| Enum      | description |\n| ---------------- | ------------|\n| INIT              | initialized transaction     |\n| OK              | processed successfully transaction     |\n| FAIL              | failed transaction |\n| PA              | pre-authorization |\n| CPA              | completed pre-authorization |\n| SPA               | canceled preauthorization |\n| XPA               | expired pre-authorization |\n| CB               | returned payment |\n| AUTH_REQUIRED               | 3D secure authorization required |\n| AUTH_EXPIRED               | authorization expired |\n| AUTH_CANCELED               | authorization canceled |\n| RV               | reversed payment |\n",
+        "type": "string",
+        "enum": [
+          "INIT",
+          "OK",
+          "FAIL",
+          "PA",
+          "CPA",
+          "SPA",
+          "XPA",
+          "CB",
+          "AUTH_REQUIRED",
+          "AUTH_EXPIRED",
+          "AUTH_CANCELED",
+          "RV"
+        ],
+        "example": "OK"
+      },
+      "cardPayStatusStructure": {
+        "description": "card pay status structure",
+        "type": "object",
+        "required": [
+          "status",
+          "currency"
+        ],
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/cardPayStatus"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/currencyCode"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/amountValue"
+          },
+          "preAuthorization": {
+            "$ref": "#/components/schemas/cardPayAmount"
+          },
+          "chargeBack": {
+            "$ref": "#/components/schemas/cardPayAmount"
+          },
+          "comfortPay": {
+            "$ref": "#/components/schemas/comfortPayRegistrationResult"
+          },
+          "maskedCardNumber": {
+            "$ref": "#/components/schemas/maskedCardNumber"
+          },
+          "reasonCode": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/cardPayReasonCodes3Chars"
+              },
+              {
+                "$ref": "#/components/schemas/cardPayReasonCodes2Chars"
+              }
+            ]
+          },
+          "paymentAuthorizationCode": {
+            "$ref": "#/components/schemas/paymentAuthorizationCode"
+          },
+          "cardValidation": {
+            "$ref": "#/components/schemas/cardValidationResult"
+          }
+        }
+      },
+      "comfortPayRegistrationResult": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/comfortPayStatus"
+          },
+          "cid": {
+            "$ref": "#/components/schemas/cardId"
+          },
+          "paymentAccountReference": {
+            "$ref": "#/components/schemas/paymentAccountReference"
+          }
+        }
+      },
+      "maskedCardNumber": {
+        "description": "Masked card number.",
+        "type": "string",
+        "maxLength": 19
+      },
+      "paymentAuthorizationCode": {
+        "type": "string",
+        "description": "Payment authorization code",
+        "pattern": "^[ 0-9A-Z]{1,6}$"
+      },
+      "cardPayReasonCodes3Chars": {
+        "description": "FDS,TDS, SYS.",
+        "type": "string",
+        "maxLength": 3
+      },
+      "cardPayReasonCodes2Chars": {
+        "description": "2 chars card reasonCode, https://developer.visa.com/request_response_codes#action_code , https://developer.mastercard.com/mastercard-send-disbursements/documentation/response-error-codes/network-response-codes/",
+        "type": "string",
+        "maxLength": 2
+      },
+      "comfortPayStatus": {
+        "type": "string",
+        "enum": [
+          "OK",
+          "FAIL"
+        ]
+      },
+      "cardPayAmount": {
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/amountValue"
+          }
+        }
+      },
+      "payLaterStatus": {
+        "type": "string",
+        "description": "Finance application status",
+        "enum": [
+          "NEW",
+          "CUSTOMER_CREATION_IN_PROGRESS",
+          "LOAN_APPLICATION_IN_PROGRESS",
+          "LOAN_APPLICATION_FINISHED",
+          "LOAN_DISBURSED",
+          "CANCELED",
+          "EXPIRED"
+        ]
+      },
+      "bankTransferStatus": {
+        "description": "The transaction status is filled with codes of the ISO 20022\n",
+        "type": "string",
+        "enum": [
+          "ACCC",
+          "ACCP",
+          "ACSC",
+          "ACSP",
+          "ACTC",
+          "ACWC",
+          "ACWP",
+          "RCVD",
+          "PDNG",
+          "RJCT",
+          "CANC",
+          "ACFC",
+          "PATC",
+          "PART"
+        ],
+        "example": "ACCP"
+      },
+      "tatraPayPlusUrl": {
+        "description": "URL address for FE redirect to tatraPayPlus app",
+        "type": "string",
+        "format": "$url"
+      },
+      "cardArtUrl": {
+        "description": "URL address for obtaining Card Art image",
+        "type": "string",
+        "format": "$url"
+      },
+      "paymentId": {
+        "description": "Payment intent identifier",
+        "type": "string",
+        "format": "$uuid"
+      },
+      "comfortPayPaymentId": {
+        "description": "ComfortPay payment identifier generated by client. Must be unique.",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1e+32,
+        "example": 1260502121541764000
+      },
+      "payLater": {
+        "type": "object",
+        "required": [
+          "order",
+          "applicant"
+        ],
+        "properties": {
+          "order": {
+            "$ref": "#/components/schemas/order"
+          },
+          "capacityInfo": {
+            "$ref": "#/components/schemas/capacityInfo"
+          }
+        }
+      },
+      "capacityInfo": {
+        "type": "object",
+        "description": "Capacity posibilities of user. It is used to specify the calculation of the client's request. Based on this, the bank can make a more accurate calculation of the possibility of obtaining a loan",
+        "required": [
+          "monthlyIncome",
+          "monthlyExpenses",
+          "numberOfChildren"
+        ],
+        "properties": {
+          "monthlyIncome": {
+            "$ref": "#/components/schemas/monthlyIncome"
+          },
+          "monthlyExpenses": {
+            "$ref": "#/components/schemas/monthlyExpenses"
+          },
+          "numberOfChildren": {
+            "$ref": "#/components/schemas/numberOfChildren"
+          }
+        }
+      },
+      "monthlyIncome": {
+        "type": "number",
+        "format": "double",
+        "description": "Declared monthly income by user"
+      },
+      "monthlyExpenses": {
+        "type": "number",
+        "format": "double",
+        "description": "Declared monthly expenses by user"
+      },
+      "numberOfChildren": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Declared number of children of user"
+      },
+      "userData": {
+        "type": "object",
+        "required": [
+          "firstName",
+          "lastName"
+        ],
+        "properties": {
+          "externalApplicantId": {
+            "$ref": "#/components/schemas/externalApplicantId"
+          },
+          "firstName": {
+            "$ref": "#/components/schemas/name"
+          },
+          "lastName": {
+            "$ref": "#/components/schemas/name"
+          },
+          "email": {
+            "$ref": "#/components/schemas/email"
+          },
+          "phone": {
+            "$ref": "#/components/schemas/phone"
+          }
+        }
+      },
+      "externalApplicantId": {
+        "type": "string",
+        "maxLength": 255,
+        "minLength": 1,
+        "description": "External applicant ID, could be generated by application"
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 30,
+        "minLength": 1,
+        "pattern": "^[a-zA-Z0-9Ã-Å¾ ]{1,30}$"
+      },
+      "phone": {
+        "description": "Conditionally mandatory.  In case of TatraPayPlus payment initiation - It is mandatory only if the email attribute is not provided.",
+        "type": "string",
+        "pattern": "\\+(9[976]\\d|8[987530]\\d|6[987]\\d|5[90]\\d|42\\d|3[875]\\d|2[98654321]\\d|9[8543210]|8[6421]|6[6543210]|5[87654321]|4[987654310]|3[9643210]|2[70]|7|1)\\d{1,14}$"
+      },
+      "orderNo": {
+        "type": "string",
+        "maxLength": 100,
+        "minLength": 1,
+        "description": "Order Number. Sending the same orderNo will affect that previously created application status will change to 'CANCELLED' and new application will be created. In case that application is in state that its not possible to cancel, the error state 422 will be returned\n"
+      },
+      "quantity": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Quantity of the item",
+        "example": 1
+      },
+      "totalItemPrice": {
+        "type": "number",
+        "format": "double",
+        "description": "Total item price (including quantity e.g.:(item price*quantity))",
+        "example": 120
+      },
+      "itemName": {
+        "type": "string",
+        "maxLength": 255,
+        "minLength": 1
+      },
+      "itemDescription": {
+        "type": "string",
+        "maxLength": 1000,
+        "minLength": 1
+      },
+      "itemDetailLangUnit": {
+        "type": "object",
+        "required": [
+          "itemName"
+        ],
+        "properties": {
+          "itemName": {
+            "$ref": "#/components/schemas/itemName"
+          },
+          "itemDescription": {
+            "$ref": "#/components/schemas/itemDescription"
+          }
+        }
+      },
+      "itemDetail": {
+        "type": "object",
+        "required": [
+          "itemDetailSK"
+        ],
+        "properties": {
+          "itemDetailSK": {
+            "$ref": "#/components/schemas/itemDetailLangUnit"
+          },
+          "itemDetailEN": {
+            "$ref": "#/components/schemas/itemDetailLangUnit"
+          }
+        }
+      },
+      "itemInfoURL": {
+        "type": "string",
+        "example": "https://developer.tatrabanka.sk",
+        "format": "uri"
+      },
+      "itemImage": {
+        "type": "string",
+        "example": "VGhpcyBpcyB0ZXN0",
+        "maxLength": 1000000,
+        "description": "base64 encoded image h:48px w:48px"
+      },
+      "orderItem": {
+        "type": "object",
+        "required": [
+          "quantity",
+          "totalItemPrice",
+          "itemDetail"
+        ],
+        "properties": {
+          "quantity": {
+            "$ref": "#/components/schemas/quantity"
+          },
+          "totalItemPrice": {
+            "$ref": "#/components/schemas/totalItemPrice"
+          },
+          "itemDetail": {
+            "$ref": "#/components/schemas/itemDetail"
+          },
+          "itemInfoURL": {
+            "$ref": "#/components/schemas/itemInfoURL"
+          },
+          "itemImage": {
+            "$ref": "#/components/schemas/itemImage"
+          }
+        }
+      },
+      "orderItems": {
+        "type": "array",
+        "maxItems": 1000,
+        "minItems": 1,
+        "items": {
+          "$ref": "#/components/schemas/orderItem"
+        }
+      },
+      "remittanceInformation": {
+        "type": "string",
+        "description": "Information for creditor",
+        "pattern": "^[ 0-9a-zA-Z?:()\\/\\.,'+-]{1,100}$",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "preferredLoanDuration": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Preferred loan payment period"
+      },
+      "downPayment": {
+        "type": "number",
+        "format": "double",
+        "description": "Downpayment for activation of service"
+      },
+      "order": {
+        "type": "object",
+        "description": "Order detail informations",
+        "required": [
+          "orderNo",
+          "totalAmount",
+          "orderItems",
+          "orderPaymentData"
+        ],
+        "properties": {
+          "orderNo": {
+            "$ref": "#/components/schemas/orderNo"
+          },
+          "orderItems": {
+            "$ref": "#/components/schemas/orderItems"
+          },
+          "preferredLoanDuration": {
+            "$ref": "#/components/schemas/preferredLoanDuration"
+          },
+          "downPayment": {
+            "$ref": "#/components/schemas/downPayment"
+          }
+        }
+      },
+      "allowedBankProviders": {
+        "description": "Allowed bank providers for BANK_TRNASFER method selected by TatraPayPlus client",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/provider"
+        }
+      },
+      "bankProvider": {
+        "description": "BANK_TRANSFER type bank provider, for full list see documentation",
+        "type": "string"
+      },
+      "paymentMethods": {
+        "description": "TatraPayPlus methods list",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/paymentMethodRules"
+        }
+      },
+      "paymentMethodRules": {
+        "type": "object",
+        "required": [
+          "paymentmethod"
+        ],
+        "properties": {
+          "paymentmethod": {
+            "$ref": "#/components/schemas/paymentMethod"
+          },
+          "amountRangeRule": {
+            "$ref": "#/components/schemas/amountRangeRule"
+          },
+          "supportedCurrency": {
+            "$ref": "#/components/schemas/supportedCurrency"
+          },
+          "supportedCountry": {
+            "$ref": "#/components/schemas/supportedCountry"
+          },
+          "allowedBankProviders": {
+            "$ref": "#/components/schemas/allowedBankProviders"
+          },
+          "isPrecalculationAllowed": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "amountRangeRule": {
+        "type": "object",
+        "description": "Range of amounts allowed for a given payment method",
+        "properties": {
+          "minAmount": {
+            "type": "number"
+          },
+          "maxAmount": {
+            "type": "number"
+          }
+        }
+      },
+      "supportedCurrency": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/currencyCode"
+        }
+      },
+      "supportedCountry": {
+        "type": "array",
+        "description": "Payment method is applicable for payment to listed countries",
+        "items": {
+          "$ref": "#/components/schemas/countryCode"
+        }
+      },
+      "paymentMethod": {
+        "description": "TatraPayPlus enumeration",
+        "type": "string",
+        "enum": [
+          "BANK_TRANSFER",
+          "CARD_PAY",
+          "PAY_LATER",
+          "DIRECT_API",
+          "QR_PAY"
+        ]
+      },
+      "providerCode": {
+        "description": "Code of the bank provider",
+        "type": "string",
+        "maxLength": 50,
+        "example": "TBSK"
+      },
+      "providerName": {
+        "description": "Name of the bank provider",
+        "type": "string",
+        "maxLength": 500,
+        "example": "Tatra banka"
+      },
+      "provider": {
+        "description": "Data provider",
+        "type": "object",
+        "required": [
+          "countryCode",
+          "providerName",
+          "providerCode",
+          "swiftCode"
+        ],
+        "properties": {
+          "countryCode": {
+            "$ref": "#/components/schemas/countryCode"
+          },
+          "providerName": {
+            "$ref": "#/components/schemas/providerName"
+          },
+          "providerCode": {
+            "$ref": "#/components/schemas/providerCode"
+          },
+          "swiftCode": {
+            "$ref": "#/components/schemas/bicfi"
+          }
+        }
+      },
+      "bicfi": {
+        "description": "BICFI\n",
+        "type": "string",
+        "pattern": "[A-Z]{6,6}[A-Z2-9][A-NP-Z0-9]([A-Z0-9]{3,3}){0,1}",
+        "example": "AAAADEBBXXX"
+      },
+      "basePayment": {
+        "description": "Common instruction detail",
+        "type": "object",
+        "required": [
+          "instructedAmount",
+          "endToEnd"
+        ],
+        "properties": {
+          "instructedAmount": {
+            "$ref": "#/components/schemas/amount"
+          },
+          "endToEnd": {
+            "$ref": "#/components/schemas/e2e"
+          }
+        }
+      },
+      "comfortPayBasePayment": {
+        "description": "Common instruction detail",
+        "type": "object",
+        "required": [
+          "instructedAmount",
+          "endToEnd"
+        ],
+        "properties": {
+          "instructedAmount": {
+            "$ref": "#/components/schemas/amount"
+          },
+          "endToEnd": {
+            "$ref": "#/components/schemas/comfortPayE2e"
+          }
+        }
+      },
+      "bankTransfer": {
+        "description": "Bank transder attributes",
+        "type": "object",
+        "properties": {
+          "remittanceInformationUnstructured": {
+            "$ref": "#/components/schemas/remittanceInformationUnstructured"
+          }
+        }
+      },
+      "comfortPay": {
+        "description": "ComfortPay attributes",
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "cardIdentifier": {
+            "$ref": "#/components/schemas/cardIdentifierOrRegister"
+          }
+        }
+      },
+      "comfortPayTransfer": {
+        "description": "ComfortPay transfer initiation attributes",
+        "type": "object",
+        "required": [
+          "operationType",
+          "cid",
+          "merchantId",
+          "terminalId"
+        ],
+        "properties": {
+          "operationType": {
+            "$ref": "#/components/schemas/comfortPayOperationType"
+          },
+          "cid": {
+            "$ref": "#/components/schemas/cardId"
+          },
+          "merchantId": {
+            "$ref": "#/components/schemas/merchantId"
+          },
+          "terminalId": {
+            "$ref": "#/components/schemas/terminalId"
+          },
+          "ipspData": {
+            "$ref": "#/components/schemas/transactionIPSPData"
+          }
+        }
+      },
+      "directTransactionTDSData": {
+        "type": "object",
+        "description": "In case of Direct API either cardHolder or email is mandatory",
+        "properties": {
+          "cardHolder": {
+            "$ref": "#/components/schemas/cardHolder"
+          },
+          "email": {
+            "$ref": "#/components/schemas/email"
+          },
+          "phone": {
+            "$ref": "#/components/schemas/phone"
+          },
+          "billingAddress": {
+            "$ref": "#/components/schemas/address"
+          },
+          "shippingAddress": {
+            "$ref": "#/components/schemas/address"
+          }
+        }
+      },
+      "comfortPayTokenStatus": {
+        "type": "string",
+        "description": "Enumation of values for ComfortPay card token Status",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE",
+          "SUSPENDED",
+          "CANCELLED",
+          "DELETED"
+        ]
+      },
+      "last4digits": {
+        "type": "string",
+        "minLength": 4,
+        "maxLength": 4,
+        "pattern": "^[\\d]{4,4}$",
+        "example": 1234
+      },
+      "comfortPayToken": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "$ref": "#/components/schemas/last4digits"
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2030-10-25T15:30:35.035Z",
+            "description": "Card token expiration"
+          },
+          "status": {
+            "$ref": "#/components/schemas/comfortPayTokenStatus"
+          }
+        }
+      },
+      "pan": {
+        "type": "object",
+        "properties": {
+          "pan": {
+            "$ref": "#/components/schemas/last4digits"
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2030-10-25T15:30:35.035Z",
+            "description": "Card pan expiration"
+          }
+        }
+      },
+      "token": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/applePayToken"
+          },
+          {
+            "$ref": "#/components/schemas/googlePayToken"
+          }
+        ]
+      },
+      "applePayToken": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "object",
+            "properties": {
+              "header": {
+                "type": "object",
+                "properties": {
+                  "ephemeralPublicKey": {
+                    "type": "string"
+                  },
+                  "publicKeyHash": {
+                    "type": "string"
+                  },
+                  "transactionId": {
+                    "type": "string"
+                  }
+                }
+              },
+              "data": {
+                "type": "string"
+              },
+              "signature": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "googlePayToken": {
+        "type": "string",
+        "description": "Value of paymentData.paymentMethodData.tokenizationData.token"
+      },
+      "transactionIPSPData": {
+        "description": "In case of payment facilitator mode - this structure is mandatory",
+        "type": "object",
+        "required": [
+          "subMerchantId",
+          "name",
+          "location",
+          "country"
+        ],
+        "properties": {
+          "subMerchantId": {
+            "type": "string",
+            "pattern": "^\\d{1,15}$",
+            "example": 15654212150015
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[ 0-9a-zA-Z\\.:\\/\\*-]{1,25}$",
+            "example": "Submerchant-name"
+          },
+          "location": {
+            "type": "string",
+            "pattern": "^[ 0-9a-zA-Z-]{1,13}$",
+            "example": "Bratislava"
+          },
+          "country": {
+            "$ref": "#/components/schemas/countryCode"
+          }
+        }
+      },
+      "cardDetail": {
+        "description": "Card pay information",
+        "type": "object",
+        "required": [
+          "cardHolder"
+        ],
+        "properties": {
+          "cardPayLangOverride": {
+            "description": "It is possible to override the accept-language header for the CardPay payment method. This override only affects CardPay itself, not the whole TatraPayPlus service. \nIf it is empty , then accept-language is taken into account\n",
+            "type": "string",
+            "enum": [
+              "SK",
+              "EN",
+              "DE",
+              "HU",
+              "CZ",
+              "ES",
+              "FR",
+              "IT",
+              "PL"
+            ]
+          },
+          "isPreAuthorization": {
+            "description": "If true - pre-authorization transaction",
+            "type": "boolean"
+          },
+          "cardHolder": {
+            "$ref": "#/components/schemas/cardHolder"
+          },
+          "billingAddress": {
+            "$ref": "#/components/schemas/address"
+          },
+          "shippingAddress": {
+            "$ref": "#/components/schemas/address"
+          },
+          "comfortPay": {
+            "$ref": "#/components/schemas/cardIdentifierOrRegister"
+          },
+          "ipspData": {
+            "$ref": "#/components/schemas/transactionIPSPData"
+          },
+          "cardValidation": {
+            "$ref": "#/components/schemas/cardValidation"
+          }
+        }
+      },
+      "cardHolder": {
+        "description": "The card holder name. In case of Direct API either cardHolder or email is mandatory",
+        "type": "string",
+        "pattern": "^[ 0-9a-zA-Z.@_-]{2,45}$",
+        "maxLength": 45,
+        "minLength": 2
+      },
+      "cardValidation": {
+        "description": "Structured card holder name. Used when validation of the card holder's name is requested. Result of the validation may be found in initiation response and payment detail.",
+        "type": "object",
+        "required": [
+          "cardHolderLastName"
+        ],
+        "properties": {
+          "cardHolderFirstName": {
+            "description": "Given name of the card holder.",
+            "type": "string",
+            "maxLength": 35,
+            "pattern": "^[^0-9\\?\\s]{1,35}$"
+          },
+          "cardHolderMiddleName": {
+            "description": "Middle name of the card holder.",
+            "type": "string",
+            "maxLength": 35,
+            "pattern": "^[^0-9\\?\\s]{1,35}$"
+          },
+          "cardHolderLastName": {
+            "description": "Family name of the card holder.",
+            "type": "string",
+            "maxLength": 35,
+            "pattern": "^[^0-9\\?\\s]{1,35}$"
+          }
+        }
+      },
+      "cardValidationResult": {
+        "description": "Structured card holder name validation result. Present only if cardValidation structure was filled in payment initiation request.",
+        "type": "object",
+        "properties": {
+          "cardHolderNameMatch": {
+            "$ref": "#/components/schemas/cardValidationStatus"
+          },
+          "cardHolderFirstNameMatch": {
+            "$ref": "#/components/schemas/cardValidationStatus"
+          },
+          "cardHolderMiddleNameMatch": {
+            "$ref": "#/components/schemas/cardValidationStatus"
+          },
+          "cardHolderLastNameMatch": {
+            "$ref": "#/components/schemas/cardValidationStatus"
+          }
+        }
+      },
+      "cardValidationStatus": {
+        "description": "Status codes of card holder's name validation\n| Status code      | Description|\n| ---------------- | ------------|\n| MATCH              | Match     |\n| PARTIAL_MATCH                   | Partial Match |\n| NO_MATCH              | No Match |\n| NOT_VERIFIED               | Card holder not validated (due to technical issues) |\n| NOT_SUPPORTED               | Validation not supported |\n",
+        "type": "string",
+        "enum": [
+          "MATCH",
+          "PARTIAL_MATCH",
+          "NO_MATCH",
+          "NOT_VERIFIED",
+          "NOT_SUPPORTED"
+        ]
+      },
+      "registerForComfortPay": {
+        "description": "Flag to register the card for ComfortPay",
+        "type": "boolean",
+        "default": false,
+        "example": false
+      },
+      "registerForComfortPayObj": {
+        "type": "object",
+        "properties": {
+          "registerForComfortPay": {
+            "$ref": "#/components/schemas/registerForComfortPay"
+          },
+          "cid": {
+            "$ref": "#/components/schemas/cardId"
+          }
+        }
+      },
+      "signedCardIdObj": {
+        "type": "object",
+        "properties": {
+          "signedCardId": {
+            "$ref": "#/components/schemas/signedCardId"
+          }
+        }
+      },
+      "cardIdentifierOrRegister": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/registerForComfortPayObj"
+          },
+          {
+            "$ref": "#/components/schemas/signedCardIdObj"
+          }
+        ]
+      },
+      "cardId": {
+        "description": "Card identifier for ComfortPay",
+        "type": "string",
+        "maxLength": 18,
+        "pattern": "^[0-9]{1,18}$"
+      },
+      "comfortPayOperationType": {
+        "description": "Type of ComfortPay transaction.",
+        "type": "string",
+        "enum": [
+          "PURCHASE",
+          "PRE_AUTHORIZATION"
+        ]
+      },
+      "comfortPayUpdateOperationType": {
+        "description": "Type of ComfortPay transaction.",
+        "type": "string",
+        "enum": [
+          "CONFIRM_PRE_AUTHORIZATION",
+          "CANCEL_PRE_AUTHORIZATION",
+          "CHARGEBACK"
+        ]
+      },
+      "issuerBank": {
+        "description": "Name of bank that issued the card",
+        "type": "string"
+      },
+      "cardArt": {
+        "description": "Details of the card art image",
+        "type": "object",
+        "properties": {
+          "url": {
+            "$ref": "#/components/schemas/cardArtUrl"
+          }
+        }
+      },
+      "merchantId": {
+        "description": "Identification number of merchant - payee",
+        "type": "string",
+        "pattern": "^\\d{1,15}$",
+        "example": 15654212150015
+      },
+      "terminalId": {
+        "description": "Identification number of merchant's terminal",
+        "type": "integer",
+        "example": 245
+      },
+      "signedCardId": {
+        "description": "Signed registered card identifier by client signing certificate for direct ComfortPay in base64 encoded string",
+        "type": "string",
+        "maxLength": 1024
+      },
+      "address": {
+        "type": "object",
+        "required": [
+          "country"
+        ],
+        "properties": {
+          "streetName": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "buildingNumber": {
+            "type": "string",
+            "maxLength": 10
+          },
+          "townName": {
+            "type": "string",
+            "maxLength": 35
+          },
+          "postCode": {
+            "type": "string",
+            "maxLength": 10
+          },
+          "country": {
+            "$ref": "#/components/schemas/countryCode"
+          }
+        }
+      },
+      "countryCode": {
+        "description": "ISO 3166 ALPHA2 country code.",
+        "type": "string",
+        "pattern": "[A-Z]{2}",
+        "example": "SK"
+      },
+      "e2e": {
+        "description": "EndToEndId or paymentSymbols",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/paymentSymbols"
+          },
+          {
+            "$ref": "#/components/schemas/endToEndId"
+          }
+        ]
+      },
+      "comfortPayE2e": {
+        "description": "EndToEndId or paymentSymbols for ComfortPay",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ComfortPayPaymentSymbols"
+          },
+          {
+            "$ref": "#/components/schemas/endToEndId"
+          }
+        ]
+      },
+      "ComfortPayPaymentSymbols": {
+        "type": "object",
+        "required": [
+          "variableSymbol",
+          "specificSymbol"
+        ],
+        "properties": {
+          "variableSymbol": {
+            "$ref": "#/components/schemas/variableSymbol"
+          },
+          "specificSymbol": {
+            "$ref": "#/components/schemas/specificSymbol"
+          }
+        }
+      },
+      "paymentSymbols": {
+        "type": "object",
+        "required": [
+          "variableSymbol"
+        ],
+        "properties": {
+          "variableSymbol": {
+            "$ref": "#/components/schemas/variableSymbol"
+          },
+          "specificSymbol": {
+            "$ref": "#/components/schemas/specificSymbol"
+          },
+          "constantSymbol": {
+            "$ref": "#/components/schemas/constantSymbol"
+          }
+        }
+      },
+      "variableSymbol": {
+        "type": "string",
+        "pattern": "^[0-9]{1,10}$",
+        "example": 123456
+      },
+      "specificSymbol": {
+        "type": "string",
+        "pattern": "^[0-9]{1,10}$"
+      },
+      "constantSymbol": {
+        "type": "string",
+        "description": "In case of payment method CardPay will be automatically rewrite to value 0608",
+        "pattern": "^[0-9]{1,4}$"
+      },
+      "endToEndId": {
+        "description": "Max 35 alphanumeric characters\n",
+        "pattern": "^[0-9a-zA-Z\\/\\-?():.,'+ ]{1,35}$",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 35
+      },
+      "currencyCode": {
+        "description": "ISO 4217 Alpha 3 currency code.\n",
+        "type": "string",
+        "pattern": "[A-Z]{3}",
+        "example": "EUR"
+      },
+      "amountValue": {
+        "description": "The amount given with fractional digits, where fractions must be compliant to the currency definition. Negative amounts are signed by minus.\nThe decimal separator is a dot.\n\n**Example:**\nValid representations for EUR with up to two decimals are:\n\n  * 1056\n  * 5768.2\n  * -1.50\n  * 5877.78\n",
+        "type": "number",
+        "example": 120,
+        "pattern": "-?[0-9]{1,9}(\\.[0-9]{1,2})?"
+      },
+      "dateTime": {
+        "type": "string",
+        "format": "date-time",
+        "example": "2017-10-25T15:30:35.035Z"
+      },
+      "date": {
+        "type": "string",
+        "format": "date",
+        "example": "2017-10-25T00:00:00.000Z"
+      },
+      "status": {
+        "description": "Status of calculation",
+        "type": "string",
+        "enum": [
+          "OFFER",
+          "NO_OFFER",
+          "OPEN",
+          "PROCESSING"
+        ]
+      },
+      "email": {
+        "description": "Conditionally mandatory. In case of TatraPayPlus payment initiation - It is mandatory only if the phone attribute is not provided. If the email is not provided, the user will not receive the cardPay notification and payLater will ask for the email in the app.\nIn case of Direct API either cardHolder or email is mandatory",
+        "type": "string",
+        "maxLength": 50,
+        "format": "email"
+      },
+      "iban": {
+        "type": "string",
+        "description": "IBAN of an account.",
+        "pattern": "[A-Z]{2,2}[0-9]{2,2}[a-zA-Z0-9]{1,30}",
+        "example": "FR7612345987650123456789014"
+      },
+      "bban": {
+        "description": "Basic Bank Account Number (BBAN) Identifier.\n\nThis data element can be used in the body of the consent request.\n  Message for retrieving account access consent from this account. This\n  data elements is used for payment accounts which have no IBAN.\n  ISO20022: Basic Bank Account Number (BBAN). \n\n  Identifier used nationally by financial institutions, i.e., in individual countries, \n  generally as part of a National Account Numbering Scheme(s), \n  which uniquely identifies the account of a customer.\n",
+        "type": "string",
+        "pattern": "[a-zA-Z0-9]{1,30}",
+        "example": "BARC12345612345678"
+      },
+      "accountReference": {
+        "description": "Reference to an account by IBAN, of a payment accounts\n",
+        "type": "object",
+        "properties": {
+          "iban": {
+            "$ref": "#/components/schemas/iban"
+          }
+        }
+      },
+      "paymentAccountReference": {
+        "description": "Reference to an account in ComfortPay",
+        "type": "string",
+        "maxLength": 64,
+        "example": "V0210013024336680766614745709"
+      },
+      "remittanceInformationUnstructured": {
+        "description": "Unstructured transfer information. Currently, Tatrabanka bank transfer does not display the transfer information. The entire SEPA remittanceInformationUnstructured contains 140 characters. The structure of the string consists of 3 parts:\n\n    - A. paymentId - fixed 40 characters are reserved for paymentId\n    - B. Merchant Name value length - provided in the contract, up to 50 characters\n    - C. Custom value length - free characters are calculated as C = 140-A-(B+1). Depends on the length of the merchant name.\n    \n    E.g. Merchant name = MerchantABCD,s.r.o. (19 characters + 1 separator space). 80 characters are available.\n    \n    The result of the UnstructuredTransferInformation will look like this\n    \n    07b940d2-8b82-4c7a-a0dd-5ebeabcf1f3d MerchantABCD,s.r.o. Your text in remittance\n    \n    If the value of RemittanceInformationUnstructured in this attribute is longer than the calculated C, your custom value will be truncated. \n  \n  \n",
+        "type": "string",
+        "pattern": "^[ 0-9a-zA-Z?:()\\/\\.,'+-]{1,100}$",
+        "maxLength": 100,
+        "example": "Ref Number Merchant"
+      }
+    },
+    "parameters": {
+      "task-id": {
+        "name": "task-id",
+        "in": "path",
+        "description": "taskId of the asynch job\n",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/taskId"
+        }
+      },
+      "Automatic-Redirect": {
+        "name": "Redirect-URI",
+        "in": "header",
+        "description": "If it is set to 'true', the customer will be automatically redirect to Redirect-URI(if is set) after 9 seconds, otherwise the last page will wait for customer action to click to button\n",
+        "schema": {
+          "type": "string",
+          "format": "uri"
+        },
+        "required": false
+      },
+      "Redirect-URI": {
+        "name": "Redirect-URI",
+        "in": "header",
+        "description": "URI of the client application endpoint, where the user shall be redirected to after payment process. URI has to be registered in Developer portal\n",
+        "schema": {
+          "type": "string",
+          "format": "uri"
+        },
+        "required": true
+      },
+      "Webhook-URI": {
+        "name": "Webhook-URI",
+        "in": "header",
+        "description": "URI of the client application webhook endpoint, where the user shall be sent notifications\n",
+        "schema": {
+          "type": "string",
+          "format": "uri"
+        },
+        "required": false
+      },
+      "X-Request-ID": {
+        "name": "X-Request-ID",
+        "in": "header",
+        "description": "ID of the request, unique to the call, as determined by the initiating party.",
+        "required": true,
+        "example": "99391c7e-ad88-49ec-a2ad-99ddcb1f7721",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "Idempotency-Key": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "description": "An idempotency key is a unique value generated by the client which the resource server uses to recognize subsequent retries of the same request. The Idempotency-Key HTTP request header field carries this key.",
+        "required": true,
+        "example": "99391c7e-ad88-49ec-a2ad-99ddcb1f7721",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "IP-Address": {
+        "name": "IP-Address",
+        "in": "header",
+        "description": "The forwarded IP address of the user\n",
+        "schema": {
+          "type": "string",
+          "format": "ipv4"
+        },
+        "required": true,
+        "example": "192.168.8.78"
+      },
+      "Signature": {
+        "name": "Signature",
+        "in": "header",
+        "description": "Signature for payment body\n",
+        "schema": {
+          "type": "string"
+        },
+        "required": true,
+        "example": "8a91ea4e87c3db6c695051c5ac72498c54099114fc83554fdfabb784b485eea4"
+      },
+      "Preferred-Method": {
+        "name": "Preferred-Method",
+        "in": "header",
+        "description": "Preferred payment intent method\n",
+        "schema": {
+          "$ref": "#/components/schemas/paymentMethod"
+        },
+        "required": false,
+        "example": "BANK_TRANSFER"
+      },
+      "Preferred-Provider": {
+        "name": "Preferred-Provider",
+        "in": "header",
+        "description": "Preferred bank provider. Use one of the providerCode value from allowedBankProviders array returned by GET /v1/payments/methods. Applicable only when Preferred-Method: BANK_TRANSFER, otherwise ignored.\n",
+        "schema": {
+          "$ref": "#/components/schemas/providerCode"
+        },
+        "required": false,
+        "example": "TBSK"
+      },
+      "Timestamp": {
+        "name": "Timestamp",
+        "in": "header",
+        "description": "Timestamp. Only +/-1h from UTC(GMT)\n",
+        "schema": {
+          "type": "string",
+          "format": "DDMMYYYYHHMISS"
+        },
+        "required": true,
+        "example": "01092014125505"
+      },
+      "User-Id": {
+        "name": "User-Id",
+        "in": "header",
+        "description": "The user id, if available.\n",
+        "schema": {
+          "type": "string"
+        },
+        "required": false
+      },
+      "Accept-Language": {
+        "name": "Accept-Language",
+        "in": "header",
+        "description": "The \"Accept-Language\" header field is used by user agents to indicate the set of natural languages that are preferred.",
+        "required": false,
+        "example": "sk",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "sk",
+            "en",
+            "de",
+            "hu",
+            "cz",
+            "es",
+            "pl"
+          ],
+          "default": "sk"
+        }
+      },
+      "Payment-id": {
+        "name": "payment-id",
+        "in": "path",
+        "description": "payment intent identifier\n",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "required": true
+      },
+      "ComfortPay-Payment-id": {
+        "name": "payment-id",
+        "in": "path",
+        "description": "ComfortPay payment identifier\n",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1e+32,
+          "example": 1260502121541764000
+        },
+        "required": true
+      },
+      "ComfortPay-Card-id": {
+        "name": "card-id",
+        "in": "path",
+        "description": "ComfortPay card identifier\n",
+        "schema": {
+          "type": "string",
+          "maxLength": 18,
+          "pattern": "^[0-9]{1,18}$"
+        },
+        "required": true
+      }
+    },
+    "headers": {
+      "X-Request-ID": {
+        "description": "ID of the request, unique to the call, as determined by the initiating party.",
+        "required": true,
+        "example": "99391c7e-ad88-49ec-a2ad-99ddcb1f7721",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "requestBodies": {
+      "basicCalculationRequestBody": {
+        "description": "Request body for a loan precalculation.\n",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/basicCalculationRequest"
+            }
+          }
+        }
+      },
+      "initiateDirectTransaction": {
+        "description": "DirectAPI transaction",
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/initiateDirectTransactionRequest"
+            }
+          }
+        }
+      },
+      "initiateComfortPayBody": {
+        "description": "Request structure for initiating ComfortPay transfer",
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/initiateComfortPayRequest"
+            },
+            "example": {
+              "paymentId": 1260502121541764000,
+              "basePayment": {
+                "instructedAmount": {
+                  "amountValue": "120,",
+                  "currency": "EUR"
+                },
+                "endToEnd": "reference123456"
+              },
+              "comfortPay": {
+                "operationType\"": "PURCHASE,",
+                "cid": "556874,",
+                "merchantId": "15654212150015,",
+                "terminalId": "245,",
+                "ipspData": {
+                  "subMerchantId": "15654212150015,",
+                  "name": "Submerchant-name,",
+                  "location": "Bratislava,",
+                  "country": "SK"
+                }
+              }
+            }
+          }
+        }
+      },
+      "initiatePaymentBody": {
+        "description": "\n**The table bellow describes required objects for specific payment method**\n\n| Base structures      | Mandatory for Payment method  |\n| ---------------- | ------------|\n| basePayment    | Always mandatory     |\n| userData              | CARD_PAY,  PAY_LATER|\n\n| Method specific structures      | Mandatory for Payment method  |\n| ---------------- | ------------|\n| bankTransfer              | BANK_TRANSFER, QR_PAY |\n| cardDetail              | CARD_PAY|\n| payLater              | PAY_LATER|\n",
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/initiatePaymentRequest"
+            }
+          }
+        }
+      },
+      "updateComfortPayTransactionBody": {
+        "description": "Update of ComfortPay transaction",
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/updateComfortPayTransactionRequest"
+            }
+          }
+        }
+      },
+      "updatePaymentBody": {
+        "description": "\n**TatraPayPlus update request**\n\n| Payment method      | mandatory structure |\n| ---------------- | ------------|\n| BANK_TRANSFER              | N/A     |\n| CARD_PAY              | cardPayUpdateInstruction |\n| PAY_LATER               | N/A |\n",
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/updatePaymentRequest"
+            }
+          }
+        }
+      },
+      "appearanceBody": {
+        "description": "Appearance request body",
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/appearanceRequest"
+            }
+          }
+        }
+      },
+      "logoBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/appearanceLogoRequest"
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "OK_200_BasicCalculation": {
+        "description": "Basic calculation provided",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/basicCalculationResponse"
+            }
+          }
+        }
+      },
+      "OK_201_Logo_created": {
+        "description": "TatraPayPlus Apearance set",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        }
+      },
+      "OK_201_Appearance_created": {
+        "description": "TatraPayPlus Apearance set",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        }
+      },
+      "OK_200_GetComfortPayStatusResponse": {
+        "description": "TatraPayPlus ComfortPay transaction status",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/comfortPayStatusResponse"
+            }
+          }
+        }
+      },
+      "OK_200_GetComfortPayCardMetadataResponse": {
+        "description": "TatraPayPlus ComfortPay card metadata",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/comfortPayCardMetadataResponse"
+            }
+          }
+        }
+      },
+      "OK_200_GetComfortPayCardResponse": {
+        "description": "TatraPayPlus ComfortPay card details",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/comfortPayCardResponse"
+            }
+          }
+        }
+      },
+      "OK_200_ComfortPayTransactionUpdate": {
+        "description": "TatraPayPlus ComfortPay transaction updated",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/initiateComfortPayResponse"
+            }
+          }
+        }
+      },
+      "OK_201_InitiateComfortPayResponse": {
+        "description": "TatraPayPlus ComfortPay transaction initiated",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/initiateComfortPayResponse"
+            }
+          }
+        }
+      },
+      "OK_201_InitiatePaymentResponse": {
+        "description": "TatraPayPlus transaction initiated",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/initiatePaymentResponse"
+            }
+          }
+        }
+      },
+      "OK_201_InitiateDirectAPITransactionResponse": {
+        "description": "TatraPayPlus direct api transaction initiated",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/initiateDirectTransactionResponse"
+            }
+          }
+        }
+      },
+      "OK_200_DirectAPITransactionTaskStatusResponse": {
+        "description": "TatraPayPlus direct api transaction task status",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/directTransactionTaskStatusResponse"
+            }
+          }
+        }
+      },
+      "OK_200_PaymentMethodsList": {
+        "description": "OK",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/paymentMethodsListResponse"
+            }
+          }
+        }
+      },
+      "OK_200_PaymentIntentStatus": {
+        "description": "OK",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/paymentIntentStatusResponse"
+            }
+          }
+        }
+      },
+      "OK_200_PaymentIntentCancelation": {
+        "description": "Cancel payment intent. Its supported for state 'NEW'",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        }
+      },
+      "OK_200_PaymentIntentUpdate": {
+        "description": "Payment intent successfully updated",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        }
+      },
+      "NO_CONTENT_204": {
+        "description": "No content",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        }
+      },
+      "BAD_REQUEST_400": {
+        "description": "Bad Request",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/400_errorBody"
+            }
+          }
+        }
+      },
+      "BAD_REQUEST_400_CP": {
+        "description": "Bad Request",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/400_errorBody_comfortPay"
+            }
+          }
+        }
+      },
+      "UNAUTHORIZED_401": {
+        "description": "Unauthorized",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/40x_errorBody"
+            }
+          }
+        }
+      },
+      "FORBIDDEN_403": {
+        "description": "Forbidden",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/40x_errorBody"
+            }
+          }
+        }
+      },
+      "NOT_FOUND_404": {
+        "description": "Not found",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        }
+      },
+      "METHOD_NOT_ALLOWED_405": {
+        "description": "Method not allowed",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        }
+      },
+      "NOT_ACCEPTABLE_406": {
+        "description": "Not acceptable",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        }
+      },
+      "REQUEST_TIMEOUT_408": {
+        "description": "Request timeout",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        }
+      },
+      "CONFLICT_409": {
+        "description": "Conflict",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        }
+      },
+      "UNSUPPORTED_MEDIA_TYPE_415": {
+        "description": "Unsupported media type",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        }
+      },
+      "TOO_MANY_REQUESTS_429": {
+        "description": "Too many requests",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        }
+      },
+      "INTERNAL_SERVER_ERROR_500": {
+        "description": "Internal server error",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        }
+      },
+      "SERVICE_UNAVAILABLE_503": {
+        "description": "Service unavailable",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/X-Request-ID"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "oAuth2ClientCredentials": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "TatraPayPlus API"
+    },
+    {
+      "name": "TatraPayPlus Appearance API"
+    },
+    {
+      "name": "TatraPayPlus DirectAPI"
+    },
+    {
+      "name": "TatraPayPlus ComfortPay API"
+    }
+  ]
+}

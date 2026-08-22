@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/tatrabanka-payments",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

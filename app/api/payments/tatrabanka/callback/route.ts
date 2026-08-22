@@ -1,0 +1,76 @@
+import { NextResponse } from "next/server";
+import { getSession } from "@/lib/auth/bookingAuth";
+import { getCoreServiceDb } from "@/lib/server/supabase";
+import { getTatraPaymentStatus } from "@/lib/server/tatrabanka";
+
+const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
+const PAYMENT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function dashboardRedirect(request: Request, result: string) {
+  const url = new URL("/dashboard/transactions", request.url);
+  url.searchParams.set("wallet", result);
+  return NextResponse.redirect(url);
+}
+
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const paymentId = url.searchParams.get("paymentId");
+  const paymentMethod = url.searchParams.get("paymentMethod");
+  const callbackError = url.searchParams.get("error");
+  const callbackErrorId = url.searchParams.get("errorId");
+
+  if (!paymentId || !PAYMENT_ID_PATTERN.test(paymentId)) return dashboardRedirect(request, "error");
+
+  const session = await getSession();
+  if (!session) return dashboardRedirect(request, "login-required");
+
+  const db = getCoreServiceDb();
+  const { data: payment, error: paymentError } = await db
+    .from("payments")
+    .select("id, user_id, provider, status")
+    .eq("tenant_id", TENANT_ID)
+    .eq("provider", "tatrabanka")
+    .eq("provider_payment_id", paymentId)
+    .maybeSingle();
+
+  if (paymentError || !payment || payment.user_id !== session.userId) {
+    console.error("TatraPayPlus callback payment lookup failed:", paymentError);
+    return dashboardRedirect(request, "error");
+  }
+
+  if (callbackError) {
+    await db.from("payments").update({
+      status: "failed",
+      error_message: `TatraPayPlus callback error: ${callbackError}${callbackErrorId ? ` (${callbackErrorId})` : ""}`,
+    }).eq("id", payment.id);
+    return dashboardRedirect(request, "failed");
+  }
+
+  try {
+    const status = await getTatraPaymentStatus(paymentId);
+    if (status.state === "successful") {
+      const { error } = await db.rpc("wallet_process_successful_payment", {
+        p_payment_id: payment.id,
+        p_provider_payment_id: paymentId,
+        p_provider_metadata: {
+          provider: "tatrabanka",
+          payment_method: paymentMethod,
+          verified_status: status.data,
+          source: "verified_callback",
+        },
+      });
+      if (error) throw error;
+      return dashboardRedirect(request, "success");
+    }
+
+    if (status.state === "failed") {
+      await db.from("payments").update({ status: "failed", error_message: "TatraPayPlus payment failed" }).eq("id", payment.id);
+      return dashboardRedirect(request, "failed");
+    }
+
+    return dashboardRedirect(request, "pending");
+  } catch (error) {
+    console.error("TatraPayPlus callback verification failed:", error);
+    return dashboardRedirect(request, "error");
+  }
+}

@@ -1,9 +1,10 @@
 "use server";
 
+import { headers } from "next/headers";
 import { getSession } from "@/lib/auth/bookingAuth";
 import { getCoreServiceDb } from "@/lib/server/supabase";
+import { createTatraPayment } from "@/lib/server/tatrabanka";
 import { walletEnabledForUser } from "@/lib/server/wallet";
-import { getAppUrl, getStripe } from "@/lib/server/stripe";
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
 
@@ -101,62 +102,13 @@ export async function getWalletHistoryAction() {
     };
   });
 
-  return { success: true as const, enabled: true, balanceEur, transactions };
+      return { success: true as const, enabled: true, balanceEur, transactions };
 }
 
+/** @deprecated Stripe return reconciliation was replaced by the TatraPayPlus callback. */
 export async function reconcileWalletCheckoutAction(checkoutSessionId: string) {
-  const session = await getSession();
-  if (!session) return { success: false as const, error: "Pre overenie platby sa musíte prihlásiť." };
-  if (!walletEnabledForUser(session.userId)) {
-    return { success: false as const, error: "Dobíjanie kreditu nie je pre tento účet povolené." };
-  }
-  if (!/^cs_[A-Za-z0-9_]+$/.test(checkoutSessionId)) {
-    return { success: false as const, error: "Neplatná Stripe session." };
-  }
-
-  try {
-    const checkout = await getStripe().checkout.sessions.retrieve(checkoutSessionId);
-    if (checkout.payment_status !== "paid" || checkout.status !== "complete") {
-      return { success: false as const, pending: true, error: "Platba ešte čaká na potvrdenie." };
-    }
-    if (checkout.metadata?.userId !== session.userId || checkout.metadata?.tenantId !== TENANT_ID) {
-      return { success: false as const, error: "Platba nepatrí k tomuto účtu." };
-    }
-
-    const paymentId = checkout.metadata?.paymentId;
-    if (!paymentId) return { success: false as const, error: "Platba nemá interný identifikátor." };
-
-    const db = getCoreServiceDb();
-    const { data: payment, error: paymentError } = await db
-      .from("payments")
-      .select("id, amount_eur, provider, provider_payment_id")
-      .eq("id", paymentId)
-      .eq("tenant_id", TENANT_ID)
-      .eq("user_id", session.userId)
-      .maybeSingle();
-    if (paymentError || !payment) return { success: false as const, error: "Internú platbu sa nepodarilo nájsť." };
-
-    const stripeAmount = checkout.amount_total ? checkout.amount_total / 100 : 0;
-    if (payment.provider !== "stripe" || Number(payment.amount_eur) !== stripeAmount) {
-      return { success: false as const, error: "Suma platby sa nezhoduje." };
-    }
-
-    const { data, error } = await db.rpc("wallet_process_successful_payment", {
-      p_payment_id: payment.id,
-      p_provider_payment_id: checkout.id,
-      p_provider_metadata: {
-        stripe_checkout_session_id: checkout.id,
-        stripe_payment_status: checkout.payment_status,
-        source: "verified_success_return",
-      },
-    });
-    if (error) throw error;
-
-    return { success: true as const, balanceEur: data?.[0] ? Number(data[0].balance_eur) : null };
-  } catch (error) {
-    console.error("reconcileWalletCheckoutAction failed:", error);
-    return { success: false as const, error: "Platbu sa nepodarilo potvrdiť." };
-  }
+  void checkoutSessionId;
+  return { success: false as const, error: "Táto platobná relácia už nie je podporovaná." };
 }
 
 export async function createWalletCheckoutAction(amountEur: number, operationId: string) {
@@ -172,15 +124,15 @@ export async function createWalletCheckoutAction(amountEur: number, operationId:
     return { success: false as const, error: "Neplatný identifikátor operácie." };
   }
 
-  const db = getCoreServiceDb();
-  const idempotencyKey = `stripe-checkout:${session.userId}:${operationId}`;
+    const db = getCoreServiceDb();
+  const idempotencyKey = `tatrabanka-checkout:${session.userId}:${operationId}`;
   const { data: payment, error: paymentError } = await db
     .from("payments")
     .insert({
       tenant_id: TENANT_ID,
       user_id: session.userId,
       amount_eur: amountEur,
-      provider: "stripe",
+      provider: "tatrabanka",
       idempotency_key: idempotencyKey,
       status: "pending",
       metadata: { source: "wallet_checkout", environment: process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown" },
@@ -194,23 +146,23 @@ export async function createWalletCheckoutAction(amountEur: number, operationId:
   }
 
   try {
-    const stripe = getStripe();
-    const checkout = await stripe.checkout.sessions.create({
-      mode: "payment",
-      line_items: [{ price_data: { currency: "eur", product_data: { name: `Dobitie Telio kreditu (${amountEur} €)` }, unit_amount: amountEur * 100 }, quantity: 1 }],
-      customer_email: session.email,
-      metadata: { paymentId: payment.id, userId: session.userId, tenantId: TENANT_ID },
-      payment_intent_data: { metadata: { paymentId: payment.id, userId: session.userId, tenantId: TENANT_ID } },
-      success_url: `${getAppUrl()}/dashboard/newbookings?wallet=success&session_id={CHECKOUT_SESSION_ID}`, 
- 
-      cancel_url: `${getAppUrl()}/dashboard/newbookings?wallet=cancelled`,
-    }, { idempotencyKey });
+    const requestHeaders = await headers();
+    const forwardedFor = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim();
+    const ipAddress = forwardedFor || requestHeaders.get("x-real-ip") || "127.0.0.1";
+    const redirectUri = process.env.TATRABANKA_REDIRECT_URI;
+    if (!redirectUri) throw new Error("TATRABANKA_REDIRECT_URI is not configured");
 
-    await db.from("payments").update({ provider_payment_id: checkout.id, status: "processing" }).eq("id", payment.id);
+    const checkout = await createTatraPayment({ amountEur, redirectUri, ipAddress, requestId: crypto.randomUUID() });
+    const { error: updateError } = await db
+      .from("payments")
+      .update({ provider_payment_id: checkout.paymentId, status: "processing" })
+      .eq("id", payment.id);
+    if (updateError) throw updateError;
+
     return { success: true as const, url: checkout.url };
   } catch (error) {
-    console.error("createWalletCheckoutAction Stripe failed:", error);
-    await db.from("payments").update({ status: "failed", error_message: "Stripe Checkout creation failed" }).eq("id", payment.id);
+    console.error("createWalletCheckoutAction TatraPayPlus failed:", error);
+    await db.from("payments").update({ status: "failed", error_message: "TatraPayPlus payment creation failed" }).eq("id", payment.id);
     return { success: false as const, error: "Platobnú stránku sa nepodarilo vytvoriť." };
   }
 }
