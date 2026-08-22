@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/tatrabanka-payments",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }
