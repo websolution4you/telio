@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Coins, LayoutDashboard, Loader2, Sparkles } from "lucide-react";
-import { createWalletCheckoutAction, getWalletHistoryAction } from "@/app/actions/wallet";
+import { createWalletCheckoutAction, getWalletHistoryAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
 import type { SessionPayload } from "@/lib/auth/bookingAuth";
 
 type WalletTransaction = {
@@ -22,7 +22,7 @@ const formatEur = (value: number) => new Intl.NumberFormat("sk-SK", { style: "cu
 const courtName = (value: string) => value.replace("tennis-clay", "Antuka").replace("badminton", "Bedminton").replace("tennis", "Tenis").replace("squash", "Squash").replace("-", " ");
 
 const labels: Record<WalletTransaction["type"], string> = {
-  payment: "Dobitie kreditu",
+  payment: "Dobitie kartou",
   booking_charge: "Platba za rezerváciu",
   refund: "Vrátenie za rezerváciu",
   manual_adjustment: "Testovacie dobitie",
@@ -49,26 +49,28 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
     setLoading(false);
   }, []);
 
-    useEffect(() => {
+      useEffect(() => {
+    let active = true;
     const params = new URLSearchParams(window.location.search);
+    const checkoutSessionId = params.get("session_id");
     const walletStatus = params.get("wallet");
 
-    if (walletStatus) window.history.replaceState({}, "", window.location.pathname);
-    const walletMessages: Record<string, string> = {
-      success: "Platba bola úspešne prijatá a kredit bol pripísaný.",
-      pending: "Platba čaká na spracovanie bankou. Kredit pripíšeme po jej potvrdení.",
-      failed: "Platba nebola úspešná.",
-      error: "Výsledok platby sa nepodarilo overiť. Kredit zatiaľ nebol pripísaný.",
-      "login-required": "Pre dokončenie platby sa znovu prihláste.",
+    if (walletStatus || checkoutSessionId) window.history.replaceState({}, "", window.location.pathname);
+    const initialize = async () => {
+      if (walletStatus === "cancelled") setWalletNotice("Dobíjanie kreditu bolo zrušené.");
+      if (walletStatus === "success" && checkoutSessionId) {
+        setWalletNotice("Overujem platbu a pripisujem kredit...");
+        const result = await reconcileWalletCheckoutAction(checkoutSessionId);
+        if (!active) return;
+        setWalletNotice(result.success ? "Platba bola úspešne prijatá a kredit bol pripísaný." : result.error || "Platbu sa zatiaľ nepodarilo potvrdiť.");
+      }
+      if (active) await loadData();
     };
-    const noticeTimer = walletStatus && walletMessages[walletStatus]
-      ? window.setTimeout(() => setWalletNotice(walletMessages[walletStatus]), 0)
-      : undefined;
-    const loadTimer = window.setTimeout(() => { void loadData(); }, 0);
+    const timer = window.setTimeout(() => { void initialize(); }, 0);
 
     return () => {
-      window.clearTimeout(loadTimer);
-      if (noticeTimer !== undefined) window.clearTimeout(noticeTimer);
+      active = false;
+      window.clearTimeout(timer);
     };
   }, [loadData]);
 
@@ -164,8 +166,8 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
 
               <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-4 sm:px-6">
                 <div className="mb-2 flex items-center justify-between gap-3">
-                                    <p className="text-sm font-bold text-slate-800">Dobiť kredit bankovým prevodom</p>
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">TatraPay+ sandbox</span>
+                                                      <p className="text-sm font-bold text-slate-800">Dobiť kredit kartou</p>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Stripe</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {[10, 20, 50].map((amount) => (
