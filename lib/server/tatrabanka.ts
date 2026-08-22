@@ -21,13 +21,18 @@ async function readResponse(response: Response) {
 }
 
 async function getAccessToken() {
+  const clientId = requireConfig("TATRABANKA_CLIENT_ID");
+  const clientSecret = requireConfig("TATRABANKA_SHARED_SECRET");
+  const credentials = Buffer.from(`${clientId}:${clientSecret}`, "utf8").toString("base64");
   const response = await fetch(process.env.TATRABANKA_TOKEN_URL || DEFAULT_TOKEN_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+      Authorization: `Basic ${credentials}`,
+    },
     body: new URLSearchParams({
       grant_type: "client_credentials",
-      client_id: requireConfig("TATRABANKA_CLIENT_ID"),
-      client_secret: requireConfig("TATRABANKA_SHARED_SECRET"),
       scope: "TATRAPAYPLUS",
     }),
     cache: "no-store",
