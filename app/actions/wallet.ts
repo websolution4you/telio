@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { getSession } from "@/lib/auth/bookingAuth";
 import { getCoreServiceDb } from "@/lib/server/supabase";
-import { createTatraPayment } from "@/lib/server/tatrabanka";
+import { createTatraPayment, getTatraPaymentStatus } from "@/lib/server/tatrabanka";
 import { walletEnabledForUser } from "@/lib/server/wallet";
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
@@ -41,6 +41,47 @@ export async function getWalletHistoryAction() {
   }
 
   const db = getCoreServiceDb();
+  const { data: pendingPayments, error: pendingError } = await db
+    .from("payments")
+    .select("id, provider_payment_id")
+    .eq("tenant_id", TENANT_ID)
+    .eq("user_id", session.userId)
+    .eq("provider", "tatrabanka")
+    .eq("status", "processing")
+    .not("provider_payment_id", "is", null)
+    .order("created_at", { ascending: true })
+    .limit(10);
+
+  if (pendingError) {
+    console.error("getWalletHistoryAction pending payment lookup failed:", pendingError);
+  } else {
+    for (const payment of pendingPayments || []) {
+      try {
+        const status = await getTatraPaymentStatus(payment.provider_payment_id);
+        if (status.state === "successful") {
+          const { error: processError } = await db.rpc("wallet_process_successful_payment", {
+            p_payment_id: payment.id,
+            p_provider_payment_id: payment.provider_payment_id,
+            p_provider_metadata: {
+              provider: "tatrabanka",
+              verified_status: status.data,
+              source: "wallet_history_refresh",
+            },
+          });
+          if (processError) throw processError;
+        } else if (status.state === "failed") {
+          const { error: updateError } = await db
+            .from("payments")
+            .update({ status: "failed", error_message: "TatraPayPlus payment failed" })
+            .eq("id", payment.id);
+          if (updateError) throw updateError;
+        }
+      } catch (paymentError) {
+        console.error(`Pending TatraPayPlus verification failed for payment ${payment.id}:`, paymentError);
+      }
+    }
+  }
+
   const [{ data: balanceData, error: balanceError }, { data: rows, error: historyError }] = await Promise.all([
     db.rpc("wallet_get_balance", {
       p_tenant_id: TENANT_ID,
