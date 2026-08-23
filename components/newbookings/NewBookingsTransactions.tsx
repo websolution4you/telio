@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Coins, LayoutDashboard, Loader2, Sparkles } from "lucide-react";
-import { createWalletCheckoutAction, getWalletHistoryAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
+import { addTestWalletCreditAction, getWalletHistoryAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
 import type { SessionPayload } from "@/lib/auth/bookingAuth";
 
 type WalletTransaction = {
@@ -74,16 +74,18 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
     };
   }, [loadData]);
 
-  const startCheckout = async (amountEur: number) => {
+    const addTestCredit = async (amountEur: number) => {
     setLoadingAmount(amountEur);
     setCheckoutError("");
-    const result = await createWalletCheckoutAction(amountEur, crypto.randomUUID());
-    if (!result.success || !result.url) {
-      setCheckoutError(result.error || "Platobnú stránku sa nepodarilo otvoriť.");
+    const result = await addTestWalletCreditAction(amountEur, crypto.randomUUID());
+    if (!result.success) {
+      setCheckoutError(result.error || "Testovací kredit sa nepodarilo pridať.");
       setLoadingAmount(null);
       return;
     }
-    window.location.assign(result.url);
+    setWalletNotice(`Testovací kredit +${formatEur(result.amountEur)} bol pridaný.`);
+    await loadData();
+    setLoadingAmount(null);
   };
 
   return (
@@ -166,8 +168,8 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
 
               <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-4 sm:px-6">
                 <div className="mb-2 flex items-center justify-between gap-3">
-                                                      <p className="text-sm font-bold text-slate-800">Dobiť kredit kartou</p>
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Stripe</span>
+                                                                        <p className="text-sm font-bold text-slate-800">Testovacie dobitie</p>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Bez platobnej karty</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {[10, 20, 50].map((amount) => (
@@ -175,10 +177,10 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
                       key={amount}
                       type="button"
                       disabled={loadingAmount !== null}
-                      onClick={() => startCheckout(amount)}
+                      onClick={() => addTestCredit(amount)}
                       className="min-w-[76px] rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-50"
                     >
-                      {loadingAmount === amount ? "Otváram..." : `${amount} €`}
+                      {loadingAmount === amount ? "Pridávam..." : `+${amount} €`}
                     </button>
                   ))}
                 </div>

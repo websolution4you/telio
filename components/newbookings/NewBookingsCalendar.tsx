@@ -7,7 +7,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard,
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { createBookingAction, deleteBookingAction, fetchBookingsAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
-import { addTestWalletCreditAction, getWalletAction } from "@/app/actions/wallet";
+import { createWalletCheckoutAction, getWalletAction } from "@/app/actions/wallet";
 
 import { supabase } from "@/lib/supabase";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
@@ -357,13 +357,16 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     if (result.wallet) setWalletBalance(result.wallet.balanceEur);
     setItems((current) => current.filter((booking) => booking.id !== deleting.id)); setDeleting(null); setDetail(null); setNotice(result.wallet ? `Rezervácia bola zrušená. Vrátené: ${result.wallet.refundedEur.toFixed(2)} €.` : "Rezervácia bola zrušená.");
   };
-    const addTestCredit = async (amountEur: number) => {
+      const startStripeTopUp = async (amountEur: number) => {
     setTopUpLoading(amountEur);
-    const result = await addTestWalletCreditAction(amountEur, crypto.randomUUID());
-    setTopUpLoading(null);
-    if (!result.success) return setNotice(result.error || "Kredit sa nepodarilo pridať.");
-    setWalletBalance(result.balanceEur);
-    setNotice(`Testovací kredit +${result.amountEur.toFixed(2)} € bol pridaný.`);
+    setNotice("");
+    const result = await createWalletCheckoutAction(amountEur, crypto.randomUUID());
+    if (!result.success || !result.url) {
+      setTopUpLoading(null);
+      setNotice(result.error || "Platobnú stránku sa nepodarilo otvoriť.");
+      return;
+    }
+    window.location.assign(result.url);
   };
   const position = (booking: Booking) => {
 
@@ -470,7 +473,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                             key={amount}
                             type="button"
                             disabled={topUpLoading !== null}
-                            onClick={() => addTestCredit(amount)}
+                                                        onClick={() => startStripeTopUp(amount)}
                             className="cursor-pointer rounded-lg border border-amber-200/80 bg-white/90 px-2 py-2 text-xs font-extrabold text-slate-900 shadow-xs transition hover:border-amber-400 hover:bg-white disabled:cursor-wait disabled:opacity-50"
                           >
                             {topUpLoading === amount ? "..." : `+${amount} €`}
