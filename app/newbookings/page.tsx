@@ -7,7 +7,7 @@ import type { Booking } from "@/lib/bookings/mockBookings";
 import type { RoleBookingPolicy } from "@/lib/bookings/rolePolicy";
 
 import { courts } from "@/lib/bookings/mockBookings";
-import { getCoreDb } from "@/lib/server/supabase";
+import { getCoreDb, getCoreServiceDb } from "@/lib/server/supabase";
 
 export const metadata: Metadata = {
   title: "Komplexný rezervačný systém Telio | NTC Bratislava",
@@ -15,9 +15,9 @@ export const metadata: Metadata = {
 };
 
 export default async function NewBookingsPage() {
-  const session = await getSession();
+    const session = await getSession();
   let currentUser: BookingUser | null = null;
-    let rolePolicy: RoleBookingPolicy | null = null;
+  let rolePolicy: RoleBookingPolicy | null = null;
 
   if (session) {
     const db = getCoreDb();
@@ -36,17 +36,28 @@ export default async function NewBookingsPage() {
       role: data.role,
     } : {
       id: session.userId,
-      name: session.name,
+            name: session.name,
       email: session.email,
-            role: session.role,
+      role: session.role,
     };
 
-    const role = currentUser.role || "user";
-    const { data: policy } = await db
+    const policyDb = getCoreServiceDb();
+    const { data: policyUser, error: policyUserError } = await policyDb
+      .from("booking_users")
+      .select("role")
+      .eq("id", session.userId)
+      .maybeSingle();
+    const role = policyUser?.role || currentUser.role || "user";
+    currentUser.role = role;
+
+    const { data: policy, error: policyError } = await policyDb
       .from("role_booking_policies")
-      .select("role, max_booking_duration_minutes, booking_horizon_days, discount_eur_per_hour, cancellation_deadline_hours, is_active")
+            .select("role, max_booking_duration_minutes, booking_horizon_days, discount_eur_per_hour, cancellation_deadline_hours, is_active")
       .eq("role", role)
       .maybeSingle();
+    if (policyUserError || policyError) {
+      console.error("NewBookingsPage role policy lookup failed:", policyUserError || policyError);
+    }
     if (policy) {
       rolePolicy = {
         role: policy.role,

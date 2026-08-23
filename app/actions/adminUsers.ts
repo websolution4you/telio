@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getSession, type BookingRole } from "@/lib/auth/bookingAuth";
-import { getCoreDb } from "@/lib/server/supabase";
+import { getCoreServiceDb } from "@/lib/server/supabase";
 import { isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
 
 const ALLOWED_ROLES: BookingRole[] = ["admin", "user", "trainer"];
@@ -21,7 +21,7 @@ async function requireCurrentAdmin() {
   const session = await getSession();
   if (!session) return null;
 
-  const db = getCoreDb();
+  const db = getCoreServiceDb();
   const { data: actor, error } = await db
     .from("booking_users")
     .select("id, role")
