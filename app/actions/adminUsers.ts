@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getSession, type BookingRole } from "@/lib/auth/bookingAuth";
 import { getCoreServiceDb } from "@/lib/server/supabase";
+import { isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
 
 const ALLOWED_ROLES: BookingRole[] = ["admin", "user", "trainer"];
 const USERS_PAGE_SIZE = 7;
@@ -11,7 +12,7 @@ export type RoleBookingPolicyInput = {
   role: BookingRole;
   maxBookingDurationMinutes: number;
   bookingHorizonDays: number;
-  discountPercent: number;
+  discountEurPerHour: number;
   cancellationDeadlineHours: number;
   isActive: boolean;
 };
@@ -51,7 +52,7 @@ export async function fetchAdminUsersAction(page = 1, query = "") {
     usersQuery.order("name", { ascending: true }).range(from, to),
     context.db
       .from("role_booking_policies")
-      .select("role, max_booking_duration_minutes, booking_horizon_days, discount_percent, cancellation_deadline_hours, is_active")
+      .select("role, max_booking_duration_minutes, booking_horizon_days, discount_eur_per_hour, cancellation_deadline_hours, is_active")
       .order("role", { ascending: true }),
   ]);
 
@@ -75,7 +76,7 @@ export async function fetchAdminUsersAction(page = 1, query = "") {
       role: policy.role as BookingRole,
       maxBookingDurationMinutes: Number(policy.max_booking_duration_minutes),
       bookingHorizonDays: Number(policy.booking_horizon_days),
-      discountPercent: Number(policy.discount_percent),
+      discountEurPerHour: Number(policy.discount_eur_per_hour),
       cancellationDeadlineHours: Number(policy.cancellation_deadline_hours),
       isActive: Boolean(policy.is_active),
     })),
@@ -116,14 +117,14 @@ export async function updateRoleBookingPolicyAction(input: RoleBookingPolicyInpu
   if (!integerFields.every(Number.isInteger)) {
     return { success: false as const, error: "Dĺžka rezervácie, počet dní a storno lehota musia byť celé čísla." };
   }
-  if (input.maxBookingDurationMinutes < 15 || input.maxBookingDurationMinutes > 1440) {
-    return { success: false as const, error: "Maximálna dĺžka rezervácie musí byť od 15 do 1440 minút." };
+  if (input.maxBookingDurationMinutes < 30 || input.maxBookingDurationMinutes > 1440 || !isAllowedBookingDuration(input.maxBookingDurationMinutes, input.maxBookingDurationMinutes)) {
+    return { success: false as const, error: "Povolené limity sú 30, 60, 90, 120 minút a potom celé hodiny." };
   }
   if (input.bookingHorizonDays < 0 || input.bookingHorizonDays > 730) {
     return { success: false as const, error: "Rezervačný horizont musí byť od 0 do 730 dní." };
   }
-  if (!Number.isFinite(input.discountPercent) || input.discountPercent < 0 || input.discountPercent > 100) {
-    return { success: false as const, error: "Zľava musí byť od 0 do 100 %." };
+  if (!Number.isFinite(input.discountEurPerHour) || input.discountEurPerHour < 0 || input.discountEurPerHour > 100) {
+    return { success: false as const, error: "Zľava musí byť od 0 do 100 € za hodinu." };
   }
   if (input.cancellationDeadlineHours < 0 || input.cancellationDeadlineHours > 8760) {
     return { success: false as const, error: "Storno lehota musí byť od 0 do 8760 hodín." };
@@ -134,7 +135,7 @@ export async function updateRoleBookingPolicyAction(input: RoleBookingPolicyInpu
     .update({
       max_booking_duration_minutes: input.maxBookingDurationMinutes,
       booking_horizon_days: input.bookingHorizonDays,
-      discount_percent: input.discountPercent,
+      discount_eur_per_hour: input.discountEurPerHour,
       cancellation_deadline_hours: input.cancellationDeadlineHours,
       is_active: input.isActive,
       updated_at: new Date().toISOString(),

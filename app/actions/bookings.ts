@@ -1,4 +1,4 @@
-"use server";
+ "use server";
 
 import { getCoreDb, getCoreServiceDb } from "@/lib/server/supabase";
 import { 
@@ -10,6 +10,8 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth/bookingAuth";
 import { walletEnabledForUser } from "@/lib/server/wallet";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
+import { getBratislavaDateKey, getCourtOperatingLimitMinutes, isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
+
 
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
@@ -163,24 +165,60 @@ export async function createBookingAction(payload: {
         const session = await getSession();
         if (!session) {
             return { success: false, error: "Pre vytvorenie rezervácie sa musíte prihlásiť." };
-        }
-
-        if (payload.source !== "admin") {
-            const now = new Date();
-            const maxAllowedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14, 23, 59, 59, 999);
-            const bookingStart = new Date(payload.start);
-
-            if (bookingStart > maxAllowedDate) {
-                return { success: false, error: "Rezerváciu je možné vytvoriť maximálne 14 dní vopred." };
-            }
-        }
+                }
 
         const db = getCoreDb();
+        const serviceDb = getCoreServiceDb();
+        const { data: bookingUser, error: userError } = await serviceDb
+            .from("booking_users")
+            .select("role, card_number")
+            .eq("id", session.userId)
+            .maybeSingle();
+        if (userError || !bookingUser) return { success: false, error: "Používateľský účet sa nepodarilo overiť." };
+        if (payload.source === "admin" && bookingUser.role !== "admin") {
+            return { success: false, error: "Nemáte oprávnenie blokovať kurt." };
+        }
+
+        const bookingStart = new Date(payload.start);
+        const bookingEnd = new Date(payload.end);
+        const bookingStartMs = bookingStart.getTime();
+        const bookingEndMs = bookingEnd.getTime();
+        if (!Number.isFinite(bookingStartMs) || !Number.isFinite(bookingEndMs) || bookingEndMs <= bookingStartMs) {
+            return { success: false, error: "Neplatný termín rezervácie." };
+        }
+
+        let roleDiscountEurPerHour = 0;
+        if (payload.source !== "admin") {
+            const { data: policy, error: policyError } = await serviceDb
+                .from("role_booking_policies")
+                .select("max_booking_duration_minutes, booking_horizon_days, discount_eur_per_hour, is_active")
+                .eq("role", bookingUser.role)
+                .maybeSingle();
+            if (policyError || !policy) return { success: false, error: "Pravidlá vašej roly sa nepodarilo načítať." };
+            if (!policy.is_active) return { success: false, error: "Rezervácie sú pre vašu rolu momentálne deaktivované." };
+
+            const durationMinutes = Math.round((bookingEndMs - bookingStartMs) / 60000);
+            if (!isAllowedBookingDuration(durationMinutes, Number(policy.max_booking_duration_minutes))) {
+                return { success: false, error: "Vybraná dĺžka rezervácie nie je pre vašu rolu povolená." };
+            }
+            if (durationMinutes > getCourtOperatingLimitMinutes(payload.courtId, bookingStart)) {
+                return { success: false, error: "Rezervácia presahuje údržbu alebo otváracie hodiny kurtu." };
+                        }
+
+            const now = new Date();
+            const todayKey = getBratislavaDateKey(now);
+            const maxDate = new Date(`${todayKey}T12:00:00`);
+            maxDate.setDate(maxDate.getDate() + Number(policy.booking_horizon_days));
+            if (bookingStart < now) return { success: false, error: "Rezerváciu v minulosti nie je možné vytvoriť." };
+            if (getBratislavaDateKey(bookingStart) > getBratislavaDateKey(maxDate)) {
+                return { success: false, error: `Rezerváciu je možné vytvoriť maximálne ${policy.booking_horizon_days} dní vopred.` };
+            }
+            roleDiscountEurPerHour = Number(policy.discount_eur_per_hour);
+        }
+
         console.log(`Creating booking in Supabase for NTC Tenant: ${TENANT_ID}`);
         
         // 1. Check for overlapping bookings in Supabase for the same court
-        const bookingStartMs = new Date(payload.start).getTime();
-        const bookingEndMs = new Date(payload.end).getTime();
 
         const searchRangeStart = new Date(bookingStartMs - 24 * 60 * 60 * 1000).toISOString();
         const searchRangeEnd = new Date(bookingEndMs + 24 * 60 * 60 * 1000).toISOString();
@@ -216,9 +254,9 @@ export async function createBookingAction(payload: {
 
         if (hasConflict) {
             return { success: false, error: "Vybraný kurt je v tomto čase už zarezervovaný." };
-        }
+                }
 
-                const notesObj = {
+        const notesObj = {
             courtId: payload.courtId,
             source: payload.source,
             notes: payload.title
@@ -238,7 +276,7 @@ export async function createBookingAction(payload: {
                 p_court_id: payload.courtId,
                 p_sport: sport,
                 p_customer_name: payload.customerName,
-                p_customer_phone: payload.phone || "",
+                                p_customer_phone: payload.phone || "",
                 p_start_at: payload.start,
                 p_end_at: payload.end,
                 p_notes: JSON.stringify(notesObj),
@@ -264,7 +302,8 @@ export async function createBookingAction(payload: {
             };
         } else {
             const durationMin = Math.round((bookingEndMs - bookingStartMs) / 60000);
-            const calculatedPrice = calculateNtcBookingPrice(payload.courtId, payload.start, durationMin, false).totalPriceEur;
+            const hasCard = Boolean(bookingUser.card_number && String(bookingUser.card_number).trim());
+            const calculatedPrice = calculateNtcBookingPrice(payload.courtId, payload.start, durationMin, hasCard, roleDiscountEurPerHour).totalPriceEur;
 
             const { data: dbBooking, error: dbError } = await db
                 .from("bookings")
@@ -323,10 +362,19 @@ export async function deleteBookingAction(id: string) {
         if (session.role !== "admin" && booking.user_id !== session.userId) {
             return { success: false, error: "Nemáte oprávnenie zrušiť túto rezerváciu." };
         }
-        if (session.role !== "admin") {
-            const cancellationDeadline = new Date(booking.start_at).getTime() - 24 * 60 * 60 * 1000;
+                if (session.role !== "admin") {
+            const policyDb = getCoreServiceDb();
+            const { data: userPolicy, error: policyError } = await policyDb
+                .from("booking_users")
+                .select("role, role_booking_policies(cancellation_deadline_hours)")
+                .eq("id", session.userId)
+                .maybeSingle();
+            if (policyError || !userPolicy) return { success: false, error: "Storno pravidlá sa nepodarilo overiť." };
+            const joinedPolicy = Array.isArray(userPolicy.role_booking_policies) ? userPolicy.role_booking_policies[0] : userPolicy.role_booking_policies;
+            const deadlineHours = Number(joinedPolicy?.cancellation_deadline_hours ?? 24);
+            const cancellationDeadline = new Date(booking.start_at).getTime() - deadlineHours * 60 * 60 * 1000;
             if (Date.now() >= cancellationDeadline) {
-                return { success: false, error: "Rezerváciu je možné zrušiť iba viac ako 24 hodín pred jej začiatkom." };
+                return { success: false, error: `Rezerváciu je možné zrušiť iba viac ako ${deadlineHours} hodín pred jej začiatkom.` };
             }
         }
 
@@ -490,7 +538,10 @@ export async function fetchAdminDashboardDataAction() {
                 }
             }
             
-            const price = calculateBookingPrice(notesObj.courtId || "unknown", row.start_at, row.end_at, hasCard);
+                        const storedPrice = row.price_eur === null || row.price_eur === undefined ? null : Number(row.price_eur);
+            const price = storedPrice !== null && Number.isFinite(storedPrice)
+                ? storedPrice
+                : calculateBookingPrice(notesObj.courtId || "unknown", row.start_at, row.end_at, hasCard);
             return {
                 id: row.id,
                 courtId: notesObj.courtId || "unknown",

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Clock3, MessageSquare, Phone, Trash2, User, X } from "lucide-react";
 import type { Booking, Court } from "@/lib/bookings/mockBookings";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
+import { formatDuration } from "@/lib/bookings/rolePolicy";
 
 type CreateDialogProps = {
   court?: Court;
@@ -13,6 +14,8 @@ type CreateDialogProps = {
   title: string;
   phone: string;
   hasCard?: boolean;
+  durationOptions: number[];
+  discountEurPerHour: number;
   error?: string;
   loading: boolean;
   onDuration: (value: number) => void;
@@ -35,9 +38,10 @@ export function CreateBookingDialog(props: CreateDialogProps) {
 
   const pricing = calculateNtcBookingPrice(
     props.court?.sport || "badminton",
-    bookingDate,
+        bookingDate,
     props.duration,
-    Boolean(props.hasCard)
+    Boolean(props.hasCard),
+    props.discountEurPerHour
   );
 
   return (
@@ -56,11 +60,12 @@ export function CreateBookingDialog(props: CreateDialogProps) {
             <div className="flex items-center gap-1.5">
               <span className="text-base font-black text-slate-950 sm:text-lg">
                 {pricing.formattedPrice}
-              </span>
+                            </span>
               {pricing.isMemberRate && (
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-300/60">
-                  Členská zľava
-                </span>
+                <span className="rounded-md border border-emerald-300/60 bg-emerald-100/90 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Členská tarifa</span>
+              )}
+              {props.discountEurPerHour > 0 && (
+                <span className="rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">Zľava roly {props.discountEurPerHour.toFixed(2)} €/h</span>
               )}
             </div>
           </div>
@@ -82,10 +87,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
               onChange={(event) => props.onDuration(Number(event.target.value))}
               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-950 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 sm:px-4 sm:py-3 sm:text-sm"
             >
-              <option value={30}>30 minút</option>
-              <option value={60}>1 hodina</option>
-              <option value={90}>1,5 hodiny</option>
-              <option value={120}>2 hodiny</option>
+              {props.durationOptions.map((minutes) => <option key={minutes} value={minutes}>{formatDuration(minutes)}</option>)}
             </select>
           </label>
           <button
@@ -105,12 +107,13 @@ type DetailProps = {
   court?: Court;
   canManage: boolean;
   canCancel: boolean;
+  cancellationDeadlineHours: number;
   error?: string;
   onClose: () => void;
   onDelete: () => void;
 };
 
-export function BookingDetailDialog({ booking, court, canManage, canCancel, error, onClose, onDelete }: DetailProps) {
+export function BookingDetailDialog({ booking, court, canManage, canCancel, cancellationDeadlineHours, error, onClose, onDelete }: DetailProps) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -146,7 +149,7 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, erro
         )}
         {canManage && !canCancel && (
           <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-center text-xs font-semibold text-amber-800 sm:mt-7 sm:px-4 sm:text-sm">
-            Rezerváciu už nie je možné zrušiť. Zrušenie je povolené iba viac ako 24 hodín pred začiatkom.
+            Rezerváciu už nie je možné zrušiť. Zrušenie je povolené iba viac ako {cancellationDeadlineHours} hodín pred začiatkom.
           </p>
         )}
       </div>

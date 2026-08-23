@@ -23,7 +23,7 @@ create table if not exists public.role_booking_policies (
     role varchar(50) primary key,
     max_booking_duration_minutes integer not null,
     booking_horizon_days integer not null,
-    discount_percent numeric(5, 2) not null default 0,
+    discount_eur_per_hour numeric(6, 2) not null default 0,
     cancellation_deadline_hours integer not null default 24,
     is_active boolean not null default true,
     created_at timestamptz not null default now(),
@@ -36,7 +36,7 @@ create table if not exists public.role_booking_policies (
     constraint role_booking_policies_horizon_check
         check (booking_horizon_days >= 0),
     constraint role_booking_policies_discount_check
-        check (discount_percent between 0 and 100),
+        check (discount_eur_per_hour between 0 and 100),
     constraint role_booking_policies_cancellation_check
         check (cancellation_deadline_hours >= 0)
 );
@@ -46,12 +46,12 @@ insert into public.role_booking_policies (
     role,
     max_booking_duration_minutes,
     booking_horizon_days,
-    discount_percent,
+    discount_eur_per_hour,
     cancellation_deadline_hours
 )
 values
-    ('user', 120, 14, 0, 24),
-    ('trainer', 240, 30, 20, 24),
+    ('user', 120, 14, 2, 24),
+    ('trainer', 240, 30, 4, 24),
     ('admin', 720, 365, 0, 0)
 on conflict (role) do nothing;
 
@@ -99,7 +99,7 @@ commit;
 
 -- Verification queries:
 select role, max_booking_duration_minutes, booking_horizon_days,
-       discount_percent, cancellation_deadline_hours, is_active
+       discount_eur_per_hour, cancellation_deadline_hours, is_active
 from public.role_booking_policies
 order by role;
 

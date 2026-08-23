@@ -4,6 +4,7 @@ export type NtcPricingResult = {
   totalPriceEur: number;
   isMemberRate: boolean;
   baseHourlyRate: number;
+  roleDiscountEur: number;
   formattedPrice: string;
 };
 
@@ -57,14 +58,15 @@ export function getNtcHourlyRate(
 }
 
 /**
- * Calculates exact NTC booking price for any sport, date/time, and duration (30, 60, 90, 120 min).
- * Uses 15-minute slice precision for exact cross-boundary calculations (e.g. 15:30 - 16:30).
+ * Calculates exact NTC booking price for any sport, date/time, and duration.
+ * Uses 15-minute slice precision across tariff boundaries, then applies a fixed role discount per hour.
  */
 export function calculateNtcBookingPrice(
-  sportOrCourtId: string,
+    sportOrCourtId: string,
   startDate: Date | string,
   durationMinutes: number,
-  hasCard: boolean = false
+  hasCard: boolean = false,
+  discountEurPerHour: number = 0
 ): NtcPricingResult {
   const normalizedSport = normalizeSport(sportOrCourtId);
   const start = typeof startDate === "string" ? new Date(startDate) : new Date(startDate);
@@ -75,10 +77,16 @@ export function calculateNtcBookingPrice(
   let firstHourlyRate = 0;
 
   for (let i = 0; i < slices; i++) {
-    const sliceTime = new Date(start.getTime() + i * 15 * 60 * 1000);
-    const dayOfWeek = sliceTime.getDay(); // 0 is Sunday, 6 is Saturday
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    const hour = sliceTime.getHours();
+        const sliceTime = new Date(start.getTime() + i * 15 * 60 * 1000);
+    const localParts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Europe/Bratislava",
+      weekday: "short",
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(sliceTime);
+    const weekday = localParts.find((part) => part.type === "weekday")?.value;
+    const isWeekend = weekday === "Sat" || weekday === "Sun";
+    const hour = Number(localParts.find((part) => part.type === "hour")?.value || 0);
 
     const hourlyRate = getNtcHourlyRate(normalizedSport, hour, isWeekend, hasCard);
     if (i === 0) {
@@ -87,14 +95,17 @@ export function calculateNtcBookingPrice(
 
     // 15-minute slice is 1/4 of the hourly rate
     totalPrice += hourlyRate / 4;
-  }
+    }
 
-  const roundedTotal = Math.round(totalPrice * 100) / 100;
+  const roleDiscountEur = Math.max(0, discountEurPerHour) * duration / 60;
+  const finalTotal = Math.max(0, totalPrice - roleDiscountEur);
+  const roundedTotal = Math.round(finalTotal * 100) / 100;
 
   return {
     totalPriceEur: roundedTotal,
     isMemberRate: hasCard,
     baseHourlyRate: firstHourlyRate,
+    roleDiscountEur,
     formattedPrice: `${roundedTotal.toFixed(2)} €`,
   };
 }
