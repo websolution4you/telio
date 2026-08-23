@@ -5,6 +5,7 @@ import { getSession, type BookingRole } from "@/lib/auth/bookingAuth";
 import { getCoreServiceDb } from "@/lib/server/supabase";
 
 const ALLOWED_ROLES: BookingRole[] = ["admin", "user", "trainer"];
+const USERS_PAGE_SIZE = 7;
 
 export type RoleBookingPolicyInput = {
   role: BookingRole;
@@ -30,15 +31,24 @@ async function requireCurrentAdmin() {
   return { session, db };
 }
 
-export async function fetchAdminUsersAction() {
+export async function fetchAdminUsersAction(page = 1, query = "") {
   const context = await requireCurrentAdmin();
   if (!context) return { success: false as const, error: "Nemáte oprávnenie spravovať používateľov." };
 
-  const [{ data, error }, { data: policies, error: policiesError }] = await Promise.all([
-    context.db
-      .from("booking_users")
-      .select("id, name, email, phone, card_number, role, created_at")
-      .order("name", { ascending: true }),
+  const safePage = Number.isInteger(page) && page > 0 ? page : 1;
+  const safeQuery = query.trim().slice(0, 100).replace(/[,%()]/g, " ");
+  const from = (safePage - 1) * USERS_PAGE_SIZE;
+  const to = from + USERS_PAGE_SIZE - 1;
+  let usersQuery = context.db
+    .from("booking_users")
+    .select("id, name, email, phone, card_number, role, created_at", { count: "exact" });
+  if (safeQuery) {
+    const term = `%${safeQuery}%`;
+    usersQuery = usersQuery.or(`name.ilike.${term},email.ilike.${term},phone.ilike.${term},card_number.ilike.${term},role.ilike.${term}`);
+  }
+
+  const [{ data, error, count }, { data: policies, error: policiesError }] = await Promise.all([
+    usersQuery.order("name", { ascending: true }).range(from, to),
     context.db
       .from("role_booking_policies")
       .select("role, max_booking_duration_minutes, booking_horizon_days, discount_percent, cancellation_deadline_hours, is_active")
@@ -53,6 +63,10 @@ export async function fetchAdminUsersAction() {
   return {
     success: true as const,
     currentUserId: context.session.userId,
+    page: safePage,
+    pageSize: USERS_PAGE_SIZE,
+    totalUsers: count || 0,
+    totalPages: Math.max(1, Math.ceil((count || 0) / USERS_PAGE_SIZE)),
     users: (data || []).map((user) => ({
       ...user,
       role: ALLOWED_ROLES.includes(user.role as BookingRole) ? user.role as BookingRole : "user" as const,
@@ -89,6 +103,7 @@ export async function updateBookingUserRoleAction(userId: string, role: BookingR
   }
 
   revalidatePath("/dashboard/newbookings");
+  revalidatePath("/dashboard/users-roles");
   return { success: true as const, userId: user.id, role: user.role as BookingRole };
 }
 
@@ -134,5 +149,6 @@ export async function updateRoleBookingPolicyAction(input: RoleBookingPolicyInpu
   }
 
   revalidatePath("/dashboard/newbookings");
+  revalidatePath("/dashboard/users-roles");
   return { success: true as const };
 }

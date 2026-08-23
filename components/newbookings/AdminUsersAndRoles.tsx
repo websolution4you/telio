@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { CreditCard, Loader2, Search, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, CreditCard, Loader2, Search, ShieldCheck } from "lucide-react";
 import {
   fetchAdminUsersAction,
   updateBookingUserRoleAction,
@@ -35,6 +35,9 @@ export default function AdminUsersAndRoles() {
   const [policies, setPolicies] = useState<RolePolicy[]>([]);
   const [currentUserId, setCurrentUserId] = useState("");
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [pendingRoles, setPendingRoles] = useState<Record<string, BookingRole>>({});
   const [savingUserId, setSavingUserId] = useState("");
@@ -44,25 +47,26 @@ export default function AdminUsersAndRoles() {
 
   useEffect(() => {
     let active = true;
-    fetchAdminUsersAction().then((result) => {
-      if (!active) return;
-      if (result.success) {
-        setUsers(result.users as AdminUser[]);
-        setPolicies(result.policies as RolePolicy[]);
-        setCurrentUserId(result.currentUserId);
-      } else setError(result.error);
-      setLoading(false);
-    });
-    return () => { active = false; };
-  }, []);
-
-  const filteredUsers = useMemo(() => {
-    const normalized = query.trim().toLocaleLowerCase("sk");
-    if (!normalized) return users;
-    return users.filter((user) => [user.name, user.email, user.phone, user.card_number, roleLabels[user.role]]
-      .filter(Boolean)
-      .some((value) => String(value).toLocaleLowerCase("sk").includes(normalized)));
-  }, [query, users]);
+    const timer = window.setTimeout(() => {
+      setLoading(true);
+      fetchAdminUsersAction(page, query).then((result) => {
+        if (!active) return;
+        if (result.success) {
+          setUsers(result.users as AdminUser[]);
+          setPolicies(result.policies as RolePolicy[]);
+          setCurrentUserId(result.currentUserId);
+          setTotalUsers(result.totalUsers);
+          setTotalPages(result.totalPages);
+          setPendingRoles({});
+        } else setError(result.error);
+        setLoading(false);
+      });
+    }, 300);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [page, query]);
 
   const selectRole = (userId: string, role: BookingRole) => {
     const currentRole = users.find((user) => user.id === userId)?.role;
@@ -125,19 +129,26 @@ export default function AdminUsersAndRoles() {
         <>
           <div className="relative mb-4 max-w-xl">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Hľadať podľa mena, loginu, telefónu alebo karty" className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-4 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
+            <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Hľadať podľa mena, loginu, telefónu alebo karty" className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-4 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
           </div>
           <div className="overflow-auto">
             <table className="w-full min-w-[850px] text-left text-sm">
               <thead><tr className="border-b text-xs uppercase tracking-wider text-slate-400"><th className="pb-3">Používateľ</th><th className="pb-3">Login</th><th className="pb-3">Číslo karty</th><th className="pb-3">Rola</th></tr></thead>
-              <tbody>{filteredUsers.map((user) => <tr key={user.id} className="border-b border-slate-100 last:border-0">
+              <tbody>{users.map((user) => <tr key={user.id} className="border-b border-slate-100 last:border-0">
                 <td className="py-4"><b className="block text-slate-900">{user.name}</b><small className="text-slate-400">{user.id === currentUserId ? "Tvoj účet" : `Registrovaný ${formatDate(user.created_at)}`}</small></td>
                 <td><span className="block text-slate-700">{user.email}</span><small className="text-slate-400">{user.phone || "Bez telefónu"}</small></td>
                 <td><span className="inline-flex items-center gap-2 text-slate-700"><CreditCard className="h-4 w-4 text-slate-400" />{user.card_number || "Bez karty"}</span></td>
                 <td><div className="flex items-center gap-2"><select value={pendingRoles[user.id] || user.role} disabled={user.id === currentUserId || savingUserId === user.id} onChange={(event) => selectRole(user.id, event.target.value as BookingRole)} className="min-w-40 rounded-xl border border-slate-200 bg-white px-3 py-2 font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100">{roles.map((role) => <option key={role} value={role}>{roleLabels[role]}</option>)}</select>{pendingRoles[user.id] && <button type="button" disabled={savingUserId === user.id} onClick={() => void saveUserRole(user)} className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-indigo-700 disabled:opacity-50">{savingUserId === user.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Uložiť zmenu</button>}</div></td>
               </tr>)}</tbody>
             </table>
-            {!filteredUsers.length && <p className="py-8 text-center text-sm text-slate-500">Nenašli sa žiadni používatelia.</p>}
+            {!users.length && <p className="py-8 text-center text-sm text-slate-500">Nenašli sa žiadni používatelia.</p>}
+          </div>
+          <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-semibold text-slate-500">Spolu {totalUsers} používateľov · Strana {page} z {totalPages} · 7 na stranu</p>
+            <div className="flex items-center gap-2">
+              <button type="button" disabled={page <= 1 || loading} onClick={() => setPage((current) => Math.max(1, current - 1))} className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"><ChevronLeft className="h-4 w-4" />Predchádzajúca</button>
+              <button type="button" disabled={page >= totalPages || loading} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Nasledujúca<ChevronRight className="h-4 w-4" /></button>
+            </div>
           </div>
 
           <div className="mt-8 border-t border-slate-200 pt-6">

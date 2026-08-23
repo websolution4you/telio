@@ -509,7 +509,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
                                         {currentUser.role === "admin" && (
                       <Link
-                        href="/dashboard/newbookings#users-roles"
+                        href="/dashboard/users-roles"
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 transition duration-150 hover:bg-violet-50 hover:text-violet-700 sm:text-sm"
                       >
