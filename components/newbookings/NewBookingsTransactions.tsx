@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Coins, LayoutDashboard, Loader2, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Coins, Filter, LayoutDashboard, Loader2, Sparkles } from "lucide-react";
 import { addTestWalletCreditAction, getWalletHistoryAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
 import type { SessionPayload } from "@/lib/auth/bookingAuth";
 
@@ -15,6 +15,16 @@ type WalletTransaction = {
   booking: { startAt: string; courtId: string | null } | null;
   reason: string | null;
 };
+
+type FilterType = "all" | "booking_charge" | "refund" | "payment" | "manual_adjustment";
+
+const filterButtons: { id: FilterType; label: string }[] = [
+  { id: "all", label: "Všetky" },
+  { id: "booking_charge", label: "Platba za rezerváciu" },
+  { id: "refund", label: "Vrátenie za rezerváciu" },
+  { id: "payment", label: "Dobitie kartou" },
+  { id: "manual_adjustment", label: "Testovacie dobitie" },
+];
 
 const formatDate = (value: string) => new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(new Date(value));
 const formatTime = (value: string) => new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
@@ -36,6 +46,7 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
   const [checkoutError, setCheckoutError] = useState("");
   const [walletNotice, setWalletNotice] = useState("");
   const [error, setError] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState<FilterType>("all");
 
   const loadData = useCallback(async () => {
     const walletResult = await getWalletHistoryAction();
@@ -49,7 +60,7 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
     setLoading(false);
   }, []);
 
-      useEffect(() => {
+  useEffect(() => {
     let active = true;
     const params = new URLSearchParams(window.location.search);
     const checkoutSessionId = params.get("session_id");
@@ -74,7 +85,7 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
     };
   }, [loadData]);
 
-    const addTestCredit = async (amountEur: number) => {
+  const addTestCredit = async (amountEur: number) => {
     setLoadingAmount(amountEur);
     setCheckoutError("");
     const result = await addTestWalletCreditAction(amountEur, crypto.randomUUID());
@@ -87,6 +98,23 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
     await loadData();
     setLoadingAmount(null);
   };
+
+  const counts = useMemo(() => {
+    const list = wallet?.transactions || [];
+    return {
+      all: list.length,
+      booking_charge: list.filter((t) => t.type === "booking_charge").length,
+      refund: list.filter((t) => t.type === "refund").length,
+      payment: list.filter((t) => t.type === "payment").length,
+      manual_adjustment: list.filter((t) => t.type === "manual_adjustment").length,
+    };
+  }, [wallet?.transactions]);
+
+  const filteredTransactions = useMemo(() => {
+    if (!wallet?.transactions) return [];
+    if (selectedFilter === "all") return wallet.transactions;
+    return wallet.transactions.filter((t) => t.type === selectedFilter);
+  }, [wallet?.transactions, selectedFilter]);
 
   return (
     <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
@@ -166,9 +194,10 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
                 </div>
               </div>
 
+              {/* Test Top-up section */}
               <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-4 sm:px-6">
                 <div className="mb-2 flex items-center justify-between gap-3">
-                                                                        <p className="text-sm font-bold text-slate-800">Testovacie dobitie</p>
+                  <p className="text-sm font-bold text-slate-800">Testovacie dobitie</p>
                   <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Bez platobnej karty</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -178,7 +207,7 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
                       type="button"
                       disabled={loadingAmount !== null}
                       onClick={() => addTestCredit(amount)}
-                      className="min-w-[76px] rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-50"
+                      className="min-w-[76px] rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-50 cursor-pointer"
                     >
                       {loadingAmount === amount ? "Pridávam..." : `+${amount} €`}
                     </button>
@@ -187,9 +216,41 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
                 {checkoutError && <p className="mt-2 text-xs font-semibold text-red-600">{checkoutError}</p>}
               </div>
 
-              {wallet?.transactions.length ? (
+              {/* Category Filter Bar */}
+              <div className="border-b border-slate-100 bg-slate-50/40 px-5 py-3.5 sm:px-6">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  {filterButtons.map((btn) => {
+                    const active = selectedFilter === btn.id;
+                    const count = counts[btn.id];
+                    return (
+                      <button
+                        key={btn.id}
+                        type="button"
+                        onClick={() => setSelectedFilter(btn.id)}
+                        className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition duration-150 cursor-pointer ${
+                          active
+                            ? "bg-slate-900 text-white shadow-xs"
+                            : "border border-slate-200/90 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
+                        }`}
+                      >
+                        <span>{btn.label}</span>
+                        <span
+                          className={`rounded-md px-1.5 py-0.5 text-[10px] font-black ${
+                            active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Transactions List */}
+              {filteredTransactions.length ? (
                 <div className="divide-y divide-slate-100">
-                  {wallet.transactions.map((transaction) => {
+                  {filteredTransactions.map((transaction) => {
                     const positive = transaction.amountEur > 0;
                     const detail = transaction.booking
                       ? `${transaction.booking.courtId ? courtName(transaction.booking.courtId) : "Rezervácia"} · ${formatDate(transaction.booking.startAt)} o ${formatTime(transaction.booking.startAt)}`
@@ -215,7 +276,22 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
                   })}
                 </div>
               ) : (
-                <div className="p-8 text-center text-sm text-slate-500">Zatiaľ nemáš žiadne pohyby kreditu.</div>
+                <div className="p-8 text-center">
+                  <p className="text-sm font-medium text-slate-500">
+                    {selectedFilter === "all"
+                      ? "Zatiaľ nemáš žiadne pohyby kreditu."
+                      : `V kategórii „${filterButtons.find((b) => b.id === selectedFilter)?.label}“ nemáš žiadne transakcie.`}
+                  </p>
+                  {selectedFilter !== "all" && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFilter("all")}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 cursor-pointer"
+                    >
+                      Zobraziť všetky transakcie
+                    </button>
+                  )}
+                </div>
               )}
             </section>
           </div>
