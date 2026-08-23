@@ -4,6 +4,8 @@ import { fetchBookingsAction } from "@/app/actions/bookings";
 import { getSession } from "@/lib/auth/bookingAuth";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 import type { Booking } from "@/lib/bookings/mockBookings";
+import type { RoleBookingPolicy } from "@/lib/bookings/rolePolicy";
+
 import { courts } from "@/lib/bookings/mockBookings";
 import { getCoreDb } from "@/lib/server/supabase";
 
@@ -15,6 +17,7 @@ export const metadata: Metadata = {
 export default async function NewBookingsPage() {
   const session = await getSession();
   let currentUser: BookingUser | null = null;
+    let rolePolicy: RoleBookingPolicy | null = null;
 
   if (session) {
     const db = getCoreDb();
@@ -35,8 +38,25 @@ export default async function NewBookingsPage() {
       id: session.userId,
       name: session.name,
       email: session.email,
-      role: session.role,
+            role: session.role,
     };
+
+    const role = currentUser.role || "user";
+    const { data: policy } = await db
+      .from("role_booking_policies")
+      .select("role, max_booking_duration_minutes, booking_horizon_days, discount_eur_per_hour, cancellation_deadline_hours, is_active")
+      .eq("role", role)
+      .maybeSingle();
+    if (policy) {
+      rolePolicy = {
+        role: policy.role,
+        maxBookingDurationMinutes: Number(policy.max_booking_duration_minutes),
+        bookingHorizonDays: Number(policy.booking_horizon_days),
+        discountEurPerHour: Number(policy.discount_eur_per_hour),
+        cancellationDeadlineHours: Number(policy.cancellation_deadline_hours),
+        isActive: Boolean(policy.is_active),
+      };
+    }
   }
 
   const start = new Date();
@@ -46,5 +66,5 @@ export default async function NewBookingsPage() {
   const result = await fetchBookingsAction(start.toISOString(), end.toISOString());
   const initialBookings = result.success && result.bookings ? result.bookings as Booking[] : [];
 
-  return <NewBookingsCalendar courts={courts} initialBookings={initialBookings} currentUser={currentUser} />;
+  return <NewBookingsCalendar courts={courts} initialBookings={initialBookings} currentUser={currentUser} rolePolicy={rolePolicy} />;
 }

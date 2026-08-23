@@ -13,11 +13,13 @@ import { supabase } from "@/lib/supabase";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 import type { Booking, Court, SportType } from "@/lib/bookings/mockBookings";
 import { openingHours } from "@/lib/bookings/mockBookings";
+import { getCourtOperatingLimitMinutes, getDurationOptions, type RoleBookingPolicy } from "@/lib/bookings/rolePolicy";
+
 import HolographicTennisCourt from "./HolographicTennisCourt";
 import NewBookingAuth from "./NewBookingAuth";
 import { BookingDetailDialog, CreateBookingDialog, DeleteDialog } from "./NewBookingDialogs";
 
-type Props = { courts: Court[]; initialBookings: Booking[]; currentUser: BookingUser | null };
+type Props = { courts: Court[]; initialBookings: Booking[]; currentUser: BookingUser | null; rolePolicy: RoleBookingPolicy | null };
 type Slot = { courtId: string; date: Date; hour: number };
 
 const sports: { id: SportType; label: string }[] = [
@@ -30,7 +32,7 @@ const sports: { id: SportType; label: string }[] = [
 const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 const formatTime = (value: string) => new Intl.DateTimeFormat("sk-SK", { timeZone: "Europe/Bratislava", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 
-function DatePicker({ value, min, max, onSelect, onClose }: { value: Date; min: Date; max: Date; onSelect: (date: Date) => void; onClose: () => void }) {
+function DatePicker({ value, min, max, horizonDays, onSelect, onClose }: { value: Date; min: Date; max: Date; horizonDays: number; onSelect: (date: Date) => void; onClose: () => void }) {
   const [month, setMonth] = useState(() => new Date(value.getFullYear(), value.getMonth(), 1));
   const firstGridDay = useMemo(() => {
     const first = new Date(month);
@@ -71,7 +73,7 @@ function DatePicker({ value, min, max, onSelect, onClose }: { value: Date; min: 
             return <button type="button" key={dateKey(day)} disabled={!allowed} onClick={() => onSelect(day)} className={`aspect-square rounded-xl text-sm font-semibold transition ${selected ? "bg-slate-950 text-white shadow-md" : allowed ? "cursor-pointer text-slate-800 hover:bg-emerald-50 hover:text-emerald-700" : "cursor-not-allowed bg-slate-50/70 text-slate-300 line-through decoration-slate-300"} ${outsideMonth && allowed ? "text-slate-400" : ""}`} aria-label={new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(day)}>{day.getDate()}</button>;
           })}
         </div>
-        <p className="mt-4 rounded-xl bg-slate-50 px-3 py-2 text-center text-xs font-medium text-slate-500">Rezerváciu je možné vytvoriť najviac 14 dní vopred.</p>
+        <p className="mt-4 rounded-xl bg-slate-50 px-3 py-2 text-center text-xs font-medium text-slate-500">Rezerváciu je možné vytvoriť najviac {horizonDays} dní vopred.</p>
       </div>
     </div>
   );
@@ -197,7 +199,7 @@ function playTennisHitSound() {
   }
 }
 
-export default function NewBookingsCalendar({ courts, initialBookings, currentUser }: Props) {
+export default function NewBookingsCalendar({ courts, initialBookings, currentUser, rolePolicy }: Props) {
   const router = useRouter();
   const voiceHighlightTimers = useRef(new Map<string, number>());
   const [sport, setSport] = useState<SportType>("badminton");
@@ -219,7 +221,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [now, setNow] = useState(() => new Date());
   const [highlightedVoiceBookings, setHighlightedVoiceBookings] = useState<string[]>([]);
   const today = useMemo(() => { const value = new Date(); value.setHours(0, 0, 0, 0); return value; }, []);
-  const maxDate = useMemo(() => { const value = new Date(today); value.setDate(value.getDate() + 14); value.setHours(23, 59, 59, 999); return value; }, [today]);
+  const bookingHorizonDays = rolePolicy?.bookingHorizonDays ?? 14;
+  const maxDate = useMemo(() => { const value = new Date(today); value.setDate(value.getDate() + bookingHorizonDays); value.setHours(23, 59, 59, 999); return value; }, [today, bookingHorizonDays]);
   const hours = useMemo(() => Array.from({ length: openingHours.endHour - openingHours.startHour }, (_, index) => openingHours.startHour + index), []);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -321,22 +324,44 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     const moveDate = (days: number) => {
     const next = new Date(date); next.setDate(next.getDate() + days); next.setHours(0, 0, 0, 0);
     if (next < today) return;
-    if (next > maxDate) return setNotice("Rezervácie sú možné maximálne 14 dní vopred.");
+    if (next > maxDate) return setNotice(`Rezervácie sú pre vašu rolu možné maximálne ${bookingHorizonDays} dní vopred.`);
     setDate(next);
   };
     const selectDate = (value: string) => {
     if (!value) return;
     const selected = new Date(`${value}T12:00:00`);
-    if (selected < today || selected > maxDate) return setNotice("Vyberte dátum od dnešného dňa, maximálne 14 dní vopred.");
+    if (selected < today || selected > maxDate) return setNotice(`Vyberte dátum od dnešného dňa, maximálne ${bookingHorizonDays} dní vopred.`);
         setDate(selected);
     setDatePickerOpen(false);
   };
   
+    const getAvailableDurationOptions = (courtId: string, start: Date) => {
+        if (!rolePolicy?.isActive) return [];
+    const courtBookings = bookings.filter((booking) => booking.courtId === courtId);
+    if (courtBookings.some((booking) => new Date(booking.start) <= start && new Date(booking.end) > start)) return [];
+    const nextBooking = courtBookings
+      .filter((booking) => new Date(booking.start) >= start)
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())[0];
+    const minutesUntilNextBooking = nextBooking
+      ? Math.floor((new Date(nextBooking.start).getTime() - start.getTime()) / 60000)
+      : Number.POSITIVE_INFINITY;
+    const availableMinutes = Math.min(
+      rolePolicy.maxBookingDurationMinutes,
+      getCourtOperatingLimitMinutes(courtId, start),
+      minutesUntilNextBooking
+    );
+    return getDurationOptions(availableMinutes);
+  };
+
   const openSlot = (courtId: string, hour: number) => {
     if (!currentUser) return setAuth("login");
+    if (!rolePolicy) return setNotice("Pravidlá vašej roly sa nepodarilo načítať. Obnovte stránku.");
+    if (!rolePolicy.isActive) return setNotice("Rezervácie sú pre vašu rolu momentálne deaktivované.");
     const start = new Date(date); start.setHours(hour, 0, 0, 0);
     if (start < now) return setNotice("Rezerváciu v minulosti nie je možné vytvoriť.");
-    setTitle(""); setPhone(currentUser.phone || ""); setDuration(60); setNotice(""); setSlot({ courtId, date: new Date(date), hour });
+    const options = getAvailableDurationOptions(courtId, start);
+    if (!options.length) return setNotice("Do najbližšej rezervácie alebo konca prevádzky nie je voľných aspoň 30 minút.");
+    setTitle(""); setPhone(currentUser.phone || ""); setDuration(options.includes(60) ? 60 : options[0]); setNotice(""); setSlot({ courtId, date: new Date(date), hour });
   };
   const hasConflict = (courtId: string, start: Date, end: Date) => bookings.some((booking) => booking.courtId === courtId && start < new Date(booking.end) && end > new Date(booking.start));
   const submit = async (event: React.FormEvent) => {
@@ -714,10 +739,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         </section>
         <div className="mt-5 flex flex-wrap items-center gap-6 text-sm font-semibold"><span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-md border border-emerald-400 bg-gradient-to-br from-[#15803D] to-[#14532D] shadow-xs" /> Obsadené</span><span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-md border border-orange-300 bg-gradient-to-br from-[#D95A3F] to-[#C44B31] shadow-xs" /> Vaša rezervácia</span>{loading && <span className="text-slate-500 font-normal">Aktualizujem...</span>}</div>
       </main>
-      {datePickerOpen && <DatePicker value={date} min={today} max={maxDate} onSelect={(selected) => selectDate(dateKey(selected))} onClose={() => setDatePickerOpen(false)} />}
+      {datePickerOpen && <DatePicker value={date} min={today} max={maxDate} horizonDays={bookingHorizonDays} onSelect={(selected) => selectDate(dateKey(selected))} onClose={() => setDatePickerOpen(false)} />}
       {auth && <NewBookingAuth mode={auth} onClose={() => setAuth(null)} onSuccess={() => window.location.reload()} />}
-      {slot && <CreateBookingDialog court={courts.find((court) => court.id === slot.courtId)} date={slot.date} hour={slot.hour} duration={duration} title={title} phone={phone} hasCard={Boolean(currentUser?.cardNumber && currentUser.cardNumber.trim().length > 0)} error={notice || undefined} loading={loading} onDuration={setDuration} onTitle={setTitle} onPhone={setPhone} onClose={() => setSlot(null)} onSubmit={submit} />}
-      {detail && <BookingDetailDialog booking={detail} court={courts.find((court) => court.id === detail.courtId)} canManage={!!currentUser && (currentUser.role === "admin" || currentUser.id === detail.user_id)} canCancel={currentUser?.role === "admin" || new Date(detail.start).getTime() - now.getTime() > 24 * 60 * 60 * 1000} error={notice || undefined} onClose={() => { setDetail(null); setNotice(""); }} onDelete={() => { setNotice(""); setDeleting(detail); }} />}
+      {slot && rolePolicy && <CreateBookingDialog court={courts.find((court) => court.id === slot.courtId)} date={slot.date} hour={slot.hour} duration={duration} durationOptions={getAvailableDurationOptions(slot.courtId, new Date(new Date(slot.date).setHours(slot.hour, 0, 0, 0)))} discountEurPerHour={rolePolicy.discountEurPerHour} title={title} phone={phone} hasCard={Boolean(currentUser?.cardNumber && currentUser.cardNumber.trim().length > 0)} error={notice || undefined} loading={loading} onDuration={setDuration} onTitle={setTitle} onPhone={setPhone} onClose={() => setSlot(null)} onSubmit={submit} />}
+      {detail && <BookingDetailDialog booking={detail} court={courts.find((court) => court.id === detail.courtId)} canManage={!!currentUser && (currentUser.role === "admin" || currentUser.id === detail.user_id)} canCancel={currentUser?.role === "admin" || new Date(detail.start).getTime() - now.getTime() > (rolePolicy?.cancellationDeadlineHours ?? 24) * 60 * 60 * 1000} cancellationDeadlineHours={rolePolicy?.cancellationDeadlineHours ?? 24} error={notice || undefined} onClose={() => { setDetail(null); setNotice(""); }} onDelete={() => { setNotice(""); setDeleting(detail); }} />}
       {deleting && <DeleteDialog loading={loading} error={notice || undefined} onCancel={() => { setDeleting(null); setNotice(""); }} onConfirm={remove} />}
       <style jsx global>{`
         @keyframes orange-laser-perimeter-trace {
