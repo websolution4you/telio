@@ -36,6 +36,7 @@ export default function AdminUsersAndRoles() {
   const [currentUserId, setCurrentUserId] = useState("");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [pendingRoles, setPendingRoles] = useState<Record<string, BookingRole>>({});
   const [savingUserId, setSavingUserId] = useState("");
   const [savingRole, setSavingRole] = useState<BookingRole | null>(null);
   const [message, setMessage] = useState("");
@@ -63,18 +64,36 @@ export default function AdminUsersAndRoles() {
       .some((value) => String(value).toLocaleLowerCase("sk").includes(normalized)));
   }, [query, users]);
 
-  const updateRole = async (userId: string, role: BookingRole) => {
-    const previousRole = users.find((user) => user.id === userId)?.role;
-    if (!previousRole || previousRole === role) return;
-    setSavingUserId(userId);
+  const selectRole = (userId: string, role: BookingRole) => {
+    const currentRole = users.find((user) => user.id === userId)?.role;
+    setPendingRoles((current) => {
+      const next = { ...current };
+      if (!currentRole || currentRole === role) delete next[userId];
+      else next[userId] = role;
+      return next;
+    });
+  };
+
+  const saveUserRole = async (user: AdminUser) => {
+    const newRole = pendingRoles[user.id];
+    if (!newRole || newRole === user.role) return;
+    const confirmed = window.confirm(`Naozaj chcete zmeniť rolu používateľa ${user.name} z „${roleLabels[user.role]}“ na „${roleLabels[newRole]}“?`);
+    if (!confirmed) return;
+
+    setSavingUserId(user.id);
     setError("");
     setMessage("");
-    setUsers((current) => current.map((user) => user.id === userId ? { ...user, role } : user));
-    const result = await updateBookingUserRoleAction(userId, role);
-    if (!result.success) {
-      setUsers((current) => current.map((user) => user.id === userId ? { ...user, role: previousRole } : user));
-      setError(result.error);
-    } else setMessage("Rola používateľa bola uložená.");
+    const result = await updateBookingUserRoleAction(user.id, newRole);
+    if (!result.success) setError(result.error);
+    else {
+      setUsers((current) => current.map((item) => item.id === user.id ? { ...item, role: newRole } : item));
+      setPendingRoles((current) => {
+        const next = { ...current };
+        delete next[user.id];
+        return next;
+      });
+      setMessage(`Rola používateľa ${user.name} bola zmenená na ${roleLabels[newRole]}.`);
+    }
     setSavingUserId("");
   };
 
@@ -115,7 +134,7 @@ export default function AdminUsersAndRoles() {
                 <td className="py-4"><b className="block text-slate-900">{user.name}</b><small className="text-slate-400">{user.id === currentUserId ? "Tvoj účet" : `Registrovaný ${formatDate(user.created_at)}`}</small></td>
                 <td><span className="block text-slate-700">{user.email}</span><small className="text-slate-400">{user.phone || "Bez telefónu"}</small></td>
                 <td><span className="inline-flex items-center gap-2 text-slate-700"><CreditCard className="h-4 w-4 text-slate-400" />{user.card_number || "Bez karty"}</span></td>
-                <td><div className="flex items-center gap-2"><select value={user.role} disabled={user.id === currentUserId || savingUserId === user.id} onChange={(event) => void updateRole(user.id, event.target.value as BookingRole)} className="min-w-40 rounded-xl border border-slate-200 bg-white px-3 py-2 font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100">{roles.map((role) => <option key={role} value={role}>{roleLabels[role]}</option>)}</select>{savingUserId === user.id && <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />}</div></td>
+                <td><div className="flex items-center gap-2"><select value={pendingRoles[user.id] || user.role} disabled={user.id === currentUserId || savingUserId === user.id} onChange={(event) => selectRole(user.id, event.target.value as BookingRole)} className="min-w-40 rounded-xl border border-slate-200 bg-white px-3 py-2 font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100">{roles.map((role) => <option key={role} value={role}>{roleLabels[role]}</option>)}</select>{pendingRoles[user.id] && <button type="button" disabled={savingUserId === user.id} onClick={() => void saveUserRole(user)} className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-indigo-700 disabled:opacity-50">{savingUserId === user.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Uložiť zmenu</button>}</div></td>
               </tr>)}</tbody>
             </table>
             {!filteredUsers.length && <p className="py-8 text-center text-sm text-slate-500">Nenašli sa žiadni používatelia.</p>}
@@ -129,11 +148,11 @@ export default function AdminUsersAndRoles() {
               if (!policy) return null;
               return <div key={role} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                 <div className="mb-4 flex items-center justify-between"><b>{roleLabels[role]}</b><label className="flex items-center gap-2 text-xs font-semibold text-slate-600"><input type="checkbox" checked={policy.isActive} onChange={(event) => changePolicy(role, "isActive", event.target.checked)} /> Aktívna</label></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="text-xs font-semibold text-slate-600">Max. rezervácia (min)<input type="number" min="15" max="1440" step="15" value={policy.maxBookingDurationMinutes} onChange={(event) => changePolicy(role, "maxBookingDurationMinutes", Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2.5 text-sm text-slate-900" /></label>
-                  <label className="text-xs font-semibold text-slate-600">Dní dopredu<input type="number" min="0" max="730" value={policy.bookingHorizonDays} onChange={(event) => changePolicy(role, "bookingHorizonDays", Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2.5 text-sm text-slate-900" /></label>
-                  <label className="text-xs font-semibold text-slate-600">Zľava (%)<input type="number" min="0" max="100" step="0.01" value={policy.discountPercent} onChange={(event) => changePolicy(role, "discountPercent", Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2.5 text-sm text-slate-900" /></label>
-                  <label className="text-xs font-semibold text-slate-600">Storno lehota (h)<input type="number" min="0" max="8760" value={policy.cancellationDeadlineHours} onChange={(event) => changePolicy(role, "cancellationDeadlineHours", Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2.5 text-sm text-slate-900" /></label>
+                <div className="space-y-3">
+                  <label className="block text-xs font-semibold text-slate-600">Ako ďaleko dopredu môže rezervovať (dni)<input type="number" min="0" max="730" value={policy.bookingHorizonDays} onChange={(event) => changePolicy(role, "bookingHorizonDays", Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2.5 text-sm text-slate-900" /></label>
+                  <label className="block text-xs font-semibold text-slate-600">Maximálne trvanie jednej rezervácie (minúty)<input type="number" min="15" max="1440" step="15" value={policy.maxBookingDurationMinutes} onChange={(event) => changePolicy(role, "maxBookingDurationMinutes", Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2.5 text-sm text-slate-900" /></label>
+                  <label className="block text-xs font-semibold text-slate-600">Zľava z ceny rezervácie (%)<input type="number" min="0" max="100" step="0.01" value={policy.discountPercent} onChange={(event) => changePolicy(role, "discountPercent", Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2.5 text-sm text-slate-900" /></label>
+                  <label className="block text-xs font-semibold text-slate-600">Minimálny čas na zrušenie (hodiny pred začiatkom)<input type="number" min="0" max="8760" value={policy.cancellationDeadlineHours} onChange={(event) => changePolicy(role, "cancellationDeadlineHours", Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2.5 text-sm text-slate-900" /></label>
                 </div>
                 <button type="button" disabled={savingRole === role} onClick={() => void savePolicy(policy)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">{savingRole === role && <Loader2 className="h-4 w-4 animate-spin" />}Uložiť privilégiá</button>
               </div>;
