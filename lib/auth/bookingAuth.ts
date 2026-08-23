@@ -7,13 +7,15 @@ const JWT_SECRET = new TextEncoder().encode(
 
 const SESSION_COOKIE_NAME = "booking_session";
 
+export type BookingRole = "admin" | "user" | "trainer";
+
 export interface BookingUser {
     id: string;
     name: string;
     email: string;
     cardNumber?: string;
     phone?: string;
-    role?: "admin" | "user";
+    role?: BookingRole;
 }
 
 export interface SessionPayload {
@@ -21,7 +23,7 @@ export interface SessionPayload {
     email: string;
     name: string;
     phone?: string;
-    role: "admin" | "user";
+    role: BookingRole;
     exp: number;
 }
 
@@ -58,7 +60,7 @@ export async function createSession(user: BookingUser): Promise<string> {
         exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 7 days
     };
 
-    const token = await new SignJWT(payload as any)
+    const token = await new SignJWT({ ...payload })
         .setProtectedHeader({ alg: "HS256" })
         .setExpirationTime("7d")
         .sign(JWT_SECRET);
@@ -72,8 +74,8 @@ export async function createSession(user: BookingUser): Promise<string> {
 export async function verifySession(token: string): Promise<SessionPayload | null> {
     try {
         const verified = await jwtVerify(token, JWT_SECRET);
-        return verified.payload as unknown as SessionPayload;
-    } catch (error) {
+                return verified.payload as unknown as SessionPayload;
+    } catch {
         return null;
     }
 }
