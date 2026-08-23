@@ -507,6 +507,19 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                       <span>Moje štatistiky</span>
                     </Link>
 
+                                        {currentUser.role === "admin" && (
+                      <Link
+                        href="/dashboard/newbookings#users-roles"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 transition duration-150 hover:bg-violet-50 hover:text-violet-700 sm:text-sm"
+                      >
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-violet-50 text-violet-600">
+                          <ShieldCheck className="h-4 w-4" />
+                        </span>
+                        <span>Používatelia a roly</span>
+                      </Link>
+                    )}
+
                     <button
                       onClick={async () => {
                         setUserMenuOpen(false);
