@@ -330,34 +330,26 @@ export async function deleteBookingAction(id: string) {
             }
         }
 
-        let wallet: { refundedEur: number; balanceEur: number; refunded: boolean } | undefined;
-                const walletDb = getCoreServiceDb();
-        const { data: charge, error: chargeError } = await walletDb
-            .from("wallet_transactions")
-            .select("id")
-            .eq("booking_id", booking.id)
-            .eq("type", "booking_charge")
-            .maybeSingle();
-        if (chargeError) throw new Error(`Wallet lookup error: ${chargeError.message}`);
+        let wallet: { refundedEur: number; balanceEur: number; refunded: boolean; refundedUserId?: string } | undefined;
+        const walletDb = getCoreServiceDb();
 
-        if (charge) {
-            const { data, error } = await walletDb.rpc("wallet_refund_ntc_booking", {
-                p_booking_id: booking.id,
-            });
-            if (error) throw new Error(`Wallet refund error: ${error.message}`);
-            const result = data?.[0];
-            if (!result) throw new Error("Wallet refund did not return a result");
+        const { data: refundData, error: refundError } = await walletDb.rpc("wallet_refund_ntc_booking", {
+            p_booking_id: booking.id,
+        });
+
+        if (!refundError && refundData?.[0] && refundData[0].refunded) {
             wallet = {
-                refundedEur: Number(result.refunded_eur),
-                balanceEur: Number(result.balance_eur),
-                refunded: Boolean(result.refunded),
+                refundedEur: Number(refundData[0].refunded_eur),
+                balanceEur: Number(refundData[0].balance_eur),
+                refunded: Boolean(refundData[0].refunded),
+                refundedUserId: booking.user_id,
             };
         } else {
-            const { error } = await db
+            const { error: cancelError } = await db
                 .from("bookings")
                 .update({ status: "cancelled" })
                 .eq("id", booking.id);
-            if (error) throw new Error(`Database update error: ${error.message}`);
+            if (cancelError) throw new Error(`Database update error: ${cancelError.message}`);
         }
 
         revalidatePath("/bookings");

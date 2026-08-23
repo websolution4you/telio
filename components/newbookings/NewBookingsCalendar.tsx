@@ -352,10 +352,30 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     setItems((current) => [...current, result.booking as Booking]); setSlot(null); setNotice(result.wallet ? `Rezervácia bola vytvorená. Odpočítané: ${result.wallet.chargedEur.toFixed(2)} €.` : "Rezervácia bola úspešne vytvorená.");
   };
   const remove = async () => {
-    if (!deleting) return; setLoading(true); const result = await deleteBookingAction(deleting.id); setLoading(false);
-        if (!result.success) { setDeleting(null); return setNotice(result.error || "Rezerváciu sa nepodarilo zrušiť."); }
-    if (result.wallet) setWalletBalance(result.wallet.balanceEur);
-    setItems((current) => current.filter((booking) => booking.id !== deleting.id)); setDeleting(null); setDetail(null); setNotice(result.wallet ? `Rezervácia bola zrušená. Vrátené: ${result.wallet.refundedEur.toFixed(2)} €.` : "Rezervácia bola zrušená.");
+    if (!deleting) return;
+    setLoading(true);
+    const result = await deleteBookingAction(deleting.id);
+    setLoading(false);
+    if (!result.success) {
+      setDeleting(null);
+      return setNotice(result.error || "Rezerváciu sa nepodarilo zrušiť.");
+    }
+    if (result.wallet && currentUser?.id === deleting.user_id) {
+      setWalletBalance(result.wallet.balanceEur);
+    }
+    setItems((current) => current.filter((booking) => booking.id !== deleting.id));
+    setDeleting(null);
+    setDetail(null);
+    if (result.wallet && result.wallet.refunded) {
+      const isSelf = currentUser?.id === deleting.user_id;
+      setNotice(
+        isSelf
+          ? `Rezervácia bola zrušená. Vrátené do peňaženky: ${result.wallet.refundedEur.toFixed(2)} €.`
+          : `Rezervácia bola zrušená. Zákazníkovi (${deleting.customerName || "používateľ"}) bol vrátený kredit: ${result.wallet.refundedEur.toFixed(2)} €.`
+      );
+    } else {
+      setNotice("Rezervácia bola zrušená.");
+    }
   };
       const startStripeTopUp = async (amountEur: number) => {
     setTopUpLoading(amountEur);
