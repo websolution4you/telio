@@ -108,12 +108,11 @@ type DetailProps = {
   canManage: boolean;
   canCancel: boolean;
   cancellationDeadlineHours: number;
-  error?: string;
   onClose: () => void;
   onDelete: () => void;
 };
 
-export function BookingDetailDialog({ booking, court, canManage, canCancel, cancellationDeadlineHours, error, onClose, onDelete }: DetailProps) {
+export function BookingDetailDialog({ booking, court, canManage, canCancel, cancellationDeadlineHours, onClose, onDelete }: DetailProps) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -129,12 +128,6 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, canc
       <button aria-label="Zavrieť" className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative max-h-[90vh] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-8">
         <DialogHeader title="Detail rezervácie" subtitle={court?.name || "Rezervované športovisko"} onClose={onClose} />
-        
-        {error && (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700 sm:text-sm">
-            {error}
-          </div>
-        )}
 
         <div className="space-y-2.5 sm:space-y-3">
           <Detail icon={Clock3} label="Termín" value={`${formatDate(booking.start)}, ${formatTime(booking.start)} – ${formatTime(booking.end)}`} />
