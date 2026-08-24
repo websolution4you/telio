@@ -14,6 +14,7 @@ type CreateDialogProps = {
   title: string;
   phone: string;
   hasCard?: boolean;
+  isAdmin?: boolean;
   durationOptions: number[];
   discountEurPerHour: number;
   error?: string;
@@ -38,7 +39,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
 
   const pricing = calculateNtcBookingPrice(
     props.court?.sport || "badminton",
-        bookingDate,
+    bookingDate,
     props.duration,
     Boolean(props.hasCard),
     props.discountEurPerHour
@@ -48,7 +49,11 @@ export function CreateBookingDialog(props: CreateDialogProps) {
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4">
       <button aria-label="Zavrieť" className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={props.onClose} />
       <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-8">
-        <DialogHeader title="Nová rezervácia" subtitle="Skontrolujte vybraný termín a potvrďte rezerváciu." onClose={props.onClose} />
+        <DialogHeader
+          title={props.isAdmin ? "Administrátorská rezervácia" : "Nová rezervácia"}
+          subtitle={props.isAdmin ? "Vytvorenie rezervácie alebo zablokovanie kurtu pre údržbu / klub." : "Skontrolujte vybraný termín a potvrďte rezerváciu."}
+          onClose={props.onClose}
+        />
         
         <div className="mb-4 grid grid-cols-2 gap-2.5 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs sm:mb-6 sm:gap-3 sm:p-4 sm:text-sm">
           <Info label="Športovisko" value={props.court?.name || "Kurt"} />
@@ -56,16 +61,24 @@ export function CreateBookingDialog(props: CreateDialogProps) {
           <Info label="Začiatok" value={`${String(props.hour).padStart(2, "0")}:00`} />
           <Info label="Trvanie" value={`${props.duration} min.`} />
           <div className="col-span-2 flex items-center justify-between border-t border-slate-200/80 pt-2.5 mt-0.5">
-            <span className="font-semibold text-slate-600">Cena rezervácie:</span>
+            <span className="font-semibold text-slate-600">{props.isAdmin ? "Platba / Kredit:" : "Cena rezervácie:"}</span>
             <div className="flex items-center gap-1.5">
-              <span className="text-base font-black text-slate-950 sm:text-lg">
-                {pricing.formattedPrice}
-                            </span>
-              {pricing.isMemberRate && (
-                <span className="rounded-md border border-emerald-300/60 bg-emerald-100/90 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Členská tarifa</span>
-              )}
-              {props.discountEurPerHour > 0 && (
-                <span className="rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">Zľava roly {props.discountEurPerHour.toFixed(2)} €/h</span>
+              {props.isAdmin ? (
+                <span className="rounded-md border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-bold text-violet-700">
+                  Admin blokovanie (bez kreditu)
+                </span>
+              ) : (
+                <>
+                  <span className="text-base font-black text-slate-950 sm:text-lg">
+                    {pricing.formattedPrice}
+                  </span>
+                  {pricing.isMemberRate && (
+                    <span className="rounded-md border border-emerald-300/60 bg-emerald-100/90 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Členská tarifa</span>
+                  )}
+                  {props.discountEurPerHour > 0 && (
+                    <span className="rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">Zľava roly {props.discountEurPerHour.toFixed(2)} €/h</span>
+                  )}
+                </>
               )}
             </div>
           </div>

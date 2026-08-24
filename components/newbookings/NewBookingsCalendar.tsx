@@ -344,8 +344,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     setDatePickerOpen(false);
   };
   
-    const getAvailableDurationOptions = (courtId: string, start: Date) => {
-        if (!rolePolicy?.isActive) return [];
+  const getAvailableDurationOptions = (courtId: string, start: Date) => {
+    if (currentUser?.role !== "admin" && !rolePolicy?.isActive) return [];
     const courtBookings = bookings.filter((booking) => booking.courtId === courtId);
     if (courtBookings.some((booking) => new Date(booking.start) <= start && new Date(booking.end) > start)) return [];
     const nextBooking = courtBookings
@@ -354,8 +354,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     const minutesUntilNextBooking = nextBooking
       ? Math.floor((new Date(nextBooking.start).getTime() - start.getTime()) / 60000)
       : Number.POSITIVE_INFINITY;
+    const maxAllowed = currentUser?.role === "admin" ? 120 : (rolePolicy?.maxBookingDurationMinutes ?? 120);
     const availableMinutes = Math.min(
-      rolePolicy.maxBookingDurationMinutes,
+      maxAllowed,
       getCourtOperatingLimitMinutes(courtId, start),
       minutesUntilNextBooking
     );
@@ -364,13 +365,23 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
   const openSlot = (courtId: string, hour: number) => {
     if (!currentUser) return setAuth("login");
-    if (!rolePolicy) return setNotice("Pravidlá vašej roly sa nepodarilo načítať. Obnovte stránku.");
-    if (!rolePolicy.isActive) return setNotice("Rezervácie sú pre vašu rolu momentálne deaktivované.");
     const start = new Date(date); start.setHours(hour, 0, 0, 0);
-    if (start < now) return setNotice("Rezerváciu v minulosti nie je možné vytvoriť.");
-    const options = getAvailableDurationOptions(courtId, start);
-    if (!options.length) return setNotice("Do najbližšej rezervácie alebo konca prevádzky nie je voľných aspoň 30 minút.");
-    setTitle(""); setPhone(currentUser.phone || ""); setDuration(options.includes(60) ? 60 : options[0]); setNotice(""); setSlot({ courtId, date: new Date(date), hour });
+    if (currentUser.role !== "admin") {
+      if (!rolePolicy) return setNotice("Pravidlá vašej roly sa nepodarilo načítať. Obnovte stránku.");
+      if (!rolePolicy.isActive) return setNotice("Rezervácie sú pre vašu rolu momentálne deaktivované.");
+      if (start < now) return setNotice("Rezerváciu v minulosti nie je možné vytvoriť.");
+      const options = getAvailableDurationOptions(courtId, start);
+      if (!options.length) return setNotice("Do najbližšej rezervácie alebo konca prevádzky nie je voľných aspoň 30 minút.");
+      setTitle(""); setPhone(currentUser.phone || ""); setDuration(options.includes(60) ? 60 : options[0]); setNotice(""); setSlot({ courtId, date: new Date(date), hour });
+    } else {
+      const options = getAvailableDurationOptions(courtId, start);
+      const defaultDuration = options.length > 0 ? (options.includes(60) ? 60 : options[0]) : 60;
+      setTitle("Údržba");
+      setPhone(currentUser.phone || "");
+      setDuration(defaultDuration);
+      setNotice("");
+      setSlot({ courtId, date: new Date(date), hour });
+    }
   };
   const hasConflict = (courtId: string, start: Date, end: Date) => bookings.some((booking) => booking.courtId === courtId && start < new Date(booking.end) && end > new Date(booking.start));
   const submit = async (event: React.FormEvent) => {
@@ -379,11 +390,27 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     const start = new Date(slot.date); start.setHours(slot.hour, 0, 0, 0); const end = new Date(start.getTime() + duration * 60000);
     if (hasConflict(slot.courtId, start, end)) return setNotice("Vybraný kurt je v tomto čase obsadený.");
     setLoading(true);
-        const result = await createBookingAction({ courtId: slot.courtId, title: title.trim() || sports.find((item) => item.id === sport)?.label || "Rezervácia", customerName: currentUser.name, phone: phone || undefined, start: start.toISOString(), end: end.toISOString(), status: "confirmed", source: "web", operationId: crypto.randomUUID() });
+    const result = await createBookingAction({
+      courtId: slot.courtId,
+      title: title.trim() || (currentUser.role === "admin" ? "Údržba / Blokovanie" : (sports.find((item) => item.id === sport)?.label || "Rezervácia")),
+      customerName: currentUser.name,
+      phone: phone || undefined,
+      start: start.toISOString(),
+      end: end.toISOString(),
+      status: "confirmed",
+      source: currentUser.role === "admin" ? "admin" : "web",
+      operationId: crypto.randomUUID()
+    });
     setLoading(false);
     if (!result.success || !result.booking) return setNotice(result.error || "Rezerváciu sa nepodarilo vytvoriť.");
-    if (result.wallet) setWalletBalance(result.wallet.balanceEur);
-    setItems((current) => [...current, result.booking as Booking]); setSlot(null); setNotice(result.wallet ? `Rezervácia bola vytvorená. Odpočítané: ${result.wallet.chargedEur.toFixed(2)} €.` : "Rezervácia bola úspešne vytvorená.");
+    if (result.wallet && currentUser.role !== "admin") setWalletBalance(result.wallet.balanceEur);
+    setItems((current) => [...current, result.booking as Booking]);
+    setSlot(null);
+    setNotice(
+      result.wallet && result.wallet.chargedEur > 0
+        ? `Rezervácia bola vytvorená. Odpočítané: ${result.wallet.chargedEur.toFixed(2)} €.`
+        : (currentUser.role === "admin" ? "Kurt bol úspešne zablokovaný / rezervovaný." : "Rezervácia bola úspešne vytvorená.")
+    );
   };
   const remove = async () => {
     if (!deleting) return;
@@ -485,7 +512,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           <HolographicTennisCourt />
                     {currentUser ? (
             <div className="relative z-50 flex items-center gap-2" ref={userMenuRef}>
-              {walletBalance !== null && (
+              {currentUser.role !== "admin" && walletBalance !== null && (
                 <div className="hidden md:flex h-11 items-center gap-2 rounded-2xl border border-[#d2f500] bg-white/95 px-3 text-slate-900 shadow-[0_4px_16px_rgba(210,245,0,0.25)] backdrop-blur-xl" title="Aktuálny kredit">
                   <Coins className="h-4 w-4 shrink-0 text-slate-700" />
                   <span className="hidden text-xs font-semibold text-slate-900 sm:inline">Kredit</span>
@@ -517,7 +544,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     </div>
                   </div>
 
-                  {walletBalance !== null && (
+                  {currentUser.role !== "admin" && walletBalance !== null && (
                     <div className="mb-1 rounded-xl bg-gradient-to-br from-yellow-50/90 via-amber-50/80 to-orange-50/60 p-3 text-slate-900 border border-amber-200/70 shadow-xs">
                       <div className="flex items-center justify-between text-sm font-bold text-slate-900">
                         <span className="flex items-center gap-2"><Coins className="h-4 w-4 text-slate-700" /> Peňaženka</span>
@@ -556,16 +583,18 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
 
                   <div className="space-y-1">
-                    <Link
-                      href="/dashboard/transactions"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition duration-150 group"
-                    >
-                      <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition duration-150">
-                        <Coins className="h-4 w-4" />
-                      </span>
-                      <span>Moje transakcie</span>
-                    </Link>
+                    {currentUser.role !== "admin" && (
+                      <Link
+                        href="/dashboard/transactions"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition duration-150 group"
+                      >
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition duration-150">
+                          <Coins className="h-4 w-4" />
+                        </span>
+                        <span>Moje transakcie</span>
+                      </Link>
+                    )}
 
                     <Link
                       href="/dashboard/newbookings"
@@ -821,7 +850,27 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       </main>
       {datePickerOpen && <DatePicker value={date} min={today} max={maxDate} horizonDays={bookingHorizonDays} onSelect={(selected) => selectDate(dateKey(selected))} onClose={() => setDatePickerOpen(false)} />}
       {auth && <NewBookingAuth mode={auth} onClose={() => setAuth(null)} onSuccess={() => window.location.reload()} />}
-      {slot && rolePolicy && <CreateBookingDialog court={courts.find((court) => court.id === slot.courtId)} date={slot.date} hour={slot.hour} duration={duration} durationOptions={getAvailableDurationOptions(slot.courtId, new Date(new Date(slot.date).setHours(slot.hour, 0, 0, 0)))} discountEurPerHour={rolePolicy.discountEurPerHour} title={title} phone={phone} hasCard={Boolean(currentUser?.cardNumber && currentUser.cardNumber.trim().length > 0)} error={notice || undefined} loading={loading} onDuration={setDuration} onTitle={setTitle} onPhone={setPhone} onClose={() => setSlot(null)} onSubmit={submit} />}
+      {slot && (rolePolicy || currentUser?.role === "admin") && (
+        <CreateBookingDialog
+          court={courts.find((court) => court.id === slot.courtId)}
+          date={slot.date}
+          hour={slot.hour}
+          duration={duration}
+          durationOptions={getAvailableDurationOptions(slot.courtId, new Date(new Date(slot.date).setHours(slot.hour, 0, 0, 0)))}
+          discountEurPerHour={rolePolicy?.discountEurPerHour ?? 0}
+          title={title}
+          phone={phone}
+          isAdmin={currentUser?.role === "admin"}
+          hasCard={Boolean(currentUser?.cardNumber && currentUser.cardNumber.trim().length > 0)}
+          error={notice || undefined}
+          loading={loading}
+          onDuration={setDuration}
+          onTitle={setTitle}
+          onPhone={setPhone}
+          onClose={() => setSlot(null)}
+          onSubmit={submit}
+        />
+      )}
       {detail && <BookingDetailDialog booking={detail} court={courts.find((court) => court.id === detail.courtId)} canManage={!!currentUser && (currentUser.role === "admin" || currentUser.id === detail.user_id)} canCancel={currentUser?.role === "admin" || new Date(detail.start).getTime() - now.getTime() > (rolePolicy?.cancellationDeadlineHours ?? 24) * 60 * 60 * 1000} cancellationDeadlineHours={rolePolicy?.cancellationDeadlineHours ?? 24} onClose={() => setDetail(null)} onDelete={() => setDeleting(detail)} />}
       {deleting && <DeleteDialog loading={loading} error={notice || undefined} onCancel={() => { setDeleting(null); setNotice(""); }} onConfirm={remove} />}
       <style jsx global>{`

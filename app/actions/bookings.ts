@@ -261,7 +261,7 @@ export async function createBookingAction(payload: {
             source: payload.source,
             notes: payload.title
         };
-        const useWallet = payload.source !== "admin" && walletEnabledForUser(session.userId);
+        const useWallet = session.role !== "admin" && payload.source !== "admin" && walletEnabledForUser(session.userId);
 
         let bookingId: string;
         let wallet: { chargedEur: number; balanceEur: number; created: boolean } | undefined;
@@ -276,7 +276,7 @@ export async function createBookingAction(payload: {
                 p_court_id: payload.courtId,
                 p_sport: sport,
                 p_customer_name: payload.customerName,
-                                p_customer_phone: payload.phone || "",
+                p_customer_phone: payload.phone || "",
                 p_start_at: payload.start,
                 p_end_at: payload.end,
                 p_notes: JSON.stringify(notesObj),
@@ -303,7 +303,9 @@ export async function createBookingAction(payload: {
         } else {
             const durationMin = Math.round((bookingEndMs - bookingStartMs) / 60000);
             const hasCard = Boolean(bookingUser.card_number && String(bookingUser.card_number).trim());
-            const calculatedPrice = calculateNtcBookingPrice(payload.courtId, payload.start, durationMin, hasCard, roleDiscountEurPerHour).totalPriceEur;
+            const calculatedPrice = session.role === "admin"
+                ? 0.00
+                : calculateNtcBookingPrice(payload.courtId, payload.start, durationMin, hasCard, roleDiscountEurPerHour).totalPriceEur;
 
             const { data: dbBooking, error: dbError } = await db
                 .from("bookings")
