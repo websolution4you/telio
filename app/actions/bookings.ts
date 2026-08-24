@@ -1,4 +1,4 @@
- "use server";
+"use server";
 
 import { getCoreDb, getCoreServiceDb } from "@/lib/server/supabase";
 import { 

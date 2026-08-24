@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/bookingAuth";
+
 import { getCoreServiceDb } from "@/lib/server/supabase";
 import { getTatraPaymentStatus } from "@/lib/server/tatrabanka";
 
@@ -21,19 +21,16 @@ export async function GET(request: Request) {
 
   if (!paymentId || !PAYMENT_ID_PATTERN.test(paymentId)) return dashboardRedirect(request, "error");
 
-  const session = await getSession();
-  if (!session) return dashboardRedirect(request, "login-required");
-
   const db = getCoreServiceDb();
   const { data: payment, error: paymentError } = await db
     .from("payments")
-    .select("id, user_id, provider, status")
+    .select("id, amount_eur, provider, status")
     .eq("tenant_id", TENANT_ID)
     .eq("provider", "tatrabanka")
     .eq("provider_payment_id", paymentId)
     .maybeSingle();
 
-  if (paymentError || !payment || payment.user_id !== session.userId) {
+  if (paymentError || !payment) {
     console.error("TatraPayPlus callback payment lookup failed:", paymentError);
     return dashboardRedirect(request, "error");
   }
@@ -49,6 +46,18 @@ export async function GET(request: Request) {
   try {
     const status = await getTatraPaymentStatus(paymentId);
     if (status.state === "successful") {
+      const providerStatus = status.data.status;
+      const paidAmount = providerStatus && typeof providerStatus === "object" && "amount" in providerStatus
+        ? Number(providerStatus.amount)
+        : NaN;
+      const currency = providerStatus && typeof providerStatus === "object" && "currency" in providerStatus
+        ? providerStatus.currency
+        : null;
+      if (paidAmount !== Number(payment.amount_eur) || currency !== "EUR") {
+        console.error("TatraPayPlus callback amount mismatch:", { paymentId, paidAmount, currency });
+        return dashboardRedirect(request, "error");
+      }
+
       const { error } = await db.rpc("wallet_process_successful_payment", {
         p_payment_id: payment.id,
         p_provider_payment_id: paymentId,

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Coins, CreditCard, LayoutDashboard, Loader2, Sparkles } from "lucide-react";
-import { addTestWalletCreditAction, createWalletCardPayAction, getWalletHistoryAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
+import { addTestWalletCreditAction, createWalletCardPayAction, getWalletHistoryAction, reconcileWalletCardPayAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
 import type { SessionPayload } from "@/lib/auth/bookingAuth";
 
 type WalletTransaction = {
@@ -69,12 +69,19 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
 
     if (walletStatus || checkoutSessionId) window.history.replaceState({}, "", window.location.pathname);
     const initialize = async () => {
+      const cardPayResult = await reconcileWalletCardPayAction();
+      if (!active) return;
+      if (cardPayResult.success && cardPayResult.successful > 0) {
+        setWalletNotice(cardPayResult.successful === 1
+          ? "CardPay platba bola potvrdená a kredit bol pripísaný."
+          : `${cardPayResult.successful} CardPay platby boli potvrdené a kredit bol pripísaný.`);
+      }
       if (walletStatus === "cancelled") setWalletNotice("Dobíjanie kreditu bolo zrušené.");
       if (walletStatus === "failed") setWalletNotice("CardPay platba nebola úspešná.");
-      if (walletStatus === "pending") setWalletNotice("CardPay platba čaká na potvrdenie. Stav skontrolujeme automaticky.");
+      if (walletStatus === "pending" && (!cardPayResult.success || cardPayResult.successful === 0)) setWalletNotice("CardPay platba čaká na potvrdenie. Stav skontrolujeme automaticky.");
       if (walletStatus === "error") setWalletNotice("CardPay platbu sa nepodarilo overiť.");
       if (walletStatus === "login-required") setWalletNotice("Pre dokončenie CardPay platby sa prihláste.");
-      if (walletStatus === "success" && !checkoutSessionId) setWalletNotice("CardPay platba bola úspešná a kredit bol pripísaný.");
+      if (walletStatus === "success" && !checkoutSessionId && (!cardPayResult.success || cardPayResult.successful === 0)) setWalletNotice("CardPay platba bola úspešná a kredit bol pripísaný.");
       if (walletStatus === "success" && checkoutSessionId) {
         setWalletNotice("Overujem platbu a pripisujem kredit...");
         const result = await reconcileWalletCheckoutAction(checkoutSessionId);

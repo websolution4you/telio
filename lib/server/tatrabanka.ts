@@ -57,7 +57,7 @@ async function getAccessToken() {
 }
 
 export async function createTatraPayment(input: {
-    amountEur: number;
+  amountEur: number;
   redirectUri: string;
   ipAddress: string;
   requestId: string;
@@ -80,6 +80,7 @@ export async function createTatraPayment(input: {
       "X-Request-ID": input.requestId,
       "IP-Address": input.ipAddress,
       "Redirect-URI": input.redirectUri,
+      "Automatic-Redirect": "true",
       "Preferred-Method": method,
       "Accept-Language": "sk",
       "Content-Type": "application/json",
@@ -88,14 +89,14 @@ export async function createTatraPayment(input: {
     },
     body: JSON.stringify({
       basePayment: {
-        instructedAmount: { amountValue: input.amountEur, currency: "EUR" },
-                endToEnd: { variableSymbol: input.requestId.replace(/\D/g, "").slice(0, 10) || "1" },
+                instructedAmount: { amountValue: input.amountEur, currency: "EUR" },
+        endToEnd: { variableSymbol: input.requestId.replace(/\D/g, "").slice(0, 10) || "1" },
       },
       ...(method === "BANK_TRANSFER" && {
         bankTransfer: { remittanceInformationUnstructured: `Dobitie Telio kreditu ${input.amountEur} EUR` },
       }),
-      ...(method === "CARD_PAY" && input.user && {
-                userData: {
+            ...(method === "CARD_PAY" && input.user && {
+        userData: {
           firstName: sanitizeName(input.user.firstName, "Zakaznik"),
           lastName: sanitizeName(input.user.lastName, "Telio"),
           email: input.user.email.slice(0, 50),
