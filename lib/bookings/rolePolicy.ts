@@ -11,8 +11,10 @@ export type RoleBookingPolicy = {
 
 export function getDurationOptions(maxMinutes: number): number[] {
   const normalizedMax = Math.max(0, Math.floor(maxMinutes));
-  const options = [30, 60, 90, 120].filter((minutes) => minutes <= normalizedMax);
-  for (let minutes = 180; minutes <= normalizedMax; minutes += 60) options.push(minutes);
+  const options: number[] = [];
+  for (let minutes = 30; minutes <= normalizedMax; minutes += 30) {
+    options.push(minutes);
+  }
   return options;
 }
 
@@ -60,6 +62,11 @@ export function formatDuration(minutes: number): string {
   if (minutes < 60) return `${minutes} minút`;
   const hours = Math.floor(minutes / 60);
   const remainder = minutes % 60;
-  if (!remainder) return hours === 1 ? "1 hodina" : `${hours} hodiny`;
+  const hourWord = (h: number) => {
+    if (h === 1) return "hodina";
+    if (h >= 2 && h <= 4) return "hodiny";
+    return "hodín";
+  };
+  if (!remainder) return `${hours} ${hourWord(hours)}`;
   return `${hours}:${String(remainder).padStart(2, "0")} hod.`;
 }
