@@ -8,7 +8,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard,
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { createBookingAction, deleteBookingAction, fetchBookingsAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
-import { createWalletCardPayAction, createWalletCheckoutAction, getWalletAction } from "@/app/actions/wallet";
+import { createWalletCardPayAction, createWalletCheckoutAction, getWalletAction, reconcileWalletCardPayAction } from "@/app/actions/wallet";
 
 import { supabase } from "@/lib/supabase";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
@@ -438,20 +438,61 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       setNotice("Rezervácia bola zrušená.");
     }
   };
-      const startTopUp = async (amountEur: number, provider: "stripe" | "cardpay") => {
-        setTopUpLoading(amountEur);
-        setNotice("");
-        const operationId = crypto.randomUUID();
-        const result = provider === "cardpay"
-          ? await createWalletCardPayAction(amountEur, operationId)
-          : await createWalletCheckoutAction(amountEur, operationId);
-        if (!result.success || !result.url) {
-          setTopUpLoading(null);
-          setNotice(result.error || "Platobnú stránku sa nepodarilo otvoriť.");
-          return;
-        }
-        window.location.assign(result.url);
-      };
+        const startTopUp = async (amountEur: number, provider: "stripe" | "cardpay") => {
+    const paymentWindow = provider === "cardpay"
+      ? window.open("about:blank", "telio-cardpay", "popup,width=520,height=760")
+      : null;
+    if (provider === "cardpay" && !paymentWindow) {
+      setNotice("Pre CardPay povoľte v prehliadači vyskakovacie okná.");
+      return;
+    }
+
+    setTopUpLoading(amountEur);
+    setNotice(provider === "cardpay" ? "Po potvrdení platby pripíšeme kredit automaticky." : "");
+    const operationId = crypto.randomUUID();
+    const result = provider === "cardpay"
+      ? await createWalletCardPayAction(amountEur, operationId)
+      : await createWalletCheckoutAction(amountEur, operationId);
+    if (!result.success || !result.url) {
+      paymentWindow?.close();
+      setTopUpLoading(null);
+      setNotice(result.error || "Platobnú stránku sa nepodarilo otvoriť.");
+      return;
+    }
+    if (provider === "stripe") {
+      window.location.assign(result.url);
+      return;
+    }
+
+    const internalPaymentId = "paymentId" in result && typeof result.paymentId === "string" ? result.paymentId : null;
+    if (!internalPaymentId) {
+      paymentWindow?.close();
+      setTopUpLoading(null);
+      setNotice("CardPay platba nemá interný identifikátor.");
+      return;
+    }
+        paymentWindow?.location.assign(result.url);
+    for (let attempt = 0; attempt < 180 && paymentWindow && !paymentWindow.closed; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 1_000));
+      const reconciliation = await reconcileWalletCardPayAction(internalPaymentId);
+      if (reconciliation.success && reconciliation.successful > 0) {
+        paymentWindow.close();
+        const walletResult = await getWalletAction();
+        if (walletResult.success && walletResult.enabled) setWalletBalance(walletResult.balanceEur);
+        setNotice("CardPay platba bola potvrdená a kredit bol pripísaný.");
+        setTopUpLoading(null);
+        return;
+      }
+      if (reconciliation.success && reconciliation.failed > 0) {
+        paymentWindow.close();
+        setNotice("CardPay platba nebola úspešná.");
+        setTopUpLoading(null);
+        return;
+      }
+    }
+    setTopUpLoading(null);
+    if (paymentWindow && !paymentWindow.closed) setNotice("Platba stále čaká na potvrdenie banky.");
+  };
   const position = (booking: Booking) => {
 
     const start = new Date(booking.start); const end = new Date(booking.end); const total = (openingHours.endHour - openingHours.startHour) * 60; const offset = (start.getHours() - openingHours.startHour) * 60 + start.getMinutes();

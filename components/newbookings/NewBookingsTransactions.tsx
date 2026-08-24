@@ -112,16 +112,46 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
     setLoadingAmount(null);
   };
 
-  const startCardPay = async (amountEur: number) => {
+    const startCardPay = async (amountEur: number) => {
+    const paymentWindow = window.open("about:blank", "telio-cardpay", "popup,width=520,height=760");
+    if (!paymentWindow) {
+      setCheckoutError("Pre CardPay povoľte v prehliadači vyskakovacie okná.");
+      return;
+    }
+
+    paymentWindow.document.title = "Otváram CardPay...";
     setCardPayLoadingAmount(amountEur);
     setCheckoutError("");
-    const result = await createWalletCardPayAction(amountEur, crypto.randomUUID());
-    if (!result.success || !result.url) {
+    setWalletNotice("Po potvrdení platby pripíšeme kredit automaticky.");
+        const result = await createWalletCardPayAction(amountEur, crypto.randomUUID());
+    if (!result.success || !result.url || !result.paymentId) {
+      paymentWindow.close();
       setCheckoutError(result.error || "CardPay platbu sa nepodarilo pripraviť.");
       setCardPayLoadingAmount(null);
       return;
     }
-    window.location.assign(result.url);
+
+        paymentWindow.location.assign(result.url);
+    for (let attempt = 0; attempt < 180 && !paymentWindow.closed; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 1_000));
+      const reconciliation = await reconcileWalletCardPayAction(result.paymentId);
+      if (reconciliation.success && reconciliation.successful > 0) {
+        paymentWindow.close();
+        setWalletNotice("CardPay platba bola potvrdená a kredit bol pripísaný.");
+        await loadData();
+        setCardPayLoadingAmount(null);
+        return;
+      }
+      if (reconciliation.success && reconciliation.failed > 0) {
+        paymentWindow.close();
+        setCheckoutError("CardPay platba nebola úspešná.");
+        setCardPayLoadingAmount(null);
+        return;
+      }
+    }
+
+    setCardPayLoadingAmount(null);
+    if (!paymentWindow.closed) setWalletNotice("Platba stále čaká na potvrdenie banky.");
   };
 
   const counts = useMemo(() => {
