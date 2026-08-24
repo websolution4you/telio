@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { getSession } from "@/lib/auth/bookingAuth";
 import { getCoreServiceDb } from "@/lib/server/supabase";
 import { getAppUrl, getStripe } from "@/lib/server/stripe";
-import { createTatraPayment } from "@/lib/server/tatrabanka";
+import { createTatraPayment, getTatraPaymentStatus } from "@/lib/server/tatrabanka";
 import { walletEnabledForUser } from "@/lib/server/wallet";
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
@@ -104,6 +104,80 @@ export async function getWalletHistoryAction() {
   });
 
       return { success: true as const, enabled: true, balanceEur, transactions };
+}
+
+export async function reconcileWalletCardPayAction() {
+  const session = await getSession();
+  if (!session) return { success: false as const, error: "Pre overenie platby sa musíte prihlásiť." };
+  if (!walletEnabledForUser(session.userId)) {
+    return { success: false as const, error: "Dobíjanie kreditu nie je pre tento účet povolené." };
+  }
+
+  const db = getCoreServiceDb();
+  const { data: payments, error } = await db
+    .from("payments")
+    .select("id, provider_payment_id, amount_eur")
+    .eq("tenant_id", TENANT_ID)
+    .eq("user_id", session.userId)
+    .eq("provider", "tatrabanka")
+    .eq("status", "processing")
+    .not("provider_payment_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (error) {
+    console.error("reconcileWalletCardPayAction lookup failed:", error);
+    return { success: false as const, error: "CardPay platby sa nepodarilo overiť." };
+  }
+
+  let successful = 0;
+  let failed = 0;
+  let pending = 0;
+  for (const payment of payments || []) {
+    try {
+      const result = await getTatraPaymentStatus(payment.provider_payment_id);
+      if (result.state === "successful") {
+        const providerStatus = result.data.status;
+        const paidAmount = providerStatus && typeof providerStatus === "object" && "amount" in providerStatus
+          ? Number(providerStatus.amount)
+          : NaN;
+        const currency = providerStatus && typeof providerStatus === "object" && "currency" in providerStatus
+          ? providerStatus.currency
+          : null;
+        if (paidAmount !== Number(payment.amount_eur) || currency !== "EUR") {
+          console.error("CardPay reconciliation amount mismatch:", { paymentId: payment.id, paidAmount, currency });
+          pending += 1;
+          continue;
+        }
+        const { error: processError } = await db.rpc("wallet_process_successful_payment", {
+          p_payment_id: payment.id,
+          p_provider_payment_id: payment.provider_payment_id,
+          p_provider_metadata: {
+            provider: "tatrabanka",
+            payment_method: "CARD_PAY",
+            verified_status: result.data,
+            source: "user_return_reconciliation",
+          },
+        });
+        if (processError) throw processError;
+        successful += 1;
+      } else if (result.state === "failed") {
+        const { error: updateError } = await db
+          .from("payments")
+          .update({ status: "failed", error_message: "TatraPayPlus CardPay payment failed" })
+          .eq("id", payment.id);
+        if (updateError) throw updateError;
+        failed += 1;
+      } else {
+        pending += 1;
+      }
+    } catch (paymentError) {
+      console.error(`CardPay reconciliation failed for ${payment.id}:`, paymentError);
+      pending += 1;
+    }
+  }
+
+  return { success: true as const, successful, failed, pending };
 }
 
 export async function reconcileWalletCheckoutAction(checkoutSessionId: string) {
@@ -268,8 +342,8 @@ export async function createWalletCardPayAction(amountEur: number, operationId: 
   try {
     const requestHeaders = await headers();
     const forwardedIp = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim();
-    const ipAddress = forwardedIp || requestHeaders.get("x-real-ip") || "127.0.0.1";
-        const nameParts = session.name.trim().split(/\s+/).filter(Boolean);
+        const ipAddress = forwardedIp || requestHeaders.get("x-real-ip") || "127.0.0.1";
+    const nameParts = session.name.trim().split(/\s+/).filter(Boolean);
     const firstName = nameParts.shift() || "Zakaznik";
     const lastName = nameParts.join(" ") || "Telio";
     const tatraPayment = await createTatraPayment({
