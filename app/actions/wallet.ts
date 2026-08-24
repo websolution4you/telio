@@ -1,8 +1,10 @@
 "use server";
 
+import { headers } from "next/headers";
 import { getSession } from "@/lib/auth/bookingAuth";
 import { getCoreServiceDb } from "@/lib/server/supabase";
 import { getAppUrl, getStripe } from "@/lib/server/stripe";
+import { createTatraPayment } from "@/lib/server/tatrabanka";
 import { walletEnabledForUser } from "@/lib/server/wallet";
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
@@ -222,6 +224,87 @@ export async function createWalletCheckoutAction(amountEur: number, operationId:
     console.error("createWalletCheckoutAction Stripe failed:", error);
     await db.from("payments").update({ status: "failed", error_message: "Stripe Checkout creation failed" }).eq("id", payment.id);
     return { success: false as const, error: "Platobnú stránku sa nepodarilo vytvoriť." };
+  }
+}
+
+export async function createWalletCardPayAction(amountEur: number, operationId: string) {
+  const session = await getSession();
+  if (!session) return { success: false as const, error: "Pre dobitie sa musíte prihlásiť." };
+  if (!walletEnabledForUser(session.userId)) {
+    return { success: false as const, error: "Dobíjanie kreditu nie je pre tento účet povolené." };
+  }
+  if (![10, 20, 50].includes(amountEur)) {
+    return { success: false as const, error: "Nepovolená suma dobitia." };
+  }
+  if (!operationId || operationId.length > 100) {
+    return { success: false as const, error: "Neplatný identifikátor operácie." };
+  }
+
+  const db = getCoreServiceDb();
+  const idempotencyKey = `tatrabanka-cardpay:${session.userId}:${operationId}`;
+  const { data: payment, error: paymentError } = await db
+    .from("payments")
+    .insert({
+      tenant_id: TENANT_ID,
+      user_id: session.userId,
+      amount_eur: amountEur,
+      provider: "tatrabanka",
+      idempotency_key: idempotencyKey,
+      status: "pending",
+      metadata: {
+        source: "wallet_cardpay",
+        payment_method: "CARD_PAY",
+        environment: process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown",
+      },
+    })
+    .select("id")
+    .single();
+
+  if (paymentError || !payment) {
+    console.error("createWalletCardPayAction payment insert failed:", paymentError);
+    return { success: false as const, error: "Platbu sa nepodarilo pripraviť." };
+  }
+
+  try {
+    const requestHeaders = await headers();
+    const forwardedIp = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim();
+    const ipAddress = forwardedIp || requestHeaders.get("x-real-ip") || "127.0.0.1";
+        const nameParts = session.name.trim().split(/\s+/).filter(Boolean);
+    const firstName = nameParts.shift() || "Zakaznik";
+    const lastName = nameParts.join(" ") || "Telio";
+    const tatraPayment = await createTatraPayment({
+      amountEur,
+      redirectUri: `${getAppUrl()}/api/payments/tatrabanka/callback`,
+      ipAddress,
+      requestId: payment.id,
+      method: "CARD_PAY",
+      user: {
+        firstName,
+        lastName,
+        email: session.email,
+        phone: session.phone,
+      },
+    });
+
+    const { error: updateError } = await db
+      .from("payments")
+      .update({
+        provider_payment_id: tatraPayment.paymentId,
+        status: "processing",
+        metadata: {
+          source: "wallet_cardpay",
+          payment_method: "CARD_PAY",
+          environment: process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown",
+        },
+      })
+      .eq("id", payment.id);
+    if (updateError) throw updateError;
+
+    return { success: true as const, url: tatraPayment.url };
+  } catch (error) {
+    console.error("createWalletCardPayAction failed:", error);
+    await db.from("payments").update({ status: "failed", error_message: "TatraPayPlus CardPay creation failed" }).eq("id", payment.id);
+    return { success: false as const, error: "CardPay platobnú stránku sa nepodarilo vytvoriť." };
   }
 }
 

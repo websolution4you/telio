@@ -7,7 +7,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard,
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { createBookingAction, deleteBookingAction, fetchBookingsAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
-import { createWalletCheckoutAction, getWalletAction } from "@/app/actions/wallet";
+import { createWalletCardPayAction, createWalletCheckoutAction, getWalletAction } from "@/app/actions/wallet";
 
 import { supabase } from "@/lib/supabase";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
@@ -402,17 +402,20 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       setNotice("Rezervácia bola zrušená.");
     }
   };
-      const startStripeTopUp = async (amountEur: number) => {
-    setTopUpLoading(amountEur);
-    setNotice("");
-    const result = await createWalletCheckoutAction(amountEur, crypto.randomUUID());
-    if (!result.success || !result.url) {
-      setTopUpLoading(null);
-      setNotice(result.error || "Platobnú stránku sa nepodarilo otvoriť.");
-      return;
-    }
-    window.location.assign(result.url);
-  };
+      const startTopUp = async (amountEur: number, provider: "stripe" | "cardpay") => {
+        setTopUpLoading(amountEur);
+        setNotice("");
+        const operationId = crypto.randomUUID();
+        const result = provider === "cardpay"
+          ? await createWalletCardPayAction(amountEur, operationId)
+          : await createWalletCheckoutAction(amountEur, operationId);
+        if (!result.success || !result.url) {
+          setTopUpLoading(null);
+          setNotice(result.error || "Platobnú stránku sa nepodarilo otvoriť.");
+          return;
+        }
+        window.location.assign(result.url);
+      };
   const position = (booking: Booking) => {
 
     const start = new Date(booking.start); const end = new Date(booking.end); const total = (openingHours.endHour - openingHours.startHour) * 60; const offset = (start.getHours() - openingHours.startHour) * 60 + start.getMinutes();
@@ -511,15 +514,29 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                         <span className="flex items-center gap-2"><Coins className="h-4 w-4 text-slate-700" /> Peňaženka</span>
                         <span className="text-slate-900">{walletBalance.toFixed(2)} €</span>
                       </div>
-                      <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Testovacie dobitie</p>
+                                            <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Stripe test mode</p>
                       <div className="mt-1.5 grid grid-cols-3 gap-1.5">
                         {[10, 20, 50].map((amount) => (
                           <button
-                            key={amount}
+                            key={`stripe-${amount}`}
                             type="button"
                             disabled={topUpLoading !== null}
-                                                        onClick={() => startStripeTopUp(amount)}
+                            onClick={() => startTopUp(amount, "stripe")}
                             className="cursor-pointer rounded-lg border border-amber-200/80 bg-white/90 px-2 py-2 text-xs font-extrabold text-slate-900 shadow-xs transition hover:border-amber-400 hover:bg-white disabled:cursor-wait disabled:opacity-50"
+                          >
+                            {topUpLoading === amount ? "..." : `+${amount} €`}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-sky-700">Tatra banka CardPay sandbox</p>
+                      <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+                        {[10, 20, 50].map((amount) => (
+                          <button
+                            key={`cardpay-${amount}`}
+                            type="button"
+                            disabled={topUpLoading !== null}
+                            onClick={() => startTopUp(amount, "cardpay")}
+                            className="cursor-pointer rounded-lg border border-sky-200 bg-white/90 px-2 py-2 text-xs font-extrabold text-sky-700 shadow-xs transition hover:border-sky-400 hover:bg-sky-50 disabled:cursor-wait disabled:opacity-50"
                           >
                             {topUpLoading === amount ? "..." : `+${amount} €`}
                           </button>
