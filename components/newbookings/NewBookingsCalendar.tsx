@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Plus, ShieldCheck, Sparkles, UserPlus } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Plus, ShieldCheck, Sparkles, UserPlus, X } from "lucide-react";
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { createBookingAction, deleteBookingAction, fetchBookingsAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
@@ -240,6 +241,14 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [userMenuOpen]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => {
+      setNotice("");
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   const courtColumnWidth = 100;
   const timeColumnMinWidth = 64;
@@ -614,7 +623,41 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           <h1 className="max-w-4xl text-balance text-3xl font-semibold leading-[1.15] tracking-[-0.035em] text-slate-950 sm:text-4xl md:text-5xl" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>Komplexný rezervačný systém hlasového asistenta Telio</h1>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600 sm:mt-5 sm:text-base sm:leading-7">Webové aj hlasové rezervácie sa zobrazujú v jednom aktuálnom a prehľadnom kalendári.</p>
         </div>
-        {notice && <button onClick={() => setNotice("")} className="mb-5 w-full rounded-2xl border border-amber-200/80 bg-gradient-to-r from-yellow-50/90 via-amber-50/80 to-orange-50/90 p-4 text-left text-sm font-bold text-amber-950 shadow-[0_4px_16px_rgba(245,158,11,0.12)] transition hover:opacity-90">{notice}</button>}
+        <AnimatePresence mode="wait">
+          {notice && (
+            <motion.div
+              key={notice}
+              initial={{ opacity: 0, y: -16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -12, scale: 0.98, transition: { duration: 0.35, ease: "easeInOut" } }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="relative mb-5 overflow-hidden rounded-2xl border border-amber-200/90 bg-gradient-to-r from-yellow-50/95 via-amber-50/90 to-orange-50/95 p-4 text-left shadow-[0_6px_20px_rgba(245,158,11,0.12)] backdrop-blur-sm"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-900 text-sm">
+                    🎾
+                  </span>
+                  <p className="text-xs sm:text-sm font-bold text-amber-950">{notice}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNotice("")}
+                  className="shrink-0 rounded-lg p-1 text-amber-800/70 hover:bg-amber-100 hover:text-amber-950 transition cursor-pointer"
+                  aria-label="Zavrieť hlásenie"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <motion.div
+                initial={{ width: "100%" }}
+                animate={{ width: "0%" }}
+                transition={{ duration: 5, ease: "linear" }}
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-amber-400 to-orange-400"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
         <section className="overflow-hidden rounded-3xl border-2 border-slate-300 bg-white shadow-[0_20px_55px_rgba(15,23,42,0.10)]">
           <div className="border-b border-slate-200 p-4 sm:p-6">
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">{sports.map((item) => <button key={item.id} onClick={() => setSport(item.id)} className={`cursor-pointer rounded-xl border p-3 text-sm font-bold transition duration-200 ${sport === item.id ? "border-slate-950 bg-slate-950 text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 shadow-[0_2px_8px_rgba(15,23,42,0.04)] hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 hover:shadow-sm"}`}>{item.label}</button>)}</div>
