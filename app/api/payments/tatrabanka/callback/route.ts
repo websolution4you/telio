@@ -14,26 +14,34 @@ function dashboardRedirect(request: Request, result: string) {
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const paymentId = url.searchParams.get("paymentId");
+    const providerPaymentId = url.searchParams.get("paymentId");
+  const internalPaymentId = url.searchParams.get("internalPaymentId");
   const paymentMethod = url.searchParams.get("paymentMethod");
   const callbackError = url.searchParams.get("error");
   const callbackErrorId = url.searchParams.get("errorId");
 
-  if (!paymentId || !PAYMENT_ID_PATTERN.test(paymentId)) return dashboardRedirect(request, "error");
+    const hasProviderId = Boolean(providerPaymentId && PAYMENT_ID_PATTERN.test(providerPaymentId));
+  const hasInternalId = Boolean(internalPaymentId && PAYMENT_ID_PATTERN.test(internalPaymentId));
+  if (!hasProviderId && !hasInternalId) return dashboardRedirect(request, "error");
 
   const db = getCoreServiceDb();
-  const { data: payment, error: paymentError } = await db
+  let paymentQuery = db
     .from("payments")
-    .select("id, amount_eur, provider, status")
+    .select("id, amount_eur, provider, status, provider_payment_id")
     .eq("tenant_id", TENANT_ID)
-    .eq("provider", "tatrabanka")
-    .eq("provider_payment_id", paymentId)
-    .maybeSingle();
+    .eq("provider", "tatrabanka");
+  paymentQuery = hasInternalId
+    ? paymentQuery.eq("id", internalPaymentId as string)
+    : paymentQuery.eq("provider_payment_id", providerPaymentId as string);
+  const { data: payment, error: paymentError } = await paymentQuery.maybeSingle();
 
   if (paymentError || !payment) {
     console.error("TatraPayPlus callback payment lookup failed:", paymentError);
     return dashboardRedirect(request, "error");
   }
+
+  const paymentId = payment.provider_payment_id;
+  if (!paymentId || !PAYMENT_ID_PATTERN.test(paymentId)) return dashboardRedirect(request, "error");
 
   if (callbackError) {
     await db.from("payments").update({
@@ -43,8 +51,12 @@ export async function GET(request: Request) {
     return dashboardRedirect(request, "failed");
   }
 
-  try {
-    const status = await getTatraPaymentStatus(paymentId);
+    try {
+    let status = await getTatraPaymentStatus(paymentId);
+    for (let attempt = 0; status.state === "pending" && attempt < 4; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+      status = await getTatraPaymentStatus(paymentId);
+    }
     if (status.state === "successful") {
       const providerStatus = status.data.status;
       const paidAmount = providerStatus && typeof providerStatus === "object" && "amount" in providerStatus
