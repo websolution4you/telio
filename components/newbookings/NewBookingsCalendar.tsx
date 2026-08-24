@@ -653,7 +653,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                 initial={{ width: "100%" }}
                 animate={{ width: "0%" }}
                 transition={{ duration: 5, ease: "linear" }}
-                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-amber-400 to-orange-400"
+                className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-orange-500/40 via-orange-400/30 to-amber-400/20"
               />
             </motion.div>
           )}
