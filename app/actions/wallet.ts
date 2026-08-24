@@ -363,7 +363,7 @@ export async function createWalletCardPayAction(amountEur: number, operationId: 
     const lastName = nameParts.join(" ") || "Telio";
     const tatraPayment = await createTatraPayment({
       amountEur,
-      redirectUri: `${getAppUrl()}/api/payments/tatrabanka/callback?internalPaymentId=${encodeURIComponent(payment.id)}`,
+      redirectUri: `${getAppUrl()}/api/payments/tatrabanka/callback?internalPaymentId=${encodeURIComponent(payment.id)}&popup=1`,
       ipAddress,
       requestId: payment.id,
       method: "CARD_PAY",

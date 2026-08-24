@@ -12,9 +12,33 @@ function dashboardRedirect(request: Request, result: string) {
   return NextResponse.redirect(url);
 }
 
+function popupResponse(request: Request, result: "success" | "failed" | "pending" | "error") {
+  const origin = new URL(request.url).origin;
+  const pending = result === "pending";
+  const message = pending
+    ? "Overujeme platbu v banke..."
+    : result === "success"
+      ? "Platba bola potvrdená. Toto okno sa zatvorí."
+      : result === "failed"
+        ? "Platba nebola úspešná. Toto okno sa zatvorí."
+        : "Platbu sa nepodarilo overiť. Toto okno sa zatvorí.";
+  const script = pending
+    ? "setTimeout(function(){ location.reload(); }, 1000);"
+    : `if (window.opener) window.opener.postMessage({ type: "telio-cardpay", result: "${result}" }, ${JSON.stringify(origin)}); setTimeout(function(){ window.close(); }, 100);`;
+
+  return new NextResponse(`<!doctype html><html lang="sk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CardPay</title></head><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#f4f7f5;font-family:Arial,sans-serif;color:#0f172a"><main style="max-width:360px;padding:32px;text-align:center"><h1 style="font-size:20px">${message}</h1>${pending ? "<p>Prosím, nezatvárajte toto okno.</p>" : ""}</main><script>${script}</script></body></html>`, {
+    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+  });
+}
+
+function paymentResponse(request: Request, result: "success" | "failed" | "pending" | "error", popup: boolean) {
+  return popup ? popupResponse(request, result) : dashboardRedirect(request, result);
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
-    const providerPaymentId = url.searchParams.get("paymentId");
+  const popup = url.searchParams.get("popup") === "1";
+  const providerPaymentId = url.searchParams.get("paymentId");
   const internalPaymentId = url.searchParams.get("internalPaymentId");
   const paymentMethod = url.searchParams.get("paymentMethod");
   const callbackError = url.searchParams.get("error");
@@ -22,7 +46,7 @@ export async function GET(request: Request) {
 
     const hasProviderId = Boolean(providerPaymentId && PAYMENT_ID_PATTERN.test(providerPaymentId));
   const hasInternalId = Boolean(internalPaymentId && PAYMENT_ID_PATTERN.test(internalPaymentId));
-  if (!hasProviderId && !hasInternalId) return dashboardRedirect(request, "error");
+  if (!hasProviderId && !hasInternalId) return paymentResponse(request, "error", popup);
 
   const db = getCoreServiceDb();
   let paymentQuery = db
@@ -37,18 +61,18 @@ export async function GET(request: Request) {
 
   if (paymentError || !payment) {
     console.error("TatraPayPlus callback payment lookup failed:", paymentError);
-    return dashboardRedirect(request, "error");
+    return paymentResponse(request, "error", popup);
   }
 
   const paymentId = payment.provider_payment_id;
-  if (!paymentId || !PAYMENT_ID_PATTERN.test(paymentId)) return dashboardRedirect(request, "error");
+  if (!paymentId || !PAYMENT_ID_PATTERN.test(paymentId)) return paymentResponse(request, "error", popup);
 
   if (callbackError) {
     await db.from("payments").update({
       status: "failed",
       error_message: `TatraPayPlus callback error: ${callbackError}${callbackErrorId ? ` (${callbackErrorId})` : ""}`,
     }).eq("id", payment.id);
-    return dashboardRedirect(request, "failed");
+    return paymentResponse(request, "failed", popup);
   }
 
     try {
@@ -67,7 +91,7 @@ export async function GET(request: Request) {
         : null;
       if (paidAmount !== Number(payment.amount_eur) || currency !== "EUR") {
         console.error("TatraPayPlus callback amount mismatch:", { paymentId, paidAmount, currency });
-        return dashboardRedirect(request, "error");
+        return paymentResponse(request, "error", popup);
       }
 
       const { error } = await db.rpc("wallet_process_successful_payment", {
@@ -81,17 +105,17 @@ export async function GET(request: Request) {
         },
       });
       if (error) throw error;
-      return dashboardRedirect(request, "success");
+      return paymentResponse(request, "success", popup);
     }
 
     if (status.state === "failed") {
       await db.from("payments").update({ status: "failed", error_message: "TatraPayPlus payment failed" }).eq("id", payment.id);
-      return dashboardRedirect(request, "failed");
+      return paymentResponse(request, "failed", popup);
     }
 
-    return dashboardRedirect(request, "pending");
+    return paymentResponse(request, "pending", popup);
   } catch (error) {
     console.error("TatraPayPlus callback verification failed:", error);
-    return dashboardRedirect(request, "error");
+    return paymentResponse(request, "error", popup);
   }
 }

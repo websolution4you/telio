@@ -472,11 +472,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       return;
     }
         paymentWindow?.location.assign(result.url);
-    for (let attempt = 0; attempt < 180 && paymentWindow && !paymentWindow.closed; attempt += 1) {
+        for (let attempt = 0; attempt < 180; attempt += 1) {
       await new Promise((resolve) => window.setTimeout(resolve, 1_000));
       const reconciliation = await reconcileWalletCardPayAction(internalPaymentId);
       if (reconciliation.success && reconciliation.successful > 0) {
-        paymentWindow.close();
+        paymentWindow?.close();
         const walletResult = await getWalletAction();
         if (walletResult.success && walletResult.enabled) setWalletBalance(walletResult.balanceEur);
         setNotice("CardPay platba bola potvrdená a kredit bol pripísaný.");
@@ -484,14 +484,15 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         return;
       }
       if (reconciliation.success && reconciliation.failed > 0) {
-        paymentWindow.close();
+        paymentWindow?.close();
         setNotice("CardPay platba nebola úspešná.");
         setTopUpLoading(null);
         return;
       }
     }
-    setTopUpLoading(null);
-    if (paymentWindow && !paymentWindow.closed) setNotice("Platba stále čaká na potvrdenie banky.");
+        setTopUpLoading(null);
+    if (paymentWindow && !paymentWindow.closed) paymentWindow.close();
+    setNotice("Platba stále čaká na potvrdenie banky.");
   };
   const position = (booking: Booking) => {
 

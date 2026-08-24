@@ -132,7 +132,7 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
     }
 
         paymentWindow.location.assign(result.url);
-    for (let attempt = 0; attempt < 180 && !paymentWindow.closed; attempt += 1) {
+        for (let attempt = 0; attempt < 180; attempt += 1) {
       await new Promise((resolve) => window.setTimeout(resolve, 1_000));
       const reconciliation = await reconcileWalletCardPayAction(result.paymentId);
       if (reconciliation.success && reconciliation.successful > 0) {
@@ -150,8 +150,9 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
       }
     }
 
-    setCardPayLoadingAmount(null);
-    if (!paymentWindow.closed) setWalletNotice("Platba stále čaká na potvrdenie banky.");
+        setCardPayLoadingAmount(null);
+    if (!paymentWindow.closed) paymentWindow.close();
+    setWalletNotice("Platba stále čaká na potvrdenie banky.");
   };
 
   const counts = useMemo(() => {
