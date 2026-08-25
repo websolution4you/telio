@@ -6,12 +6,17 @@ import { getCoreServiceDb } from "@/lib/server/supabase";
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
 const PAGE_SIZE = 20;
 
+export type PaymentStatusType = "paid" | "processing" | "failed" | "cancelled" | "confirmed";
+
 export type AdminTransactionItem = {
   id: string;
+  sourceTable: "payments" | "wallet_transactions";
   amountEur: number;
   type: "payment" | "booking_charge" | "refund" | "manual_adjustment" | "bonus";
   category: "booking_charge" | "refund" | "cardpay" | "stripe" | "test_topup" | "other";
   categoryLabel: string;
+  status: PaymentStatusType;
+  statusLabel: string;
   createdAt: string;
   bookingId: string | null;
   bookingDetails: {
@@ -50,6 +55,12 @@ export type FetchAdminTransactionsResponse =
         stripe: number;
         test: number;
       };
+      statusCounts: {
+        all: number;
+        paid: number;
+        processing: number;
+        failed: number;
+      };
     }
   | {
       success: false;
@@ -59,7 +70,8 @@ export type FetchAdminTransactionsResponse =
 export async function fetchAdminTransactionsAction(
   page = 1,
   query = "",
-  category = "all"
+  category = "all",
+  statusFilter = "all"
 ): Promise<FetchAdminTransactionsResponse> {
   const session = await getSession();
   if (!session || session.role !== "admin") {
@@ -68,27 +80,42 @@ export async function fetchAdminTransactionsAction(
 
   const db = getCoreServiceDb();
 
-  const [{ data: rawTransactions, error: txError }, { data: paymentsList, error: payError }] =
+  // 1. Fetch all payments from public.payments (all card and bank topups with true bank IDs and statuses)
+  // 2. Fetch all wallet_transactions for non-payment events (booking charges, refunds, manual test topups)
+  const [{ data: paymentsList, error: payError }, { data: walletList, error: walletError }] =
     await Promise.all([
+      db
+        .from("payments")
+        .select("id, user_id, amount_eur, provider, provider_payment_id, idempotency_key, status, metadata, error_message, created_at")
+        .eq("tenant_id", TENANT_ID)
+        .order("created_at", { ascending: false }),
       db
         .from("wallet_transactions")
         .select("id, tenant_id, user_id, amount_eur, type, booking_id, metadata, created_at")
         .eq("tenant_id", TENANT_ID)
+        .neq("type", "payment") // Exclude payment type because payments table is the primary source of truth for bank payments
         .order("created_at", { ascending: false }),
-      db
-        .from("payments")
-        .select("id, user_id, provider, provider_payment_id, status, amount_eur, metadata, created_at")
-        .eq("tenant_id", TENANT_ID),
     ]);
 
-  if (txError) {
-    console.error("fetchAdminTransactionsAction tx query failed:", txError);
-    return { success: false, error: "Nepodarilo sa načítať transakcie z databázy." };
+  if (payError || walletError) {
+    console.error("fetchAdminTransactionsAction failed:", payError || walletError);
+    return { success: false, error: "Nepodarilo sa načítať platby a transakcie z databázy." };
   }
 
-  const rows = rawTransactions || [];
-  const userIds = [...new Set(rows.map((row) => row.user_id).filter(Boolean))];
-  const bookingIds = [...new Set(rows.map((row) => row.booking_id).filter(Boolean))];
+  const payments = paymentsList || [];
+  const walletRows = walletList || [];
+
+  // Also include any manual test topups that might have been recorded in wallet_transactions
+  const userIds = [
+    ...new Set([
+      ...payments.map((p) => p.user_id),
+      ...walletRows.map((w) => w.user_id),
+    ].filter(Boolean)),
+  ];
+
+  const bookingIds = [
+    ...new Set(walletRows.map((w) => w.booking_id).filter(Boolean)),
+  ];
 
   const [{ data: usersList }, { data: bookingsList }] = await Promise.all([
     userIds.length > 0
@@ -107,87 +134,72 @@ export async function fetchAdminTransactionsAction(
 
   const usersMap = new Map((usersList || []).map((u) => [u.id, u]));
   const bookingsMap = new Map((bookingsList || []).map((b) => [b.id, b]));
-  const paymentsById = new Map((paymentsList || []).map((p) => [p.id, p]));
 
-  // Track matched payment IDs so each payment from payments table is used at most ONCE
-  const usedPaymentIds = new Set<string>();
+  const allItems: AdminTransactionItem[] = [];
 
-  // Pass 1: Direct matches via explicit payment_id in metadata
-  const rowPaymentMatches = new Map<string, any>();
-  for (const row of rows) {
-    const meta = typeof row.metadata === "string" ? JSON.parse(row.metadata) : (row.metadata || {});
-    const explicitPaymentId = meta.payment_id || meta.paymentId || meta.id || null;
-    if (explicitPaymentId && paymentsById.has(explicitPaymentId)) {
-      const p = paymentsById.get(explicitPaymentId)!;
-      rowPaymentMatches.set(row.id, p);
-      usedPaymentIds.add(p.id);
+  // Add all bank / card payments from public.payments table
+  for (const pay of payments) {
+    const userRecord = pay.user_id ? usersMap.get(pay.user_id) : null;
+    const provider = pay.provider === "tatrabanka" ? "tatrabanka" : pay.provider === "stripe" ? "stripe" : null;
+    const isTB = pay.provider === "tatrabanka";
+    const category: AdminTransactionItem["category"] = isTB ? "cardpay" : "stripe";
+    const categoryLabel = isTB ? "Dobitie CardPay (TB)" : "Dobitie Stripe";
+
+    let status: PaymentStatusType = "processing";
+    let statusLabel = "Spracováva sa";
+    const rawStatus = (pay.status || "").toLowerCase();
+
+    if (rawStatus === "paid" || rawStatus === "completed" || rawStatus === "success") {
+      status = "paid";
+      statusLabel = "Úspešná (Zaplatené)";
+    } else if (rawStatus === "failed" || rawStatus === "error" || rawStatus === "declined") {
+      status = "failed";
+      statusLabel = "Neúspešná";
+    } else if (rawStatus === "cancelled") {
+      status = "cancelled";
+      statusLabel = "Zrušená";
+    } else {
+      status = "processing";
+      statusLabel = "Spracováva sa";
     }
-  }
 
-  // Pass 2: Direct matches via provider_payment_id in metadata
-  for (const row of rows) {
-    if (rowPaymentMatches.has(row.id)) continue;
-    const meta = typeof row.metadata === "string" ? JSON.parse(row.metadata) : (row.metadata || {});
-    const metaProviderId =
-      meta.provider_payment_id ||
-      meta.stripe_session_id ||
-      meta.stripe_checkout_session_id ||
-      meta.card_pay_approval ||
-      null;
-    if (metaProviderId) {
-      const matched = (paymentsList || []).find(
-        (p) => !usedPaymentIds.has(p.id) && p.provider_payment_id === metaProviderId
-      );
-      if (matched) {
-        rowPaymentMatches.set(row.id, matched);
-        usedPaymentIds.add(matched.id);
-      }
-    }
-  }
-
-  // Pass 3: Time-constrained match (within 300 seconds) for payment rows only
-  for (const row of rows) {
-    if (rowPaymentMatches.has(row.id)) continue;
-    const meta = typeof row.metadata === "string" ? JSON.parse(row.metadata) : (row.metadata || {});
-    if (row.type !== "payment" || meta.type === "test_topup" || meta.source === "test_topup") continue;
-
-    const txTime = new Date(row.created_at).getTime();
-    const candidate = (paymentsList || []).find((p) => {
-      if (usedPaymentIds.has(p.id)) return false;
-      if (p.user_id !== row.user_id) return false;
-      if (Math.abs(Number(p.amount_eur) - Number(row.amount_eur)) > 0.01) return false;
-      const payTime = new Date(p.created_at).getTime();
-      return Math.abs(payTime - txTime) <= 5 * 60 * 1000; // max 5 minutes apart
+    allItems.push({
+      id: pay.id,
+      sourceTable: "payments",
+      amountEur: Number(pay.amount_eur),
+      type: "payment",
+      category,
+      categoryLabel,
+      status,
+      statusLabel,
+      createdAt: pay.created_at,
+      bookingId: null,
+      bookingDetails: null,
+      paymentId: pay.id,
+      provider,
+      providerPaymentId: pay.provider_payment_id || null,
+      user: userRecord
+        ? {
+            id: userRecord.id,
+            name: userRecord.name,
+            email: userRecord.email,
+            phone: userRecord.phone || null,
+            cardNumber: userRecord.card_number || null,
+            role: userRecord.role,
+          }
+        : null,
     });
-
-    if (candidate) {
-      rowPaymentMatches.set(row.id, candidate);
-      usedPaymentIds.add(candidate.id);
-    }
   }
 
-  // Build enriched list
-  const allItems: AdminTransactionItem[] = rows.map((row) => {
+  // Add all non-payment wallet operations from wallet_transactions (charges, refunds, manual adjustments)
+  for (const row of walletRows) {
     const meta = typeof row.metadata === "string" ? JSON.parse(row.metadata) : (row.metadata || {});
-    const matchedPayment = rowPaymentMatches.get(row.id) || null;
-
-    const isTest =
-      row.type === "manual_adjustment" ||
-      meta.type === "test_topup" ||
-      meta.source === "test_topup";
-
-    const resolvedPaymentId = !isTest ? (matchedPayment?.id || null) : null;
-    const resolvedProviderPaymentId = !isTest
-      ? (matchedPayment?.provider_payment_id || meta.provider_payment_id || null)
-      : null;
-    const resolvedProvider = !isTest
-      ? ((matchedPayment?.provider as any) ||
-        (meta.provider === "tatrabanka" ? "tatrabanka" : meta.provider === "stripe" ? "stripe" : null))
-      : null;
+    const userRecord = row.user_id ? usersMap.get(row.user_id) : null;
+    const bookingRecord = row.booking_id ? bookingsMap.get(row.booking_id) : null;
 
     let category: AdminTransactionItem["category"] = "other";
     let categoryLabel = "Iné";
-    let provider: AdminTransactionItem["provider"] = resolvedProvider;
+    let provider: AdminTransactionItem["provider"] = null;
 
     if (row.type === "booking_charge") {
       category = "booking_charge";
@@ -195,34 +207,11 @@ export async function fetchAdminTransactionsAction(
     } else if (row.type === "refund") {
       category = "refund";
       categoryLabel = "Vrátenie za rezerváciu";
-    } else if (isTest) {
+    } else if (row.type === "manual_adjustment" || meta.type === "test_topup" || meta.source === "test_topup") {
       category = "test_topup";
       categoryLabel = "Testovacie dobitie";
       provider = "manual";
-    } else if (
-      resolvedProvider === "tatrabanka" ||
-      meta.type === "cardpay" ||
-      meta.source === "cardpay"
-    ) {
-      category = "cardpay";
-      categoryLabel = "Dobitie CardPay (TB)";
-      provider = "tatrabanka";
-    } else if (
-      resolvedProvider === "stripe" ||
-      meta.type === "stripe" ||
-      meta.source === "stripe"
-    ) {
-      category = "stripe";
-      categoryLabel = "Dobitie Stripe";
-      provider = "stripe";
-    } else if (row.type === "payment") {
-      category = "cardpay";
-      categoryLabel = "Dobitie kartou";
-      provider = resolvedProvider || null;
     }
-
-    const userRecord = row.user_id ? usersMap.get(row.user_id) : null;
-    const bookingRecord = row.booking_id ? bookingsMap.get(row.booking_id) : null;
 
     let bookingDetails: AdminTransactionItem["bookingDetails"] = null;
     if (bookingRecord) {
@@ -247,18 +236,21 @@ export async function fetchAdminTransactionsAction(
       };
     }
 
-    return {
+    allItems.push({
       id: row.id,
+      sourceTable: "wallet_transactions",
       amountEur: Number(row.amount_eur),
       type: row.type,
       category,
       categoryLabel,
+      status: "confirmed",
+      statusLabel: "Zrealizované",
       createdAt: row.created_at,
       bookingId: row.booking_id || null,
       bookingDetails,
-      paymentId: resolvedPaymentId,
-      provider: provider || null,
-      providerPaymentId: resolvedProviderPaymentId,
+      paymentId: null,
+      provider,
+      providerPaymentId: null,
       user: userRecord
         ? {
             id: userRecord.id,
@@ -269,16 +261,27 @@ export async function fetchAdminTransactionsAction(
             role: userRecord.role,
           }
         : null,
-    };
-  });
+    });
+  }
 
+  // Sort all items chronologically (newest first)
+  allItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  // Calculate live counts
   const categoryCounts = {
     all: allItems.length,
-    charges: allItems.filter((item) => item.category === "booking_charge").length,
-    refunds: allItems.filter((item) => item.category === "refund").length,
-    cardpay: allItems.filter((item) => item.category === "cardpay").length,
-    stripe: allItems.filter((item) => item.category === "stripe").length,
-    test: allItems.filter((item) => item.category === "test_topup").length,
+    charges: allItems.filter((i) => i.category === "booking_charge").length,
+    refunds: allItems.filter((i) => i.category === "refund").length,
+    cardpay: allItems.filter((i) => i.category === "cardpay").length,
+    stripe: allItems.filter((i) => i.category === "stripe").length,
+    test: allItems.filter((i) => i.category === "test_topup").length,
+  };
+
+  const statusCounts = {
+    all: allItems.length,
+    paid: allItems.filter((i) => i.status === "paid" || i.status === "confirmed").length,
+    processing: allItems.filter((i) => i.status === "processing").length,
+    failed: allItems.filter((i) => i.status === "failed" || i.status === "cancelled").length,
   };
 
   // Filter by category
@@ -289,10 +292,17 @@ export async function fetchAdminTransactionsAction(
     else if (category === "cardpay") filtered = filtered.filter((i) => i.category === "cardpay");
     else if (category === "stripe") filtered = filtered.filter((i) => i.category === "stripe");
     else if (category === "test") filtered = filtered.filter((i) => i.category === "test_topup");
-    else if (category === "topups")
-      filtered = filtered.filter(
-        (i) => i.category === "cardpay" || i.category === "stripe" || i.category === "test_topup"
-      );
+  }
+
+  // Filter by status
+  if (statusFilter !== "all") {
+    if (statusFilter === "paid") {
+      filtered = filtered.filter((i) => i.status === "paid" || i.status === "confirmed");
+    } else if (statusFilter === "processing") {
+      filtered = filtered.filter((i) => i.status === "processing");
+    } else if (statusFilter === "failed") {
+      filtered = filtered.filter((i) => i.status === "failed" || i.status === "cancelled");
+    }
   }
 
   // Filter by search query
@@ -330,5 +340,6 @@ export async function fetchAdminTransactionsAction(
     totalPages,
     page: safePage,
     categoryCounts,
+    statusCounts,
   };
 }

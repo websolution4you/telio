@@ -2,27 +2,30 @@
 
 import { useEffect, useState } from "react";
 import {
+  AlertCircle,
   ArrowDownLeft,
   ArrowUpRight,
   Calendar,
   Check,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Clock3,
   Coins,
   Copy,
   CreditCard,
-  Filter,
   Loader2,
   RefreshCw,
   Search,
   Tag,
-  User,
   X,
+  XCircle,
 } from "lucide-react";
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import {
   fetchAdminTransactionsAction,
   type AdminTransactionItem,
+  type PaymentStatusType,
 } from "@/app/actions/adminTransactions";
 
 const formatEur = (val: number) =>
@@ -44,27 +47,15 @@ const formatDateTime = (iso: string) => {
   }
 };
 
-const formatTimeOnly = (iso: string) => {
-  try {
-    const d = new Date(iso);
-    return new Intl.DateTimeFormat("sk-SK", {
-      timeZone: "Europe/Bratislava",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(d);
-  } catch {
-    return iso;
-  }
-};
-
 type CategoryKey = "all" | "charges" | "refunds" | "cardpay" | "stripe" | "test";
+type StatusFilterKey = "all" | "paid" | "processing" | "failed";
 
 const categoryPills: { key: CategoryKey; label: string; countKey: keyof { all: number; charges: number; refunds: number; cardpay: number; stripe: number; test: number } }[] = [
-  { key: "all", label: "Všetky", countKey: "all" },
+  { key: "all", label: "Všetky typy", countKey: "all" },
+  { key: "cardpay", label: "Dobitie CardPay (TB)", countKey: "cardpay" },
+  { key: "stripe", label: "Dobitie Stripe", countKey: "stripe" },
   { key: "charges", label: "Platby za rezerváciu", countKey: "charges" },
   { key: "refunds", label: "Vrátenie kreditu", countKey: "refunds" },
-  { key: "cardpay", label: "Dobitie CardPay", countKey: "cardpay" },
-  { key: "stripe", label: "Dobitie Stripe", countKey: "stripe" },
   { key: "test", label: "Testovacie dobitia", countKey: "test" },
 ];
 
@@ -75,6 +66,7 @@ export default function AdminTransactions() {
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<CategoryKey>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilterKey>("all");
   const [categoryCounts, setCategoryCounts] = useState({
     all: 0,
     charges: 0,
@@ -82,6 +74,12 @@ export default function AdminTransactions() {
     cardpay: 0,
     stripe: 0,
     test: 0,
+  });
+  const [statusCounts, setStatusCounts] = useState({
+    all: 0,
+    paid: 0,
+    processing: 0,
+    failed: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -93,16 +91,27 @@ export default function AdminTransactions() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const loadData = async (targetPage: number, targetQuery: string, targetCategory: CategoryKey) => {
+  const loadData = async (
+    targetPage: number,
+    targetQuery: string,
+    targetCategory: CategoryKey,
+    targetStatus: StatusFilterKey
+  ) => {
     setLoading(true);
     setError("");
-    const res = await fetchAdminTransactionsAction(targetPage, targetQuery, targetCategory);
+    const res = await fetchAdminTransactionsAction(
+      targetPage,
+      targetQuery,
+      targetCategory,
+      targetStatus
+    );
     if (res.success) {
       setTransactions(res.transactions);
       setTotalCount(res.totalCount);
       setTotalPages(res.totalPages);
       setPage(res.page);
       setCategoryCounts(res.categoryCounts);
+      setStatusCounts(res.statusCounts);
     } else {
       setError(res.error);
     }
@@ -111,14 +120,14 @@ export default function AdminTransactions() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      loadData(page, query, category);
+      loadData(page, query, category, statusFilter);
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [page, query, category]);
+  }, [page, query, category, statusFilter]);
 
   return (
     <div className="space-y-6">
-      {/* Controls Card: Search & Filters */}
+      {/* Controls Card: Search, Status & Category Filters */}
       <div className="rounded-3xl border-2 border-slate-200/90 bg-white p-4 shadow-[0_12px_35px_rgba(15,23,42,0.06)] sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           {/* Search bar */}
@@ -131,7 +140,7 @@ export default function AdminTransactions() {
                 setQuery(e.target.value);
                 setPage(1);
               }}
-              placeholder="Hľadať podľa mena klienta, emailu, karty, ID platby, rezervácie..."
+              placeholder="Hľadať podľa mena klienta, emailu, karty, provider_payment_id..."
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-10 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
             />
             {query && (
@@ -151,11 +160,11 @@ export default function AdminTransactions() {
           {/* Refresh button & Result info */}
           <div className="flex items-center justify-between gap-3 text-xs sm:text-sm font-semibold text-slate-600">
             <span className="rounded-xl bg-slate-100 px-3 py-2 font-medium text-slate-700">
-              Nájdených: <strong className="font-bold text-slate-900">{totalCount}</strong> transakcií
+              Nájdených: <strong className="font-bold text-slate-900">{totalCount}</strong> záznamov
             </span>
             <button
               type="button"
-              onClick={() => loadData(page, query, category)}
+              onClick={() => loadData(page, query, category, statusFilter)}
               disabled={loading}
               className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-xs transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50"
             >
@@ -165,8 +174,89 @@ export default function AdminTransactions() {
           </div>
         </div>
 
-        {/* Category Filter Pills */}
+        {/* Status Filter Row */}
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+          <span className="text-xs font-bold text-slate-400 mr-1 uppercase tracking-wider">Stav platby:</span>
+          
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter("all");
+              setPage(1);
+            }}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-2xs ${
+              statusFilter === "all"
+                ? "bg-slate-900 text-white shadow-xs"
+                : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            <span>Všetky stavy</span>
+            <span className={`rounded-full px-1.5 py-0.2 text-[10px] ${statusFilter === "all" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"}`}>
+              {statusCounts.all}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter("paid");
+              setPage(1);
+            }}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-2xs ${
+              statusFilter === "paid"
+                ? "bg-emerald-600 text-white shadow-xs"
+                : "border border-emerald-200 bg-emerald-50/60 text-emerald-800 hover:bg-emerald-100/60"
+            }`}
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            <span>Úspešné (Paid)</span>
+            <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-black ${statusFilter === "paid" ? "bg-white/20 text-white" : "bg-emerald-200/80 text-emerald-900"}`}>
+              {statusCounts.paid}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter("processing");
+              setPage(1);
+            }}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-2xs ${
+              statusFilter === "processing"
+                ? "bg-amber-500 text-white shadow-xs"
+                : "border border-amber-200 bg-amber-50/60 text-amber-800 hover:bg-amber-100/60"
+            }`}
+          >
+            <Clock3 className="h-3.5 w-3.5" />
+            <span>Spracováva sa (Processing)</span>
+            <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-black ${statusFilter === "processing" ? "bg-white/20 text-white" : "bg-amber-200/80 text-amber-900"}`}>
+              {statusCounts.processing}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter("failed");
+              setPage(1);
+            }}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-2xs ${
+              statusFilter === "failed"
+                ? "bg-red-600 text-white shadow-xs"
+                : "border border-red-200 bg-red-50/60 text-red-800 hover:bg-red-100/60"
+            }`}
+          >
+            <XCircle className="h-3.5 w-3.5" />
+            <span>Neúspešné / Zrušené (Failed)</span>
+            <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-black ${statusFilter === "failed" ? "bg-white/20 text-white" : "bg-red-200/80 text-red-900"}`}>
+              {statusCounts.failed}
+            </span>
+          </button>
+        </div>
+
+        {/* Category Filter Pills */}
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+          <span className="text-xs font-bold text-slate-400 mr-1 uppercase tracking-wider">Kategória:</span>
           {categoryPills.map((pill) => {
             const count = categoryCounts[pill.countKey] || 0;
             const active = category === pill.key;
@@ -178,9 +268,9 @@ export default function AdminTransactions() {
                   setCategory(pill.key);
                   setPage(1);
                 }}
-                className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition shadow-xs ${
+                className={`flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-bold transition shadow-2xs ${
                   active
-                    ? "bg-slate-950 text-white shadow-md"
+                    ? "bg-slate-950 text-white shadow-sm"
                     : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                 }`}
               >
@@ -214,22 +304,23 @@ export default function AdminTransactions() {
                 <th className="px-5 py-4">KLIENT</th>
                 <th className="px-5 py-4">ČLENSKÁ KARTA</th>
                 <th className="px-5 py-4">TYP TRANSAKCIE</th>
-                <th className="px-5 py-4">IDENTIFIKÁTORY / DETAIL</th>
+                <th className="px-5 py-4">STAV</th>
+                <th className="px-5 py-4">IDENTIFIKÁTOR / DETAIL</th>
                 <th className="px-5 py-4 text-right">SUMA</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
               {loading && transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-16 text-center text-slate-500">
+                  <td colSpan={7} className="px-5 py-16 text-center text-slate-500">
                     <Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-emerald-600" />
-                    Načítavam transakcie...
+                    Načítavam záznamy...
                   </td>
                 </tr>
               ) : transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-16 text-center text-slate-500">
-                    Nenašli sa žiadne transakcie zodpovedajúce filtrom.
+                  <td colSpan={7} className="px-5 py-16 text-center text-slate-500">
+                    Nenašli sa žiadne záznamy zodpovedajúce filtrom.
                   </td>
                 </tr>
               ) : (
@@ -237,6 +328,9 @@ export default function AdminTransactions() {
                   const isPositive = tx.amountEur > 0;
                   const isCharge = tx.type === "booking_charge";
                   const isRefund = tx.type === "refund";
+                  const isPaid = tx.status === "paid" || tx.status === "confirmed";
+                  const isProcessing = tx.status === "processing";
+                  const isFailed = tx.status === "failed" || tx.status === "cancelled";
 
                   return (
                     <tr key={tx.id} className="transition hover:bg-slate-50/80">
@@ -309,6 +403,26 @@ export default function AdminTransactions() {
                         )}
                       </td>
 
+                      {/* Stav platby */}
+                      <td className="whitespace-nowrap px-5 py-4">
+                        {isPaid ? (
+                          <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-300/80 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-800">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            paid
+                          </span>
+                        ) : isProcessing ? (
+                          <span className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-800">
+                            <Clock3 className="h-3.5 w-3.5 text-amber-600 animate-pulse" />
+                            processing
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-lg border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-bold text-red-800">
+                            <XCircle className="h-3.5 w-3.5 text-red-600" />
+                            {tx.status}
+                          </span>
+                        )}
+                      </td>
+
                       {/* Identifikátory / Detail */}
                       <td className="px-5 py-4 text-xs">
                         <div className="space-y-1">
@@ -326,7 +440,7 @@ export default function AdminTransactions() {
                             </div>
                           )}
 
-                          {/* For bank topups: show ONLY provider_payment_id */}
+                          {/* For bank topups: show ONLY provider_payment_id from payments table */}
                           {tx.providerPaymentId ? (
                             <div className="flex items-center gap-1.5 font-mono text-[11px]">
                               <button
@@ -341,7 +455,7 @@ export default function AdminTransactions() {
                                 {copiedId === `prov-${tx.id}` ? (
                                   <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                                 ) : (
-                                  <Copy className="h-3.5 w-3.5 text-slate-400 opacity-60 group-hover:opacity-100 shrink-0" />
+                                  <Copy className="h-3 w-3 text-slate-400 opacity-60 group-hover:opacity-100 shrink-0" />
                                 )}
                               </button>
                             </div>
@@ -359,7 +473,11 @@ export default function AdminTransactions() {
                       <td className="whitespace-nowrap px-5 py-4 text-right">
                         <span
                           className={`inline-block text-sm font-black ${
-                            isPositive
+                            isFailed
+                              ? "text-slate-400 line-through"
+                              : isProcessing
+                              ? "text-amber-600"
+                              : isPositive
                               ? "text-emerald-600"
                               : "text-amber-700"
                           }`}
