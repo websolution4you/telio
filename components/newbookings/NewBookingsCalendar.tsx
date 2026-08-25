@@ -354,7 +354,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     const minutesUntilNextBooking = nextBooking
       ? Math.floor((new Date(nextBooking.start).getTime() - start.getTime()) / 60000)
       : Number.POSITIVE_INFINITY;
-    const maxAllowed = currentUser?.role === "admin" ? 360 : (rolePolicy?.maxBookingDurationMinutes ?? 120);
+    const maxAllowed = rolePolicy?.maxBookingDurationMinutes ?? (currentUser?.role === "admin" ? 720 : 120);
     const availableMinutes = Math.min(
       maxAllowed,
       getCourtOperatingLimitMinutes(courtId, start),
