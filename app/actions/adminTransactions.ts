@@ -109,51 +109,81 @@ export async function fetchAdminTransactionsAction(
   const bookingsMap = new Map((bookingsList || []).map((b) => [b.id, b]));
   const paymentsById = new Map((paymentsList || []).map((p) => [p.id, p]));
 
-  // Build enriched list
-  const allItems: AdminTransactionItem[] = rows.map((row) => {
+  // Track matched payment IDs so each payment from payments table is used at most ONCE
+  const usedPaymentIds = new Set<string>();
+
+  // Pass 1: Direct matches via explicit payment_id in metadata
+  const rowPaymentMatches = new Map<string, any>();
+  for (const row of rows) {
     const meta = typeof row.metadata === "string" ? JSON.parse(row.metadata) : (row.metadata || {});
-    let paymentId = meta.payment_id || meta.paymentId || meta.id || null;
-    let payment = paymentId ? paymentsById.get(paymentId) : null;
-
-    if (!payment && row.type === "payment") {
-      const metaProviderId =
-        meta.provider_payment_id ||
-        meta.stripe_session_id ||
-        meta.stripe_checkout_session_id ||
-        meta.card_pay_approval;
-      if (metaProviderId) {
-        payment = (paymentsList || []).find((p) => p.provider_payment_id === metaProviderId) || null;
-      }
-      if (!payment && row.user_id) {
-        const txTime = new Date(row.created_at).getTime();
-        const candidatePayments = (paymentsList || []).filter(
-          (p) =>
-            p.user_id === row.user_id &&
-            (p.status === "paid" || p.status === "completed" || p.status === "processing") &&
-            Math.abs(Number(p.amount_eur) - Number(row.amount_eur)) < 0.01
-        );
-        if (candidatePayments.length > 0) {
-          candidatePayments.sort(
-            (a, b) =>
-              Math.abs(new Date(a.created_at).getTime() - txTime) -
-              Math.abs(new Date(b.created_at).getTime() - txTime)
-          );
-          payment = candidatePayments[0];
-        }
-      }
+    const explicitPaymentId = meta.payment_id || meta.paymentId || meta.id || null;
+    if (explicitPaymentId && paymentsById.has(explicitPaymentId)) {
+      const p = paymentsById.get(explicitPaymentId)!;
+      rowPaymentMatches.set(row.id, p);
+      usedPaymentIds.add(p.id);
     }
+  }
 
-    const resolvedPaymentId = payment?.id || paymentId || null;
-    const resolvedProviderPaymentId =
-      payment?.provider_payment_id ||
+  // Pass 2: Direct matches via provider_payment_id in metadata
+  for (const row of rows) {
+    if (rowPaymentMatches.has(row.id)) continue;
+    const meta = typeof row.metadata === "string" ? JSON.parse(row.metadata) : (row.metadata || {});
+    const metaProviderId =
       meta.provider_payment_id ||
       meta.stripe_session_id ||
       meta.stripe_checkout_session_id ||
       meta.card_pay_approval ||
       null;
-    const resolvedProvider =
-      (payment?.provider as any) ||
-      (meta.provider === "tatrabanka" ? "tatrabanka" : meta.provider === "stripe" ? "stripe" : null);
+    if (metaProviderId) {
+      const matched = (paymentsList || []).find(
+        (p) => !usedPaymentIds.has(p.id) && p.provider_payment_id === metaProviderId
+      );
+      if (matched) {
+        rowPaymentMatches.set(row.id, matched);
+        usedPaymentIds.add(matched.id);
+      }
+    }
+  }
+
+  // Pass 3: Time-constrained match (within 300 seconds) for payment rows only
+  for (const row of rows) {
+    if (rowPaymentMatches.has(row.id)) continue;
+    const meta = typeof row.metadata === "string" ? JSON.parse(row.metadata) : (row.metadata || {});
+    if (row.type !== "payment" || meta.type === "test_topup" || meta.source === "test_topup") continue;
+
+    const txTime = new Date(row.created_at).getTime();
+    const candidate = (paymentsList || []).find((p) => {
+      if (usedPaymentIds.has(p.id)) return false;
+      if (p.user_id !== row.user_id) return false;
+      if (Math.abs(Number(p.amount_eur) - Number(row.amount_eur)) > 0.01) return false;
+      const payTime = new Date(p.created_at).getTime();
+      return Math.abs(payTime - txTime) <= 5 * 60 * 1000; // max 5 minutes apart
+    });
+
+    if (candidate) {
+      rowPaymentMatches.set(row.id, candidate);
+      usedPaymentIds.add(candidate.id);
+    }
+  }
+
+  // Build enriched list
+  const allItems: AdminTransactionItem[] = rows.map((row) => {
+    const meta = typeof row.metadata === "string" ? JSON.parse(row.metadata) : (row.metadata || {});
+    const matchedPayment = rowPaymentMatches.get(row.id) || null;
+
+    const isTest =
+      row.type === "manual_adjustment" ||
+      meta.type === "test_topup" ||
+      meta.source === "test_topup";
+
+    const resolvedPaymentId = !isTest ? (matchedPayment?.id || null) : null;
+    const resolvedProviderPaymentId = !isTest
+      ? (matchedPayment?.provider_payment_id || meta.provider_payment_id || null)
+      : null;
+    const resolvedProvider = !isTest
+      ? ((matchedPayment?.provider as any) ||
+        (meta.provider === "tatrabanka" ? "tatrabanka" : meta.provider === "stripe" ? "stripe" : null))
+      : null;
 
     let category: AdminTransactionItem["category"] = "other";
     let categoryLabel = "Iné";
@@ -165,7 +195,7 @@ export async function fetchAdminTransactionsAction(
     } else if (row.type === "refund") {
       category = "refund";
       categoryLabel = "Vrátenie za rezerváciu";
-    } else if (meta.type === "test_topup" || meta.source === "test_topup" || row.type === "manual_adjustment") {
+    } else if (isTest) {
       category = "test_topup";
       categoryLabel = "Testovacie dobitie";
       provider = "manual";
@@ -227,7 +257,7 @@ export async function fetchAdminTransactionsAction(
       bookingId: row.booking_id || null,
       bookingDetails,
       paymentId: resolvedPaymentId,
-      provider: provider || (payment?.provider as any) || null,
+      provider: provider || null,
       providerPaymentId: resolvedProviderPaymentId,
       user: userRecord
         ? {
