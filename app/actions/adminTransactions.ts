@@ -112,12 +112,52 @@ export async function fetchAdminTransactionsAction(
   // Build enriched list
   const allItems: AdminTransactionItem[] = rows.map((row) => {
     const meta = typeof row.metadata === "string" ? JSON.parse(row.metadata) : (row.metadata || {});
-    const paymentId = meta.payment_id || meta.paymentId || meta.id || null;
-    const payment = paymentId ? paymentsById.get(paymentId) : null;
+    let paymentId = meta.payment_id || meta.paymentId || meta.id || null;
+    let payment = paymentId ? paymentsById.get(paymentId) : null;
+
+    if (!payment && row.type === "payment") {
+      const metaProviderId =
+        meta.provider_payment_id ||
+        meta.stripe_session_id ||
+        meta.stripe_checkout_session_id ||
+        meta.card_pay_approval;
+      if (metaProviderId) {
+        payment = (paymentsList || []).find((p) => p.provider_payment_id === metaProviderId) || null;
+      }
+      if (!payment && row.user_id) {
+        const txTime = new Date(row.created_at).getTime();
+        const candidatePayments = (paymentsList || []).filter(
+          (p) =>
+            p.user_id === row.user_id &&
+            (p.status === "paid" || p.status === "completed" || p.status === "processing") &&
+            Math.abs(Number(p.amount_eur) - Number(row.amount_eur)) < 0.01
+        );
+        if (candidatePayments.length > 0) {
+          candidatePayments.sort(
+            (a, b) =>
+              Math.abs(new Date(a.created_at).getTime() - txTime) -
+              Math.abs(new Date(b.created_at).getTime() - txTime)
+          );
+          payment = candidatePayments[0];
+        }
+      }
+    }
+
+    const resolvedPaymentId = payment?.id || paymentId || null;
+    const resolvedProviderPaymentId =
+      payment?.provider_payment_id ||
+      meta.provider_payment_id ||
+      meta.stripe_session_id ||
+      meta.stripe_checkout_session_id ||
+      meta.card_pay_approval ||
+      null;
+    const resolvedProvider =
+      (payment?.provider as any) ||
+      (meta.provider === "tatrabanka" ? "tatrabanka" : meta.provider === "stripe" ? "stripe" : null);
 
     let category: AdminTransactionItem["category"] = "other";
     let categoryLabel = "Iné";
-    let provider: AdminTransactionItem["provider"] = null;
+    let provider: AdminTransactionItem["provider"] = resolvedProvider;
 
     if (row.type === "booking_charge") {
       category = "booking_charge";
@@ -129,18 +169,26 @@ export async function fetchAdminTransactionsAction(
       category = "test_topup";
       categoryLabel = "Testovacie dobitie";
       provider = "manual";
-    } else if (meta.type === "cardpay" || meta.source === "cardpay" || payment?.provider === "tatrabanka") {
+    } else if (
+      resolvedProvider === "tatrabanka" ||
+      meta.type === "cardpay" ||
+      meta.source === "cardpay"
+    ) {
       category = "cardpay";
       categoryLabel = "Dobitie CardPay (TB)";
       provider = "tatrabanka";
-    } else if (meta.type === "stripe" || meta.source === "stripe" || payment?.provider === "stripe") {
+    } else if (
+      resolvedProvider === "stripe" ||
+      meta.type === "stripe" ||
+      meta.source === "stripe"
+    ) {
       category = "stripe";
       categoryLabel = "Dobitie Stripe";
       provider = "stripe";
     } else if (row.type === "payment") {
       category = "cardpay";
-      categoryLabel = "Dobitie kreditu";
-      provider = (payment?.provider as any) || null;
+      categoryLabel = "Dobitie kartou";
+      provider = resolvedProvider || null;
     }
 
     const userRecord = row.user_id ? usersMap.get(row.user_id) : null;
@@ -178,14 +226,9 @@ export async function fetchAdminTransactionsAction(
       createdAt: row.created_at,
       bookingId: row.booking_id || null,
       bookingDetails,
-      paymentId: paymentId || payment?.id || null,
+      paymentId: resolvedPaymentId,
       provider: provider || (payment?.provider as any) || null,
-      providerPaymentId:
-        payment?.provider_payment_id ||
-        meta.provider_payment_id ||
-        meta.stripe_session_id ||
-        meta.card_pay_approval ||
-        null,
+      providerPaymentId: resolvedProviderPaymentId,
       user: userRecord
         ? {
             id: userRecord.id,

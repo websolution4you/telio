@@ -326,30 +326,45 @@ export default function AdminTransactions() {
                             </div>
                           )}
 
-                          {/* Payment ID */}
-                          {tx.paymentId && (
-                            <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-500">
-                              <span className="text-slate-400">Platba ID:</span>
+                          {/* Bank / Provider Payment ID */}
+                          {tx.providerPaymentId && (
+                            <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                              <span className="rounded bg-sky-100/90 px-1.5 py-0.5 text-[9px] font-black uppercase text-sky-800">
+                                {tx.provider === "tatrabanka" ? "TB Platba" : tx.provider === "stripe" ? "Stripe" : "Banka Ref"}
+                              </span>
                               <button
                                 type="button"
-                                onClick={() => copyToClipboard(tx.paymentId!, `pay-${tx.id}`)}
-                                className="group flex items-center gap-1 rounded px-1 text-slate-700 hover:bg-slate-200 transition"
-                                title="Kliknutím skopírujete Payment ID"
+                                onClick={() => copyToClipboard(tx.providerPaymentId!, `prov-${tx.id}`)}
+                                className="group flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-slate-800 hover:bg-sky-50 hover:text-sky-900 transition"
+                                title={`Skopírovať ${tx.providerPaymentId}`}
                               >
-                                <span>{tx.paymentId.slice(0, 8)}...</span>
-                                {copiedId === `pay-${tx.id}` ? (
-                                  <Check className="h-3 w-3 text-emerald-600" />
+                                <span className="font-bold">{tx.providerPaymentId.length > 18 ? `${tx.providerPaymentId.slice(0, 8)}...${tx.providerPaymentId.slice(-6)}` : tx.providerPaymentId}</span>
+                                {copiedId === `prov-${tx.id}` ? (
+                                  <Check className="h-3 w-3 text-emerald-600 shrink-0" />
                                 ) : (
-                                  <Copy className="h-3 w-3 text-slate-400 opacity-60 group-hover:opacity-100" />
+                                  <Copy className="h-3 w-3 text-slate-400 opacity-60 group-hover:opacity-100 shrink-0" />
                                 )}
                               </button>
                             </div>
                           )}
 
-                          {/* Provider Payment ID / Reference */}
-                          {tx.providerPaymentId && (
-                            <div className="flex items-center gap-1.5 font-mono text-[10px] text-slate-400">
-                              <span>Ref: {tx.providerPaymentId}</span>
+                          {/* Payment ID (public.payments) */}
+                          {tx.paymentId && (
+                            <div className="flex items-center gap-1.5 font-mono text-[10px] text-slate-500">
+                              <span className="text-slate-400 font-sans">Payment ID:</span>
+                              <button
+                                type="button"
+                                onClick={() => copyToClipboard(tx.paymentId!, `pay-${tx.id}`)}
+                                className="group flex items-center gap-1 rounded px-1 text-slate-600 hover:bg-slate-200 transition"
+                                title={`Skopírovať Payment ID: ${tx.paymentId}`}
+                              >
+                                <span>{tx.paymentId.slice(0, 13)}...</span>
+                                {copiedId === `pay-${tx.id}` ? (
+                                  <Check className="h-3 w-3 text-emerald-600 shrink-0" />
+                                ) : (
+                                  <Copy className="h-2.5 w-2.5 text-slate-400 opacity-60 group-hover:opacity-100 shrink-0" />
+                                )}
+                              </button>
                             </div>
                           )}
 
