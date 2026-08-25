@@ -438,20 +438,21 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       setNotice("Rezervácia bola zrušená.");
     }
   };
-      const startTopUp = async (amountEur: number, provider: "stripe" | "cardpay") => {
-        setTopUpLoading(amountEur);
-        setNotice("");
-        const operationId = crypto.randomUUID();
-        const result = provider === "cardpay"
-          ? await createWalletCardPayAction(amountEur, operationId)
-          : await createWalletCheckoutAction(amountEur, operationId);
-        if (!result.success || !result.url) {
-          setTopUpLoading(null);
-          setNotice(result.error || "Platobnú stránku sa nepodarilo otvoriť.");
-          return;
-        }
-        window.location.assign(result.url);
-      };
+          const startTopUp = async (amountEur: number, provider: "stripe" | "cardpay") => {
+    setTopUpLoading(amountEur);
+    setNotice("");
+    const operationId = crypto.randomUUID();
+    const result = provider === "cardpay"
+      ? await createWalletCardPayAction(amountEur, operationId)
+      : await createWalletCheckoutAction(amountEur, operationId);
+    if (!result.success || !result.url) {
+      setTopUpLoading(null);
+      setNotice(result.error || "Platobnú stránku sa nepodarilo otvoriť.");
+      return;
+    }
+    window.location.assign(result.url);
+  };
+
   const position = (booking: Booking) => {
 
     const start = new Date(booking.start); const end = new Date(booking.end); const total = (openingHours.endHour - openingHours.startHour) * 60; const offset = (start.getHours() - openingHours.startHour) * 60 + start.getMinutes();

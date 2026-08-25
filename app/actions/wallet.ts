@@ -106,34 +106,49 @@ export async function getWalletHistoryAction() {
       return { success: true as const, enabled: true, balanceEur, transactions };
 }
 
-export async function reconcileWalletCardPayAction() {
+export async function reconcileWalletCardPayAction(internalPaymentId?: string) {
   const session = await getSession();
   if (!session) return { success: false as const, error: "Pre overenie platby sa musíte prihlásiť." };
   if (!walletEnabledForUser(session.userId)) {
     return { success: false as const, error: "Dobíjanie kreditu nie je pre tento účet povolené." };
   }
 
+    if (internalPaymentId && !/^[0-9a-f-]{36}$/i.test(internalPaymentId)) {
+    return { success: false as const, error: "Neplatný identifikátor CardPay platby." };
+  }
+
   const db = getCoreServiceDb();
-  const { data: payments, error } = await db
+    let paymentQuery = db
     .from("payments")
-    .select("id, provider_payment_id, amount_eur")
+    .select("id, provider_payment_id, amount_eur, status")
     .eq("tenant_id", TENANT_ID)
     .eq("user_id", session.userId)
     .eq("provider", "tatrabanka")
-    .eq("status", "processing")
-    .not("provider_payment_id", "is", null)
+    .not("provider_payment_id", "is", null);
+  paymentQuery = internalPaymentId
+    ? paymentQuery.eq("id", internalPaymentId)
+    : paymentQuery.eq("status", "processing");
+  const { data: payments, error } = await paymentQuery
     .order("created_at", { ascending: false })
-    .limit(10);
+    .limit(internalPaymentId ? 1 : 10);
 
   if (error) {
     console.error("reconcileWalletCardPayAction lookup failed:", error);
     return { success: false as const, error: "CardPay platby sa nepodarilo overiť." };
   }
 
-  let successful = 0;
+    let successful = 0;
   let failed = 0;
   let pending = 0;
   for (const payment of payments || []) {
+    if (payment.status === "paid") {
+      successful += 1;
+      continue;
+    }
+    if (payment.status === "failed") {
+      failed += 1;
+      continue;
+    }
     try {
       const result = await getTatraPaymentStatus(payment.provider_payment_id);
       if (result.state === "successful") {
@@ -374,7 +389,7 @@ export async function createWalletCardPayAction(amountEur: number, operationId: 
       .eq("id", payment.id);
     if (updateError) throw updateError;
 
-    return { success: true as const, url: tatraPayment.url };
+    return { success: true as const, url: tatraPayment.url, paymentId: payment.id };
   } catch (error) {
     console.error("createWalletCardPayAction failed:", error);
     await db.from("payments").update({ status: "failed", error_message: "TatraPayPlus CardPay creation failed" }).eq("id", payment.id);

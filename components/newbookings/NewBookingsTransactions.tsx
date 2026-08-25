@@ -112,7 +112,7 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
     setLoadingAmount(null);
   };
 
-  const startCardPay = async (amountEur: number) => {
+      const startCardPay = async (amountEur: number) => {
     setCardPayLoadingAmount(amountEur);
     setCheckoutError("");
     const result = await createWalletCardPayAction(amountEur, crypto.randomUUID());

@@ -13,8 +13,9 @@ function dashboardRedirect(request: Request, result: string) {
 }
 
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-    const providerPaymentId = url.searchParams.get("paymentId");
+    const url = new URL(request.url);
+
+  const providerPaymentId = url.searchParams.get("paymentId");
   const internalPaymentId = url.searchParams.get("internalPaymentId");
   const paymentMethod = url.searchParams.get("paymentMethod");
   const callbackError = url.searchParams.get("error");
@@ -51,12 +52,8 @@ export async function GET(request: Request) {
     return dashboardRedirect(request, "failed");
   }
 
-    try {
-    let status = await getTatraPaymentStatus(paymentId);
-    for (let attempt = 0; status.state === "pending" && attempt < 4; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
-      status = await getTatraPaymentStatus(paymentId);
-    }
+      try {
+    const status = await getTatraPaymentStatus(paymentId);
     if (status.state === "successful") {
       const providerStatus = status.data.status;
       const paidAmount = providerStatus && typeof providerStatus === "object" && "amount" in providerStatus
