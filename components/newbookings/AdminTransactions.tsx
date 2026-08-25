@@ -326,64 +326,32 @@ export default function AdminTransactions() {
                             </div>
                           )}
 
-                          {/* Bank / Provider Payment ID */}
-                          {tx.providerPaymentId && (
+                          {/* For bank topups: show ONLY provider_payment_id */}
+                          {tx.providerPaymentId ? (
                             <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                              <span className="rounded bg-sky-100/90 px-1.5 py-0.5 text-[9px] font-black uppercase text-sky-800">
-                                {tx.provider === "tatrabanka" ? "TB Platba" : tx.provider === "stripe" ? "Stripe" : "Banka Ref"}
-                              </span>
                               <button
                                 type="button"
                                 onClick={() => copyToClipboard(tx.providerPaymentId!, `prov-${tx.id}`)}
-                                className="group flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-slate-800 hover:bg-sky-50 hover:text-sky-900 transition"
-                                title={`Skopírovať ${tx.providerPaymentId}`}
+                                className="group inline-flex items-center gap-2 rounded-xl border border-slate-200/90 bg-slate-50/90 px-2.5 py-1.5 text-slate-900 shadow-2xs hover:border-sky-300 hover:bg-sky-50/80 transition"
+                                title={`Skopírovať provider_payment_id: ${tx.providerPaymentId}`}
                               >
-                                <span className="font-bold">{tx.providerPaymentId.length > 18 ? `${tx.providerPaymentId.slice(0, 8)}...${tx.providerPaymentId.slice(-6)}` : tx.providerPaymentId}</span>
+                                <span className="font-bold text-slate-800 group-hover:text-sky-950">
+                                  {tx.providerPaymentId}
+                                </span>
                                 {copiedId === `prov-${tx.id}` ? (
-                                  <Check className="h-3 w-3 text-emerald-600 shrink-0" />
+                                  <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                                 ) : (
-                                  <Copy className="h-3 w-3 text-slate-400 opacity-60 group-hover:opacity-100 shrink-0" />
+                                  <Copy className="h-3.5 w-3.5 text-slate-400 opacity-60 group-hover:opacity-100 shrink-0" />
                                 )}
                               </button>
                             </div>
-                          )}
-
-                          {/* Payment ID (public.payments) */}
-                          {tx.paymentId && (
-                            <div className="flex items-center gap-1.5 font-mono text-[10px] text-slate-500">
-                              <span className="text-slate-400 font-sans">Payment ID:</span>
-                              <button
-                                type="button"
-                                onClick={() => copyToClipboard(tx.paymentId!, `pay-${tx.id}`)}
-                                className="group flex items-center gap-1 rounded px-1 text-slate-600 hover:bg-slate-200 transition"
-                                title={`Skopírovať Payment ID: ${tx.paymentId}`}
-                              >
-                                <span>{tx.paymentId.slice(0, 13)}...</span>
-                                {copiedId === `pay-${tx.id}` ? (
-                                  <Check className="h-3 w-3 text-emerald-600 shrink-0" />
-                                ) : (
-                                  <Copy className="h-2.5 w-2.5 text-slate-400 opacity-60 group-hover:opacity-100 shrink-0" />
-                                )}
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Transaction ID */}
-                          <div className="flex items-center gap-1 font-mono text-[10px] text-slate-400">
-                            <span>Tx: {tx.id.slice(0, 8)}...</span>
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(tx.id, `tx-${tx.id}`)}
-                              className="rounded p-0.5 hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition"
-                              title="Skopírovať Transaction ID"
-                            >
-                              {copiedId === `tx-${tx.id}` ? (
-                                <Check className="h-2.5 w-2.5 text-emerald-600" />
-                              ) : (
-                                <Copy className="h-2.5 w-2.5" />
-                              )}
-                            </button>
-                          </div>
+                          ) : tx.category === "test_topup" ? (
+                            <span className="inline-block rounded-md bg-purple-50 px-2 py-0.5 text-[11px] font-semibold text-purple-700">
+                              Manuálne testovacie dobitie
+                            </span>
+                          ) : !tx.bookingDetails ? (
+                            <span className="text-xs text-slate-400">–</span>
+                          ) : null}
                         </div>
                       </td>
 
