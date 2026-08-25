@@ -784,8 +784,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                               voiceHighlight ? "voice-booking-highlight" : ""
                             } ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${
                               own
-                                ? "border-orange-300/90 bg-gradient-to-br from-[#D95A3F] via-[#E26A4F] to-[#C44B31] text-white shadow-[0_4px_14px_rgba(180,83,9,0.35)]"
-                                : "border-emerald-300/90 bg-gradient-to-br from-[#15803D] via-[#16A34A] to-[#14532D] text-white shadow-[0_4px_14px_rgba(22,163,74,0.35)]"
+                                ? "border-emerald-300/90 bg-gradient-to-br from-[#15803D] via-[#16A34A] to-[#14532D] text-white shadow-[0_4px_14px_rgba(22,163,74,0.35)]"
+                                : "border-orange-300/90 bg-gradient-to-br from-[#D95A3F] via-[#E26A4F] to-[#C44B31] text-white shadow-[0_4px_14px_rgba(180,83,9,0.35)]"
                             }`}
                             style={position(booking)}
                             title={canManage ? "Zobraziť detail" : "Obsadené"}
@@ -846,7 +846,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             </div>
           </div>
         </section>
-        <div className="mt-5 flex flex-wrap items-center gap-6 text-sm font-semibold"><span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-md border border-emerald-400 bg-gradient-to-br from-[#15803D] to-[#14532D] shadow-xs" /> Obsadené</span><span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-md border border-orange-300 bg-gradient-to-br from-[#D95A3F] to-[#C44B31] shadow-xs" /> Vaša rezervácia</span>{loading && <span className="text-slate-500 font-normal">Aktualizujem...</span>}</div>
+        <div className="mt-5 flex flex-wrap items-center gap-6 text-sm font-semibold">
+          <span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-md border border-emerald-400 bg-gradient-to-br from-[#15803D] to-[#14532D] shadow-xs" /> Vaša rezervácia</span>
+          <span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-md border border-orange-300 bg-gradient-to-br from-[#D95A3F] to-[#C44B31] shadow-xs" /> Obsadené</span>
+          {loading && <span className="text-slate-500 font-normal">Aktualizujem...</span>}
+        </div>
       </main>
       {datePickerOpen && <DatePicker value={date} min={today} max={maxDate} horizonDays={bookingHorizonDays} onSelect={(selected) => selectDate(dateKey(selected))} onClose={() => setDatePickerOpen(false)} />}
       {auth && <NewBookingAuth mode={auth} onClose={() => setAuth(null)} onSuccess={() => window.location.reload()} />}
