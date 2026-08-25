@@ -126,12 +126,14 @@ export default function AdminUsersAndRoles() {
       {error && <button type="button" onClick={() => setError("")} className="mb-4 w-full rounded-xl bg-red-50 p-3 text-left text-sm font-semibold text-red-700">{error}</button>}
       {message && <button type="button" onClick={() => setMessage("")} className="mb-4 w-full rounded-xl bg-emerald-50 p-3 text-left text-sm font-semibold text-emerald-700">{message}</button>}
 
+            <div className="relative mb-4 max-w-xl">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Hľadať podľa mena, loginu, telefónu alebo karty" className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-10 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
+        {loading && <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-indigo-600" />}
+      </div>
+
       {loading ? <div className="grid min-h-32 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-indigo-600" /></div> : (
         <>
-          <div className="relative mb-4 max-w-xl">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Hľadať podľa mena, loginu, telefónu alebo karty" className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-4 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
-          </div>
           <div className="overflow-auto">
             <table className="w-full min-w-[850px] text-left text-sm">
               <thead><tr className="border-b text-xs uppercase tracking-wider text-slate-400"><th className="pb-3">Používateľ</th><th className="pb-3">Login</th><th className="pb-3">Číslo karty</th><th className="pb-3">Rola</th></tr></thead>
