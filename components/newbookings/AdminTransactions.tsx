@@ -150,7 +150,7 @@ export default function AdminTransactions() {
                   setQuery("");
                   setPage(1);
                 }}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -166,7 +166,7 @@ export default function AdminTransactions() {
               type="button"
               onClick={() => loadData(page, query, category, statusFilter)}
               disabled={loading}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-xs transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-xs transition hover:border-slate-300 hover:bg-slate-50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
               Obnoviť
@@ -184,7 +184,7 @@ export default function AdminTransactions() {
               setStatusFilter("all");
               setPage(1);
             }}
-            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-2xs ${
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-2xs cursor-pointer ${
               statusFilter === "all"
                 ? "bg-slate-900 text-white shadow-xs"
                 : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
@@ -202,7 +202,7 @@ export default function AdminTransactions() {
               setStatusFilter("paid");
               setPage(1);
             }}
-            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-2xs ${
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-2xs cursor-pointer ${
               statusFilter === "paid"
                 ? "bg-emerald-600 text-white shadow-xs"
                 : "border border-emerald-200 bg-emerald-50/60 text-emerald-800 hover:bg-emerald-100/60"
@@ -221,7 +221,7 @@ export default function AdminTransactions() {
               setStatusFilter("processing");
               setPage(1);
             }}
-            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-2xs ${
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-2xs cursor-pointer ${
               statusFilter === "processing"
                 ? "bg-amber-500 text-white shadow-xs"
                 : "border border-amber-200 bg-amber-50/60 text-amber-800 hover:bg-amber-100/60"
@@ -240,7 +240,7 @@ export default function AdminTransactions() {
               setStatusFilter("failed");
               setPage(1);
             }}
-            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-2xs ${
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-2xs cursor-pointer ${
               statusFilter === "failed"
                 ? "bg-red-600 text-white shadow-xs"
                 : "border border-red-200 bg-red-50/60 text-red-800 hover:bg-red-100/60"
@@ -268,7 +268,7 @@ export default function AdminTransactions() {
                   setCategory(pill.key);
                   setPage(1);
                 }}
-                className={`flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-bold transition shadow-2xs ${
+                className={`flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-bold transition shadow-2xs cursor-pointer ${
                   active
                     ? "bg-slate-950 text-white shadow-sm"
                     : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
@@ -446,7 +446,7 @@ export default function AdminTransactions() {
                               <button
                                 type="button"
                                 onClick={() => copyToClipboard(tx.providerPaymentId!, `prov-${tx.id}`)}
-                                className="group inline-flex items-center gap-2 rounded-xl border border-slate-200/90 bg-slate-50/90 px-2.5 py-1.5 text-slate-900 shadow-2xs hover:border-sky-300 hover:bg-sky-50/80 transition"
+                                className="group inline-flex items-center gap-2 rounded-xl border border-slate-200/90 bg-slate-50/90 px-2.5 py-1.5 text-slate-900 shadow-2xs hover:border-sky-300 hover:bg-sky-50/80 transition cursor-pointer"
                                 title={`Skopírovať provider_payment_id: ${tx.providerPaymentId}`}
                               >
                                 <span className="font-bold text-slate-800 group-hover:text-sky-950">
@@ -506,7 +506,7 @@ export default function AdminTransactions() {
               type="button"
               disabled={page <= 1 || loading}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-xs transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-xs transition hover:border-slate-300 hover:bg-slate-50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronLeft className="h-4 w-4" />
               Predchádzajúca
@@ -525,7 +525,7 @@ export default function AdminTransactions() {
                     type="button"
                     disabled={loading}
                     onClick={() => setPage(pageNum)}
-                    className={`h-8 w-8 rounded-lg text-xs font-bold transition ${
+                    className={`h-8 w-8 rounded-lg text-xs font-bold transition cursor-pointer ${
                       isCurrent
                         ? "bg-slate-950 text-white shadow-sm"
                         : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
@@ -541,7 +541,7 @@ export default function AdminTransactions() {
               type="button"
               disabled={page >= totalPages || loading}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-xs transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-xs transition hover:border-slate-300 hover:bg-slate-50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
             >
               Ďalšia
               <ChevronRight className="h-4 w-4" />
