@@ -88,7 +88,31 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
         if (!active) return;
         setWalletNotice(result.success ? "Platba bola úspešne prijatá a kredit bol pripísaný." : result.error || "Platbu sa zatiaľ nepodarilo potvrdiť.");
       }
-      if (active) await loadData();
+            if (active) await loadData();
+
+      if (active && cardPayResult.success && cardPayResult.pending > 0) {
+        setWalletNotice("CardPay platba čaká na finálne potvrdenie banky. Kredit sa obnoví automaticky.");
+        for (let attempt = 0; attempt < 100 && active; attempt += 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, 3_000));
+          if (!active) return;
+          const nextResult = await reconcileWalletCardPayAction();
+          if (!active) return;
+          if (!nextResult.success) continue;
+          if (nextResult.successful > 0) {
+            setWalletNotice(nextResult.successful === 1
+              ? "CardPay platba bola potvrdená a kredit bol pripísaný."
+              : `${nextResult.successful} CardPay platby boli potvrdené a kredit bol pripísaný.`);
+            await loadData();
+            return;
+          }
+          if (nextResult.failed > 0 && nextResult.pending === 0) {
+            setWalletNotice("CardPay platba nebola úspešná.");
+            await loadData();
+            return;
+          }
+          if (nextResult.pending === 0) return;
+        }
+      }
     };
     const timer = window.setTimeout(() => { void initialize(); }, 0);
 
