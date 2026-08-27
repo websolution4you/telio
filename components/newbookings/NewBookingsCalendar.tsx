@@ -322,17 +322,51 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
   useEffect(() => {
     let active = true;
-    if (!currentUser) {
-      setWalletBalance(null);
+    if (!currentUser || currentUser.role === "admin") {
+      if (!currentUser) setWalletBalance(null);
       return;
     }
+
+    // Always fetch fresh balance on mount
     getWalletAction().then((result) => {
       if (active && result.success && result.enabled) {
         setWalletBalance(result.balanceEur);
-      } else if (active && (!result.success || !result.enabled)) {
-        setWalletBalance(null);
       }
     });
+
+    // Check for any pending CardPay payments and poll until settled
+    const checkAndPollPending = async () => {
+      const cardPayResult = await reconcileWalletCardPayAction();
+      if (!active) return;
+      if (cardPayResult.success && cardPayResult.successful > 0) {
+        const walletRes = await getWalletAction();
+        if (active && walletRes.success && walletRes.enabled) {
+          setWalletBalance(walletRes.balanceEur);
+          setWalletHighlight(true);
+          setTimeout(() => setWalletHighlight(false), 3500);
+        }
+      }
+      if (active && cardPayResult.success && cardPayResult.pending > 0) {
+        for (let attempt = 0; attempt < 30 && active; attempt++) {
+          await new Promise((r) => setTimeout(r, 2500));
+          if (!active) return;
+          const nextRes = await reconcileWalletCardPayAction();
+          if (!active) return;
+          if (nextRes.success && nextRes.successful > 0) {
+            const walletRes = await getWalletAction();
+            if (active && walletRes.success && walletRes.enabled) {
+              setWalletBalance(walletRes.balanceEur);
+              setWalletHighlight(true);
+              setTimeout(() => setWalletHighlight(false), 3500);
+            }
+            return;
+          }
+          if (nextRes.success && nextRes.failed > 0 && nextRes.pending === 0) return;
+        }
+      }
+    };
+    checkAndPollPending();
+
     return () => { active = false; };
   }, [currentUser]);
 
