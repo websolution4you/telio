@@ -113,7 +113,7 @@ export async function GET(request: Request) {
           p_provider_payment_id: paymentId,
           p_provider_metadata: {
             provider: "tatrabanka",
-            payment_method: paymentMethod,
+            payment_method: paymentMethod || "CARD_PAY",
             verified_status: status.data,
             source: "verified_callback",
           },
