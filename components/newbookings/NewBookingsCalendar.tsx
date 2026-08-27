@@ -250,6 +250,31 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  // Handle return from payment gateway (CardPay / Stripe)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const walletStatus = params.get("wallet");
+    const amount = params.get("amount");
+    if (walletStatus === "success") {
+      setNotice(
+        amount
+          ? `Platba cez Tatra banka CardPay (${amount} €) prebehla úspešne. Kredit bol pripísaný na váš účet.`
+          : "Platba cez Tatra banka CardPay prebehla úspešne. Kredit bol pripísaný na váš účet."
+      );
+      window.history.replaceState({}, "", window.location.pathname);
+      getWalletAction().then((result) => {
+        if (result.success && result.enabled) setWalletBalance(result.balanceEur);
+      });
+    } else if (walletStatus === "pending") {
+      setNotice("CardPay platba čaká na finálne potvrdenie banky. Kredit sa obnoví automaticky.");
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (walletStatus === "failed") {
+      setNotice("Platba kartou zlyhala alebo bola zrušená.");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
   const courtColumnWidth = 100;
   const timeColumnMinWidth = 64;
     const calendarMinWidth = courtColumnWidth + hours.length * timeColumnMinWidth;
