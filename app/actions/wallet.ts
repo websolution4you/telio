@@ -152,15 +152,8 @@ export async function reconcileWalletCardPayAction(internalPaymentId?: string) {
     try {
       const result = await getTatraPaymentStatus(payment.provider_payment_id);
       if (result.state === "successful") {
-        const providerStatus = result.data.status;
-        const paidAmount = providerStatus && typeof providerStatus === "object" && "amount" in providerStatus
-          ? Number(providerStatus.amount)
-          : NaN;
-        const currency = providerStatus && typeof providerStatus === "object" && "currency" in providerStatus
-          ? providerStatus.currency
-          : null;
-        if (paidAmount !== Number(payment.amount_eur) || currency !== "EUR") {
-          console.error("CardPay reconciliation amount mismatch:", { paymentId: payment.id, paidAmount, currency });
+        if (result.amount !== null && result.amount !== Number(payment.amount_eur)) {
+          console.error("CardPay reconciliation amount mismatch:", { paymentId: payment.id, paidAmount: result.amount, expected: payment.amount_eur });
           pending += 1;
           continue;
         }

@@ -116,6 +116,30 @@ export async function createTatraPayment(input: {
   return { paymentId: data.paymentId, url: data.tatraPayPlusUrl };
 }
 
+export function extractTatraPaymentAmount(data: JsonRecord): { amount: number; currency: string } | null {
+  let foundAmount: number | null = null;
+  let foundCurrency = "EUR";
+
+  const visit = (value: unknown) => {
+    if (value && typeof value === "object") {
+      const obj = value as Record<string, unknown>;
+      if ("amount" in obj && (typeof obj.amount === "string" || typeof obj.amount === "number")) {
+        const num = Number(obj.amount);
+        if (!isNaN(num)) {
+          foundAmount = num;
+          if (typeof obj.currency === "string") foundCurrency = obj.currency;
+        }
+      }
+      for (const v of Object.values(obj)) {
+        visit(v);
+      }
+    }
+  };
+  visit(data);
+
+  return foundAmount !== null ? { amount: foundAmount, currency: foundCurrency } : null;
+}
+
 export async function getTatraPaymentStatus(paymentId: string) {
   const token = await getAccessToken();
   const response = await fetch(`${process.env.TATRABANKA_API_BASE_URL || DEFAULT_API_BASE_URL}/payments/${encodeURIComponent(paymentId)}/status`, {
@@ -127,7 +151,13 @@ export async function getTatraPaymentStatus(paymentId: string) {
     console.error("TatraPayPlus status request failed:", response.status, data);
     throw new Error("TatraPayPlus status request failed");
   }
-  return { data, state: classifyTatraPaymentStatus(data) };
+  const paymentAmount = extractTatraPaymentAmount(data);
+  return {
+    data,
+    state: classifyTatraPaymentStatus(data),
+    amount: paymentAmount?.amount ?? null,
+    currency: paymentAmount?.currency ?? null,
+  };
 }
 
 function classifyTatraPaymentStatus(data: JsonRecord): TatraPaymentState {

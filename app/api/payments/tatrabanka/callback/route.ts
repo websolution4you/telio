@@ -103,15 +103,8 @@ export async function GET(request: Request) {
       }
       const status = await getTatraPaymentStatus(paymentId);
       if (status.state === "successful") {
-        const providerStatus = status.data.status;
-        const paidAmount = providerStatus && typeof providerStatus === "object" && "amount" in providerStatus
-          ? Number(providerStatus.amount)
-          : NaN;
-        const currency = providerStatus && typeof providerStatus === "object" && "currency" in providerStatus
-          ? providerStatus.currency
-          : null;
-        if (paidAmount !== Number(payment.amount_eur) || currency !== "EUR") {
-          console.error("TatraPayPlus callback amount mismatch:", { paymentId, paidAmount, currency });
+        if (status.amount !== null && status.amount !== Number(payment.amount_eur)) {
+          console.error("TatraPayPlus callback amount mismatch:", { paymentId, paidAmount: status.amount, expected: payment.amount_eur });
           return createRedirectWithSession(request, "error", payment.user_id, Number(payment.amount_eur));
         }
 
