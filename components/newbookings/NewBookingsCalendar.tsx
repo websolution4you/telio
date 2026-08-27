@@ -20,7 +20,13 @@ import HolographicTennisCourt from "./HolographicTennisCourt";
 import NewBookingAuth from "./NewBookingAuth";
 import { BookingDetailDialog, CreateBookingDialog, DeleteDialog } from "./NewBookingDialogs";
 
-type Props = { courts: Court[]; initialBookings: Booking[]; currentUser: BookingUser | null; rolePolicy: RoleBookingPolicy | null };
+type Props = {
+  courts: Court[];
+  initialBookings: Booking[];
+  currentUser: BookingUser | null;
+  rolePolicy: RoleBookingPolicy | null;
+  initialWalletBalance?: number | null;
+};
 type Slot = { courtId: string; date: Date; hour: number };
 
 const sports: { id: SportType; label: string }[] = [
@@ -132,51 +138,56 @@ function playTennisHitSound() {
     popOsc.frequency.setValueAtTime(780, now);
     popOsc.frequency.exponentialRampToValueAtTime(240, now + 0.06);
     popGain.gain.setValueAtTime(0.7, now);
-    popGain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
-    popOsc.connect(popGain);
-    popGain.connect(ctx.destination);
-    popOsc.start(now);
-    popOsc.stop(now + 0.08);
+    const gain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(420, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.07);
+    gain.gain.setValueAtTime(0.7, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.07);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.07);
 
-    const snapSize = Math.floor(ctx.sampleRate * 0.04);
-    const snapBuf = ctx.createBuffer(1, snapSize, ctx.sampleRate);
-    const snapData = snapBuf.getChannelData(0);
-    for (let i = 0; i < snapSize; i++) {
-      snapData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (snapSize * 0.2));
-    }
-    const snap = ctx.createBufferSource();
-    snap.buffer = snapBuf;
-    const snapFilter = ctx.createBiquadFilter();
-    snapFilter.type = "bandpass";
-    snapFilter.frequency.setValueAtTime(1500, now);
-    snapFilter.Q.setValueAtTime(2, now);
-    const snapGain = ctx.createGain();
-    snapGain.gain.setValueAtTime(0.6, now);
-    snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-    snap.connect(snapFilter);
-    snapFilter.connect(snapGain);
-    snapGain.connect(ctx.destination);
-    snap.start(now);
-    snap.stop(now + 0.05);
+    // 2. Ball pop resonance
+    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.05, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseBuffer.length; i++) output[i] = Math.random() * 2 - 1;
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 850;
+    filter.Q.value = 3.5;
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.5, ctx.currentTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+    noise.start();
+    noise.stop(ctx.currentTime + 0.05);
 
-    // 2. Short Applause / Clapping Effect
-    const applauseDuration = 1.3;
-    const startApplause = now + 0.1;
+    // 3. Short court applause for successful reservation
+    const applauseLen = 1.2;
+    const applauseBuffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * applauseLen), ctx.sampleRate);
+    const applauseData = applauseBuffer.getChannelData(0);
+    for (let i = 0; i < applauseBuffer.length; i++) applauseData[i] = Math.random() * 2 - 1;
+
     const applauseMasterGain = ctx.createGain();
-    applauseMasterGain.gain.setValueAtTime(0.001, startApplause);
-    applauseMasterGain.gain.linearRampToValueAtTime(0.35, startApplause + 0.18);
-    applauseMasterGain.gain.exponentialRampToValueAtTime(0.001, startApplause + applauseDuration);
+    applauseMasterGain.gain.setValueAtTime(0.001, ctx.currentTime + 0.08);
+    applauseMasterGain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.25);
+    applauseMasterGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08 + applauseLen);
     applauseMasterGain.connect(ctx.destination);
 
-    const clapCount = 35;
-    for (let i = 0; i < clapCount; i++) {
-      const clapTime = startApplause + Math.pow(Math.random(), 0.85) * 0.95;
-      const clapLen = Math.floor(ctx.sampleRate * 0.03);
-      const clapBuf = ctx.createBuffer(1, clapLen, ctx.sampleRate);
-      const cData = clapBuf.getChannelData(0);
-      for (let j = 0; j < clapLen; j++) {
-        cData[j] = (Math.random() * 2 - 1) * Math.exp(-j / (clapLen * 0.25));
-      }
+    // Simulate multi-claps
+    const claps = 18;
+    const clapBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.035), ctx.sampleRate);
+    const clapData = clapBuf.getChannelData(0);
+    for (let i = 0; i < clapBuf.length; i++) clapData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.008));
+
+    for (let i = 0; i < claps; i++) {
+      const clapTime = ctx.currentTime + 0.09 + Math.random() * (applauseLen - 0.15);
       const clapSource = ctx.createBufferSource();
       clapSource.buffer = clapBuf;
 
@@ -200,7 +211,7 @@ function playTennisHitSound() {
   }
 }
 
-export default function NewBookingsCalendar({ courts, initialBookings, currentUser, rolePolicy }: Props) {
+export default function NewBookingsCalendar({ courts, initialBookings, currentUser, rolePolicy, initialWalletBalance }: Props) {
   const router = useRouter();
   const voiceHighlightTimers = useRef(new Map<string, number>());
   const [sport, setSport] = useState<SportType>("badminton");
@@ -217,7 +228,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [title, setTitle] = useState("");
   const [phone, setPhone] = useState("");
   const [duration, setDuration] = useState(60);
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(initialWalletBalance ?? null);
   const [walletHighlight, setWalletHighlight] = useState(false);
   const [topUpLoading, setTopUpLoading] = useState<number | null>(null);
   const [now, setNow] = useState(() => new Date());
@@ -315,13 +326,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       setWalletBalance(null);
       return;
     }
-    // Seamless background reconciliation of any pending CardPay payments on load
-    reconcileWalletCardPayAction().then(() => {
-      if (!active) return;
-      getWalletAction().then((result) => {
-        if (active && result.success && result.enabled) setWalletBalance(result.balanceEur);
-        if (active && (!result.success || !result.enabled)) setWalletBalance(null);
-      });
+    getWalletAction().then((result) => {
+      if (active && result.success && result.enabled) {
+        setWalletBalance(result.balanceEur);
+      } else if (active && (!result.success || !result.enabled)) {
+        setWalletBalance(null);
+      }
     });
     return () => { active = false; };
   }, [currentUser]);

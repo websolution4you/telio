@@ -70,6 +70,20 @@ export default async function NewBookingsPage() {
     }
   }
 
+  let initialWalletBalance: number | null = null;
+  if (session && currentUser && currentUser.role !== "admin") {
+    const serviceDb = getCoreServiceDb();
+    const { data: walletData } = await serviceDb
+      .from("wallets")
+      .select("balance_eur")
+      .eq("tenant_id", "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf")
+      .eq("user_id", session.userId)
+      .maybeSingle();
+    if (walletData) {
+      initialWalletBalance = Number(walletData.balance_eur);
+    }
+  }
+
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   const end = new Date();
@@ -77,5 +91,13 @@ export default async function NewBookingsPage() {
   const result = await fetchBookingsAction(start.toISOString(), end.toISOString());
   const initialBookings = result.success && result.bookings ? result.bookings as Booking[] : [];
 
-  return <NewBookingsCalendar courts={courts} initialBookings={initialBookings} currentUser={currentUser} rolePolicy={rolePolicy} />;
+  return (
+    <NewBookingsCalendar
+      courts={courts}
+      initialBookings={initialBookings}
+      currentUser={currentUser}
+      rolePolicy={rolePolicy}
+      initialWalletBalance={initialWalletBalance}
+    />
+  );
 }

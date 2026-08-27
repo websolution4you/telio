@@ -133,7 +133,15 @@ export async function getTatraPaymentStatus(paymentId: string) {
 function classifyTatraPaymentStatus(data: JsonRecord): TatraPaymentState {
   const paymentStatuses: string[] = [];
   const visit = (value: unknown, key = "") => {
-    if (typeof value === "string" && /status$/i.test(key) && key.toLowerCase() !== "authorizationstatus") {
+    if (
+      typeof value === "string" &&
+      (/status$/i.test(key) ||
+        key.toLowerCase() === "status" ||
+        key.toLowerCase() === "state" ||
+        key.toLowerCase() === "cardpaystatus" ||
+        key.toLowerCase() === "banktransferstatus" ||
+        key.toLowerCase() === "authorizationstatus")
+    ) {
       paymentStatuses.push(value.toUpperCase());
     } else if (value && typeof value === "object") {
       for (const [childKey, childValue] of Object.entries(value as JsonRecord)) visit(childValue, childKey);
@@ -141,7 +149,46 @@ function classifyTatraPaymentStatus(data: JsonRecord): TatraPaymentState {
   };
   visit(data);
 
-  if (paymentStatuses.some((status) => ["OK", "ACCC", "ACSC"].includes(status))) return "successful";
-  if (paymentStatuses.some((status) => ["FAIL", "RJCT", "CANC", "CANCELLED", "CANCELED", "EXPIRED", "AUTH_EXPIRED", "AUTH_CANCELED", "SPA", "XPA", "RV", "CB"].includes(status))) return "failed";
+  if (
+    paymentStatuses.some((status) =>
+      [
+        "OK",
+        "ACCC",
+        "ACSC",
+        "ACCP",
+        "AUTHORIZED",
+        "AUTHORIZATION_APPROVED",
+        "SUCCESSFUL",
+        "PAID",
+      ].includes(status)
+    )
+  ) {
+    return "successful";
+  }
+
+  if (
+    paymentStatuses.some((status) =>
+      [
+        "FAIL",
+        "FAILED",
+        "RJCT",
+        "CANC",
+        "CANCELLED",
+        "CANCELED",
+        "EXPIRED",
+        "AUTH_EXPIRED",
+        "AUTH_CANCELED",
+        "NOT_AUTHORIZED",
+        "AUTHORIZATION_DECLINED",
+        "SPA",
+        "XPA",
+        "RV",
+        "CB",
+      ].includes(status)
+    )
+  ) {
+    return "failed";
+  }
+
   return "pending";
 }
