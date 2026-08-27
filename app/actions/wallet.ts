@@ -127,7 +127,7 @@ export async function reconcileWalletCardPayAction(internalPaymentId?: string) {
     .not("provider_payment_id", "is", null);
   paymentQuery = internalPaymentId
     ? paymentQuery.eq("id", internalPaymentId)
-    : paymentQuery.eq("status", "processing");
+    : paymentQuery.in("status", ["processing", "pending"]);
   const { data: payments, error } = await paymentQuery
     .order("created_at", { ascending: false })
     .limit(internalPaymentId ? 1 : 10);

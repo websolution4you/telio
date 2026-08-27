@@ -97,37 +97,42 @@ export async function GET(request: Request) {
   }
 
   try {
-    const status = await getTatraPaymentStatus(paymentId);
-    if (status.state === "successful") {
-      const providerStatus = status.data.status;
-      const paidAmount = providerStatus && typeof providerStatus === "object" && "amount" in providerStatus
-        ? Number(providerStatus.amount)
-        : NaN;
-      const currency = providerStatus && typeof providerStatus === "object" && "currency" in providerStatus
-        ? providerStatus.currency
-        : null;
-      if (paidAmount !== Number(payment.amount_eur) || currency !== "EUR") {
-        console.error("TatraPayPlus callback amount mismatch:", { paymentId, paidAmount, currency });
-        return createRedirectWithSession(request, "error", payment.user_id, Number(payment.amount_eur));
+    for (let attempt = 0; attempt < 4; attempt++) {
+      if (attempt > 0) {
+        await new Promise((r) => setTimeout(r, 600));
+      }
+      const status = await getTatraPaymentStatus(paymentId);
+      if (status.state === "successful") {
+        const providerStatus = status.data.status;
+        const paidAmount = providerStatus && typeof providerStatus === "object" && "amount" in providerStatus
+          ? Number(providerStatus.amount)
+          : NaN;
+        const currency = providerStatus && typeof providerStatus === "object" && "currency" in providerStatus
+          ? providerStatus.currency
+          : null;
+        if (paidAmount !== Number(payment.amount_eur) || currency !== "EUR") {
+          console.error("TatraPayPlus callback amount mismatch:", { paymentId, paidAmount, currency });
+          return createRedirectWithSession(request, "error", payment.user_id, Number(payment.amount_eur));
+        }
+
+        const { error } = await db.rpc("wallet_process_successful_payment", {
+          p_payment_id: payment.id,
+          p_provider_payment_id: paymentId,
+          p_provider_metadata: {
+            provider: "tatrabanka",
+            payment_method: paymentMethod,
+            verified_status: status.data,
+            source: "verified_callback",
+          },
+        });
+        if (error) throw error;
+        return createRedirectWithSession(request, "success", payment.user_id, Number(payment.amount_eur));
       }
 
-      const { error } = await db.rpc("wallet_process_successful_payment", {
-        p_payment_id: payment.id,
-        p_provider_payment_id: paymentId,
-        p_provider_metadata: {
-          provider: "tatrabanka",
-          payment_method: paymentMethod,
-          verified_status: status.data,
-          source: "verified_callback",
-        },
-      });
-      if (error) throw error;
-      return createRedirectWithSession(request, "success", payment.user_id, Number(payment.amount_eur));
-    }
-
-    if (status.state === "failed") {
-      await db.from("payments").update({ status: "failed", error_message: "TatraPayPlus payment failed" }).eq("id", payment.id);
-      return createRedirectWithSession(request, "failed", payment.user_id, Number(payment.amount_eur));
+      if (status.state === "failed") {
+        await db.from("payments").update({ status: "failed", error_message: "TatraPayPlus payment failed" }).eq("id", payment.id);
+        return createRedirectWithSession(request, "failed", payment.user_id, Number(payment.amount_eur));
+      }
     }
 
     return createRedirectWithSession(request, "pending", payment.user_id, Number(payment.amount_eur));

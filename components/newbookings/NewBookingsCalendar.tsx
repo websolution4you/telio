@@ -8,7 +8,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard,
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { createBookingAction, deleteBookingAction, fetchBookingsAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
-import { createWalletCardPayAction, createWalletCheckoutAction, getWalletAction } from "@/app/actions/wallet";
+import { createWalletCardPayAction, createWalletCheckoutAction, getWalletAction, reconcileWalletCardPayAction } from "@/app/actions/wallet";
 
 import { supabase } from "@/lib/supabase";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
@@ -218,6 +218,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [phone, setPhone] = useState("");
   const [duration, setDuration] = useState(60);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [walletHighlight, setWalletHighlight] = useState(false);
   const [topUpLoading, setTopUpLoading] = useState<number | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [highlightedVoiceBookings, setHighlightedVoiceBookings] = useState<string[]>([]);
@@ -256,19 +257,46 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     const params = new URLSearchParams(window.location.search);
     const walletStatus = params.get("wallet");
     const amount = params.get("amount");
+
     if (walletStatus === "success") {
       setNotice(
         amount
-          ? `Platba cez Tatra banka CardPay (${amount} €) prebehla úspešne. Kredit bol pripísaný na váš účet.`
-          : "Platba cez Tatra banka CardPay prebehla úspešne. Kredit bol pripísaný na váš účet."
+          ? `Platba cez Tatra banka CardPay (${amount} €) bola úspešne pripísaná na váš účet.`
+          : "Platba cez Tatra banka CardPay bola úspešne pripísaná na váš účet."
       );
       window.history.replaceState({}, "", window.location.pathname);
       getWalletAction().then((result) => {
-        if (result.success && result.enabled) setWalletBalance(result.balanceEur);
+        if (result.success && result.enabled) {
+          setWalletBalance(result.balanceEur);
+          setWalletHighlight(true);
+          setTimeout(() => setWalletHighlight(false), 3500);
+        }
       });
     } else if (walletStatus === "pending") {
-      setNotice("CardPay platba čaká na finálne potvrdenie banky. Kredit sa obnoví automaticky.");
+      setNotice("Overujem platbu s Tatra bankou... Kredit sa automaticky navýši.");
       window.history.replaceState({}, "", window.location.pathname);
+      let attempts = 0;
+      const interval = setInterval(async () => {
+        attempts++;
+        const res = await reconcileWalletCardPayAction();
+        if (res.success && res.successful > 0) {
+          clearInterval(interval);
+          setNotice(
+            amount
+              ? `Platba cez Tatra banka CardPay (${amount} €) bola úspešne pripísaná na váš účet.`
+              : "Platba cez Tatra banka CardPay bola úspešne pripísaná na váš účet."
+          );
+          const walletRes = await getWalletAction();
+          if (walletRes.success && walletRes.enabled) {
+            setWalletBalance(walletRes.balanceEur);
+            setWalletHighlight(true);
+            setTimeout(() => setWalletHighlight(false), 3500);
+          }
+        } else if (attempts >= 6) {
+          clearInterval(interval);
+        }
+      }, 2000);
+      return () => clearInterval(interval);
     } else if (walletStatus === "failed") {
       setNotice("Platba kartou zlyhala alebo bola zrušená.");
       window.history.replaceState({}, "", window.location.pathname);
@@ -287,9 +315,13 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       setWalletBalance(null);
       return;
     }
-    getWalletAction().then((result) => {
-      if (active && result.success && result.enabled) setWalletBalance(result.balanceEur);
-      if (active && (!result.success || !result.enabled)) setWalletBalance(null);
+    // Seamless background reconciliation of any pending CardPay payments on load
+    reconcileWalletCardPayAction().then(() => {
+      if (!active) return;
+      getWalletAction().then((result) => {
+        if (active && result.success && result.enabled) setWalletBalance(result.balanceEur);
+        if (active && (!result.success || !result.enabled)) setWalletBalance(null);
+      });
     });
     return () => { active = false; };
   }, [currentUser]);
@@ -539,10 +571,17 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     {currentUser ? (
             <div className="relative z-50 flex items-center gap-2" ref={userMenuRef}>
               {currentUser.role !== "admin" && walletBalance !== null && (
-                <div className="hidden md:flex h-11 items-center gap-2 rounded-2xl border border-[#d2f500] bg-white/95 px-3 text-slate-900 shadow-[0_4px_16px_rgba(210,245,0,0.25)] backdrop-blur-xl" title="Aktuálny kredit">
-                  <Coins className="h-4 w-4 shrink-0 text-slate-700" />
+                <div
+                  className={`hidden md:flex h-11 items-center gap-2 rounded-2xl border bg-white/95 px-3 text-slate-900 shadow-[0_4px_16px_rgba(210,245,0,0.25)] backdrop-blur-xl transition-all duration-500 ${
+                    walletHighlight
+                      ? "border-emerald-500 bg-emerald-50 ring-4 ring-emerald-300/80 scale-105"
+                      : "border-[#d2f500]"
+                  }`}
+                  title="Aktuálny kredit"
+                >
+                  <Coins className={`h-4 w-4 shrink-0 transition-transform duration-500 ${walletHighlight ? "text-emerald-600 scale-125" : "text-slate-700"}`} />
                   <span className="hidden text-xs font-semibold text-slate-900 sm:inline">Kredit</span>
-                  <strong className="whitespace-nowrap text-sm font-bold text-slate-900">{walletBalance.toFixed(2)} €</strong>
+                  <strong className={`whitespace-nowrap text-sm font-bold transition-colors duration-500 ${walletHighlight ? "text-emerald-700" : "text-slate-900"}`}>{walletBalance.toFixed(2)} €</strong>
                 </div>
               )}
               <button
