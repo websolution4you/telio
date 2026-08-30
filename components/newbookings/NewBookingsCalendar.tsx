@@ -551,7 +551,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       setNotice(result.error || "Platobnú stránku sa nepodarilo otvoriť.");
       return;
     }
-    window.location.assign(result.url);
+    window.location.replace(result.url);
   };
 
   const position = (booking: Booking) => {

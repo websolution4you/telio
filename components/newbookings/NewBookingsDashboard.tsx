@@ -88,7 +88,7 @@ function WalletHistory({ balanceEur, transactions }: { balanceEur: number; trans
       setLoadingAmount(null);
       return;
     }
-    window.location.assign(result.url);
+    window.location.replace(result.url);
   };
   const labels: Record<WalletTransaction["type"], string> = {
     payment: "Dobitie kartou",

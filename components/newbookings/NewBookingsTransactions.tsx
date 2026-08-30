@@ -145,7 +145,7 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
       setCardPayLoadingAmount(null);
       return;
     }
-    window.location.assign(result.url);
+    window.location.replace(result.url);
   };
 
   const counts = useMemo(() => {
