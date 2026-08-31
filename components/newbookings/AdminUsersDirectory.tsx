@@ -80,7 +80,7 @@ const roleLabels: Record<BookingRole, { label: string; badge: string }> = {
   },
   trainer: {
     label: "Tréner",
-    badge: "bg-[#721C24] text-white border-[#4A0E17]",
+    badge: "bg-[#8648E8] text-white border-[#6025B8] font-bold",
   },
   user: {
     label: "Používateľ",

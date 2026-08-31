@@ -954,8 +954,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                         if (isAdmin) {
                           labelText = booking.customerName || booking.title || "Rezervácia";
                           if (isTrainer) {
-                            // Bordová (Burgundy / Wine) pre trénera
-                            bookingClasses = "border-[#4A0E17] bg-[#721C24] text-white shadow-xs hover:bg-[#85222B]";
+                            // Fialová / Purpurová presne podľa NTC dispečingu s čiernym textom
+                            bookingClasses = "border-[#6025B8] bg-[#8648E8] text-black font-bold shadow-xs hover:bg-[#965EF0]";
                           } else if (isAdminBlock) {
                             // Admin blokácia
                             bookingClasses = "border-slate-800 bg-slate-900 text-white shadow-xs hover:bg-slate-800";
@@ -1061,7 +1061,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                 Klient (NTC karta / bežný)
               </span>
               <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-[#4A0E17] bg-[#721C24] shadow-xs" />
+                <i className="h-3.5 w-3.5 rounded-md border border-[#6025B8] bg-[#8648E8] shadow-xs" />
                 Tréner
               </span>
               <span className="flex items-center gap-2">
