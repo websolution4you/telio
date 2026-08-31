@@ -19,6 +19,8 @@ export default async function AdminTransactionsPage() {
 
   return (
     <main className="min-h-screen bg-[#f4f7f5] px-4 py-6 text-slate-900 sm:px-6 lg:py-10">
+      {/* Mobile webview compatibility dummy first-child */}
+      <div className="hidden" aria-hidden="true" />
       <div className="mx-auto max-w-[1500px]">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>

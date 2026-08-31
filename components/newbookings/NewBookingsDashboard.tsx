@@ -138,7 +138,10 @@ function AdminDashboardPage() {
   return (
     <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
       <header className="border-b border-cyan-100 bg-gradient-to-r from-white via-cyan-50 to-indigo-50 shadow-sm"><div className="mx-auto flex min-h-[76px] max-w-[1400px] items-center justify-between px-4 sm:px-6"><Link href="/newbookings" className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-violet-600 font-bold text-white shadow-lg">T</span><span><b className="block tracking-[0.12em]">TELIO</b><small className="text-slate-500">Prehľad rezervácií</small></span></Link><Link href="/newbookings" className="flex items-center gap-2 rounded-2xl border border-white bg-white/80 px-4 py-2.5 text-sm font-bold shadow-sm"><ArrowLeft className="h-4 w-4" /><span className="hidden sm:inline">Späť na kalendár</span></Link></div></header>
-      <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:py-12"><NewBookingsAdminDashboard /></main>
+      <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:py-12">
+        <div className="hidden" aria-hidden="true" />
+        <NewBookingsAdminDashboard />
+      </main>
     </div>
   );
 }
