@@ -106,7 +106,7 @@ function parseGCalEvent(event: any) {
 
 export async function fetchBookingsAction(startDateIso: string, endDateIso: string) {
     try {
-        const db = getCoreDb();
+        const db = getCoreServiceDb();
         
         console.log(`Fetching bookings from Supabase for NTC Tenant: ${TENANT_ID} from ${startDateIso} to ${endDateIso}`);
         

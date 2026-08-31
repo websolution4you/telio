@@ -112,6 +112,9 @@ export default function AdminUsersDirectory() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"bookings" | "wallet">("bookings");
+  const [modalBookingsPage, setModalBookingsPage] = useState(1);
+  const [modalWalletPage, setModalWalletPage] = useState(1);
+  const MODAL_PAGE_SIZE = 10;
 
   const [isPending, startTransition] = useTransition();
 
@@ -148,6 +151,8 @@ export default function AdminUsersDirectory() {
     setDetailError(null);
     setDetailData(null);
     setActiveTab("bookings");
+    setModalBookingsPage(1);
+    setModalWalletPage(1);
 
     const res = await fetchAdminUserDetailAction(userId);
     if (res.success) {
@@ -538,49 +543,87 @@ export default function AdminUsersDirectory() {
               {/* Bookings Tab */}
               {!detailLoading && detailData && activeTab === "bookings" && (
                 <div className="space-y-3">
-                  {detailData.bookings.map((booking) => {
-                    const isCancelled = booking.status === "cancelled";
-                    return (
-                      <div
-                        key={booking.id}
-                        className={`rounded-2xl border p-4 transition ${
-                          isCancelled
-                            ? "border-slate-200 bg-slate-50/50 opacity-60"
-                            : "border-slate-200 bg-white shadow-2xs hover:border-emerald-300"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <strong className="text-sm font-bold text-slate-900">
-                                {courtLabel(booking.courtId)}
+                  {detailData.bookings
+                    .slice(
+                      (modalBookingsPage - 1) * MODAL_PAGE_SIZE,
+                      modalBookingsPage * MODAL_PAGE_SIZE
+                    )
+                    .map((booking) => {
+                      const isCancelled = booking.status === "cancelled";
+                      return (
+                        <div
+                          key={booking.id}
+                          className={`rounded-2xl border p-4 transition ${
+                            isCancelled
+                              ? "border-slate-200 bg-slate-50/50 opacity-60"
+                              : "border-slate-200 bg-white shadow-2xs hover:border-emerald-300"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <strong className="text-sm font-bold text-slate-900">
+                                  {courtLabel(booking.courtId)}
+                                </strong>
+                                <span
+                                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                                    isCancelled
+                                      ? "bg-red-50 text-red-700 border border-red-200"
+                                      : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  }`}
+                                >
+                                  {isCancelled ? "Zrušená" : "Potvrdená"}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {formatDate(booking.startAt)}, {formatTimeRange(booking.startAt, booking.endAt)}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <strong className="block text-sm font-bold text-slate-900">
+                                {formatEur(booking.priceEur)}
                               </strong>
-                              <span
-                                className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
-                                  isCancelled
-                                    ? "bg-red-50 text-red-700 border border-red-200"
-                                    : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                }`}
-                              >
-                                {isCancelled ? "Zrušená" : "Potvrdená"}
+                              <span className="text-[10px] text-slate-400">
+                                Vytvorené {formatDateTime(booking.createdAt)}
                               </span>
                             </div>
-                            <p className="mt-1 text-xs text-slate-500">
-                              {formatDate(booking.startAt)}, {formatTimeRange(booking.startAt, booking.endAt)}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <strong className="block text-sm font-bold text-slate-900">
-                              {formatEur(booking.priceEur)}
-                            </strong>
-                            <span className="text-[10px] text-slate-400">
-                              Vytvorené {formatDateTime(booking.createdAt)}
-                            </span>
                           </div>
                         </div>
+                      );
+                    })}
+
+                  {detailData.bookings.length > MODAL_PAGE_SIZE && (
+                    <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
+                      <span>
+                        Strana <strong>{modalBookingsPage}</strong> z{" "}
+                        <strong>
+                          {Math.max(1, Math.ceil(detailData.bookings.length / MODAL_PAGE_SIZE))}
+                        </strong>
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={modalBookingsPage <= 1}
+                          onClick={() => setModalBookingsPage((p) => Math.max(1, p - 1))}
+                          className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-30 hover:bg-slate-50"
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5" /> Predchádzajúca
+                        </button>
+                        <button
+                          type="button"
+                          disabled={
+                            modalBookingsPage >=
+                            Math.ceil(detailData.bookings.length / MODAL_PAGE_SIZE)
+                          }
+                          onClick={() => setModalBookingsPage((p) => p + 1)}
+                          className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-30 hover:bg-slate-50"
+                        >
+                          Nasledujúca <ChevronRight className="h-3.5 w-3.5" />
+                        </button>
                       </div>
-                    );
-                  })}
+                    </div>
+                  )}
+
                   {detailData.bookings.length === 0 && (
                     <div className="py-12 text-center text-sm text-slate-400">
                       Tento používateľ zatiaľ nemá žiadne rezervácie.
@@ -592,50 +635,88 @@ export default function AdminUsersDirectory() {
               {/* Wallet Transactions Tab */}
               {!detailLoading && detailData && activeTab === "wallet" && (
                 <div className="space-y-3">
-                  {detailData.transactions.map((tx) => {
-                    const isPositive =
-                      tx.type === "payment" || tx.type === "refund" || tx.type === "bonus" || tx.amountEur > 0;
-                    return (
-                      <div
-                        key={tx.id}
-                        className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`grid h-9 w-9 place-items-center rounded-xl ${
-                              isPositive
-                                ? "bg-emerald-50 text-emerald-600"
-                                : "bg-red-50 text-red-600"
-                            }`}
-                          >
-                            {isPositive ? (
-                              <ArrowDownLeft className="h-4 w-4" />
-                            ) : (
-                              <ArrowUpRight className="h-4 w-4" />
-                            )}
-                          </span>
-                          <div>
-                            <b className="block text-xs font-bold text-slate-900">
-                              {txLabels[tx.type] || tx.type}
-                            </b>
-                            <span className="text-[11px] text-slate-400">
-                              {formatDateTime(tx.createdAt)}
+                  {detailData.transactions
+                    .slice(
+                      (modalWalletPage - 1) * MODAL_PAGE_SIZE,
+                      modalWalletPage * MODAL_PAGE_SIZE
+                    )
+                    .map((tx) => {
+                      const isPositive =
+                        tx.type === "payment" || tx.type === "refund" || tx.type === "bonus" || tx.amountEur > 0;
+                      return (
+                        <div
+                          key={tx.id}
+                          className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`grid h-9 w-9 place-items-center rounded-xl ${
+                                isPositive
+                                  ? "bg-emerald-50 text-emerald-600"
+                                  : "bg-red-50 text-red-600"
+                              }`}
+                            >
+                              {isPositive ? (
+                                <ArrowDownLeft className="h-4 w-4" />
+                              ) : (
+                                <ArrowUpRight className="h-4 w-4" />
+                              )}
                             </span>
+                            <div>
+                              <b className="block text-xs font-bold text-slate-900">
+                                {txLabels[tx.type] || tx.type}
+                              </b>
+                              <span className="text-[11px] text-slate-400">
+                                {formatDateTime(tx.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <strong
+                              className={`text-sm font-bold ${
+                                isPositive ? "text-emerald-600" : "text-slate-900"
+                              }`}
+                            >
+                              {isPositive ? "+" : ""}
+                              {formatEur(tx.amountEur)}
+                            </strong>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <strong
-                            className={`text-sm font-bold ${
-                              isPositive ? "text-emerald-600" : "text-slate-900"
-                            }`}
-                          >
-                            {isPositive ? "+" : ""}
-                            {formatEur(tx.amountEur)}
-                          </strong>
-                        </div>
+                      );
+                    })}
+
+                  {detailData.transactions.length > MODAL_PAGE_SIZE && (
+                    <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
+                      <span>
+                        Strana <strong>{modalWalletPage}</strong> z{" "}
+                        <strong>
+                          {Math.max(1, Math.ceil(detailData.transactions.length / MODAL_PAGE_SIZE))}
+                        </strong>
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={modalWalletPage <= 1}
+                          onClick={() => setModalWalletPage((p) => Math.max(1, p - 1))}
+                          className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-30 hover:bg-slate-50"
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5" /> Predchádzajúca
+                        </button>
+                        <button
+                          type="button"
+                          disabled={
+                            modalWalletPage >=
+                            Math.ceil(detailData.transactions.length / MODAL_PAGE_SIZE)
+                          }
+                          onClick={() => setModalWalletPage((p) => p + 1)}
+                          className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-30 hover:bg-slate-50"
+                        >
+                          Nasledujúca <ChevronRight className="h-3.5 w-3.5" />
+                        </button>
                       </div>
-                    );
-                  })}
+                    </div>
+                  )}
+
                   {detailData.transactions.length === 0 && (
                     <div className="py-12 text-center text-sm text-slate-400">
                       Zatiaľ žiadne pohyby kreditu.
