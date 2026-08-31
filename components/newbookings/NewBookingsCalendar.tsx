@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Plus, Receipt, ShieldCheck, Sparkles, UserPlus, X } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Plus, Receipt, ShieldCheck, Sparkles, UserPlus, Users, X } from "lucide-react";
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { createBookingAction, deleteBookingAction, fetchBookingsAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
@@ -740,6 +740,17 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                                         {currentUser.role === "admin" && (
                       <>
                         <Link
+                          href="/dashboard/users"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-cyan-50 hover:text-cyan-700 transition duration-150 group"
+                        >
+                          <span className="grid h-8 w-8 place-items-center rounded-lg bg-cyan-50 text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white transition duration-150">
+                            <Users className="h-4 w-4" />
+                          </span>
+                          <span>Používatelia</span>
+                        </Link>
+
+                        <Link
                           href="/dashboard/admin-transactions"
                           onClick={() => setUserMenuOpen(false)}
                           className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition duration-150 group"
@@ -753,12 +764,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                         <Link
                           href="/dashboard/users-roles"
                           onClick={() => setUserMenuOpen(false)}
-                          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 transition duration-150 hover:bg-violet-50 hover:text-violet-700 sm:text-sm"
+                          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 transition duration-150 hover:bg-violet-50 hover:text-violet-700 sm:text-sm group"
                         >
-                          <span className="grid h-8 w-8 place-items-center rounded-lg bg-violet-50 text-violet-600">
+                          <span className="grid h-8 w-8 place-items-center rounded-lg bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white transition duration-150">
                             <ShieldCheck className="h-4 w-4" />
                           </span>
-                          <span>Používatelia a roly</span>
+                          <span>Administrácia</span>
                         </Link>
                       </>
                     )}
