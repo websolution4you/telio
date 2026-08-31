@@ -1010,9 +1010,13 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                             )}
 
                             {isAdmin ? (
-                              <span className="relative z-[1] block w-full truncate px-0.5 text-center text-[clamp(9px,0.72vw,12.5px)] font-bold leading-tight">
-                                {labelText}
-                              </span>
+                              <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(9px,0.72vw,12.5px)] font-bold leading-tight select-none pointer-events-none">
+                                {labelText.split(" ").filter(Boolean).map((part, idx) => (
+                                  <span key={idx} className="block leading-[1.15] break-words max-w-full">
+                                    {part}
+                                  </span>
+                                ))}
+                              </div>
                             ) : (
                               <>
                                 <b className="relative z-[1] block whitespace-normal break-words text-[clamp(8px,0.7vw,12px)] font-black leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] [overflow-wrap:anywhere]">
