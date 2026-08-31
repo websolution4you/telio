@@ -928,27 +928,53 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     )}
                     <div className="pointer-events-none absolute inset-0 z-10">
                       {bookings.filter((booking) => booking.courtId === court.id).map((booking) => {
+                        const isAdmin = currentUser?.role === "admin";
                         const own = !!currentUser && currentUser.id === booking.user_id;
-                        const canManage = own || currentUser?.role === "admin";
+                        const canManage = own || isAdmin;
                         const voiceHighlight = highlightedVoiceBookings.includes(booking.id);
+                        const isTrainer = booking.userRole === "trainer";
+                        const isAdminBlock = booking.source === "admin" && !booking.user_id;
+
+                        // Decide styling and text based on role
+                        let bookingClasses = "";
+                        let labelText = "";
+                        const isDarkText = isAdmin && !isTrainer && !isAdminBlock;
+
+                        if (isAdmin) {
+                          labelText = booking.customerName || booking.title || "Rezervácia";
+                          if (isTrainer) {
+                            // Bordová (Burgundy / Wine) pre trénera
+                            bookingClasses = "border-[#4A0E17]/90 bg-gradient-to-br from-[#721c24] via-[#8B1E2D] to-[#5C141E] text-white shadow-[0_4px_14px_rgba(114,28,36,0.45)]";
+                          } else if (isAdminBlock) {
+                            // Admin blokácia
+                            bookingClasses = "border-slate-700 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 text-white shadow-[0_4px_14px_rgba(15,23,42,0.4)]";
+                          } else {
+                            // Klient (NTC karta / bežný): Pekná sýta žltá (Warm Gold / NTC Yellow) s tmavým písmom
+                            bookingClasses = "border-amber-400/90 bg-gradient-to-br from-[#F59E0B] via-[#EAB308] to-[#CA8A04] text-slate-950 shadow-[0_4px_14px_rgba(202,138,4,0.38)]";
+                          }
+                        } else {
+                          labelText = own ? "Vaša rezervácia" : "Obsadené";
+                          if (own) {
+                            bookingClasses = "border-emerald-300/90 bg-gradient-to-br from-[#15803D] via-[#16A34A] to-[#14532D] text-white shadow-[0_4px_14px_rgba(22,163,74,0.35)]";
+                          } else {
+                            bookingClasses = "border-orange-300/90 bg-gradient-to-br from-[#D95A3F] via-[#E26A4F] to-[#C44B31] text-white shadow-[0_4px_14px_rgba(180,83,9,0.35)]";
+                          }
+                        }
+
                         return (
                           <button
                             key={booking.id}
                             onClick={() => canManage && setDetail(booking)}
                             className={`pointer-events-auto absolute inset-y-1.5 overflow-hidden rounded-xl border px-1.5 py-1 text-center shadow-md transition duration-200 hover:scale-[1.02] ${
                               voiceHighlight ? "voice-booking-highlight" : ""
-                            } ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${
-                              own
-                                ? "border-emerald-300/90 bg-gradient-to-br from-[#15803D] via-[#16A34A] to-[#14532D] text-white shadow-[0_4px_14px_rgba(22,163,74,0.35)]"
-                                : "border-orange-300/90 bg-gradient-to-br from-[#D95A3F] via-[#E26A4F] to-[#C44B31] text-white shadow-[0_4px_14px_rgba(180,83,9,0.35)]"
-                            }`}
+                            } ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${bookingClasses}`}
                             style={position(booking)}
-                            title={canManage ? "Zobraziť detail" : "Obsadené"}
+                            title={canManage ? `Detail: ${labelText}` : "Obsadené"}
                           >
-                            <div className="pointer-events-none absolute inset-0 opacity-25">
+                            <div className={`pointer-events-none absolute inset-0 ${isDarkText ? "opacity-15" : "opacity-25"}`}>
                               <svg viewBox="0 0 100 100" className="h-full w-full" preserveAspectRatio="none">
-                                <rect x="5" y="5" width="90" height="90" fill="none" stroke="#FFFFFF" strokeWidth="3" />
-                                <line x1="50" y1="5" x2="50" y2="95" stroke="#FFFFFF" strokeWidth="2" strokeDasharray="6,4" />
+                                <rect x="5" y="5" width="90" height="90" fill="none" stroke={isDarkText ? "#000000" : "#FFFFFF"} strokeWidth="3" />
+                                <line x1="50" y1="5" x2="50" y2="95" stroke={isDarkText ? "#000000" : "#FFFFFF"} strokeWidth="2" strokeDasharray="6,4" />
                               </svg>
                             </div>
                             {voiceHighlight && (
@@ -980,13 +1006,21 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                                 <span className="voice-booking-scan" aria-hidden="true" />
                               </>
                             )}
-                            <b className="relative z-[1] block whitespace-normal break-words text-[clamp(8px,0.7vw,12px)] font-black leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] [overflow-wrap:anywhere]">
+                            <b className={`relative z-[1] block whitespace-normal break-words text-[clamp(8px,0.7vw,12px)] font-black leading-none [overflow-wrap:anywhere] ${
+                              isDarkText
+                                ? "drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)]"
+                                : "drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
+                            }`}>
                               <span className="block">{formatTime(booking.start)}</span>
                               <span className="block leading-[0.55]" aria-hidden="true">–</span>
                               <span className="block">{formatTime(booking.end)}</span>
                             </b>
-                            <span className="relative z-[1] mt-0.5 block whitespace-normal break-words text-[clamp(7px,0.6vw,10px)] font-bold leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] [overflow-wrap:anywhere]">
-                              {own ? "Vaša rezervácia" : "Obsadené"}
+                            <span className={`relative z-[1] mt-0.5 block whitespace-normal break-words text-[clamp(7px,0.6vw,10px)] font-black leading-none [overflow-wrap:anywhere] ${
+                              isDarkText
+                                ? "drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)]"
+                                : "drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
+                            }`}>
+                              {labelText}
                             </span>
                           </button>
                         );
@@ -1002,8 +1036,33 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           </div>
         </section>
         <div className="mt-5 flex flex-wrap items-center gap-6 text-sm font-semibold">
-          <span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-md border border-emerald-400 bg-gradient-to-br from-[#15803D] to-[#14532D] shadow-xs" /> Vaša rezervácia</span>
-          <span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-md border border-orange-300 bg-gradient-to-br from-[#D95A3F] to-[#C44B31] shadow-xs" /> Obsadené</span>
+          {currentUser?.role === "admin" ? (
+            <>
+              <span className="flex items-center gap-2">
+                <i className="h-3.5 w-3.5 rounded-md border border-amber-400 bg-gradient-to-br from-[#F59E0B] to-[#CA8A04] shadow-xs" />
+                Klient (NTC karta / bežný)
+              </span>
+              <span className="flex items-center gap-2">
+                <i className="h-3.5 w-3.5 rounded-md border border-[#4A0E17] bg-gradient-to-br from-[#721c24] to-[#5C141E] shadow-xs" />
+                Tréner
+              </span>
+              <span className="flex items-center gap-2">
+                <i className="h-3.5 w-3.5 rounded-md border border-slate-700 bg-gradient-to-br from-slate-800 to-slate-950 shadow-xs" />
+                Admin blokácia
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="flex items-center gap-2">
+                <i className="h-3.5 w-3.5 rounded-md border border-emerald-400 bg-gradient-to-br from-[#15803D] to-[#14532D] shadow-xs" />
+                Vaša rezervácia
+              </span>
+              <span className="flex items-center gap-2">
+                <i className="h-3.5 w-3.5 rounded-md border border-orange-300 bg-gradient-to-br from-[#D95A3F] to-[#C44B31] shadow-xs" />
+                Obsadené
+              </span>
+            </>
+          )}
           {loading && <span className="text-slate-500 font-normal">Aktualizujem...</span>}
         </div>
       </main>

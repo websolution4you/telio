@@ -121,6 +121,21 @@ export async function fetchBookingsAction(startDateIso: string, endDateIso: stri
             throw new Error(`Database error: ${error.message}`);
         }
 
+        // Fetch user metadata for bookings that have a user_id
+        const userIds = Array.from(new Set((data || []).map((r) => r.user_id).filter(Boolean)));
+        const userMap = new Map<string, { role: string; cardNumber?: string; name?: string }>();
+        if (userIds.length > 0) {
+            const { data: usersData } = await db
+                .from("booking_users")
+                .select("id, role, card_number, name")
+                .in("id", userIds);
+            if (usersData) {
+                for (const u of usersData) {
+                    userMap.set(u.id, { role: u.role, cardNumber: u.card_number || undefined, name: u.name });
+                }
+            }
+        }
+
         // Map database events to booking objects
         const bookings = (data || []).map(row => {
             let notesObj = { courtId: "", source: "web", notes: "" };
@@ -129,17 +144,20 @@ export async function fetchBookingsAction(startDateIso: string, endDateIso: stri
             } catch (e) {
                 console.error("Failed to parse notes JSON:", e);
             }
+            const userMeta = row.user_id ? userMap.get(row.user_id) : undefined;
             return {
                 id: row.id,
                 courtId: notesObj.courtId || "badminton-1",
                 title: notesObj.notes || row.customer_name || "Rezervácia",
-                customerName: row.customer_name,
+                customerName: row.customer_name || userMeta?.name,
                 phone: row.customer_phone || undefined,
                 start: row.start_at,
                 end: row.end_at,
                 status: row.status as "confirmed" | "blocked" | "cancelled",
                 source: (notesObj.source || "web") as any,
-                user_id: row.user_id || undefined
+                user_id: row.user_id || undefined,
+                userRole: userMeta?.role || "user",
+                userCardNumber: userMeta?.cardNumber
             };
         });
 

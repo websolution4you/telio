@@ -21,6 +21,8 @@ export interface Booking {
   status: BookingStatus;
   source: "voice-assistant" | "web" | "admin" | "google-calendar";
   user_id?: string;
+  userRole?: string;
+  userCardNumber?: string;
 }
 
 export const courts: Court[] = [
