@@ -762,8 +762,20 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             </div>
           ) : (
             <div className="flex shrink-0 items-center gap-2">
-              <button onClick={() => setAuth("register")} className="group flex cursor-pointer items-center gap-1.5 rounded-2xl border border-indigo-200 bg-white/85 px-3 py-3 text-xs font-bold text-indigo-700 shadow-[0_8px_22px_rgba(79,70,229,0.12)] backdrop-blur-xl transition duration-300 hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-50 sm:gap-2 sm:px-4 sm:text-sm"><UserPlus className="h-4 w-4" /> Registrovať sa</button>
-              <button onClick={() => setAuth("login")} className="group flex cursor-pointer items-center gap-1.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 px-3 py-3 text-xs font-bold text-white shadow-[0_10px_24px_rgba(79,70,229,0.3)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(79,70,229,0.38)] sm:gap-2 sm:px-5 sm:text-sm"><LogIn className="h-4 w-4" /> Prihlásiť</button>
+              <button
+                onClick={() => setAuth("register")}
+                className="group flex cursor-pointer items-center gap-1.5 rounded-2xl border border-slate-200/90 bg-white/90 px-3 py-2.5 text-xs font-bold text-slate-800 shadow-xs backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:border-amber-400 hover:bg-amber-50/60 hover:text-amber-950 sm:gap-2 sm:px-4 sm:text-sm"
+              >
+                <UserPlus className="h-4 w-4 text-amber-600 transition-transform duration-200 group-hover:scale-110" />
+                <span>Registrovať sa</span>
+              </button>
+              <button
+                onClick={() => setAuth("login")}
+                className="group flex cursor-pointer items-center gap-1.5 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 px-3.5 py-2.5 text-xs font-bold text-white shadow-[0_8px_22px_rgba(15,23,42,0.22)] border border-slate-800 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.32)] hover:border-slate-700 sm:gap-2 sm:px-5 sm:text-sm"
+              >
+                <LogIn className="h-4 w-4 text-amber-400 transition-transform duration-200 group-hover:translate-x-0.5" />
+                <span>Prihlásiť</span>
+              </button>
             </div>
           )}
         </div>
