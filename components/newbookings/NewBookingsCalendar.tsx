@@ -944,13 +944,13 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                           labelText = booking.customerName || booking.title || "Rezervácia";
                           if (isTrainer) {
                             // Bordová (Burgundy / Wine) pre trénera
-                            bookingClasses = "border-[#4A0E17]/90 bg-gradient-to-br from-[#721c24] via-[#8B1E2D] to-[#5C141E] text-white shadow-[0_4px_14px_rgba(114,28,36,0.45)]";
+                            bookingClasses = "border-[#4A0E17] bg-[#721C24] text-white shadow-xs hover:bg-[#85222B]";
                           } else if (isAdminBlock) {
                             // Admin blokácia
-                            bookingClasses = "border-slate-700 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 text-white shadow-[0_4px_14px_rgba(15,23,42,0.4)]";
+                            bookingClasses = "border-slate-800 bg-slate-900 text-white shadow-xs hover:bg-slate-800";
                           } else {
-                            // Klient (NTC karta / bežný): Pekná sýta žltá (Warm Gold / NTC Yellow) s tmavým písmom
-                            bookingClasses = "border-amber-400/90 bg-gradient-to-br from-[#F59E0B] via-[#EAB308] to-[#CA8A04] text-slate-950 shadow-[0_4px_14px_rgba(202,138,4,0.38)]";
+                            // Sýta čistá žltá presne podľa NTC dispečingu s čiernym textom
+                            bookingClasses = "border-[#C5BC00] bg-[#ECE81A] text-black font-bold shadow-xs hover:bg-[#F7F438]";
                           }
                         } else {
                           labelText = own ? "Vaša rezervácia" : "Obsadené";
@@ -965,18 +965,20 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                           <button
                             key={booking.id}
                             onClick={() => canManage && setDetail(booking)}
-                            className={`pointer-events-auto absolute inset-y-1.5 overflow-hidden rounded-xl border px-1.5 py-1 text-center shadow-md transition duration-200 hover:scale-[1.02] ${
+                            className={`pointer-events-auto absolute inset-y-1 overflow-hidden rounded-lg border px-1 py-0.5 text-center transition duration-150 hover:scale-[1.01] flex flex-col items-center justify-center ${
                               voiceHighlight ? "voice-booking-highlight" : ""
                             } ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${bookingClasses}`}
                             style={position(booking)}
                             title={canManage ? `Detail: ${labelText}` : "Obsadené"}
                           >
-                            <div className={`pointer-events-none absolute inset-0 ${isDarkText ? "opacity-15" : "opacity-25"}`}>
-                              <svg viewBox="0 0 100 100" className="h-full w-full" preserveAspectRatio="none">
-                                <rect x="5" y="5" width="90" height="90" fill="none" stroke={isDarkText ? "#000000" : "#FFFFFF"} strokeWidth="3" />
-                                <line x1="50" y1="5" x2="50" y2="95" stroke={isDarkText ? "#000000" : "#FFFFFF"} strokeWidth="2" strokeDasharray="6,4" />
-                              </svg>
-                            </div>
+                            {!isAdmin && (
+                              <div className="pointer-events-none absolute inset-0 opacity-25">
+                                <svg viewBox="0 0 100 100" className="h-full w-full" preserveAspectRatio="none">
+                                  <rect x="5" y="5" width="90" height="90" fill="none" stroke="#FFFFFF" strokeWidth="3" />
+                                  <line x1="50" y1="5" x2="50" y2="95" stroke="#FFFFFF" strokeWidth="2" strokeDasharray="6,4" />
+                                </svg>
+                              </div>
+                            )}
                             {voiceHighlight && (
                               <>
                                 <div className="pointer-events-none absolute inset-0 z-30 overflow-visible">
@@ -1006,22 +1008,23 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                                 <span className="voice-booking-scan" aria-hidden="true" />
                               </>
                             )}
-                            <b className={`relative z-[1] block whitespace-normal break-words text-[clamp(8px,0.7vw,12px)] font-black leading-none [overflow-wrap:anywhere] ${
-                              isDarkText
-                                ? "drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)]"
-                                : "drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
-                            }`}>
-                              <span className="block">{formatTime(booking.start)}</span>
-                              <span className="block leading-[0.55]" aria-hidden="true">–</span>
-                              <span className="block">{formatTime(booking.end)}</span>
-                            </b>
-                            <span className={`relative z-[1] mt-0.5 block whitespace-normal break-words text-[clamp(7px,0.6vw,10px)] font-black leading-none [overflow-wrap:anywhere] ${
-                              isDarkText
-                                ? "drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)]"
-                                : "drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
-                            }`}>
-                              {labelText}
-                            </span>
+
+                            {isAdmin ? (
+                              <span className="relative z-[1] block w-full truncate px-0.5 text-center text-[clamp(9px,0.72vw,12.5px)] font-bold leading-tight">
+                                {labelText}
+                              </span>
+                            ) : (
+                              <>
+                                <b className="relative z-[1] block whitespace-normal break-words text-[clamp(8px,0.7vw,12px)] font-black leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] [overflow-wrap:anywhere]">
+                                  <span className="block">{formatTime(booking.start)}</span>
+                                  <span className="block leading-[0.55]" aria-hidden="true">–</span>
+                                  <span className="block">{formatTime(booking.end)}</span>
+                                </b>
+                                <span className="relative z-[1] mt-0.5 block whitespace-normal break-words text-[clamp(7px,0.6vw,10px)] font-black leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] [overflow-wrap:anywhere]">
+                                  {labelText}
+                                </span>
+                              </>
+                            )}
                           </button>
                         );
                       })}
@@ -1039,15 +1042,15 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           {currentUser?.role === "admin" ? (
             <>
               <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-amber-400 bg-gradient-to-br from-[#F59E0B] to-[#CA8A04] shadow-xs" />
+                <i className="h-3.5 w-3.5 rounded-md border border-[#C5BC00] bg-[#ECE81A] shadow-xs" />
                 Klient (NTC karta / bežný)
               </span>
               <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-[#4A0E17] bg-gradient-to-br from-[#721c24] to-[#5C141E] shadow-xs" />
+                <i className="h-3.5 w-3.5 rounded-md border border-[#4A0E17] bg-[#721C24] shadow-xs" />
                 Tréner
               </span>
               <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-slate-700 bg-gradient-to-br from-slate-800 to-slate-950 shadow-xs" />
+                <i className="h-3.5 w-3.5 rounded-md border border-slate-800 bg-slate-900 shadow-xs" />
                 Admin blokácia
               </span>
             </>
