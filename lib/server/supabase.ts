@@ -19,16 +19,23 @@ export function getCoreDb() {
         return getSharedDb();
     }
     return createNamedClient(
-        process.env.CORE_SUPABASE_URL,
-        process.env.CORE_SUPABASE_SERVICE_ROLE_KEY,
+        process.env.CORE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.CORE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
         "CORE"
     );
 }
 
 export function getCoreServiceDb() {
+    if (hasSharedDbConfig()) {
+        return createNamedClient(
+            process.env.SHARED_SUPABASE_URL,
+            process.env.WALLET_SUPABASE_SERVICE_ROLE_KEY || process.env.SHARED_SUPABASE_SERVICE_ROLE_KEY,
+            "WALLET SHARED"
+        );
+    }
     return createNamedClient(
-        process.env.CORE_SUPABASE_URL,
-        process.env.WALLET_SUPABASE_SERVICE_ROLE_KEY || process.env.CORE_SUPABASE_SERVICE_ROLE_KEY,
+        process.env.CORE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.WALLET_SUPABASE_SERVICE_ROLE_KEY || process.env.CORE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
         "WALLET CORE"
     );
 }

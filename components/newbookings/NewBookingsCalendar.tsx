@@ -388,6 +388,14 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     const timers = voiceHighlightTimers.current;
     const channel = supabase.channel("newbookings-realtime").on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, (payload) => {
       setReload((value) => value + 1);
+      if (currentUser && currentUser.role !== "admin") {
+        getWalletAction().then((res) => {
+          if (res.success && res.enabled) {
+            setWalletBalance(res.balanceEur);
+          }
+        });
+      }
+
       if (payload.eventType !== "INSERT") return;
 
       playTennisHitSound();
@@ -405,12 +413,25 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       }, 4500);
       timers.set(bookingId, timer);
     }).subscribe();
+
+    const walletChannel = supabase.channel("wallets-realtime").on("postgres_changes", { event: "*", schema: "public", table: "wallets" }, (payload) => {
+      if (currentUser && currentUser.role !== "admin") {
+        const raw = payload.new as any;
+        if (raw?.user_id === currentUser.id && raw?.balance_eur !== undefined) {
+          setWalletBalance(Number(raw.balance_eur));
+          setWalletHighlight(true);
+          setTimeout(() => setWalletHighlight(false), 3500);
+        }
+      }
+    }).subscribe();
+
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(walletChannel);
       timers.forEach((timer) => window.clearTimeout(timer));
       timers.clear();
     };
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30_000);

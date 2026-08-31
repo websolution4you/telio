@@ -387,6 +387,10 @@ export async function deleteBookingAction(id: string) {
             p_booking_id: booking.id,
         });
 
+        if (refundError) {
+            console.error("wallet_refund_ntc_booking failed:", refundError);
+        }
+
         if (!refundError && refundData?.[0] && refundData[0].refunded) {
             wallet = {
                 refundedEur: Number(refundData[0].refunded_eur),
