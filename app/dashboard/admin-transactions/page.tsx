@@ -4,6 +4,9 @@ import { ArrowLeft, Receipt } from "lucide-react";
 import { getSession } from "@/lib/auth/bookingAuth";
 import AdminTransactions from "@/components/newbookings/AdminTransactions";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata = {
   title: "Transakcie (Administrátor) | Telio",
   description: "Kompletný prehľad všetkých transakcií, dobití a platieb klientov.",

@@ -294,9 +294,146 @@ export default function AdminTransactions() {
         </div>
       )}
 
-      {/* Transactions Table Card */}
+      {/* Transactions Card Container */}
       <div className="overflow-hidden rounded-3xl border-2 border-slate-200/90 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
-        <div className="overflow-x-auto">
+        {/* Mobile List View (< md) */}
+        <div className="divide-y divide-slate-100 md:hidden">
+          {loading && transactions.length === 0 ? (
+            <div className="px-5 py-16 text-center text-slate-500">
+              <Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-emerald-600" />
+              Načítavam záznamy...
+            </div>
+          ) : transactions.length === 0 ? (
+            <div className="px-5 py-16 text-center text-slate-500">
+              Nenašli sa žiadne záznamy zodpovedajúce filtrom.
+            </div>
+          ) : (
+            transactions.map((tx) => {
+              const isPositive = tx.amountEur > 0;
+              const isCharge = tx.type === "booking_charge";
+              const isRefund = tx.type === "refund";
+              const isPaid = tx.status === "paid" || tx.status === "confirmed";
+              const isProcessing = tx.status === "processing";
+              const isFailed = tx.status === "failed" || tx.status === "cancelled";
+
+              return (
+                <div key={`m-${tx.id}`} className="space-y-2.5 p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {tx.user ? (
+                        <>
+                          <TennisBallAvatar name={tx.user.name} className="h-8 w-8 shrink-0" textSize="text-[10px]" />
+                          <div className="min-w-0">
+                            <span className="block truncate text-xs font-bold text-slate-900">{tx.user.name}</span>
+                            <span className="block truncate text-[10px] text-slate-500">{tx.user.email}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">Neznámy používateľ</span>
+                      )}
+                    </div>
+                    <span
+                      className={`shrink-0 text-sm font-black ${
+                        isFailed
+                          ? "text-slate-400 line-through"
+                          : isProcessing
+                          ? "text-amber-600"
+                          : isPositive
+                          ? "text-emerald-600"
+                          : "text-amber-700"
+                      }`}
+                    >
+                      {isPositive ? "+" : ""}
+                      {formatEur(tx.amountEur)}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                    {/* Status badge */}
+                    {isPaid ? (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-emerald-300/80 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                        paid
+                      </span>
+                    ) : isProcessing ? (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                        <Clock3 className="h-3 w-3 text-amber-600 animate-pulse" />
+                        processing
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-red-300 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-800">
+                        <XCircle className="h-3 w-3 text-red-600" />
+                        {tx.status}
+                      </span>
+                    )}
+
+                    {/* Type badge */}
+                    {isCharge ? (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-900">
+                        <ArrowDownLeft className="h-3 w-3 text-amber-600" />
+                        Platba za rezerváciu
+                      </span>
+                    ) : isRefund ? (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-900">
+                        <ArrowUpRight className="h-3 w-3 text-sky-600" />
+                        Vrátenie za rezerváciu
+                      </span>
+                    ) : tx.category === "cardpay" ? (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-900">
+                        <Coins className="h-3 w-3 text-emerald-600" />
+                        CardPay (TB)
+                      </span>
+                    ) : tx.category === "stripe" ? (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-900">
+                        <CreditCard className="h-3 w-3 text-indigo-600" />
+                        Stripe
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-800">
+                        {tx.categoryLabel}
+                      </span>
+                    )}
+
+                    {/* Card number if present */}
+                    {tx.user?.cardNumber && (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50/70 px-1.5 py-0.5 text-[10px] font-black text-emerald-800">
+                        <CreditCard className="h-2.5 w-2.5 text-emerald-600" />
+                        {tx.user.cardNumber}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500 pt-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="h-3 w-3 text-slate-400" />
+                      <span>{formatDateTime(tx.createdAt)}</span>
+                    </div>
+
+                    {tx.bookingDetails?.courtName && (
+                      <span className="font-semibold text-slate-700">
+                        {tx.bookingDetails.courtName}
+                      </span>
+                    )}
+
+                    {tx.providerPaymentId && (
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(tx.providerPaymentId!, `m-prov-${tx.id}`)}
+                        className="font-mono text-[10px] text-slate-600 hover:text-slate-900 underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>{tx.providerPaymentId.slice(0, 8)}...</span>
+                        {copiedId === `m-prov-${tx.id}` ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-2.5 w-2.5 text-slate-400" />}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop Table View (>= md) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm text-slate-700">
             <thead>
               <tr className="border-b-2 border-slate-200 bg-slate-50 text-xs font-extrabold tracking-wider text-slate-600">
