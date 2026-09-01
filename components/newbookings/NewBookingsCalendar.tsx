@@ -635,88 +635,94 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           <HolographicTennisCourt />
                     {/* Desktop Horizontal Navigation (md:flex) */}
           {currentUser && (
-            <nav className="hidden md:flex items-center gap-1.5 lg:gap-2">
-              <Link
-                href="/dashboard/newbookings"
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs lg:text-sm font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-indigo-300 hover:bg-indigo-50/70 hover:text-indigo-700"
-              >
-                <LayoutDashboard className="h-4 w-4 text-indigo-600" />
-                <span>Štatistiky</span>
-              </Link>
-
-              {currentUser.role === "admin" ? (
-                <>
-                  <Link
-                    href="/dashboard/users"
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs lg:text-sm font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-cyan-300 hover:bg-cyan-50/70 hover:text-cyan-700"
-                  >
-                    <Users className="h-4 w-4 text-cyan-600" />
-                    <span>Používatelia</span>
-                  </Link>
-
-                  <Link
-                    href="/dashboard/admin-transactions"
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs lg:text-sm font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-700"
-                  >
-                    <Receipt className="h-4 w-4 text-emerald-600" />
-                    <span>Transakcie</span>
-                  </Link>
-
-                  <Link
-                    href="/dashboard/users-roles"
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs lg:text-sm font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-violet-300 hover:bg-violet-50/70 hover:text-violet-700"
-                  >
-                    <ShieldCheck className="h-4 w-4 text-violet-600" />
-                    <span>Administrácia</span>
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link
-                    href="/dashboard/transactions"
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs lg:text-sm font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-700"
-                  >
-                    <Coins className="h-4 w-4 text-emerald-600" />
-                    <span>Moje transakcie</span>
-                  </Link>
-                </>
-              )}
-
-              {currentUser.role !== "admin" && walletBalance !== null && (
-                <div
-                  className={`flex items-center gap-2 rounded-xl border bg-white/95 px-3 py-2 text-slate-900 shadow-2xs backdrop-blur-xl transition-all duration-500 ${
-                    walletHighlight
-                      ? "border-emerald-500 bg-emerald-50 ring-4 ring-emerald-300/80 scale-105"
-                      : "border-[#d2f500]"
-                  }`}
-                  title="Aktuálny kredit"
+            <nav className="hidden md:flex items-center gap-2 lg:gap-3">
+              {/* Menu items group */}
+              <div className="flex items-center gap-1.5 lg:gap-2 mr-3 lg:mr-6">
+                <Link
+                  href="/dashboard/newbookings"
+                  className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs lg:text-sm font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-indigo-300 hover:bg-indigo-50/70 hover:text-indigo-700"
                 >
-                  <Coins className={`h-4 w-4 shrink-0 transition-transform duration-500 ${walletHighlight ? "text-emerald-600 scale-125" : "text-slate-700"}`} />
-                  <span className="text-xs font-semibold text-slate-900">Kredit:</span>
-                  <strong className="text-xs lg:text-sm font-bold text-slate-900">{walletBalance.toFixed(2)} €</strong>
-                </div>
-              )}
+                  <LayoutDashboard className="h-4 w-4 text-indigo-600" />
+                  <span>Štatistiky</span>
+                </Link>
 
-              {/* User Chip */}
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-1.5 shadow-2xs">
-                <TennisBallAvatar name={currentUser.name} className="h-7 w-7" textSize="text-[10px]" />
-                <span className="text-xs font-bold text-slate-800 max-w-[130px] truncate">{currentUser.name}</span>
+                {currentUser.role === "admin" ? (
+                  <>
+                    <Link
+                      href="/dashboard/users"
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs lg:text-sm font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-cyan-300 hover:bg-cyan-50/70 hover:text-cyan-700"
+                    >
+                      <Users className="h-4 w-4 text-cyan-600" />
+                      <span>Používatelia</span>
+                    </Link>
+
+                    <Link
+                      href="/dashboard/admin-transactions"
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs lg:text-sm font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-700"
+                    >
+                      <Receipt className="h-4 w-4 text-emerald-600" />
+                      <span>Transakcie</span>
+                    </Link>
+
+                    <Link
+                      href="/dashboard/users-roles"
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs lg:text-sm font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-violet-300 hover:bg-violet-50/70 hover:text-violet-700"
+                    >
+                      <ShieldCheck className="h-4 w-4 text-violet-600" />
+                      <span>Administrácia</span>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/dashboard/transactions"
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs lg:text-sm font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-700"
+                    >
+                      <Coins className="h-4 w-4 text-emerald-600" />
+                      <span>Moje transakcie</span>
+                    </Link>
+                  </>
+                )}
               </div>
 
-              {/* Logout button */}
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!window.confirm("Chcete sa naozaj odhlásiť?")) return;
-                  await logoutAction();
-                  router.refresh();
-                }}
-                className="flex items-center gap-1.5 rounded-xl border border-red-200/80 bg-red-50/60 px-3 py-2 text-xs font-bold text-red-600 shadow-2xs transition hover:bg-red-600 hover:text-white cursor-pointer"
-                title="Odhlásiť sa"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden xl:inline">Odhlásiť</span>
-              </button>
+              {/* User profile, credit & logout group */}
+              <div className="flex items-center gap-2">
+                {currentUser.role !== "admin" && walletBalance !== null && (
+                  <div
+                    className={`flex items-center gap-2 rounded-xl border bg-white/95 px-3 py-2 text-slate-900 shadow-2xs backdrop-blur-xl transition-all duration-500 ${
+                      walletHighlight
+                        ? "border-emerald-500 bg-emerald-50 ring-4 ring-emerald-300/80 scale-105"
+                        : "border-[#d2f500]"
+                    }`}
+                    title="Aktuálny kredit"
+                  >
+                    <Coins className={`h-4 w-4 shrink-0 transition-transform duration-500 ${walletHighlight ? "text-emerald-600 scale-125" : "text-slate-700"}`} />
+                    <span className="text-xs font-semibold text-slate-900">Kredit:</span>
+                    <strong className="text-xs lg:text-sm font-bold text-slate-900">{walletBalance.toFixed(2)} €</strong>
+                  </div>
+                )}
+
+                {/* User Chip */}
+                <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-1.5 shadow-2xs">
+                  <TennisBallAvatar name={currentUser.name} className="h-7 w-7" textSize="text-[10px]" />
+                  <span className="text-xs font-bold text-slate-800 max-w-[130px] truncate">{currentUser.name}</span>
+                </div>
+
+                {/* Logout button */}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!window.confirm("Chcete sa naozaj odhlásiť?")) return;
+                    await logoutAction();
+                    router.refresh();
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl border border-red-200/80 bg-red-50/60 px-3 py-2 text-xs font-bold text-red-600 shadow-2xs transition hover:bg-red-600 hover:text-white cursor-pointer"
+                  title="Odhlásiť sa"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden xl:inline">Odhlásiť</span>
+                </button>
+              </div>
             </nav>
           )}
 
