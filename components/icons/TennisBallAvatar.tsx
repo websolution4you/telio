@@ -25,7 +25,7 @@ export function TennisBallAvatar({
 
   return (
     <div
-      className={`relative shrink-0 select-none overflow-hidden rounded-full bg-[#d4f400] shadow-[0_3px_10px_rgba(0,0,0,0.18)] ring-1 ring-[#b2d600] ${className}`}
+      className={`relative shrink-0 select-none overflow-hidden rounded-full bg-[#d2f500] shadow-[0_3px_10px_rgba(0,0,0,0.15)] ${className}`}
     >
       {/* Tennis Ball SVG Background & Seams */}
       <svg
@@ -36,8 +36,8 @@ export function TennisBallAvatar({
       >
         <defs>
           <radialGradient id={gradId} cx="35%" cy="30%" r="70%">
-            <stop offset="0%" stopColor="#faff66" />
-            <stop offset="50%" stopColor="#d4f400" />
+            <stop offset="0%" stopColor="#f7ff57" />
+            <stop offset="60%" stopColor="#d2f500" />
             <stop offset="100%" stopColor="#9ec200" />
           </radialGradient>
         </defs>
@@ -49,23 +49,23 @@ export function TennisBallAvatar({
         <path
           d="M 5,5 C 13,11 13,25 5,31"
           stroke="#ffffff"
-          strokeWidth="2.6"
+          strokeWidth="2.5"
           strokeLinecap="round"
-          opacity="0.95"
+          opacity="0.9"
         />
         <path
           d="M 31,5 C 23,11 23,25 31,31"
           stroke="#ffffff"
-          strokeWidth="2.6"
+          strokeWidth="2.5"
           strokeLinecap="round"
-          opacity="0.95"
+          opacity="0.9"
         />
       </svg>
 
       {/* User Initials overlay */}
       <div className="relative z-10 flex h-full w-full items-center justify-center">
         <span
-          className={`font-black tracking-tighter text-slate-950 ${textSize}`}
+          className={`font-black tracking-tighter text-slate-950 drop-shadow-[0_1px_1px_rgba(255,255,255,0.6)] ${textSize}`}
           style={{ fontFamily: "var(--font-poppins), system-ui, sans-serif" }}
         >
           {initials}
