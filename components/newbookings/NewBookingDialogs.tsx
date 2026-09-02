@@ -91,7 +91,6 @@ export function CreateBookingDialog(props: CreateDialogProps) {
         )}
 
         <form onSubmit={props.onSubmit} className="space-y-3.5 sm:space-y-4">
-          <Field icon={MessageSquare} label="Poznámka / názov hry" value={props.title} onChange={props.onTitle} />
           <Field icon={Phone} label="Telefón" value={props.phone} onChange={props.onPhone} type="tel" />
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-slate-700 sm:mb-2 sm:text-sm">Dĺžka rezervácie</span>
@@ -103,6 +102,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
               {props.durationOptions.map((minutes) => <option key={minutes} value={minutes}>{formatDuration(minutes)}</option>)}
             </select>
           </label>
+          <Field icon={MessageSquare} label="Poznámka" value={props.title} onChange={props.onTitle} placeholder="Voliteľná poznámka k rezervácii..." />
           <button
             disabled={props.loading}
             className="mt-2 w-full rounded-xl bg-emerald-600 px-4 py-3 text-xs font-bold text-white transition hover:bg-emerald-700 disabled:opacity-50 sm:px-5 sm:py-3.5 sm:text-sm"
@@ -237,7 +237,7 @@ function Detail({ icon: Icon, label, value }: { icon: typeof User; label: string
   );
 }
 
-function Field({ icon: Icon, label, value, onChange, type = "text" }: { icon: typeof Phone; label: string; value: string; onChange: (value: string) => void; type?: string }) {
+function Field({ icon: Icon, label, value, onChange, type = "text", placeholder }: { icon: typeof Phone; label: string; value: string; onChange: (value: string) => void; type?: string; placeholder?: string }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-semibold text-slate-700 sm:mb-2 sm:text-sm">{label}</span>
@@ -246,6 +246,7 @@ function Field({ icon: Icon, label, value, onChange, type = "text" }: { icon: ty
         <input
           type={type}
           value={value}
+          placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}
           className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3.5 text-xs text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 sm:py-3 sm:pl-11 sm:pr-4 sm:text-sm"
         />
