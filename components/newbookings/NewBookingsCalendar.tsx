@@ -228,6 +228,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [title, setTitle] = useState("");
   const [phone, setPhone] = useState("");
   const [duration, setDuration] = useState(60);
+  const [multisportCardsCount, setMultisportCardsCount] = useState<0 | 1 | 2>(0);
   const [walletBalance, setWalletBalance] = useState<number | null>(initialWalletBalance ?? null);
   const [walletHighlight, setWalletHighlight] = useState(false);
   const [topUpLoading, setTopUpLoading] = useState<number | null>(null);
@@ -494,13 +495,14 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       if (start < now) return setNotice("Rezerváciu v minulosti nie je možné vytvoriť.");
       const options = getAvailableDurationOptions(courtId, start);
       if (!options.length) return setNotice("Do najbližšej rezervácie alebo konca prevádzky nie je voľných aspoň 30 minút.");
-      setTitle(""); setPhone(currentUser.phone || ""); setDuration(options.includes(60) ? 60 : options[0]); setNotice(""); setSlot({ courtId, date: new Date(date), hour });
+      setTitle(""); setPhone(currentUser.phone || ""); setDuration(options.includes(60) ? 60 : options[0]); setMultisportCardsCount(0); setNotice(""); setSlot({ courtId, date: new Date(date), hour });
     } else {
       const options = getAvailableDurationOptions(courtId, start);
       const defaultDuration = options.length > 0 ? (options.includes(60) ? 60 : options[0]) : 60;
       setTitle("Údržba");
       setPhone(currentUser.phone || "");
       setDuration(defaultDuration);
+      setMultisportCardsCount(0);
       setNotice("");
       setSlot({ courtId, date: new Date(date), hour });
     }
@@ -521,7 +523,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       end: end.toISOString(),
       status: "confirmed",
       source: currentUser.role === "admin" ? "admin" : "web",
-      operationId: crypto.randomUUID()
+      operationId: crypto.randomUUID(),
+      multisportCardsCount
     });
     setLoading(false);
     if (!result.success || !result.booking) return setNotice(result.error || "Rezerváciu sa nepodarilo vytvoriť.");
@@ -531,7 +534,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     setNotice(
       result.wallet && result.wallet.chargedEur > 0
         ? `Rezervácia bola vytvorená. Odpočítané: ${result.wallet.chargedEur.toFixed(2)} €.`
-        : (currentUser.role === "admin" ? "Kurt bol úspešne zablokovaný / rezervovaný." : "Rezervácia bola úspešne vytvorená.")
+        : (multisportCardsCount === 2 
+            ? "Rezervácia bola úspešne vytvorená so 100% zľavou (2x MultiSport karta zdarma)."
+            : (currentUser.role === "admin" ? "Kurt bol úspešne zablokovaný / rezervovaný." : "Rezervácia bola úspešne vytvorená."))
     );
   };
   const remove = async () => {
@@ -1174,6 +1179,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           duration={duration}
           durationOptions={getAvailableDurationOptions(slot.courtId, new Date(new Date(slot.date).setHours(slot.hour, 0, 0, 0)))}
           discountEurPerHour={rolePolicy?.discountEurPerHour ?? 0}
+          multisportCardsCount={multisportCardsCount}
+          onMultisportCardsCount={setMultisportCardsCount}
           title={title}
           phone={phone}
           isAdmin={currentUser?.role === "admin"}

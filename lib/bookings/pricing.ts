@@ -2,9 +2,12 @@ import { SportType } from "./mockBookings";
 
 export type NtcPricingResult = {
   totalPriceEur: number;
+  originalPriceEur: number;
   isMemberRate: boolean;
   baseHourlyRate: number;
   roleDiscountEur: number;
+  multisportDiscountEur: number;
+  multisportCardsCount: number;
   formattedPrice: string;
 };
 
@@ -59,14 +62,16 @@ export function getNtcHourlyRate(
 
 /**
  * Calculates exact NTC booking price for any sport, date/time, and duration.
- * Uses 15-minute slice precision across tariff boundaries, then applies a fixed role discount per hour.
+ * Uses 15-minute slice precision across tariff boundaries, then applies fixed role discount,
+ * and finally MultiSport card discounts (1 card = 50%, 2 cards = 100%).
  */
 export function calculateNtcBookingPrice(
-    sportOrCourtId: string,
+  sportOrCourtId: string,
   startDate: Date | string,
   durationMinutes: number,
   hasCard: boolean = false,
-  discountEurPerHour: number = 0
+  discountEurPerHour: number = 0,
+  multisportCardsCount: number = 0
 ): NtcPricingResult {
   const normalizedSport = normalizeSport(sportOrCourtId);
   const start = typeof startDate === "string" ? new Date(startDate) : new Date(startDate);
@@ -77,7 +82,7 @@ export function calculateNtcBookingPrice(
   let firstHourlyRate = 0;
 
   for (let i = 0; i < slices; i++) {
-        const sliceTime = new Date(start.getTime() + i * 15 * 60 * 1000);
+    const sliceTime = new Date(start.getTime() + i * 15 * 60 * 1000);
     const localParts = new Intl.DateTimeFormat("en-US", {
       timeZone: "Europe/Bratislava",
       weekday: "short",
@@ -95,17 +100,36 @@ export function calculateNtcBookingPrice(
 
     // 15-minute slice is 1/4 of the hourly rate
     totalPrice += hourlyRate / 4;
-    }
+  }
 
   const roleDiscountEur = Math.max(0, discountEurPerHour) * duration / 60;
-  const finalTotal = Math.max(0, totalPrice - roleDiscountEur);
+  const beforeMultisport = Math.max(0, totalPrice - roleDiscountEur);
+  const roundedBeforeMultisport = Math.round(beforeMultisport * 100) / 100;
+
+  let multisportDiscountEur = 0;
+  let finalTotal = roundedBeforeMultisport;
+
+  const validCards = Math.min(2, Math.max(0, Math.floor(multisportCardsCount || 0)));
+  if (validCards === 1) {
+    // 1 MultiSport card = 50% discount
+    multisportDiscountEur = Math.round(roundedBeforeMultisport * 0.5 * 100) / 100;
+    finalTotal = Math.max(0, roundedBeforeMultisport - multisportDiscountEur);
+  } else if (validCards >= 2) {
+    // 2 MultiSport cards = 100% discount (free)
+    multisportDiscountEur = roundedBeforeMultisport;
+    finalTotal = 0.00;
+  }
+
   const roundedTotal = Math.round(finalTotal * 100) / 100;
 
   return {
     totalPriceEur: roundedTotal,
+    originalPriceEur: roundedBeforeMultisport,
     isMemberRate: hasCard,
     baseHourlyRate: firstHourlyRate,
     roleDiscountEur,
+    multisportDiscountEur,
+    multisportCardsCount: validCards,
     formattedPrice: `${roundedTotal.toFixed(2)} €`,
   };
 }

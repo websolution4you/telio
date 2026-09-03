@@ -138,9 +138,14 @@ export async function fetchBookingsAction(startDateIso: string, endDateIso: stri
 
         // Map database events to booking objects
         const bookings = (data || []).map(row => {
-            let notesObj = { courtId: "", source: "web", notes: "" };
+            let notesObj: { courtId?: string; source?: string; notes?: string; multisportCardsCount?: number } = {
+                courtId: "",
+                source: "web",
+                notes: "",
+                multisportCardsCount: 0
+            };
             try {
-                notesObj = JSON.parse(row.notes || "{}");
+                notesObj = { ...notesObj, ...JSON.parse(row.notes || "{}") };
             } catch (e) {
                 console.error("Failed to parse notes JSON:", e);
             }
@@ -157,7 +162,9 @@ export async function fetchBookingsAction(startDateIso: string, endDateIso: stri
                 source: (notesObj.source || "web") as any,
                 user_id: row.user_id || undefined,
                 userRole: userMeta?.role || "user",
-                userCardNumber: userMeta?.cardNumber
+                userCardNumber: userMeta?.cardNumber,
+                multisportCardsCount: Number(notesObj.multisportCardsCount || 0),
+                priceEur: row.price_eur != null ? Number(row.price_eur) : undefined
             };
         });
 
@@ -178,6 +185,7 @@ export async function createBookingAction(payload: {
     status: "confirmed" | "blocked";
     source: "web" | "admin" | "voice-assistant" | "google-calendar";
     operationId?: string;
+    multisportCardsCount?: number;
 }) {
     try {
         const session = await getSession();
@@ -272,59 +280,193 @@ export async function createBookingAction(payload: {
 
         if (hasConflict) {
             return { success: false, error: "Vybraný kurt je v tomto čase už zarezervovaný." };
-                }
+        }
+
+        const durationMin = Math.round((bookingEndMs - bookingStartMs) / 60000);
+        const hasCard = Boolean(bookingUser.card_number && String(bookingUser.card_number).trim());
+        const multisportCount = Math.min(2, Math.max(0, Math.floor(payload.multisportCardsCount || 0)));
+
+        const pricingResult = calculateNtcBookingPrice(
+            payload.courtId,
+            payload.start,
+            durationMin,
+            hasCard,
+            roleDiscountEurPerHour,
+            multisportCount
+        );
+        const calculatedPrice = session.role === "admin" ? 0.00 : pricingResult.totalPriceEur;
 
         const notesObj = {
             courtId: payload.courtId,
             source: payload.source,
-            notes: payload.title
+            notes: payload.title,
+            multisportCardsCount: multisportCount
         };
         const useWallet = session.role !== "admin" && payload.source !== "admin" && walletEnabledForUser(session.userId);
 
         let bookingId: string;
         let wallet: { chargedEur: number; balanceEur: number; created: boolean } | undefined;
+
         if (useWallet) {
             if (!payload.operationId) {
                 return { success: false, error: "Chýba identifikátor rezervácie. Skúste to znova." };
             }
-            const sport = payload.courtId.replace(/-\d+$/, "");
             const walletDb = getCoreServiceDb();
-            const { data, error } = await walletDb.rpc("wallet_create_ntc_booking", {
-                p_user_id: session.userId,
-                p_court_id: payload.courtId,
-                p_sport: sport,
-                p_customer_name: payload.customerName,
-                p_customer_phone: payload.phone || "",
-                p_start_at: payload.start,
-                p_end_at: payload.end,
-                p_notes: JSON.stringify(notesObj),
-                p_idempotency_key: payload.operationId,
-            });
-            if (error) {
-                const message = error.message.toLowerCase();
-                if (message.includes("insufficient wallet balance")) {
-                    return { success: false, error: "Nedostatočný zostatok v peňaženke." };
-                }
-                if (message.includes("no longer available")) {
-                    return { success: false, error: "Vybraný kurt je už obsadený." };
-                }
-                throw new Error(`Wallet booking error: ${error.message}`);
-            }
-            const result = data?.[0];
-            if (!result) throw new Error("Wallet booking did not return a result");
-            bookingId = result.booking_id;
-            wallet = {
-                chargedEur: Number(result.charged_eur),
-                balanceEur: Number(result.balance_eur),
-                created: Boolean(result.created),
-            };
-        } else {
-            const durationMin = Math.round((bookingEndMs - bookingStartMs) / 60000);
-            const hasCard = Boolean(bookingUser.card_number && String(bookingUser.card_number).trim());
-            const calculatedPrice = session.role === "admin"
-                ? 0.00
-                : calculateNtcBookingPrice(payload.courtId, payload.start, durationMin, hasCard, roleDiscountEurPerHour).totalPriceEur;
 
+            if (multisportCount === 2 || calculatedPrice === 0.00) {
+                // 100% zľava (2 MultiSport karty = bezplatná rezervácia): nestrháva žiadny kredit
+                const { data: dbBooking, error: dbError } = await walletDb
+                    .from("bookings")
+                    .insert({
+                        tenant_id: TENANT_ID,
+                        court_id: payload.courtId,
+                        sport: payload.courtId.replace(/-\d+$/, ""),
+                        customer_name: payload.customerName,
+                        customer_phone: payload.phone || null,
+                        start_at: payload.start,
+                        end_at: payload.end,
+                        status: payload.status,
+                        notes: JSON.stringify(notesObj),
+                        user_id: session.userId,
+                        price_eur: 0.00
+                    })
+                    .select()
+                    .single();
+
+                if (dbError) throw new Error(`Database error: ${dbError.message}`);
+                bookingId = dbBooking.id;
+
+                const { data: userWallet } = await walletDb
+                    .from("wallets")
+                    .select("id, balance_eur")
+                    .eq("user_id", session.userId)
+                    .maybeSingle();
+
+                if (userWallet) {
+                    await walletDb.from("wallet_transactions").insert({
+                        wallet_id: userWallet.id,
+                        tenant_id: TENANT_ID,
+                        user_id: session.userId,
+                        booking_id: bookingId,
+                        type: "booking_charge",
+                        amount_eur: 0.00,
+                        idempotency_key: payload.operationId,
+                        metadata: {
+                            court_id: payload.courtId,
+                            multisport_cards_count: 2,
+                            discount: "100%",
+                            price_eur: 0.00
+                        }
+                    });
+                }
+
+                wallet = {
+                    chargedEur: 0.00,
+                    balanceEur: Number(userWallet?.balance_eur ?? 0),
+                    created: true
+                };
+            } else if (multisportCount === 1) {
+                // 50% zľava (1 MultiSport karta): overenie a odčítanie 50% z peňaženky
+                const { data: userWallet } = await walletDb
+                    .from("wallets")
+                    .select("id, balance_eur")
+                    .eq("user_id", session.userId)
+                    .maybeSingle();
+
+                const currentBal = Number(userWallet?.balance_eur ?? 0);
+                if (currentBal < calculatedPrice) {
+                    return {
+                        success: false,
+                        error: `Nedostatočný zostatok v peňaženke. Potrebná suma po zľave 50 %: ${calculatedPrice.toFixed(2)} €, aktuálny zostatok: ${currentBal.toFixed(2)} €.`
+                    };
+                }
+
+                const newBal = Math.round((currentBal - calculatedPrice) * 100) / 100;
+                if (userWallet) {
+                    await walletDb
+                        .from("wallets")
+                        .update({ balance_eur: newBal, updated_at: new Date().toISOString() })
+                        .eq("id", userWallet.id);
+                }
+
+                const { data: dbBooking, error: dbError } = await walletDb
+                    .from("bookings")
+                    .insert({
+                        tenant_id: TENANT_ID,
+                        court_id: payload.courtId,
+                        sport: payload.courtId.replace(/-\d+$/, ""),
+                        customer_name: payload.customerName,
+                        customer_phone: payload.phone || null,
+                        start_at: payload.start,
+                        end_at: payload.end,
+                        status: payload.status,
+                        notes: JSON.stringify(notesObj),
+                        user_id: session.userId,
+                        price_eur: calculatedPrice
+                    })
+                    .select()
+                    .single();
+
+                if (dbError) throw new Error(`Database error: ${dbError.message}`);
+                bookingId = dbBooking.id;
+
+                if (userWallet) {
+                    await walletDb.from("wallet_transactions").insert({
+                        wallet_id: userWallet.id,
+                        tenant_id: TENANT_ID,
+                        user_id: session.userId,
+                        booking_id: bookingId,
+                        type: "booking_charge",
+                        amount_eur: -calculatedPrice,
+                        idempotency_key: payload.operationId,
+                        metadata: {
+                            court_id: payload.courtId,
+                            multisport_cards_count: 1,
+                            discount: "50%",
+                            price_eur: calculatedPrice
+                        }
+                    });
+                }
+
+                wallet = {
+                    chargedEur: calculatedPrice,
+                    balanceEur: newBal,
+                    created: true
+                };
+            } else {
+                // 0 kariet: volanie RPC funkcie wallet_create_ntc_booking
+                const sport = payload.courtId.replace(/-\d+$/, "");
+                const { data, error } = await walletDb.rpc("wallet_create_ntc_booking", {
+                    p_user_id: session.userId,
+                    p_court_id: payload.courtId,
+                    p_sport: sport,
+                    p_customer_name: payload.customerName,
+                    p_customer_phone: payload.phone || "",
+                    p_start_at: payload.start,
+                    p_end_at: payload.end,
+                    p_notes: JSON.stringify(notesObj),
+                    p_idempotency_key: payload.operationId,
+                });
+                if (error) {
+                    const message = error.message.toLowerCase();
+                    if (message.includes("insufficient wallet balance")) {
+                        return { success: false, error: "Nedostatočný zostatok v peňaženke." };
+                    }
+                    if (message.includes("no longer available")) {
+                        return { success: false, error: "Vybraný kurt je už obsadený." };
+                    }
+                    throw new Error(`Wallet booking error: ${error.message}`);
+                }
+                const result = data?.[0];
+                if (!result) throw new Error("Wallet booking did not return a result");
+                bookingId = result.booking_id;
+                wallet = {
+                    chargedEur: Number(result.charged_eur),
+                    balanceEur: Number(result.balance_eur),
+                    created: Boolean(result.created),
+                };
+            }
+        } else {
             const { data: dbBooking, error: dbError } = await db
                 .from("bookings")
                 .insert({

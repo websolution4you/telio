@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Clock3, MessageSquare, Phone, Trash2, User, X } from "lucide-react";
+import { Clock3, CreditCard, MessageSquare, Phone, Trash2, User, X } from "lucide-react";
 import type { Booking, Court } from "@/lib/bookings/mockBookings";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import { formatDuration } from "@/lib/bookings/rolePolicy";
@@ -17,6 +17,8 @@ type CreateDialogProps = {
   isAdmin?: boolean;
   durationOptions: number[];
   discountEurPerHour: number;
+  multisportCardsCount: 0 | 1 | 2;
+  onMultisportCardsCount: (count: 0 | 1 | 2) => void;
   error?: string;
   loading: boolean;
   onDuration: (value: number) => void;
@@ -42,7 +44,8 @@ export function CreateBookingDialog(props: CreateDialogProps) {
     bookingDate,
     props.duration,
     Boolean(props.hasCard),
-    props.discountEurPerHour
+    props.discountEurPerHour,
+    props.multisportCardsCount
   );
 
   return (
@@ -62,16 +65,31 @@ export function CreateBookingDialog(props: CreateDialogProps) {
           <Info label="Trvanie" value={`${props.duration} min.`} />
           <div className="col-span-2 flex items-center justify-between border-t border-slate-200/80 pt-2.5 mt-0.5">
             <span className="font-semibold text-slate-600">{props.isAdmin ? "Platba / Kredit:" : "Cena rezervácie:"}</span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
               {props.isAdmin ? (
                 <span className="rounded-md border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-bold text-violet-700">
                   Admin blokovanie (bez kreditu)
                 </span>
               ) : (
                 <>
+                  {pricing.multisportCardsCount > 0 && pricing.originalPriceEur > pricing.totalPriceEur && (
+                    <span className="text-xs sm:text-sm text-slate-400 line-through mr-1 font-semibold">
+                      {pricing.originalPriceEur.toFixed(2)} €
+                    </span>
+                  )}
                   <span className="text-base font-black text-slate-950 sm:text-lg">
                     {pricing.formattedPrice}
                   </span>
+                  {pricing.multisportCardsCount === 1 && (
+                    <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shadow-2xs">
+                      MultiSport 1x (-50 %)
+                    </span>
+                  )}
+                  {pricing.multisportCardsCount === 2 && (
+                    <span className="rounded-md border border-emerald-500 bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-2xs">
+                      MultiSport 2x (Zdarma)
+                    </span>
+                  )}
                   {pricing.isMemberRate && (
                     <span className="rounded-md border border-emerald-300/60 bg-emerald-100/90 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Členská tarifa</span>
                   )}
@@ -92,6 +110,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
 
         <form onSubmit={props.onSubmit} className="space-y-3.5 sm:space-y-4">
           <Field icon={Phone} label="Telefón" value={props.phone} onChange={props.onPhone} type="tel" />
+          
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-slate-700 sm:mb-2 sm:text-sm">Dĺžka rezervácie</span>
             <select
@@ -102,10 +121,83 @@ export function CreateBookingDialog(props: CreateDialogProps) {
               {props.durationOptions.map((minutes) => <option key={minutes} value={minutes}>{formatDuration(minutes)}</option>)}
             </select>
           </label>
+
+          {/* MultiSport karty (len pre klientov/ne-adminov) */}
+          {!props.isAdmin && (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 sm:p-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                  <CreditCard className="h-4 w-4 text-emerald-600" />
+                  MultiSport karta
+                </span>
+                {props.multisportCardsCount > 0 && (
+                  <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 border border-emerald-300">
+                    {props.multisportCardsCount === 1 ? "Zľava 50 %" : "100 % zľava (Zdarma)"}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 leading-tight">
+                Zaškrtnite 1 kartu pre 50% zľavu, alebo obe karty pre 100% zľavu z ceny kurtu.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                {/* Karta č. 1 */}
+                <label className={`flex items-center gap-2.5 rounded-xl border p-2.5 cursor-pointer transition select-none ${
+                  props.multisportCardsCount >= 1 
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold shadow-2xs" 
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100/70"
+                }`}>
+                  <input
+                    type="checkbox"
+                    checked={props.multisportCardsCount >= 1}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        props.onMultisportCardsCount(1);
+                      } else {
+                        props.onMultisportCardsCount(0);
+                      }
+                    }}
+                    className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer"
+                  />
+                  <div className="text-xs">
+                    <span className="block font-bold">MultiSport karta č. 1</span>
+                    <span className="text-[10px] text-slate-500 font-normal">-50 % z ceny kurtu</span>
+                  </div>
+                </label>
+
+                {/* Karta č. 2 - 100% zľava iba ak sú zaškrtnuté obe karty */}
+                <label className={`flex items-center gap-2.5 rounded-xl border p-2.5 cursor-pointer transition select-none ${
+                  props.multisportCardsCount === 2 
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold shadow-2xs" 
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100/70"
+                }`}>
+                  <input
+                    type="checkbox"
+                    checked={props.multisportCardsCount === 2}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        // Zaškrtnutie oboch kariet = 100% zľava
+                        props.onMultisportCardsCount(2);
+                      } else {
+                        // Odškrtnutie karty č. 2 ponechá len kartu č. 1 (-50%)
+                        props.onMultisportCardsCount(1);
+                      }
+                    }}
+                    className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer"
+                  />
+                  <div className="text-xs">
+                    <span className="block font-bold">MultiSport karta č. 2</span>
+                    <span className="text-[10px] text-slate-500 font-normal">-100 % (obe karty)</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          )}
+
           <Field icon={MessageSquare} label="Poznámka" value={props.title} onChange={props.onTitle} placeholder="Voliteľná poznámka k rezervácii..." />
           <button
             disabled={props.loading}
-            className="mt-2 w-full rounded-xl bg-emerald-600 px-4 py-3 text-xs font-bold text-white transition hover:bg-emerald-700 disabled:opacity-50 sm:px-5 sm:py-3.5 sm:text-sm"
+            className="mt-2 w-full rounded-xl bg-emerald-600 px-4 py-3 text-xs font-bold text-white transition hover:bg-emerald-700 disabled:opacity-50 sm:px-5 sm:py-3.5 sm:text-sm cursor-pointer shadow-xs"
           >
             {props.loading ? "Ukladanie..." : "Vytvoriť rezerváciu"}
           </button>
@@ -146,6 +238,13 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, canc
           <Detail icon={Clock3} label="Termín" value={`${formatDate(booking.start)}, ${formatTime(booking.start)} – ${formatTime(booking.end)}`} />
           <Detail icon={User} label="Meno" value={booking.customerName || "Neznáme"} />
           {booking.phone && <Detail icon={Phone} label="Telefón" value={booking.phone} />}
+          {booking.multisportCardsCount && booking.multisportCardsCount > 0 ? (
+            <Detail
+              icon={CreditCard}
+              label="MultiSport karty"
+              value={booking.multisportCardsCount === 2 ? "2x karta (Zľava 100 % zdarma)" : "1x karta (Zľava 50 %)"}
+            />
+          ) : null}
           {booking.title && <Detail icon={MessageSquare} label="Poznámka" value={booking.title} />}
         </div>
         {canManage && canCancel && (

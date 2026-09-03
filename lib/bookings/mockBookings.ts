@@ -23,6 +23,8 @@ export interface Booking {
   user_id?: string;
   userRole?: string;
   userCardNumber?: string;
+  multisportCardsCount?: number;
+  priceEur?: number;
 }
 
 export const courts: Court[] = [
