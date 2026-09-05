@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getSession, type BookingRole } from "@/lib/auth/bookingAuth";
+import { getSession, type BookingRole, hashPassword } from "@/lib/auth/bookingAuth";
 import { getCoreServiceDb } from "@/lib/server/supabase";
 import { isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
+import { normalizePhone } from "@/app/actions/auth";
 
 const ALLOWED_ROLES: BookingRole[] = ["admin", "user", "trainer"];
 const USERS_PAGE_SIZE = 7;
+const TENANT_ID = "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
 
 export type RoleBookingPolicyInput = {
   role: BookingRole;
@@ -164,6 +166,7 @@ export type AdminUserDirectoryItem = {
   createdAt: string;
   walletBalanceEur: number;
   bookingsCount: number;
+  hasMultisport: boolean;
 };
 
 export async function fetchAdminUsersDirectoryAction(
@@ -180,22 +183,48 @@ export async function fetchAdminUsersDirectoryAction(
   const from = (safePage - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  let usersQuery = context.db
-    .from("booking_users")
-    .select("id, name, email, phone, card_number, role, created_at", { count: "exact" });
+  type DbUserRow = {
+    id: string;
+    name: string | null;
+    email: string;
+    phone: string | null;
+    card_number: string | null;
+    role: string;
+    created_at: string;
+    has_multisport?: boolean | null;
+  };
 
-  if (roleFilter !== "all" && ALLOWED_ROLES.includes(roleFilter)) {
-    usersQuery = usersQuery.eq("role", roleFilter);
+  const buildQuery = (withMultisport: boolean) => {
+    const selectCols = withMultisport
+      ? "id, name, email, phone, card_number, role, created_at, has_multisport"
+      : "id, name, email, phone, card_number, role, created_at";
+
+    let q = (context.db.from("booking_users") as any)
+      .select(selectCols, { count: "exact" });
+
+    if (roleFilter !== "all" && ALLOWED_ROLES.includes(roleFilter)) {
+      q = q.eq("role", roleFilter);
+    }
+
+    if (safeQuery) {
+      const term = `%${safeQuery}%`;
+      q = q.or(`name.ilike.${term},email.ilike.${term},phone.ilike.${term},card_number.ilike.${term}`);
+    }
+
+    return q.order("name", { ascending: true }).range(from, to) as Promise<{
+      data: DbUserRow[] | null;
+      error: any;
+      count: number | null;
+    }>;
+  };
+
+  let { data: users, error, count } = await buildQuery(true);
+  if (error && error.message?.includes("has_multisport")) {
+    const retry = await buildQuery(false);
+    users = retry.data;
+    error = retry.error;
+    count = retry.count;
   }
-
-  if (safeQuery) {
-    const term = `%${safeQuery}%`;
-    usersQuery = usersQuery.or(`name.ilike.${term},email.ilike.${term},phone.ilike.${term},card_number.ilike.${term}`);
-  }
-
-  const { data: users, error, count } = await usersQuery
-    .order("name", { ascending: true })
-    .range(from, to);
 
   if (error) {
     console.error("fetchAdminUsersDirectoryAction failed:", error);
@@ -245,6 +274,7 @@ export async function fetchAdminUsersDirectoryAction(
     createdAt: u.created_at,
     walletBalanceEur: walletMap.get(u.id) ?? 0,
     bookingsCount: bookingCountMap.get(u.id) ?? 0,
+    hasMultisport: Boolean((u as any).has_multisport),
   }));
 
   return {
@@ -267,6 +297,7 @@ export type AdminUserDetailData = {
     role: BookingRole;
     createdAt: string;
     walletBalanceEur: number;
+    hasMultisport: boolean;
   };
   bookings: Array<{
     id: string;
@@ -292,17 +323,27 @@ export async function fetchAdminUserDetailAction(userId: string) {
   const context = await requireCurrentAdmin();
   if (!context) return { success: false as const, error: "Nemáte oprávnenie zobraziť detail." };
 
-  const [
-    { data: user, error: userError },
-    { data: wallet },
-    { data: bookings, error: bookingsError },
-    { data: txs, error: txsError },
-  ] = await Promise.all([
-    context.db
+  let { data: user, error: userError } = await context.db
+    .from("booking_users")
+    .select("id, name, email, phone, card_number, role, created_at, has_multisport")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (userError && userError.message?.includes("has_multisport")) {
+    const fallback = await context.db
       .from("booking_users")
       .select("id, name, email, phone, card_number, role, created_at")
       .eq("id", userId)
-      .maybeSingle(),
+      .maybeSingle();
+    user = fallback.data ? { ...fallback.data, has_multisport: false } : null;
+    userError = fallback.error;
+  }
+
+  const [
+    { data: wallet },
+    { data: bookings },
+    { data: txs },
+  ] = await Promise.all([
     context.db
       .from("wallets")
       .select("balance_eur")
@@ -336,6 +377,7 @@ export async function fetchAdminUserDetailAction(userId: string) {
       role: ALLOWED_ROLES.includes(user.role as BookingRole) ? (user.role as BookingRole) : "user",
       createdAt: user.created_at,
       walletBalanceEur: wallet ? Number(wallet.balance_eur || 0) : 0,
+      hasMultisport: Boolean((user as any).has_multisport),
     },
     bookings: (bookings || []).map((b) => ({
       id: b.id,
@@ -358,4 +400,236 @@ export async function fetchAdminUserDetailAction(userId: string) {
   };
 
   return { success: true as const, detail };
+}
+
+export type CreateAdminUserInput = {
+  name: string;
+  email: string;
+  phone?: string;
+  cardNumber?: string;
+  role: BookingRole;
+  password?: string;
+  initialCreditEur?: number;
+  hasMultisport?: boolean;
+};
+
+export async function createBookingUserByAdminAction(input: CreateAdminUserInput) {
+  const context = await requireCurrentAdmin();
+  if (!context) return { success: false as const, error: "Nemáte oprávnenie vytvárať používateľov." };
+
+  if (!input.name?.trim() || !input.email?.trim()) {
+    return { success: false as const, error: "Meno a email sú povinné údaje." };
+  }
+
+  const role: BookingRole = ALLOWED_ROLES.includes(input.role) ? input.role : "user";
+  const cleanEmail = input.email.toLowerCase().trim();
+  const cleanPhone = input.phone?.trim() ? normalizePhone(input.phone) : null;
+  const cleanCard = input.cardNumber?.trim() ? input.cardNumber.trim().slice(0, 50) : null;
+  const initialPassword = input.password?.trim() || "ntc12345";
+
+  if (initialPassword.length < 6) {
+    return { success: false as const, error: "Heslo musí mať aspoň 6 znakov." };
+  }
+
+  // Check email conflict
+  const { data: existingUser } = await context.db
+    .from("booking_users")
+    .select("id")
+    .eq("email", cleanEmail)
+    .maybeSingle();
+
+  if (existingUser) {
+    return { success: false as const, error: "Používateľ s týmto emailom už existuje." };
+  }
+
+  if (cleanPhone) {
+    const { data: existingPhone } = await context.db
+      .from("booking_users")
+      .select("id")
+      .eq("phone", cleanPhone)
+      .maybeSingle();
+
+    if (existingPhone) {
+      return { success: false as const, error: "Používateľ s týmto telefónnym číslom už existuje." };
+    }
+  }
+
+  const passwordHash = await hashPassword(initialPassword);
+
+  let user: any = null;
+  let insertError: any = null;
+
+  const insertPayloadWithMultisport = {
+    name: input.name.trim(),
+    email: cleanEmail,
+    phone: cleanPhone,
+    card_number: cleanCard,
+    role,
+    password_hash: passwordHash,
+    has_multisport: Boolean(input.hasMultisport),
+  };
+
+  const firstAttempt = await context.db
+    .from("booking_users")
+    .insert(insertPayloadWithMultisport)
+    .select("id, name, email, phone, card_number, role, created_at")
+    .single();
+
+  if (firstAttempt.error && firstAttempt.error.message?.includes("has_multisport")) {
+    const { has_multisport, ...insertPayloadWithoutMultisport } = insertPayloadWithMultisport;
+    const retryAttempt = await context.db
+      .from("booking_users")
+      .insert(insertPayloadWithoutMultisport)
+      .select("id, name, email, phone, card_number, role, created_at")
+      .single();
+    user = retryAttempt.data;
+    insertError = retryAttempt.error;
+  } else {
+    user = firstAttempt.data;
+    insertError = firstAttempt.error;
+  }
+
+  if (insertError || !user) {
+    console.error("createBookingUserByAdminAction failed:", insertError);
+    return { success: false as const, error: "Používateľa sa nepodarilo vytvoriť." };
+  }
+
+  const initialCredit = Math.max(0, Number(input.initialCreditEur || 0));
+
+  // Initialize wallet
+  const { data: wallet } = await context.db
+    .from("wallets")
+    .insert({
+      tenant_id: TENANT_ID,
+      user_id: user.id,
+      balance_eur: initialCredit,
+    })
+    .select("id")
+    .maybeSingle();
+
+  // If initial credit assigned, log transaction
+  if (initialCredit > 0 && wallet) {
+    await context.db.from("wallet_transactions").insert({
+      wallet_id: wallet.id,
+      user_id: user.id,
+      type: "manual_adjustment",
+      amount_eur: initialCredit,
+      metadata: { admin_id: context.session.userId, action: "initial_credit_on_creation" },
+    });
+  }
+
+  revalidatePath("/dashboard/users");
+  revalidatePath("/dashboard/newbookings");
+
+  return {
+    success: true as const,
+    user: {
+      ...user,
+      walletBalanceEur: initialCredit,
+      bookingsCount: 0,
+      hasMultisport: Boolean(input.hasMultisport),
+    },
+  };
+}
+
+export async function updateBookingUserCardAction(userId: string, cardNumber: string | null) {
+  const context = await requireCurrentAdmin();
+  if (!context) return { success: false as const, error: "Nemáte oprávnenie upravovať kartu." };
+
+  const cleanCard = cardNumber && cardNumber.trim().length > 0 ? cardNumber.trim().slice(0, 50) : null;
+
+  const { data: user, error } = await context.db
+    .from("booking_users")
+    .update({ card_number: cleanCard, updated_at: new Date().toISOString() })
+    .eq("id", userId)
+    .select("id, card_number")
+    .maybeSingle();
+
+  if (error || !user) {
+    console.error("updateBookingUserCardAction error:", error);
+    return { success: false as const, error: "Kartu sa nepodarilo aktualizovať." };
+  }
+
+  revalidatePath("/dashboard/users");
+  revalidatePath("/dashboard/newbookings");
+  return { success: true as const, cardNumber: user.card_number };
+}
+
+export type UpdateAdminUserProfileInput = {
+  name: string;
+  email: string;
+  phone?: string | null;
+  role?: BookingRole;
+  cardNumber?: string | null;
+  hasMultisport?: boolean;
+};
+
+export async function updateBookingUserProfileByAdminAction(userId: string, data: UpdateAdminUserProfileInput) {
+  const context = await requireCurrentAdmin();
+  if (!context) return { success: false as const, error: "Nemáte oprávnenie upravovať používateľa." };
+
+  if (!data.name?.trim() || !data.email?.trim()) {
+    return { success: false as const, error: "Meno a email sú povinné údaje." };
+  }
+
+  const cleanEmail = data.email.toLowerCase().trim();
+  const cleanPhone = data.phone ? normalizePhone(data.phone) : null;
+  const cleanCard = data.cardNumber && data.cardNumber.trim().length > 0 ? data.cardNumber.trim().slice(0, 50) : null;
+
+  // Check email conflict with other users
+  const { data: conflictEmail } = await context.db
+    .from("booking_users")
+    .select("id")
+    .eq("email", cleanEmail)
+    .neq("id", userId)
+    .maybeSingle();
+
+  if (conflictEmail) {
+    return { success: false as const, error: "Iný používateľ s týmto emailom už existuje." };
+  }
+
+  // Prevent admin from removing their own admin role
+  let role = data.role;
+  if (userId === context.session.userId && role && role !== "admin") {
+    role = "admin";
+  }
+
+  const updateDataWithMultisport: any = {
+    name: data.name.trim(),
+    email: cleanEmail,
+    phone: cleanPhone,
+    card_number: cleanCard,
+    updated_at: new Date().toISOString(),
+    has_multisport: Boolean(data.hasMultisport),
+  };
+  if (role && ALLOWED_ROLES.includes(role)) {
+    updateDataWithMultisport.role = role;
+  }
+
+  let updateResult = await context.db
+    .from("booking_users")
+    .update(updateDataWithMultisport)
+    .eq("id", userId)
+    .select("id, name, email, phone, card_number, role")
+    .maybeSingle();
+
+  if (updateResult.error && updateResult.error.message?.includes("has_multisport")) {
+    const { has_multisport, ...updateWithoutMultisport } = updateDataWithMultisport;
+    updateResult = await context.db
+      .from("booking_users")
+      .update(updateWithoutMultisport)
+      .eq("id", userId)
+      .select("id, name, email, phone, card_number, role")
+      .maybeSingle();
+  }
+
+  if (updateResult.error || !updateResult.data) {
+    console.error("updateBookingUserProfileByAdminAction failed:", updateResult.error);
+    return { success: false as const, error: "Profil sa nepodarilo aktualizovať." };
+  }
+
+  revalidatePath("/dashboard/users");
+  revalidatePath("/dashboard/newbookings");
+
+  return { success: true as const, user: updateResult.data };
 }

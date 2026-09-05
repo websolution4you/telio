@@ -211,9 +211,21 @@ function playTennisHitSound() {
   }
 }
 
-export default function NewBookingsCalendar({ courts, initialBookings, currentUser, rolePolicy, initialWalletBalance }: Props) {
+export default function NewBookingsCalendar({ courts, initialBookings, currentUser: initialCurrentUser, rolePolicy: initialRolePolicy, initialWalletBalance }: Props) {
   const router = useRouter();
   const voiceHighlightTimers = useRef(new Map<string, number>());
+  const [currentUser, setCurrentUser] = useState(initialCurrentUser);
+  const [rolePolicy, setRolePolicy] = useState(initialRolePolicy);
+  const [pendingSlot, setPendingSlot] = useState<Slot | null>(null);
+
+  useEffect(() => {
+    setCurrentUser(initialCurrentUser);
+  }, [initialCurrentUser]);
+
+  useEffect(() => {
+    setRolePolicy(initialRolePolicy);
+  }, [initialRolePolicy]);
+
   const [sport, setSport] = useState<SportType>("badminton");
   const [date, setDate] = useState(new Date());
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -486,8 +498,37 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     return getDurationOptions(availableMinutes);
   };
 
+  const handleAuthSuccess = (user?: BookingUser) => {
+    setAuth(null);
+    if (user) {
+      setCurrentUser(user);
+      router.refresh();
+      if (pendingSlot) {
+        const targetSlot = pendingSlot;
+        setPendingSlot(null);
+        setTimeout(() => {
+          const start = new Date(targetSlot.date);
+          start.setHours(targetSlot.hour, 0, 0, 0);
+          const options = getAvailableDurationOptions(targetSlot.courtId, start);
+          setTitle("");
+          setPhone(user.phone || "");
+          setDuration(options.includes(60) ? 60 : options[0] || 60);
+          setMultisportCardsCount(0);
+          setNotice("");
+          setSlot(targetSlot);
+        }, 150);
+        return;
+      }
+    } else {
+      router.refresh();
+    }
+  };
+
   const openSlot = (courtId: string, hour: number) => {
-    if (!currentUser) return setAuth("login");
+    if (!currentUser) {
+      setPendingSlot({ courtId, date: new Date(date), hour });
+      return setAuth("register");
+    }
     const start = new Date(date); start.setHours(hour, 0, 0, 0);
     if (currentUser.role !== "admin") {
       if (!rolePolicy) return setNotice("Pravidlá vašej roly sa nepodarilo načítať. Obnovte stránku.");
@@ -1170,7 +1211,16 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         </div>
       </main>
       {datePickerOpen && <DatePicker value={date} min={today} max={maxDate} horizonDays={bookingHorizonDays} onSelect={(selected) => selectDate(dateKey(selected))} onClose={() => setDatePickerOpen(false)} />}
-      {auth && <NewBookingAuth mode={auth} onClose={() => setAuth(null)} onSuccess={() => window.location.reload()} />}
+      {auth && (
+        <NewBookingAuth
+          mode={auth}
+          onClose={() => {
+            setAuth(null);
+            setPendingSlot(null);
+          }}
+          onSuccess={(user) => handleAuthSuccess(user)}
+        />
+      )}
       {slot && (rolePolicy || currentUser?.role === "admin") && (
         <CreateBookingDialog
           court={courts.find((court) => court.id === slot.courtId)}
@@ -1185,6 +1235,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           phone={phone}
           isAdmin={currentUser?.role === "admin"}
           hasCard={Boolean(currentUser?.cardNumber && currentUser.cardNumber.trim().length > 0)}
+          hasMultisport={Boolean(currentUser?.hasMultisport)}
           error={notice || undefined}
           loading={loading}
           onDuration={setDuration}

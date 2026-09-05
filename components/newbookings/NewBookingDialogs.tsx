@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Clock3, CreditCard, MessageSquare, Phone, Trash2, User, X } from "lucide-react";
+import { Clock3, CreditCard, MessageSquare, Phone, Sparkles, Trash2, User, X } from "lucide-react";
 import type { Booking, Court } from "@/lib/bookings/mockBookings";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import { formatDuration } from "@/lib/bookings/rolePolicy";
@@ -15,6 +15,7 @@ type CreateDialogProps = {
   phone: string;
   hasCard?: boolean;
   isAdmin?: boolean;
+  hasMultisport?: boolean;
   durationOptions: number[];
   discountEurPerHour: number;
   multisportCardsCount: 0 | 1 | 2;
@@ -136,6 +137,26 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                   </span>
                 )}
               </div>
+
+              {/* Asistencia pre držiteľa MultiSport karty */}
+              {props.hasMultisport && props.multisportCardsCount === 0 && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 rounded-xl border border-emerald-300 bg-emerald-50/90 p-2.5 text-xs text-emerald-950 shadow-2xs animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-emerald-600 shrink-0" />
+                    <span className="leading-tight">
+                      V profile máte evidovanú MultiSport kartu. Máte ju dnes so sebou?
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => props.onMultisportCardsCount(1)}
+                    className="shrink-0 rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition cursor-pointer"
+                  >
+                    Uplatniť zľavu 50 %
+                  </button>
+                </div>
+              )}
+
               <p className="text-[11px] text-slate-500 leading-tight">
                 Zaškrtnite 1 kartu pre 50% zľavu, alebo obe karty pre 100% zľavu z ceny kurtu.
               </p>

@@ -16,6 +16,7 @@ export interface BookingUser {
     cardNumber?: string;
     phone?: string;
     role?: BookingRole;
+    hasMultisport?: boolean;
 }
 
 export interface SessionPayload {
@@ -24,6 +25,7 @@ export interface SessionPayload {
     name: string;
     phone?: string;
     role: BookingRole;
+    hasMultisport?: boolean;
     exp: number;
 }
 
@@ -57,6 +59,7 @@ export async function createSession(user: BookingUser): Promise<string> {
         name: user.name,
         phone: user.phone,
         role: user.role || "user",
+        hasMultisport: Boolean(user.hasMultisport),
         exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 7 days
     };
 
