@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CreditCard, Eye, EyeOff, LogIn, UserPlus, X } from "lucide-react";
+import { Eye, EyeOff, LogIn, UserPlus, X } from "lucide-react";
 import { loginAction, registerAction } from "@/app/actions/auth";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 
@@ -26,8 +26,6 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
   const [email, setEmail] = useState("");
   const [phonePrefix, setPhonePrefix] = useState("+421");
   const [phone, setPhone] = useState("");
-  const [hasCard, setHasCard] = useState(false);
-  const [cardNumber, setCardNumber] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -56,7 +54,7 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
 
       const result = mode === "login"
         ? await loginAction(email, password)
-        : await registerAction(name, email, password, hasCard ? cardNumber : undefined, fullPhone);
+        : await registerAction(name, email, password, undefined, fullPhone);
 
       if (!result.success) {
         setError(result.error || "Požiadavku sa nepodarilo spracovať.");
@@ -137,48 +135,6 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
                   </div>
                 </label>
                 <p className="mt-1 text-[11px] text-slate-400">Predvoľba +421 je predvyplnená, stačí napísať napr. 900 123 456.</p>
-              </div>
-
-              {/* Voliteľná karta NTC */}
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 transition">
-                <label className="flex items-start gap-3 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={hasCard}
-                    onChange={(e) => {
-                      setHasCard(e.target.checked);
-                      if (!e.target.checked) setCardNumber("");
-                    }}
-                    className="mt-0.5 h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer shrink-0"
-                  />
-                  <div className="text-xs">
-                    <span className="font-bold text-slate-800 flex items-center gap-1.5 text-[13px]">
-                      <CreditCard className="h-4 w-4 text-emerald-600 shrink-0" />
-                      Mám klubovú kartu NTC <span className="text-[11px] font-normal text-slate-400">(voliteľné)</span>
-                    </span>
-                    <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
-                      Máte už fyzickú kartu z recepcie NTC? Zadaním jej 4-miestneho PIN kódu prepojíte svoj webový účet s kartou pre čerpanie klubových zliav a dobitého kreditu. Ak kartu nemáte, registráciu dokončíte aj bez nej a kartu vám vieme vydať kedykoľvek na recepcii.
-                    </p>
-                  </div>
-                </label>
-
-                {hasCard && (
-                  <div className="mt-3.5 pt-3.5 border-t border-slate-200 animate-in fade-in duration-200">
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-semibold text-slate-700">4-miestny PIN kód karty</span>
-                      <input
-                        type="text"
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                        placeholder="napr. 1234"
-                        maxLength={4}
-                        required={hasCard}
-                        className="w-full font-mono text-center tracking-widest text-lg font-bold rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-                      />
-                    </label>
-                    <p className="mt-1.5 text-[11px] text-slate-400">PIN kód nájdete na svojej karte. Kartu je možné kedykoľvek priradiť aj dodatočne na recepcii.</p>
-                  </div>
-                )}
               </div>
             </>
           )}
