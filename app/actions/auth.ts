@@ -9,20 +9,12 @@ import {
     clearSession,
     getSession,
     type BookingUser,
+    normalizePhone,
 } from "@/lib/auth/bookingAuth";
 import { redirect } from "next/navigation";
 
 const TENANT_ID = "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
 
-export function normalizePhone(rawPhone?: string): string | null {
-    if (!rawPhone) return null;
-    const clean = rawPhone.trim().replace(/\s+/g, "");
-    if (!clean) return null;
-    if (clean.startsWith("09") && clean.length === 10) {
-        return "+421" + clean.slice(1);
-    }
-    return clean;
-}
 
 export async function loginAction(email: string, password: string) {
     try {

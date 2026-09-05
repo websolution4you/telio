@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getSession, type BookingRole, hashPassword } from "@/lib/auth/bookingAuth";
+import { getSession, type BookingRole, hashPassword, normalizePhone } from "@/lib/auth/bookingAuth";
 import { getCoreServiceDb } from "@/lib/server/supabase";
 import { isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
-import { normalizePhone } from "@/app/actions/auth";
+
 
 const ALLOWED_ROLES: BookingRole[] = ["admin", "user", "trainer"];
 const USERS_PAGE_SIZE = 7;

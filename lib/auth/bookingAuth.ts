@@ -131,3 +131,14 @@ export async function requireAuth(): Promise<SessionPayload> {
 
     return session;
 }
+
+export function normalizePhone(rawPhone?: string): string | null {
+    if (!rawPhone) return null;
+    const clean = rawPhone.trim().replace(/\s+/g, "");
+    if (!clean) return null;
+    if (clean.startsWith("09") && clean.length === 10) {
+        return "+421" + clean.slice(1);
+    }
+    return clean;
+}
+
