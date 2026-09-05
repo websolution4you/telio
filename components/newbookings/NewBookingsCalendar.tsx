@@ -219,6 +219,17 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [pendingSlot, setPendingSlot] = useState<Slot | null>(null);
 
   useEffect(() => {
+    const origBodyBg = document.body.style.backgroundColor;
+    const origHtmlBg = document.documentElement.style.backgroundColor;
+    document.body.style.backgroundColor = "#f4f7f5";
+    document.documentElement.style.backgroundColor = "#f4f7f5";
+    return () => {
+      document.body.style.backgroundColor = origBodyBg;
+      document.documentElement.style.backgroundColor = origHtmlBg;
+    };
+  }, []);
+
+  useEffect(() => {
     setCurrentUser(initialCurrentUser);
   }, [initialCurrentUser]);
 
