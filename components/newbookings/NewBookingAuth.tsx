@@ -11,10 +11,20 @@ type NewBookingAuthProps = {
   onSuccess: (user?: BookingUser) => void;
 };
 
+const PREFIX_OPTIONS = [
+  { code: "+421", flag: "🇸🇰", label: "+421 (SK)" },
+  { code: "+420", flag: "🇨🇿", label: "+420 (CZ)" },
+  { code: "+43", flag: "🇦🇹", label: "+43 (AT)" },
+  { code: "+36", flag: "🇭🇺", label: "+36 (HU)" },
+  { code: "+48", flag: "🇵🇱", label: "+48 (PL)" },
+  { code: "+", flag: "🌐", label: "+ Iné" },
+];
+
 export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }: NewBookingAuthProps) {
   const [mode, setMode] = useState(initialMode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phonePrefix, setPhonePrefix] = useState("+421");
   const [phone, setPhone] = useState("");
   const [hasCard, setHasCard] = useState(false);
   const [cardNumber, setCardNumber] = useState("");
@@ -36,9 +46,17 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
 
     setLoading(true);
     try {
+      let fullPhone: string | undefined = undefined;
+      if (phone.trim()) {
+        const cleanNumber = phone.trim().replace(/\s+/g, "");
+        fullPhone = cleanNumber.startsWith("+")
+          ? cleanNumber
+          : `${phonePrefix}${cleanNumber.replace(/^0+/, "")}`;
+      }
+
       const result = mode === "login"
         ? await loginAction(email, password)
-        : await registerAction(name, email, password, hasCard ? cardNumber : undefined, phone);
+        : await registerAction(name, email, password, hasCard ? cardNumber : undefined, fullPhone);
 
       if (!result.success) {
         setError(result.error || "Požiadavku sa nepodarilo spracovať.");
@@ -60,8 +78,8 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4">
-      <button aria-label="Zavrieť" className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-[200] grid place-items-center p-4" role="dialog" aria-modal="true" aria-label="Prihlásenie a registrácia">
+      <button type="button" className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={onClose} aria-label="Zavrieť dialóg" />
       <div className="relative max-h-[90vh] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-8">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
@@ -89,21 +107,41 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
               <div>
                 <label className="block">
                   <span className="mb-1.5 block text-sm font-semibold text-slate-700">Telefónne číslo</span>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+421 900 123 456"
-                    required
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                  />
+                  <div className="relative flex rounded-xl border border-slate-200 bg-slate-50 transition focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-100">
+                    <select
+                      value={phonePrefix}
+                      onChange={(e) => setPhonePrefix(e.target.value)}
+                      className="cursor-pointer bg-transparent py-3 pl-3 pr-1 text-xs sm:text-sm font-bold text-slate-700 outline-none border-r border-slate-200/80 my-1 shrink-0"
+                      aria-label="Predvoľba krajiny"
+                    >
+                      {PREFIX_OPTIONS.map((p) => (
+                        <option key={p.code} value={p.code}>
+                          {p.flag} {p.code}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => {
+                        let val = e.target.value;
+                        if (phonePrefix === "+421" && val.startsWith("09")) {
+                          val = val.slice(1);
+                        }
+                        setPhone(val);
+                      }}
+                      placeholder={phonePrefix === "+421" ? "900 123 456" : "telefónne číslo"}
+                      required
+                      className="w-full bg-transparent px-3 py-3 text-slate-950 outline-none placeholder:text-slate-400 font-medium text-sm sm:text-base"
+                    />
+                  </div>
                 </label>
-                <p className="mt-1 text-[11px] text-slate-400">Slúži na potvrdenie a prípadné SMS/kontakt pri zmene termínu.</p>
+                <p className="mt-1 text-[11px] text-slate-400">Predvoľba +421 je predvyplnená, stačí napísať napr. 900 123 456.</p>
               </div>
 
               {/* Voliteľná karta NTC */}
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5 transition">
-                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 transition">
+                <label className="flex items-start gap-3 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={hasCard}
@@ -111,19 +149,21 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
                       setHasCard(e.target.checked);
                       if (!e.target.checked) setCardNumber("");
                     }}
-                    className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer"
+                    className="mt-0.5 h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer shrink-0"
                   />
                   <div className="text-xs">
-                    <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                      <CreditCard className="h-3.5 w-3.5 text-emerald-600" />
-                      Mám klubovú kartu NTC
+                    <span className="font-bold text-slate-800 flex items-center gap-1.5 text-[13px]">
+                      <CreditCard className="h-4 w-4 text-emerald-600 shrink-0" />
+                      Mám klubovú kartu NTC <span className="text-[11px] font-normal text-slate-400">(voliteľné)</span>
                     </span>
-                    <span className="text-[11px] text-slate-500">Máte už zakúpenú kartu z recepcie? Zadajte jej PIN kód.</span>
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
+                      Máte už fyzickú kartu z recepcie NTC? Zadaním jej 4-miestneho PIN kódu prepojíte svoj webový účet s kartou pre čerpanie klubových zliav a dobitého kreditu. Ak kartu nemáte, registráciu dokončíte aj bez nej a kartu vám vieme vydať kedykoľvek na recepcii.
+                    </p>
                   </div>
                 </label>
 
                 {hasCard && (
-                  <div className="mt-3 pt-3 border-t border-slate-200 animate-in fade-in duration-200">
+                  <div className="mt-3.5 pt-3.5 border-t border-slate-200 animate-in fade-in duration-200">
                     <label className="block">
                       <span className="mb-1 block text-xs font-semibold text-slate-700">4-miestny PIN kód karty</span>
                       <input
@@ -136,7 +176,7 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
                         className="w-full font-mono text-center tracking-widest text-lg font-bold rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                       />
                     </label>
-                    <p className="mt-1 text-[11px] text-slate-400">Kartu je možné kedykoľvek priradiť aj dodatočne na recepcii.</p>
+                    <p className="mt-1.5 text-[11px] text-slate-400">PIN kód nájdete na svojej karte. Kartu je možné kedykoľvek priradiť aj dodatočne na recepcii.</p>
                   </div>
                 )}
               </div>
