@@ -22,7 +22,8 @@ const PREFIX_OPTIONS = [
 
 export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }: NewBookingAuthProps) {
   const [mode, setMode] = useState(initialMode);
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phonePrefix, setPhonePrefix] = useState("+421");
   const [phone, setPhone] = useState("");
@@ -37,9 +38,15 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
     event.preventDefault();
     setError("");
 
-    if (mode === "register" && password !== confirmPassword) {
-      setError("Heslá sa nezhodujú.");
-      return;
+    if (mode === "register") {
+      if (!firstName.trim() || !lastName.trim()) {
+        setError("Meno a priezvisko sú povinné.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Heslá sa nezhodujú.");
+        return;
+      }
     }
 
     setLoading(true);
@@ -52,9 +59,11 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
           : `${phonePrefix}${cleanNumber.replace(/^0+/, "")}`;
       }
 
+      const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+
       const result = mode === "login"
         ? await loginAction(email, password)
-        : await registerAction(name, email, password, undefined, fullPhone);
+        : await registerAction(fullName, email, password, undefined, fullPhone);
 
       if (!result.success) {
         setError(result.error || "Požiadavku sa nepodarilo spracovať.");
@@ -101,7 +110,10 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === "register" && (
             <>
-              <Field label="Celé meno" value={name} onChange={setName} placeholder="Janko Hraško" required />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label="Meno" value={firstName} onChange={setFirstName} placeholder="Janko" required />
+                <Field label="Priezvisko" value={lastName} onChange={setLastName} placeholder="Hraško" required />
+              </div>
               <div>
                 <label className="block">
                   <span className="mb-1.5 block text-sm font-semibold text-slate-700">Telefónne číslo</span>
