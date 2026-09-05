@@ -21,24 +21,37 @@ export default async function NewBookingsPage() {
 
   if (session) {
     const db = getCoreDb();
-    const { data } = await db
-      .from("booking_users")
-      .select("id, name, email, card_number, phone, role")
+    let dbUser: any = null;
+    const { data, error } = await (db.from("booking_users") as any)
+      .select("id, name, email, card_number, phone, role, has_multisport")
       .eq("id", session.userId)
-      .single();
+      .maybeSingle();
 
-    currentUser = data ? {
-      id: data.id,
-      name: data.name,
-      email: data.email,
-      cardNumber: data.card_number,
-      phone: data.phone,
-      role: data.role,
+    if (error && error.message?.includes("has_multisport")) {
+      const fallback = await db
+        .from("booking_users")
+        .select("id, name, email, card_number, phone, role")
+        .eq("id", session.userId)
+        .maybeSingle();
+      dbUser = fallback.data ? { ...fallback.data, has_multisport: false } : null;
+    } else {
+      dbUser = data;
+    }
+
+    currentUser = dbUser ? {
+      id: dbUser.id,
+      name: dbUser.name,
+      email: dbUser.email,
+      cardNumber: dbUser.card_number,
+      phone: dbUser.phone,
+      role: dbUser.role,
+      hasMultisport: Boolean(dbUser.has_multisport ?? session.hasMultisport),
     } : {
       id: session.userId,
-            name: session.name,
+      name: session.name,
       email: session.email,
       role: session.role,
+      hasMultisport: Boolean(session.hasMultisport),
     };
 
     const policyDb = getCoreServiceDb();

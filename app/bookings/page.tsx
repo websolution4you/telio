@@ -51,25 +51,38 @@ export default async function BookingsPage() {
   if (session) {
     // Get user data
     const db = getCoreDb();
-    const { data: userData } = await db
-      .from("booking_users")
-      .select("id, name, email, card_number, role")
+    let dbUser: any = null;
+    const { data: userData, error: userError } = await (db.from("booking_users") as any)
+      .select("id, name, email, card_number, role, has_multisport")
       .eq("id", session.userId)
-      .single();
+      .maybeSingle();
 
-    user = userData
+    if (userError && userError.message?.includes("has_multisport")) {
+      const fallback = await db
+        .from("booking_users")
+        .select("id, name, email, card_number, role")
+        .eq("id", session.userId)
+        .maybeSingle();
+      dbUser = fallback.data ? { ...fallback.data, has_multisport: false } : null;
+    } else {
+      dbUser = userData;
+    }
+
+    user = dbUser
       ? {
-          id: userData.id,
-          name: userData.name,
-          email: userData.email,
-          cardNumber: userData.card_number,
-          role: userData.role,
+          id: dbUser.id,
+          name: dbUser.name,
+          email: dbUser.email,
+          cardNumber: dbUser.card_number,
+          role: dbUser.role,
+          hasMultisport: Boolean(dbUser.has_multisport ?? session.hasMultisport),
         }
       : {
           id: session.userId,
           name: session.name,
           email: session.email,
           role: session.role,
+          hasMultisport: Boolean(session.hasMultisport),
         };
   }
 
