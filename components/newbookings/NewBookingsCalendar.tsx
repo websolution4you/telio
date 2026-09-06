@@ -387,7 +387,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       setNotice("Overujem platbu s Tatra bankou... Kredit sa automaticky navýši.");
       window.history.replaceState({}, "", window.location.pathname);
       let attempts = 0;
-      const interval = setInterval(async () => {
+      const maxAttempts = 10; // 10 * 30s = 5 minút
+
+      const checkPayment = async () => {
         attempts++;
         const res = await reconcileWalletCardPayAction();
         if (res.success && res.successful > 0) {
@@ -404,10 +406,16 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             setTimeout(() => setWalletHighlight(false), 3500);
             restorePendingSlotAfterTopUp();
           }
-        } else if (attempts >= 6) {
+        } else if (attempts >= maxAttempts) {
           clearInterval(interval);
+          setNotice("Platba sa stále spracováva v Tatra banke. Kredit sa pripíše automaticky hneď po potvrdení bankou.");
         }
-      }, 2000);
+      };
+
+      // Prvá kontrola hneď po načítaní
+      checkPayment();
+      // Následná kontrola každých 30 sekúnd počas 5 minút
+      const interval = setInterval(checkPayment, 30000);
       return () => clearInterval(interval);
     } else if (walletStatus === "failed" || walletStatus === "cancelled") {
       setNotice("Platba bola zrušená alebo zlyhala.");
