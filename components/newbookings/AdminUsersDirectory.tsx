@@ -847,30 +847,6 @@ export default function AdminUsersDirectory() {
                       </div>
                     )}
 
-                    {/* MultiSport toggle */}
-                    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-2xs">
-                      <span className="font-semibold text-slate-600">MultiSport:</span>
-                      <span
-                        className={`font-bold ${
-                          detailData.user.hasMultisport ? "text-emerald-700" : "text-slate-400"
-                        }`}
-                      >
-                        {detailData.user.hasMultisport ? "Evidovaná (-50 %)" : "Neaktívna"}
-                      </span>
-                      <button
-                        type="button"
-                        disabled={cardActionLoading}
-                        onClick={handleToggleMultisport}
-                        className={`cursor-pointer rounded-lg px-2 py-0.5 text-[11px] font-bold transition ${
-                          detailData.user.hasMultisport
-                            ? "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                            : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                        }`}
-                      >
-                        {detailData.user.hasMultisport ? "Vypnúť" : "Aktivovať"}
-                      </button>
-                    </div>
-
                     {cardActionError && (
                       <span className="text-xs font-semibold text-red-600">{cardActionError}</span>
                     )}
