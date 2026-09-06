@@ -1380,7 +1380,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                         } else {
                           if (isMaintenanceOrAdmin) {
                             labelText = "Údržba";
-                            bookingClasses = "border-[#EF4444] bg-[#FCA5A5] text-black font-bold shadow-xs";
+                            bookingClasses = "border-red-300/90 bg-gradient-to-br from-[#F87171] via-[#EF4444] to-[#DC2626] text-white shadow-[0_4px_14px_rgba(239,68,68,0.35)]";
                           } else if (own) {
                             labelText = "Vaša rezervácia";
                             bookingClasses = "border-emerald-300/90 bg-gradient-to-br from-[#15803D] via-[#16A34A] to-[#14532D] text-white shadow-[0_4px_14px_rgba(22,163,74,0.35)]";
@@ -1447,16 +1447,16 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                                 ))}
                               </div>
                             ) : (
-                              <>
-                                <b className="relative z-[1] block whitespace-normal break-words text-[clamp(8px,0.7vw,12px)] font-black leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] [overflow-wrap:anywhere]">
+                              <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center text-white font-sans select-none pointer-events-none">
+                                <div className="text-[clamp(8.5px,0.72vw,12px)] font-medium leading-tight tracking-normal drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] [overflow-wrap:anywhere]">
                                   <span className="block">{formatTime(booking.start)}</span>
-                                  <span className="block leading-[0.55]" aria-hidden="true">–</span>
+                                  <span className="block leading-[0.55] opacity-80" aria-hidden="true">–</span>
                                   <span className="block">{formatTime(booking.end)}</span>
-                                </b>
-                                <span className="relative z-[1] mt-0.5 block whitespace-normal break-words text-[clamp(7px,0.6vw,10px)] font-black leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] [overflow-wrap:anywhere]">
+                                </div>
+                                <span className="mt-0.5 block text-[clamp(7.5px,0.62vw,10.5px)] font-medium tracking-normal leading-tight opacity-95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] [overflow-wrap:anywhere]">
                                   {labelText}
                                 </span>
-                              </>
+                              </div>
                             )}
                           </button>
                         );
@@ -1498,7 +1498,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                 Obsadené
               </span>
               <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-[#EF4444] bg-[#FCA5A5] shadow-xs" />
+                <i className="h-3.5 w-3.5 rounded-md border border-red-300 bg-gradient-to-br from-[#F87171] to-[#DC2626] shadow-xs" />
                 Údržba
               </span>
             </>
