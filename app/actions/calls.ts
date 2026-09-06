@@ -749,12 +749,12 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
         const rawAgentId = (
             process.env.ELEVENLABS_NTC_AGENT_ID || 
             process.env.NEXT_PUBLIC_ELEVENLABS_NTC_AGENT_ID || 
-            ""
+            "agent_9901kv6j21rhfccr7f0nbdhew5ew"
         ).trim();
 
         const normalizedAgentId = rawAgentId
             ? (rawAgentId.startsWith("agent_") ? rawAgentId : `agent_${rawAgentId}`)
-            : "";
+            : "agent_9901kv6j21rhfccr7f0nbdhew5ew";
 
         const hasNtcKey = Boolean(process.env.ELEVENLABS_NTC_API_KEY);
 
@@ -778,15 +778,19 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
                 next: { revalidate: 0 }
             });
 
-            // Ak s 'agent_' prefixom neprešlo, skúsime rawAgentId bez prefixu
-            if (listRes.status === 404 && rawAgentId && !rawAgentId.startsWith("agent_")) {
-                listRes = await fetch(`https://api.elevenlabs.io/v1/convai/conversations?agent_id=${encodeURIComponent(rawAgentId)}&page_size=${Math.max(20, Math.min(limit, 100))}`, {
+            // Ak s 'agent_' prefixom neprešlo a rawAgentId nemal prefix, skúsime rawAgentId bez prefixu
+            if (listRes.status === 404 && rawAgentId && rawAgentId.startsWith("agent_")) {
+                const strippedId = rawAgentId.replace(/^agent_/, "");
+                const retryRes = await fetch(`https://api.elevenlabs.io/v1/convai/conversations?agent_id=${encodeURIComponent(strippedId)}&page_size=${Math.max(20, Math.min(limit, 100))}`, {
                     headers: {
                         "xi-api-key": apiKey,
                         "Accept": "application/json"
                     },
                     next: { revalidate: 0 }
                 });
+                if (retryRes.ok) {
+                    listRes = retryRes;
+                }
             }
 
             if (!listRes.ok) {
@@ -795,7 +799,7 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
                 return { 
                     success: false, 
                     configuredAgentId: normalizedAgentId,
-                    error: `ElevenLabs nenašiel agenta (${normalizedAgentId}): ${detailMsg}. Overte, či ELEVENLABS_API_KEY patrí k účtu, v ktorom tento agent existuje.` 
+                    error: `ElevenLabs nenašiel agenta (${normalizedAgentId}): ${detailMsg}. Skontrolujte, či ElevenLabs API kľúč patrí k účtu, kde je tento NTC agent vytvorený.` 
                 };
             }
 
