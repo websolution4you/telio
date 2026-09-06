@@ -150,18 +150,31 @@ export async function fetchBookingsAction(startDateIso: string, endDateIso: stri
                 console.error("Failed to parse notes JSON:", e);
             }
             const userMeta = row.user_id ? userMap.get(row.user_id) : undefined;
+            const isRowAdminOrBlock =
+                notesObj.source === "admin" ||
+                userMeta?.role === "admin" ||
+                row.status === "blocked" ||
+                Boolean(row.customer_name && row.customer_name.toLowerCase().includes("údržba"));
+
+            let finalCustomerName = row.customer_name || userMeta?.name;
+            if (isRowAdminOrBlock) {
+                if (!finalCustomerName || finalCustomerName === "Admin User" || finalCustomerName.toLowerCase().includes("admin") || finalCustomerName.toLowerCase().includes("údržba")) {
+                    finalCustomerName = "Údržba";
+                }
+            }
+
             return {
                 id: row.id,
                 courtId: notesObj.courtId || "badminton-1",
-                title: notesObj.notes || row.customer_name || "Rezervácia",
-                customerName: row.customer_name || userMeta?.name,
+                title: isRowAdminOrBlock && (!notesObj.notes || notesObj.notes === "Údržba / Blokovanie") ? "Údržba" : (notesObj.notes || row.customer_name || "Rezervácia"),
+                customerName: finalCustomerName,
                 phone: row.customer_phone || undefined,
                 start: row.start_at,
                 end: row.end_at,
                 status: row.status as "confirmed" | "blocked" | "cancelled",
                 source: (notesObj.source || "web") as any,
                 user_id: row.user_id || undefined,
-                userRole: userMeta?.role || "user",
+                userRole: isRowAdminOrBlock ? "admin" : (userMeta?.role || "user"),
                 userCardNumber: userMeta?.cardNumber,
                 multisportCardsCount: Number(notesObj.multisportCardsCount || 0),
                 priceEur: row.price_eur != null ? Number(row.price_eur) : undefined
@@ -596,13 +609,20 @@ export async function createBookingAction(payload: {
                 };
             }
         } else {
+            const adminCustomerName = (payload.customerName && payload.customerName !== "Admin User" && !payload.customerName.toLowerCase().includes("admin"))
+                ? payload.customerName
+                : "Údržba";
+            const effectiveCustomerName = (session.role === "admin" || payload.source === "admin")
+                ? adminCustomerName
+                : payload.customerName;
+
             const { data: dbBooking, error: dbError } = await db
                 .from("bookings")
                 .insert({
                     tenant_id: TENANT_ID,
                     court_id: payload.courtId,
                     sport: payload.courtId.replace(/-\d+$/, ""),
-                    customer_name: payload.customerName,
+                    customer_name: effectiveCustomerName,
                     customer_phone: payload.phone || null,
                     start_at: payload.start,
                     end_at: payload.end,

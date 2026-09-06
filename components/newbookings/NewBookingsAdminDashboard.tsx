@@ -50,7 +50,7 @@ export default function NewBookingsAdminDashboard() {
     const start = new Date(`${form.date}T${form.start}:00`); const end = new Date(`${form.date}T${form.end}:00`);
     if (end <= start) return setError("Čas ukončenia musí byť neskôr ako začiatok.");
     setLoading(true);
-    const result = await createBookingAction({ courtId: form.courtId, title: "Údržba", customerName: "Admin Údržba", start: start.toISOString(), end: end.toISOString(), status: "blocked", source: "admin" });
+    const result = await createBookingAction({ courtId: form.courtId, title: "Údržba", customerName: "Údržba", start: start.toISOString(), end: end.toISOString(), status: "blocked", source: "admin" });
     if (!result.success) { setError(result.error || "Kurt sa nepodarilo zablokovať."); setLoading(false); return; }
     setModal(false); await load();
   };

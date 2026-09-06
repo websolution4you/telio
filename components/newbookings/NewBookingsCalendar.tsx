@@ -717,7 +717,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       const options = getAvailableDurationOptions(courtId, start);
       const defaultDuration = options.length > 0 ? (options.includes(60) ? 60 : options[0]) : 60;
       setTitle("Údržba");
-      setPhone(currentUser.phone || "");
+      setPhone("");
       setDuration(defaultDuration);
       setMultisportCardsCount(0);
       setNotice("");
@@ -733,12 +733,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     setLoading(true);
     const result = await createBookingAction({
       courtId: slot.courtId,
-      title: title.trim() || (currentUser.role === "admin" ? "Údržba / Blokovanie" : (sports.find((item) => item.id === sport)?.label || "Rezervácia")),
-      customerName: currentUser.name,
+      title: title.trim() || (currentUser.role === "admin" ? "Údržba" : (sports.find((item) => item.id === sport)?.label || "Rezervácia")),
+      customerName: currentUser.role === "admin" ? "Údržba" : currentUser.name,
       phone: phone || undefined,
       start: start.toISOString(),
       end: end.toISOString(),
-      status: "confirmed",
+      status: currentUser.role === "admin" ? "blocked" : "confirmed",
       source: currentUser.role === "admin" ? "admin" : "web",
       operationId: crypto.randomUUID(),
       multisportCardsCount
@@ -753,7 +753,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         ? `Rezervácia bola vytvorená. Odpočítané: ${result.wallet.chargedEur.toFixed(2)} €.`
         : (multisportCardsCount === 2 
             ? "Rezervácia bola úspešne vytvorená so 100% zľavou (2x MultiSport karta zdarma)."
-            : (currentUser.role === "admin" ? "Kurt bol úspešne zablokovaný / rezervovaný." : "Rezervácia bola úspešne vytvorená."))
+            : (currentUser.role === "admin" ? "Kurt bol úspešne zablokovaný (Údržba)." : "Rezervácia bola úspešne vytvorená."))
     );
   };
   const remove = async () => {
@@ -1349,30 +1349,43 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                         const canManage = own || isAdmin;
                         const voiceHighlight = highlightedVoiceBookings.includes(booking.id);
                         const isTrainer = booking.userRole === "trainer";
-                        const isAdminBlock = booking.source === "admin" && !booking.user_id;
+                        const isMaintenanceOrAdmin =
+                          booking.source === "admin" ||
+                          booking.userRole === "admin" ||
+                          booking.status === "blocked" ||
+                          Boolean(booking.customerName && (
+                            booking.customerName.toLowerCase().includes("údržba") ||
+                            booking.customerName.toLowerCase().includes("admin")
+                          )) ||
+                          Boolean(booking.title && booking.title.toLowerCase().includes("údržba"));
 
                         // Decide styling and text based on role
                         let bookingClasses = "";
                         let labelText = "";
-                        const isDarkText = isAdmin && !isTrainer && !isAdminBlock;
 
                         if (isAdmin) {
-                          labelText = booking.customerName || booking.title || "Rezervácia";
                           if (isTrainer) {
                             // Fialová / Purpurová presne podľa NTC dispečingu s čiernym textom
+                            labelText = booking.customerName || booking.title || "Tréner";
                             bookingClasses = "border-[#6025B8] bg-[#8648E8] text-black font-bold shadow-xs hover:bg-[#965EF0]";
-                          } else if (isAdminBlock) {
-                            // Admin blokácia
-                            bookingClasses = "border-slate-800 bg-slate-900 text-white shadow-xs hover:bg-slate-800";
+                          } else if (isMaintenanceOrAdmin) {
+                            // Admin blokácia / Údržba - svetlá červená s čiernym textom
+                            labelText = "Údržba";
+                            bookingClasses = "border-[#EF4444] bg-[#FCA5A5] text-black font-bold shadow-xs hover:bg-[#F87171]";
                           } else {
                             // Sýta čistá žltá presne podľa NTC dispečingu s čiernym textom
+                            labelText = booking.customerName || booking.title || "Rezervácia";
                             bookingClasses = "border-[#C5BC00] bg-[#ECE81A] text-black font-bold shadow-xs hover:bg-[#F7F438]";
                           }
                         } else {
-                          labelText = own ? "Vaša rezervácia" : "Obsadené";
-                          if (own) {
+                          if (isMaintenanceOrAdmin) {
+                            labelText = "Údržba";
+                            bookingClasses = "border-[#EF4444] bg-[#FCA5A5] text-black font-bold shadow-xs";
+                          } else if (own) {
+                            labelText = "Vaša rezervácia";
                             bookingClasses = "border-emerald-300/90 bg-gradient-to-br from-[#15803D] via-[#16A34A] to-[#14532D] text-white shadow-[0_4px_14px_rgba(22,163,74,0.35)]";
                           } else {
+                            labelText = "Obsadené";
                             bookingClasses = "border-orange-300/90 bg-gradient-to-br from-[#D95A3F] via-[#E26A4F] to-[#C44B31] text-white shadow-[0_4px_14px_rgba(180,83,9,0.35)]";
                           }
                         }
@@ -1470,8 +1483,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                 Tréner
               </span>
               <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-slate-800 bg-slate-900 shadow-xs" />
-                Admin blokácia
+                <i className="h-3.5 w-3.5 rounded-md border border-[#EF4444] bg-[#FCA5A5] shadow-xs" />
+                Údržba
               </span>
             </>
           ) : (
@@ -1483,6 +1496,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               <span className="flex items-center gap-2">
                 <i className="h-3.5 w-3.5 rounded-md border border-orange-300 bg-gradient-to-br from-[#D95A3F] to-[#C44B31] shadow-xs" />
                 Obsadené
+              </span>
+              <span className="flex items-center gap-2">
+                <i className="h-3.5 w-3.5 rounded-md border border-[#EF4444] bg-[#FCA5A5] shadow-xs" />
+                Údržba
               </span>
             </>
           )}

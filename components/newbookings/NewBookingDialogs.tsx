@@ -262,13 +262,21 @@ export function CreateBookingDialog(props: CreateDialogProps) {
             </div>
           )}
 
-          <Field icon={MessageSquare} label="Poznámka" value={props.title} onChange={props.onTitle} placeholder="Voliteľná poznámka k rezervácii..." />
+          <Field
+            icon={MessageSquare}
+            label={props.isAdmin ? "Poznámka / Dôvod blokovania" : "Poznámka"}
+            value={props.title}
+            onChange={props.onTitle}
+            placeholder={props.isAdmin ? "Údržba" : "Voliteľná poznámka k rezervácii..."}
+          />
           <button
             type="submit"
             disabled={props.loading || isInsufficientCredit}
             className={`mt-2 w-full rounded-xl px-4 py-3 text-xs font-bold text-white transition sm:px-5 sm:py-3.5 sm:text-sm shadow-xs ${
               isInsufficientCredit
                 ? "bg-slate-400 cursor-not-allowed opacity-80"
+                : props.isAdmin
+                ? "bg-slate-950 hover:bg-slate-800 disabled:opacity-50 cursor-pointer"
                 : "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
             }`}
           >
@@ -276,6 +284,8 @@ export function CreateBookingDialog(props: CreateDialogProps) {
               ? "Ukladanie..."
               : isInsufficientCredit
               ? `Najprv dobite kredit (${(props.walletBalance ?? 0).toFixed(2)} € / ${pricing.formattedPrice})`
+              : props.isAdmin
+              ? "Zablokovať kurt (Údržba)"
               : "Vytvoriť rezerváciu"}
           </button>
         </form>
@@ -304,17 +314,31 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, canc
 
   const formatDate = (value: string) => new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(new Date(value));
   const formatTime = (value: string) => new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bratislava" }).format(new Date(value));
+
+  const isMaintenanceOrAdmin =
+    booking.source === "admin" ||
+    booking.userRole === "admin" ||
+    booking.status === "blocked" ||
+    Boolean(booking.customerName && (
+      booking.customerName.toLowerCase().includes("údržba") ||
+      booking.customerName.toLowerCase().includes("admin")
+    )) ||
+    Boolean(booking.title && booking.title.toLowerCase().includes("údržba"));
   
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4">
       <button aria-label="Zavrieť" className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative max-h-[90vh] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-8">
-        <DialogHeader title="Detail rezervácie" subtitle={court?.name || "Rezervované športovisko"} onClose={onClose} />
+        <DialogHeader
+          title={isMaintenanceOrAdmin ? "Detail blokovania / údržby" : "Detail rezervácie"}
+          subtitle={court?.name || "Rezervované športovisko"}
+          onClose={onClose}
+        />
 
         <div className="space-y-2.5 sm:space-y-3">
           <Detail icon={Clock3} label="Termín" value={`${formatDate(booking.start)}, ${formatTime(booking.start)} – ${formatTime(booking.end)}`} />
-          <Detail icon={User} label="Meno" value={booking.customerName || "Neznáme"} />
-          {booking.phone && <Detail icon={Phone} label="Telefón" value={booking.phone} />}
+          <Detail icon={User} label={isMaintenanceOrAdmin ? "Typ" : "Meno"} value={isMaintenanceOrAdmin ? "Údržba" : (booking.customerName || "Neznáme")} />
+          {booking.phone && !isMaintenanceOrAdmin && <Detail icon={Phone} label="Telefón" value={booking.phone} />}
           {booking.multisportCardsCount && booking.multisportCardsCount > 0 ? (
             <Detail
               icon={CreditCard}
@@ -322,11 +346,11 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, canc
               value={booking.multisportCardsCount === 2 ? "2x karta (Zľava 100 % zdarma)" : "1x karta (Zľava 50 %)"}
             />
           ) : null}
-          {booking.title && <Detail icon={MessageSquare} label="Poznámka" value={booking.title} />}
+          {booking.title && booking.title !== "Údržba" && <Detail icon={MessageSquare} label="Poznámka" value={booking.title} />}
         </div>
         {canManage && canCancel && (
           <button onClick={onDelete} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700 transition hover:bg-red-100 sm:mt-7 sm:px-5 sm:text-sm">
-            <Trash2 className="h-4 w-4" /> Zrušiť rezerváciu
+            <Trash2 className="h-4 w-4" /> {isMaintenanceOrAdmin ? "Odblokovať kurt" : "Zrušiť rezerváciu"}
           </button>
         )}
         {canManage && !canCancel && (
