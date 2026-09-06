@@ -4,8 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Plus, Receipt, ShieldCheck, Sparkles, UserPlus, Users, X } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Plus, Receipt, Settings, ShieldCheck, Sparkles, UserPlus, Users, X } from "lucide-react";
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
+import { ThreeDChartIcon, ThreeDSettingsIcon, ThreeDUserAvatarIcon } from "@/components/icons/ThreeDNavIcons";
 import { createBookingAction, deleteBookingAction, fetchBookingsAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
 import { createWalletCardPayAction, createWalletCheckoutAction, getWalletAction, reconcileWalletCardPayAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
@@ -263,20 +264,25 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const hours = useMemo(() => Array.from({ length: openingHours.endHour - openingHours.startHour }, (_, index) => openingHours.startHour + index), []);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const adminMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setUserMenuOpen(false);
       }
+      if (adminMenuRef.current && !adminMenuRef.current.contains(event.target as Node)) {
+        setAdminMenuOpen(false);
+      }
     };
-    if (userMenuOpen) {
+    if (userMenuOpen || adminMenuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [userMenuOpen]);
+  }, [userMenuOpen, adminMenuOpen]);
 
   useEffect(() => {
     if (!notice) return;
@@ -848,45 +854,135 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           <HolographicTennisCourt />
                     {/* Desktop Horizontal Navigation (md:flex) */}
           {currentUser && (
-            <nav className="hidden md:flex items-center gap-2 lg:gap-3">
-              {/* Menu items group */}
-              <div className="flex items-center gap-1.5 lg:gap-2 mr-3 lg:mr-6">
-                <Link
-                  href="/dashboard/newbookings"
-                  className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs lg:text-sm font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-indigo-300 hover:bg-indigo-50/70 hover:text-indigo-700"
-                >
-                  <LayoutDashboard className="h-4 w-4 text-indigo-600" />
-                  <span>Štatistiky</span>
-                </Link>
-
-                {currentUser.role === "admin" ? (
-                  <>
+            <nav className="hidden md:flex items-center gap-3 lg:gap-4">
+              {currentUser.role === "admin" ? (
+                <>
+                  {/* Admin 3D Navigation: Používatelia | Štatistiky | Nastavenia */}
+                  <div className="flex items-center gap-2 lg:gap-3 mr-2 lg:mr-4">
+                    {/* 1. Používatelia (3D avatar hlavy človeka) */}
                     <Link
                       href="/dashboard/users"
-                      className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs lg:text-sm font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-cyan-300 hover:bg-cyan-50/70 hover:text-cyan-700"
+                      className="group relative flex flex-col items-center justify-center rounded-2xl border border-slate-200/80 bg-white/95 px-3.5 py-1.5 min-w-[82px] shadow-2xs backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-gradient-to-b hover:from-white hover:to-cyan-50/60 hover:shadow-md active:translate-y-0"
+                      title="Správa používateľov"
                     >
-                      <Users className="h-4 w-4 text-cyan-600" />
-                      <span>Používatelia</span>
+                      <div className="transition-transform duration-200 group-hover:scale-110">
+                        <ThreeDUserAvatarIcon className="h-7 w-7 lg:h-8 lg:w-8" />
+                      </div>
+                      <span className="mt-0.5 text-[11px] font-extrabold tracking-tight text-slate-700 transition-colors duration-200 group-hover:text-cyan-700">
+                        Používatelia
+                      </span>
                     </Link>
 
+                    {/* 2. Štatistiky (3D graf) */}
                     <Link
-                      href="/dashboard/admin-transactions"
-                      className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs lg:text-sm font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-700"
+                      href="/dashboard/newbookings"
+                      className="group relative flex flex-col items-center justify-center rounded-2xl border border-slate-200/80 bg-white/95 px-3.5 py-1.5 min-w-[82px] shadow-2xs backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-gradient-to-b hover:from-white hover:to-indigo-50/60 hover:shadow-md active:translate-y-0"
+                      title="Prehľad a štatistiky"
                     >
-                      <Receipt className="h-4 w-4 text-emerald-600" />
-                      <span>Transakcie</span>
+                      <div className="transition-transform duration-200 group-hover:scale-110">
+                        <ThreeDChartIcon className="h-7 w-7 lg:h-8 lg:w-8" />
+                      </div>
+                      <span className="mt-0.5 text-[11px] font-extrabold tracking-tight text-slate-700 transition-colors duration-200 group-hover:text-indigo-700">
+                        Štatistiky
+                      </span>
                     </Link>
 
+                    {/* 3. Nastavenia (namiesto Administrácia) */}
                     <Link
                       href="/dashboard/users-roles"
-                      className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs lg:text-sm font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-violet-300 hover:bg-violet-50/70 hover:text-violet-700"
+                      className="group relative flex flex-col items-center justify-center rounded-2xl border border-slate-200/80 bg-white/95 px-3.5 py-1.5 min-w-[82px] shadow-2xs backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-300 hover:bg-gradient-to-b hover:from-white hover:to-violet-50/60 hover:shadow-md active:translate-y-0"
+                      title="Nastavenia systému a rolí"
                     >
-                      <ShieldCheck className="h-4 w-4 text-violet-600" />
-                      <span>Administrácia</span>
+                      <div className="transition-transform duration-200 group-hover:scale-110">
+                        <ThreeDSettingsIcon className="h-7 w-7 lg:h-8 lg:w-8" />
+                      </div>
+                      <span className="mt-0.5 text-[11px] font-extrabold tracking-tight text-slate-700 transition-colors duration-200 group-hover:text-violet-700">
+                        Nastavenia
+                      </span>
                     </Link>
-                  </>
-                ) : (
-                  <>
+                  </div>
+
+                  {/* Admin User Avatar s Dropdown menu (Transakcie + Odhlásiť) */}
+                  <div className="relative" ref={adminMenuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setAdminMenuOpen((prev) => !prev)}
+                      className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/95 px-3 py-1.5 shadow-2xs backdrop-blur-md transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 hover:shadow-sm cursor-pointer group"
+                      aria-expanded={adminMenuOpen}
+                      aria-haspopup="true"
+                    >
+                      <TennisBallAvatar name={currentUser.name} className="h-7 w-7 transition-transform duration-200 group-hover:scale-105" textSize="text-[10px]" />
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-bold text-slate-900 max-w-[120px] truncate leading-tight">{currentUser.name}</span>
+                        <span className="text-[10px] font-bold text-indigo-600 leading-tight">Admin</span>
+                      </div>
+                      <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${adminMenuOpen ? "rotate-180 text-slate-700" : "group-hover:text-slate-600"}`} />
+                    </button>
+
+                    {/* Dropdown Menu pre Admin User */}
+                    {adminMenuOpen && (
+                      <div className="absolute right-0 top-full mt-2 w-64 origin-top-right rounded-2xl border border-slate-200/90 bg-white/95 p-1.5 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+                        {/* Hlavička dropdownu */}
+                        <div className="flex items-center gap-2.5 px-3 py-2.5 mb-1 border-b border-slate-100 bg-slate-50/70 rounded-xl">
+                          <TennisBallAvatar name={currentUser.name} className="h-8 w-8" textSize="text-[11px]" />
+                          <div className="min-w-0 flex-1">
+                            <b className="block truncate text-xs font-bold text-slate-900">{currentUser.name}</b>
+                            <span className="block truncate text-[10px] font-semibold text-indigo-600">Administrátor</span>
+                          </div>
+                        </div>
+
+                        {/* Transakcie presunuté do avatara */}
+                        <Link
+                          href="/dashboard/admin-transactions"
+                          onClick={() => setAdminMenuOpen(false)}
+                          className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 transition duration-150 group"
+                        >
+                          <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-100 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition duration-150 shadow-2xs">
+                            <Receipt className="h-4 w-4" />
+                          </span>
+                          <div className="flex flex-col text-left">
+                            <span className="font-bold text-slate-900 group-hover:text-emerald-800">Transakcie</span>
+                            <span className="text-[10px] text-slate-400 font-normal">Prehľad platieb a kreditov</span>
+                          </div>
+                        </Link>
+
+                        <div className="my-1 border-t border-slate-100" />
+
+                        {/* Odhlásiť sa */}
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            setAdminMenuOpen(false);
+                            if (!window.confirm("Chcete sa naozaj odhlásiť?")) return;
+                            await logoutAction();
+                            router.refresh();
+                          }}
+                          className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition duration-150 group cursor-pointer text-left"
+                        >
+                          <span className="grid h-8 w-8 place-items-center rounded-lg bg-red-100 text-red-600 group-hover:bg-red-600 group-hover:text-white transition duration-150 shadow-2xs">
+                            <LogOut className="h-4 w-4" />
+                          </span>
+                          <div className="flex flex-col text-left">
+                            <span className="font-bold text-red-700">Odhlásiť sa</span>
+                            <span className="text-[10px] text-red-400 font-normal">Ukončiť administrátorskú reláciu</span>
+                          </div>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                /* Non-admin používateľ */
+                <>
+                  <div className="flex items-center gap-1.5 lg:gap-2 mr-3 lg:mr-6">
+                    <Link
+                      href="/dashboard/newbookings"
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs lg:text-sm font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-indigo-300 hover:bg-indigo-50/70 hover:text-indigo-700"
+                    >
+                      <LayoutDashboard className="h-4 w-4 text-indigo-600" />
+                      <span>Štatistiky</span>
+                    </Link>
+
                     <Link
                       href="/dashboard/transactions"
                       className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs lg:text-sm font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-700"
@@ -894,48 +990,45 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                       <Coins className="h-4 w-4 text-emerald-600" />
                       <span>Moje transakcie</span>
                     </Link>
-                  </>
-                )}
-              </div>
-
-              {/* User profile, credit & logout group */}
-              <div className="flex items-center gap-2">
-                {currentUser.role !== "admin" && walletBalance !== null && (
-                  <div
-                    className={`flex items-center gap-2 rounded-xl border bg-white/95 px-3 py-2 text-slate-900 shadow-2xs backdrop-blur-xl transition-all duration-500 ${
-                      walletHighlight
-                        ? "border-emerald-500 bg-emerald-50 ring-4 ring-emerald-300/80 scale-105"
-                        : "border-[#d2f500]"
-                    }`}
-                    title="Aktuálny kredit"
-                  >
-                    <Coins className={`h-4 w-4 shrink-0 transition-transform duration-500 ${walletHighlight ? "text-emerald-600 scale-125" : "text-slate-700"}`} />
-                    <span className="text-xs font-semibold text-slate-900">Kredit:</span>
-                    <strong className="text-xs lg:text-sm font-bold text-slate-900">{walletBalance.toFixed(2)} €</strong>
                   </div>
-                )}
 
-                {/* User Chip */}
-                <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-1.5 shadow-2xs">
-                  <TennisBallAvatar name={currentUser.name} className="h-7 w-7" textSize="text-[10px]" />
-                  <span className="text-xs font-bold text-slate-800 max-w-[130px] truncate">{currentUser.name}</span>
-                </div>
+                  <div className="flex items-center gap-2">
+                    {walletBalance !== null && (
+                      <div
+                        className={`flex items-center gap-2 rounded-xl border bg-white/95 px-3 py-2 text-slate-900 shadow-2xs backdrop-blur-xl transition-all duration-500 ${
+                          walletHighlight
+                            ? "border-emerald-500 bg-emerald-50 ring-4 ring-emerald-300/80 scale-105"
+                            : "border-[#d2f500]"
+                        }`}
+                        title="Aktuálny kredit"
+                      >
+                        <Coins className={`h-4 w-4 shrink-0 transition-transform duration-500 ${walletHighlight ? "text-emerald-600 scale-125" : "text-slate-700"}`} />
+                        <span className="text-xs font-semibold text-slate-900">Kredit:</span>
+                        <strong className="text-xs lg:text-sm font-bold text-slate-900">{walletBalance.toFixed(2)} €</strong>
+                      </div>
+                    )}
 
-                {/* Logout button */}
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!window.confirm("Chcete sa naozaj odhlásiť?")) return;
-                    await logoutAction();
-                    router.refresh();
-                  }}
-                  className="flex items-center gap-1.5 rounded-xl border border-red-200/80 bg-red-50/60 px-3 py-2 text-xs font-bold text-red-600 shadow-2xs transition hover:bg-red-600 hover:text-white cursor-pointer"
-                  title="Odhlásiť sa"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span className="hidden xl:inline">Odhlásiť</span>
-                </button>
-              </div>
+                    <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-1.5 shadow-2xs">
+                      <TennisBallAvatar name={currentUser.name} className="h-7 w-7" textSize="text-[10px]" />
+                      <span className="text-xs font-bold text-slate-800 max-w-[130px] truncate">{currentUser.name}</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!window.confirm("Chcete sa naozaj odhlásiť?")) return;
+                        await logoutAction();
+                        router.refresh();
+                      }}
+                      className="flex items-center gap-1.5 rounded-xl border border-red-200/80 bg-red-50/60 px-3 py-2 text-xs font-bold text-red-600 shadow-2xs transition hover:bg-red-600 hover:text-white cursor-pointer"
+                      title="Odhlásiť sa"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span className="hidden xl:inline">Odhlásiť</span>
+                    </button>
+                  </div>
+                </>
+              )}
             </nav>
           )}
 
@@ -1060,9 +1153,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                           className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 transition duration-150 hover:bg-violet-50 hover:text-violet-700 sm:text-sm group"
                         >
                           <span className="grid h-8 w-8 place-items-center rounded-lg bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white transition duration-150">
-                            <ShieldCheck className="h-4 w-4" />
+                            <Settings className="h-4 w-4" />
                           </span>
-                          <span>Administrácia</span>
+                          <span>Nastavenia</span>
                         </Link>
                       </>
                     )}
