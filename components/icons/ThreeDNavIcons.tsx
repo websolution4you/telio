@@ -300,12 +300,10 @@ export function ThreeDSettingsIcon({ className = "h-7 w-7" }: { className?: stri
 }
 
 /**
- * 3D Gold Coins & Money Icon for "Peňaženka"
- * Polished isometric 3D gold coins stack with embossed Euro symbol and brilliant glint.
+ * Wallet Icon for "Peňaženka"
+ * Exact vector bi-fold orange wallet with cyan & yellow bills and closure strap matching user reference.
  */
 export function ThreeDWalletIcon({ className = "h-7 w-7" }: { className?: string }) {
-  const id = useId().replace(/:/g, "_");
-
   return (
     <svg
       viewBox="0 0 48 48"
@@ -314,129 +312,83 @@ export function ThreeDWalletIcon({ className = "h-7 w-7" }: { className?: string
       className={className}
       aria-hidden="true"
     >
-      <defs>
-        {/* Ambient warm glow */}
-        <filter id={`glow_${id}`} x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#f59e0b" floodOpacity="0.4" />
-        </filter>
+      {/* 1. Back Cyan / Blue Banknote / Card */}
+      <path
+        d="M 12 18 L 18 7.5 L 26.5 18 Z"
+        fill="#38bdf8"
+        stroke="#1e293b"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
 
-        {/* Primary Radiant Gold Face Gradient */}
-        <radialGradient id={`goldFace_${id}`} cx="35%" cy="30%" r="70%">
-          <stop offset="0%" stopColor="#fffbeb" />
-          <stop offset="25%" stopColor="#fef08a" />
-          <stop offset="60%" stopColor="#facc15" />
-          <stop offset="85%" stopColor="#eab308" />
-          <stop offset="100%" stopColor="#ca8a04" />
-        </radialGradient>
+      {/* 2. Front Yellow / Gold Banknote / Card */}
+      <path
+        d="M 17.5 18 L 29.5 5.5 L 37 18 Z"
+        fill="#facc15"
+        stroke="#1e293b"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
 
-        {/* Secondary Coin Gradient */}
-        <radialGradient id={`goldFace2_${id}`} cx="40%" cy="35%" r="65%">
-          <stop offset="0%" stopColor="#fef08a" />
-          <stop offset="50%" stopColor="#eab308" />
-          <stop offset="100%" stopColor="#a16207" />
-        </radialGradient>
+      {/* 3. Back Wallet Top-Right Edge */}
+      <path
+        d="M 37 18 H 38.5 C 41 18 43 20 43 22.5"
+        stroke="#1e293b"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      />
 
-        {/* 3D Coin Edge Cylindrical Shading */}
-        <linearGradient id={`edgeGrad_${id}`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#854d0e" />
-          <stop offset="25%" stopColor="#ca8a04" />
-          <stop offset="50%" stopColor="#fde047" />
-          <stop offset="80%" stopColor="#a16207" />
-          <stop offset="100%" stopColor="#713f12" />
-        </linearGradient>
+      {/* 4. Main Front Wallet Body (Vibrant Orange) */}
+      <rect
+        x="5"
+        y="18"
+        width="38"
+        height="25"
+        rx="5.5"
+        fill="#f97316"
+        stroke="#1e293b"
+        strokeWidth="2.8"
+        strokeLinejoin="round"
+      />
 
-        {/* Deep Rim Shadow */}
-        <linearGradient id={`rimShadow_${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#78350f" />
-          <stop offset="100%" stopColor="#451a03" />
-        </linearGradient>
-      </defs>
+      {/* 5. Left Spine Band (Darker Warm Orange Accent) */}
+      <path
+        d="M 12.5 18 H 10.5 C 7.5 18 5 20.5 5 23.5 V 37.5 C 5 40.5 7.5 43 10.5 43 H 12.5 V 18 Z"
+        fill="#ea580c"
+        stroke="#1e293b"
+        strokeWidth="2.8"
+        strokeLinejoin="round"
+      />
 
-      {/* Ambient Ground Shadow */}
-      <ellipse cx="25" cy="41" rx="16" ry="4" fill="#0f172a" fillOpacity="0.22" />
+      {/* 6. Top White Stitch / Glint Highlight */}
+      <path
+        d="M 21 21.5 H 31"
+        stroke="#ffffff"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
 
-      {/* --- RIGHT STACK: 2 Isometric Flat Gold Coins --- */}
-      {/* 1. Bottom Stacked Coin */}
-      <g>
-        {/* 3D Side Thickness */}
-        <path
-          d="M19 30 C19 33.5 39 33.5 39 30 V35 C39 38.5 19 38.5 19 35 Z"
-          fill={`url(#edgeGrad_${id})`}
-        />
-        {/* Top Rim */}
-        <ellipse cx="29" cy="30" rx="10" ry="4.5" fill={`url(#goldFace2_${id})`} stroke="#b45309" strokeWidth="0.8" />
-        <ellipse cx="29" cy="30" rx="8" ry="3.3" stroke="#fef08a" strokeWidth="0.6" strokeDasharray="1.5 1" fill="none" opacity="0.75" />
-      </g>
+      {/* 7. Right Closure Strap Tab with Pill End */}
+      <path
+        d="M 43 27.5 H 33 C 29.7 27.5 27 30.2 27 33.5 C 27 36.8 29.7 39.5 33 39.5 H 43"
+        fill="#f97316"
+        stroke="#1e293b"
+        strokeWidth="2.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
 
-      {/* 2. Middle Stacked Coin */}
-      <g>
-        {/* 3D Side Thickness */}
-        <path
-          d="M19 23 C19 26.5 39 26.5 39 23 V28 C39 31.5 19 31.5 19 28 Z"
-          fill={`url(#edgeGrad_${id})`}
-        />
-        {/* Top Rim */}
-        <ellipse cx="29" cy="23" rx="10" ry="4.5" fill={`url(#goldFace2_${id})`} stroke="#b45309" strokeWidth="0.8" />
-        <ellipse cx="29" cy="23" rx="8" ry="3.3" stroke="#fef08a" strokeWidth="0.6" strokeDasharray="1.5 1" fill="none" opacity="0.75" />
-      </g>
-
-      {/* --- FOREGROUND COIN: Large Standing 3D Gold Coin with € symbol --- */}
-      <g filter={`url(#glow_${id})`}>
-        {/* 3D Depth / Beveled Rim Underneath */}
-        <circle cx="18.5" cy="22.5" r="12" fill={`url(#rimShadow_${id})`} />
-
-        {/* 3D Edge Ring */}
-        <circle cx="18" cy="22" r="12" fill="#9a3412" stroke="#b45309" strokeWidth="1" />
-
-        {/* Main Golden Coin Face */}
-        <circle cx="17.5" cy="21.5" r="11.5" fill={`url(#goldFace_${id})`} />
-
-        {/* Coin Milled Inner Edge Ring */}
-        <circle
-          cx="17.5"
-          cy="21.5"
-          r="9.5"
-          stroke="#ca8a04"
-          strokeWidth="0.8"
-          strokeDasharray="2 1.2"
-          fill="none"
-          opacity="0.8"
-        />
-
-        {/* Euro Sign (€) Embossed in Gold with Dual Highlights */}
-        {/* Drop shadow of € symbol */}
-        <path
-          d="M21 16.5 C19.2 15.2 16.2 15.4 14.8 17 C13.7 18.2 13.3 19.8 13.5 21.5 H12 V22.8 H13.7 C13.7 23.4 13.8 24 14 24.5 H12 V25.8 H14.5 C15.8 27.8 18.8 28.5 21 27.2 L20.2 25.8 C18.7 26.6 16.8 26.2 15.8 24.8 H19 V23.5 H15.3 C15.2 23 15.2 22.4 15.2 21.8 H19 V20.5 H15.5 C15.7 19.3 16.5 17.6 18.5 17.6 C19.4 17.6 20.2 18.1 20.6 18.7 Z"
-          fill="#78350f"
-          opacity="0.5"
-          transform="translate(0.5, 0.5)"
-        />
-        {/* Main € Body in Solid Warm Gold */}
-        <path
-          d="M21 16.5 C19.2 15.2 16.2 15.4 14.8 17 C13.7 18.2 13.3 19.8 13.5 21.5 H12 V22.8 H13.7 C13.7 23.4 13.8 24 14 24.5 H12 V25.8 H14.5 C15.8 27.8 18.8 28.5 21 27.2 L20.2 25.8 C18.7 26.6 16.8 26.2 15.8 24.8 H19 V23.5 H15.3 C15.2 23 15.2 22.4 15.2 21.8 H19 V20.5 H15.5 C15.7 19.3 16.5 17.6 18.5 17.6 C19.4 17.6 20.2 18.1 20.6 18.7 Z"
-          fill="#854d0e"
-        />
-        {/* Specular White Bevel Arc on Coin Face */}
-        <path
-          d="M10 17.5 C12 12.5 18 10.5 23.5 13"
-          stroke="#ffffff"
-          strokeWidth="1.3"
-          strokeLinecap="round"
-          opacity="0.85"
-        />
-
-        {/* Small Specular Highlight Dot */}
-        <circle cx="10.5" cy="18.5" r="0.9" fill="#ffffff" opacity="0.95" />
-      </g>
-
-      {/* --- Sparkling Star Glint (✨) at Top Right --- */}
-      <g>
-        <path
-          d="M37 7 C37 10 39.5 11 41 11 C39.5 11 37 12 37 15 C37 12 34.5 11 33 11 C34.5 11 37 10 37 7 Z"
-          fill="#ffffff"
-        />
-        <circle cx="37" cy="11" r="1.2" fill="#fef08a" />
-      </g>
+      {/* 8. Snap Button Ring on Strap */}
+      <circle
+        cx="33"
+        cy="33.5"
+        r="3.2"
+        stroke="#1e293b"
+        strokeWidth="2.2"
+        fill="#f97316"
+      />
     </svg>
   );
 }
