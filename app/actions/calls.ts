@@ -1,5 +1,8 @@
 "use server";
 
+import { getSession } from "@/lib/auth/bookingAuth";
+import { getCoreServiceDb } from "@/lib/server/supabase";
+
 export interface TelnyxCall {
     id: string;
     started_at: string;
@@ -683,3 +686,223 @@ export async function fetchCallsComparisonAction(
         return { success: false, error: error.message };
     }
 }
+
+export interface DashboardCallItem {
+    id: string;
+    startedAt: string;
+    durationSec: number;
+    agentId: string;
+    agentName: string;
+    status: string;
+    callSuccessful: string;
+    summaryTitle: string;
+    transcriptSummary?: string;
+    callerNumber: string;
+    callerName?: string;
+    hasAudio: boolean;
+    audioUrl: string;
+}
+
+export interface DashboardCallAgent {
+    id: string;
+    name: string;
+}
+
+function formatDisplayPhone(raw: string): string {
+    if (!raw || raw === "Neznáme") return "Neznáme číslo";
+    if (raw.startsWith("client:") || raw.toLowerCase().includes("web")) return "Web návštevník";
+    
+    // Normalizácia na slovenské číslo
+    const digits = raw.replace(/\D/g, "");
+    if (digits.length === 10 && digits.startsWith("09")) {
+        return `${digits.substring(0, 4)} ${digits.substring(4, 7)} ${digits.substring(7)}`;
+    }
+    if (digits.length === 12 && digits.startsWith("421")) {
+        return `+421 ${digits.substring(3, 6)} ${digits.substring(6, 9)} ${digits.substring(9)}`;
+    }
+    return raw;
+}
+
+export async function fetchDashboardCallHistoryAction(limit: number = 30): Promise<{
+    success: boolean;
+    calls?: DashboardCallItem[];
+    agents?: DashboardCallAgent[];
+    configuredAgentId?: string;
+    hasNtcKey?: boolean;
+    error?: string;
+}> {
+    try {
+        const session = await getSession();
+        if (!session || session.role !== "admin") {
+            return { success: false, error: "Nemáte administrátorské oprávnenie." };
+        }
+
+        const apiKey = 
+            process.env.ELEVENLABS_NTC_API_KEY || 
+            process.env.ELEVENLABS_API_KEY || 
+            process.env.ELEVEN_LABS_API_KEY;
+
+        if (!apiKey) {
+            return { success: false, error: "ElevenLabs API kľúč nie je nakonfigurovaný v prostredí." };
+        }
+
+        const rawAgentId = (
+            process.env.ELEVENLABS_NTC_AGENT_ID || 
+            process.env.NEXT_PUBLIC_ELEVENLABS_NTC_AGENT_ID || 
+            "agent_9901kv6j21rhfccr7f0nbdhew5ew"
+        ).trim();
+
+        const normalizedAgentId = rawAgentId
+            ? (rawAgentId.startsWith("agent_") ? rawAgentId : `agent_${rawAgentId}`)
+            : "agent_9901kv6j21rhfccr7f0nbdhew5ew";
+
+        const hasNtcKey = Boolean(process.env.ELEVENLABS_NTC_API_KEY);
+
+        let rawConversations: any[] = [];
+
+        if (normalizedAgentId) {
+            // Dopytujeme priamo ElevenLabs na konverzácie tohto konkrétneho agenta
+            let listRes = await fetch(`https://api.elevenlabs.io/v1/convai/conversations?agent_id=${encodeURIComponent(normalizedAgentId)}&page_size=${Math.max(20, Math.min(limit, 100))}`, {
+                headers: {
+                    "xi-api-key": apiKey,
+                    "Accept": "application/json"
+                },
+                next: { revalidate: 0 }
+            });
+
+            // Ak s 'agent_' prefixom neprešlo a rawAgentId nemal prefix, skúsime rawAgentId bez prefixu
+            if (listRes.status === 404 && rawAgentId && rawAgentId.startsWith("agent_")) {
+                const strippedId = rawAgentId.replace(/^agent_/, "");
+                const retryRes = await fetch(`https://api.elevenlabs.io/v1/convai/conversations?agent_id=${encodeURIComponent(strippedId)}&page_size=${Math.max(20, Math.min(limit, 100))}`, {
+                    headers: {
+                        "xi-api-key": apiKey,
+                        "Accept": "application/json"
+                    },
+                    next: { revalidate: 0 }
+                });
+                if (retryRes.ok) {
+                    listRes = retryRes;
+                }
+            }
+
+            if (!listRes.ok) {
+                const errJson = await listRes.json().catch(() => ({}));
+                const detailMsg = errJson?.detail?.message || `HTTP ${listRes.status}`;
+                return { 
+                    success: false, 
+                    configuredAgentId: normalizedAgentId,
+                    error: `ElevenLabs nenašiel agenta (${normalizedAgentId}): ${detailMsg}. Skontrolujte, či ElevenLabs API kľúč patrí k účtu, kde je tento NTC agent vytvorený.` 
+                };
+            }
+
+            const listData = await listRes.json();
+            rawConversations = listData.conversations || [];
+        } else {
+            // Nemáme ELEVENLABS_NTC_AGENT_ID, načítame zoznam a hľadáme agenta podľa názvu NTC/Tenis
+            const listRes = await fetch(`https://api.elevenlabs.io/v1/convai/conversations?page_size=${Math.max(20, Math.min(limit, 100))}`, {
+                headers: {
+                    "xi-api-key": apiKey,
+                    "Accept": "application/json"
+                },
+                next: { revalidate: 0 }
+            });
+
+            if (!listRes.ok) {
+                return { success: false, error: `ElevenLabs API odpovedalo so stavom ${listRes.status}` };
+            }
+
+            const listData = await listRes.json();
+            rawConversations = (listData.conversations || []).filter((conv: any) => {
+                const name = (conv.agent_name || "").toLowerCase();
+                const id = (conv.agent_id || "").toLowerCase();
+                return name.includes("ntc") || name.includes("tenis") || name.includes("kurt");
+            });
+        }
+
+        const ntcRawConversations = rawConversations;
+
+        // 2. Paralelne načítame detaily pre jednotlivé NTC hovory
+        const callsWithDetails = await Promise.all(
+            ntcRawConversations.map(async (conv) => {
+                let externalNumber: string | null = null;
+                let summaryTitle = conv.call_summary_title || "Rozhovor s NTC asistentom";
+                let transcriptSummary = conv.transcript_summary || "";
+                let conversationDetail: any = null;
+
+                try {
+                    const detailRes = await fetch(`https://api.elevenlabs.io/v1/convai/conversations/${conv.conversation_id}`, {
+                        headers: {
+                            "xi-api-key": apiKey,
+                            "Accept": "application/json"
+                        }
+                    });
+
+                    if (detailRes.ok) {
+                        const detail = await detailRes.json();
+                        conversationDetail = detail;
+
+                        externalNumber = 
+                            detail.metadata?.phone_call?.external_number || 
+                            detail.metadata?.phone_call?.caller_id ||
+                            detail.metadata?.phone_call?.from ||
+                            detail.metadata?.phone_call?.caller_number ||
+                            detail.metadata?.custom_variables?.from_number || 
+                            detail.metadata?.custom_variables?.caller_phone ||
+                            detail.metadata?.custom_variables?.phone ||
+                            detail.conversation_initiation_client_data?.dynamic_variables?.from_number ||
+                            detail.conversation_initiation_client_data?.dynamic_variables?.caller_id ||
+                            detail.conversation_initiation_client_data?.dynamic_variables?.phone ||
+                            detail.conversation_initiation_client_data?.dynamic_variables?.customer_phone ||
+                            null;
+
+                        summaryTitle = 
+                            detail.analysis?.call_summary_title || 
+                            conv.call_summary_title || 
+                            summaryTitle;
+
+                        transcriptSummary = 
+                            detail.analysis?.transcript_summary || 
+                            conv.transcript_summary || 
+                            "";
+                    }
+                } catch {
+                    // Fallback na dáta z listu
+                }
+
+                const callerDisplay = formatDisplayPhone(externalNumber || "Neznáme");
+
+                const callItem: DashboardCallItem = {
+                    id: conv.conversation_id,
+                    startedAt: new Date((conv.start_time_unix_secs || 0) * 1000).toISOString(),
+                    durationSec: conv.call_duration_secs || 0,
+                    agentId: conv.agent_id || normalizedAgentId || "agent_ntc",
+                    agentName: conv.agent_name || "NTC Asistent",
+                    status: conv.status || "done",
+                    callSuccessful: conv.call_successful || "success",
+                    summaryTitle,
+                    transcriptSummary: transcriptSummary || undefined,
+                    callerNumber: callerDisplay,
+                    hasAudio: true,
+                    audioUrl: `/api/calls/audio?conversation_id=${conv.conversation_id}`
+                };
+
+                return callItem;
+            })
+        );
+
+        // Zoradenie od najnovších
+        callsWithDetails.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+
+        return {
+            success: true,
+            calls: callsWithDetails,
+            agents: [{ id: normalizedAgentId || "agent_ntc", name: "NTC Asistent" }],
+            configuredAgentId: normalizedAgentId,
+            hasNtcKey
+        };
+    } catch (error: any) {
+        console.error("fetchDashboardCallHistoryAction error:", error);
+        return { success: false, error: error.message || "Nepodarilo sa načítať históriu hovorov." };
+    }
+}
+
