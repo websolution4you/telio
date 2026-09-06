@@ -54,33 +54,48 @@ export default async function NewBookingsPage() {
       hasMultisport: Boolean(session.hasMultisport),
     };
 
-    const policyDb = getCoreServiceDb();
-    const { data: policyUser, error: policyUserError } = await policyDb
-      .from("booking_users")
-      .select("role")
-      .eq("id", session.userId)
-      .maybeSingle();
-    const role = policyUser?.role || currentUser.role || "user";
-    currentUser.role = role;
+    if (session) {
+      const policyDb = getCoreServiceDb();
+      const { data: policyUser } = await policyDb
+        .from("booking_users")
+        .select("role")
+        .eq("id", session.userId)
+        .maybeSingle();
+      if (policyUser?.role) {
+        currentUser.role = policyUser.role;
+      }
+    }
+  }
 
-    const { data: policy, error: policyError } = await policyDb
-      .from("role_booking_policies")
-            .select("role, max_booking_duration_minutes, booking_horizon_days, discount_eur_per_hour, cancellation_deadline_hours, is_active")
-      .eq("role", role)
-      .maybeSingle();
-    if (policyUserError || policyError) {
-      console.error("NewBookingsPage role policy lookup failed:", policyUserError || policyError);
-    }
-    if (policy) {
-      rolePolicy = {
-        role: policy.role,
-        maxBookingDurationMinutes: Number(policy.max_booking_duration_minutes),
-        bookingHorizonDays: Number(policy.booking_horizon_days),
-        discountEurPerHour: Number(policy.discount_eur_per_hour),
-        cancellationDeadlineHours: Number(policy.cancellation_deadline_hours),
-        isActive: Boolean(policy.is_active),
-      };
-    }
+  const role = currentUser?.role || "user";
+  const policyDb = getCoreServiceDb();
+  const { data: policy, error: policyError } = await policyDb
+    .from("role_booking_policies")
+    .select("role, max_booking_duration_minutes, booking_horizon_days, discount_eur_per_hour, cancellation_deadline_hours, is_active")
+    .eq("role", role)
+    .maybeSingle();
+
+  if (policyError) {
+    console.error("NewBookingsPage role policy lookup failed:", policyError);
+  }
+  if (policy) {
+    rolePolicy = {
+      role: policy.role,
+      maxBookingDurationMinutes: Number(policy.max_booking_duration_minutes),
+      bookingHorizonDays: Number(policy.booking_horizon_days),
+      discountEurPerHour: Number(policy.discount_eur_per_hour),
+      cancellationDeadlineHours: Number(policy.cancellation_deadline_hours),
+      isActive: Boolean(policy.is_active),
+    };
+  } else {
+    rolePolicy = {
+      role: role as any,
+      maxBookingDurationMinutes: 120,
+      bookingHorizonDays: 14,
+      discountEurPerHour: 0,
+      cancellationDeadlineHours: 24,
+      isActive: true,
+    };
   }
 
   let initialWalletBalance: number | null = null;

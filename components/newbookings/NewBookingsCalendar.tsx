@@ -313,6 +313,38 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     }
   }, []);
 
+  // Restore pending slot if user just registered or logged in
+  useEffect(() => {
+    if (typeof window === "undefined" || !currentUser) return;
+    try {
+      const savedRaw = sessionStorage.getItem("ntc_pending_auth_slot");
+      if (savedRaw) {
+        sessionStorage.removeItem("ntc_pending_auth_slot");
+        const saved = JSON.parse(savedRaw);
+        if (saved && saved.courtId && saved.date && typeof saved.hour === "number") {
+          const parsedDate = new Date(saved.date);
+          setTimeout(() => {
+            const start = new Date(parsedDate);
+            start.setHours(saved.hour, 0, 0, 0);
+            const options = getAvailableDurationOptions(saved.courtId, start);
+            setTitle("");
+            setPhone(currentUser.phone || "");
+            setDuration(options.includes(60) ? 60 : options[0] || 60);
+            setMultisportCardsCount(0);
+            setNotice("");
+            setSlot({
+              courtId: saved.courtId,
+              date: parsedDate,
+              hour: saved.hour,
+            });
+          }, 200);
+        }
+      }
+    } catch (e) {
+      console.warn("Could not restore slot after auth:", e);
+    }
+  }, [currentUser]);
+
   // Handle return from payment gateway (CardPay / Stripe)
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -536,7 +568,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   };
   
   const getAvailableDurationOptions = (courtId: string, start: Date) => {
-    if (currentUser?.role !== "admin" && !rolePolicy?.isActive) return [];
+    if (currentUser?.role !== "admin" && rolePolicy && !rolePolicy.isActive) return [];
     const courtBookings = bookings.filter((booking) => booking.courtId === courtId);
     if (courtBookings.some((booking) => new Date(booking.start) <= start && new Date(booking.end) > start)) return [];
     const nextBooking = courtBookings
@@ -558,7 +590,16 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     setAuth(null);
     if (user) {
       setCurrentUser(user);
-      router.refresh();
+      if (!rolePolicy) {
+        setRolePolicy({
+          role: user.role || "user",
+          maxBookingDurationMinutes: 120,
+          bookingHorizonDays: 14,
+          discountEurPerHour: 0,
+          cancellationDeadlineHours: 24,
+          isActive: true,
+        });
+      }
       getWalletAction().then((res) => {
         if (res.success && typeof res.balanceEur === "number") {
           setWalletBalance(res.balanceEur);
@@ -566,9 +607,32 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           setWalletBalance(0);
         }
       });
-      if (pendingSlot) {
-        const targetSlot = pendingSlot;
-        setPendingSlot(null);
+
+      let targetSlot = pendingSlot;
+      if (!targetSlot && typeof window !== "undefined") {
+        try {
+          const savedRaw = sessionStorage.getItem("ntc_pending_auth_slot");
+          if (savedRaw) {
+            const saved = JSON.parse(savedRaw);
+            if (saved && saved.courtId && saved.date && typeof saved.hour === "number") {
+              targetSlot = {
+                courtId: saved.courtId,
+                date: new Date(saved.date),
+                hour: saved.hour,
+              };
+            }
+          }
+        } catch (e) {
+          console.warn("Could not restore pending auth slot:", e);
+        }
+      }
+
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("ntc_pending_auth_slot");
+      }
+      setPendingSlot(null);
+
+      if (targetSlot) {
         setTimeout(() => {
           const start = new Date(targetSlot.date);
           start.setHours(targetSlot.hour, 0, 0, 0);
@@ -582,6 +646,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         }, 150);
         return;
       }
+      router.refresh();
     } else {
       router.refresh();
     }
@@ -589,13 +654,27 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
   const openSlot = (courtId: string, hour: number) => {
     if (!currentUser) {
-      setPendingSlot({ courtId, date: new Date(date), hour });
+      const pending = { courtId, date: new Date(date), hour };
+      setPendingSlot(pending);
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem(
+            "ntc_pending_auth_slot",
+            JSON.stringify({
+              courtId,
+              date: date instanceof Date ? date.toISOString() : new Date(date).toISOString(),
+              hour,
+            })
+          );
+        } catch (e) {
+          console.warn("Could not save pending auth slot:", e);
+        }
+      }
       return setAuth("register");
     }
     const start = new Date(date); start.setHours(hour, 0, 0, 0);
     if (currentUser.role !== "admin") {
-      if (!rolePolicy) return setNotice("Pravidlá vašej roly sa nepodarilo načítať. Obnovte stránku.");
-      if (!rolePolicy.isActive) return setNotice("Rezervácie sú pre vašu rolu momentálne deaktivované.");
+      if (rolePolicy && !rolePolicy.isActive) return setNotice("Rezervácie sú pre vašu rolu momentálne deaktivované.");
       if (start < now) return setNotice("Rezerváciu v minulosti nie je možné vytvoriť.");
       const options = getAvailableDurationOptions(courtId, start);
       if (!options.length) return setNotice("Do najbližšej rezervácie alebo konca prevádzky nie je voľných aspoň 30 minút.");
@@ -1301,7 +1380,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           onSuccess={(user) => handleAuthSuccess(user)}
         />
       )}
-      {slot && (rolePolicy || currentUser?.role === "admin") && (
+      {slot && (
         <CreateBookingDialog
           court={courts.find((court) => court.id === slot.courtId)}
           date={slot.date}
@@ -1324,7 +1403,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           onDuration={setDuration}
           onTitle={setTitle}
           onPhone={setPhone}
-          onClose={() => setSlot(null)}
+          onClose={() => {
+            setSlot(null);
+            if (typeof window !== "undefined") {
+              sessionStorage.removeItem("ntc_pending_auth_slot");
+            }
+          }}
           onSubmit={submit}
         />
       )}
