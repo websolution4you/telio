@@ -10,11 +10,11 @@ type RegisterFormProps = {
 };
 
 export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) {
-    const [name, setName] = useState("");
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    const [cardNumber, setCardNumber] = useState("");
     const [phone, setPhone] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -22,6 +22,11 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
+
+        if (!firstName.trim() || !lastName.trim()) {
+            setError("Meno a priezvisko sú povinné");
+            return;
+        }
 
         if (password !== confirmPassword) {
             setError("Heslá sa nezhodujú");
@@ -31,7 +36,8 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
         setLoading(true);
 
         try {
-            const result = await registerAction(name, email, password, cardNumber, phone);
+            const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+            const result = await registerAction(fullName, email, password, undefined, phone);
 
             if (result.success) {
                 onSuccess();
@@ -68,18 +74,33 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
                 </div>
             )}
 
-            <div>
-                <input
-                    id="name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 rounded-lg border bg-black/30 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-                    style={{ borderColor: "rgba(0,255,209,0.2)" }}
-                    placeholder="Celé meno"
-                    disabled={loading}
-                />
+            <div className="grid grid-cols-2 gap-2">
+                <div>
+                    <input
+                        id="firstName"
+                        type="text"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        required
+                        className="w-full px-3 py-2 rounded-lg border bg-black/30 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                        style={{ borderColor: "rgba(0,255,209,0.2)" }}
+                        placeholder="Meno"
+                        disabled={loading}
+                    />
+                </div>
+                <div>
+                    <input
+                        id="lastName"
+                        type="text"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        required
+                        className="w-full px-3 py-2 rounded-lg border bg-black/30 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                        style={{ borderColor: "rgba(0,255,209,0.2)" }}
+                        placeholder="Priezvisko"
+                        disabled={loading}
+                    />
+                </div>
             </div>
 
             <div>
@@ -106,22 +127,6 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
                     className="w-full px-3 py-2 rounded-lg border bg-black/30 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 mb-3"
                     style={{ borderColor: "rgba(0,255,209,0.2)" }}
                     placeholder="Telefónne číslo (+421...)"
-                    disabled={loading}
-                />
-            </div>
-
-            <div>
-                <input
-                    id="cardNumber"
-                    type="text"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    pattern="\d{4}"
-                    title="PIN kód musí obsahovať presne 4 číslice"
-                    required
-                    className="w-full px-3 py-2 rounded-lg border bg-black/30 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-                    style={{ borderColor: "rgba(0,255,209,0.2)" }}
-                    placeholder="4-miestny PIN kód karty"
                     disabled={loading}
                 />
             </div>

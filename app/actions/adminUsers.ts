@@ -425,10 +425,10 @@ export async function createBookingUserByAdminAction(input: CreateAdminUserInput
   const cleanEmail = input.email.toLowerCase().trim();
   const cleanPhone = input.phone?.trim() ? normalizePhone(input.phone) : null;
   const cleanCard = input.cardNumber?.trim() ? input.cardNumber.trim().slice(0, 50) : null;
-  const initialPassword = input.password?.trim() || "ntc12345";
+  const initialPassword = input.password?.trim() || "0000";
 
-  if (initialPassword.length < 6) {
-    return { success: false as const, error: "Heslo musí mať aspoň 6 znakov." };
+  if (initialPassword.length < 4) {
+    return { success: false as const, error: "Heslo musí mať aspoň 4 znaky." };
   }
 
   // Check email conflict

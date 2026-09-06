@@ -128,14 +128,15 @@ export default function AdminUsersDirectory() {
   const [createUserLoading, setCreateUserLoading] = useState(false);
   const [createUserError, setCreateUserError] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
     role: "user" as BookingRole,
     cardNumber: "",
     hasMultisport: false,
     initialCreditEur: 0,
-    password: "ntc" + Math.floor(1000 + Math.random() * 9000),
+    password: "0000",
   });
 
   // Card assignment state in detail modal
@@ -225,13 +226,24 @@ export default function AdminUsersDirectory() {
     setCreateUserLoading(true);
     setCreateUserError(null);
 
+    const firstName = createForm.firstName.trim();
+    const lastName = createForm.lastName.trim();
+
+    if (!firstName || !lastName) {
+      setCreateUserError("Meno a priezvisko sú povinné.");
+      setCreateUserLoading(false);
+      return;
+    }
+
+    const fullName = `${firstName} ${lastName}`.trim();
+
     const res = await createBookingUserByAdminAction({
-      name: createForm.name,
+      name: fullName,
       email: createForm.email,
       phone: createForm.phone || undefined,
       role: createForm.role,
       cardNumber: createForm.cardNumber || undefined,
-      hasMultisport: createForm.hasMultisport,
+      hasMultisport: false,
       initialCreditEur: Number(createForm.initialCreditEur || 0),
       password: createForm.password || undefined,
     });
@@ -239,14 +251,15 @@ export default function AdminUsersDirectory() {
     if (res.success) {
       setCreateUserOpen(false);
       setCreateForm({
-        name: "",
+        firstName: "",
+        lastName: "",
         email: "",
         phone: "",
         role: "user",
         cardNumber: "",
         hasMultisport: false,
         initialCreditEur: 0,
-        password: "ntc" + Math.floor(1000 + Math.random() * 9000),
+        password: "0000",
       });
       loadUsers(1, "", "all");
       if (res.user?.id) {
@@ -1135,16 +1148,29 @@ export default function AdminUsersDirectory() {
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Celé meno *</label>
-                <input
-                  type="text"
-                  required
-                  value={createForm.name}
-                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                  placeholder="Ján Novák"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Meno *</label>
+                  <input
+                    type="text"
+                    required
+                    value={createForm.firstName}
+                    onChange={(e) => setCreateForm({ ...createForm, firstName: e.target.value })}
+                    placeholder="Ján"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Priezvisko *</label>
+                  <input
+                    type="text"
+                    required
+                    value={createForm.lastName}
+                    onChange={(e) => setCreateForm({ ...createForm, lastName: e.target.value })}
+                    placeholder="Novák"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1191,26 +1217,10 @@ export default function AdminUsersDirectory() {
                     maxLength={4}
                     value={createForm.cardNumber}
                     onChange={(e) => setCreateForm({ ...createForm, cardNumber: e.target.value.replace(/\D/g, "").slice(0, 4) })}
-                    placeholder="napr. 1234 (voliteľné)"
+                    placeholder=""
                     className="w-full font-mono text-center rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
                   />
                 </div>
-              </div>
-
-              {/* MultiSport toggle */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={createForm.hasMultisport}
-                    onChange={(e) => setCreateForm({ ...createForm, hasMultisport: e.target.checked })}
-                    className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer"
-                  />
-                  <div className="text-xs">
-                    <span className="font-bold text-slate-900">Držiteľ MultiSport karty</span>
-                    <p className="text-[11px] text-slate-500">Umožní uplatniť 50 % zľavu na rezervácie kurtov.</p>
-                  </div>
-                </label>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
@@ -1231,7 +1241,7 @@ export default function AdminUsersDirectory() {
                   <input
                     type="text"
                     required
-                    minLength={6}
+                    minLength={4}
                     value={createForm.password}
                     onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm font-mono text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"

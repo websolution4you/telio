@@ -125,6 +125,41 @@ export async function registerAction(
         // Hash password
         const passwordHash = await hashPassword(password);
 
+        // If no card number provided (e.g. self-registration), auto-assign the next unique PIN
+        let finalCardNumber = cleanCard;
+        if (!finalCardNumber) {
+            const { data: existingCardUsers } = await db
+                .from("booking_users")
+                .select("card_number")
+                .not("card_number", "is", null);
+
+            const existingPins = new Set<string>();
+            let maxPin = 0;
+
+            if (existingCardUsers && existingCardUsers.length > 0) {
+                for (const u of existingCardUsers) {
+                    if (u.card_number) {
+                        const trimmed = String(u.card_number).trim();
+                        existingPins.add(trimmed);
+                        if (/^\d+$/.test(trimmed)) {
+                            const num = parseInt(trimmed, 10);
+                            if (num > maxPin) {
+                                maxPin = num;
+                            }
+                        }
+                    }
+                }
+            }
+
+            let nextPin = maxPin + 1;
+            let candidate = String(nextPin).padStart(4, "0");
+            while (existingPins.has(candidate)) {
+                nextPin++;
+                candidate = String(nextPin).padStart(4, "0");
+            }
+            finalCardNumber = candidate;
+        }
+
         // Create user
         const { data: user, error: dbError } = await db
             .from("booking_users")
@@ -132,7 +167,7 @@ export async function registerAction(
                 name: name.trim(),
                 email: cleanEmail,
                 password_hash: passwordHash,
-                card_number: cleanCard,
+                card_number: finalCardNumber,
                 phone: cleanPhone,
                 role: "user",
             })
