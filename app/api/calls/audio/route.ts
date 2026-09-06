@@ -15,7 +15,10 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Missing conversation_id parameter", { status: 400 });
     }
 
-    const apiKey = process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_LABS_API_KEY;
+    const apiKey = 
+      process.env.ELEVENLABS_NTC_API_KEY || 
+      process.env.ELEVENLABS_API_KEY || 
+      process.env.ELEVEN_LABS_API_KEY;
     if (!apiKey) {
       return new NextResponse("ElevenLabs API key is not configured", { status: 500 });
     }

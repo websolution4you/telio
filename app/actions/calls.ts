@@ -727,6 +727,7 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
     success: boolean;
     calls?: DashboardCallItem[];
     agents?: DashboardCallAgent[];
+    hasNtcKey?: boolean;
     error?: string;
 }> {
     try {
@@ -735,13 +736,20 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
             return { success: false, error: "Nemáte administrátorské oprávnenie." };
         }
 
-        const apiKey = process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_LABS_API_KEY;
+        const apiKey = 
+            process.env.ELEVENLABS_NTC_API_KEY || 
+            process.env.ELEVENLABS_API_KEY || 
+            process.env.ELEVEN_LABS_API_KEY;
+
         if (!apiKey) {
             return { success: false, error: "ElevenLabs API kľúč nie je nakonfigurovaný v .env.local" };
         }
 
+        const ntcAgentId = (process.env.ELEVENLABS_NTC_AGENT_ID || "9901kv6j21rhfccr7f0nbdhew5ew").trim();
+        const hasNtcKey = Boolean(process.env.ELEVENLABS_NTC_API_KEY);
+
         // 1. Paralelne načítame hovory z ElevenLabs a používateľov z databázy
-        const listPromise = fetch(`https://api.elevenlabs.io/v1/convai/conversations?page_size=${Math.max(10, Math.min(limit, 50))}`, {
+        const listPromise = fetch(`https://api.elevenlabs.io/v1/convai/conversations?page_size=${Math.max(20, Math.min(limit, 100))}`, {
             headers: {
                 "xi-api-key": apiKey,
                 "Accept": "application/json"
@@ -765,11 +773,23 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
         const listData = await listRes.json();
         const rawConversations: any[] = listData.conversations || [];
 
-        // 2. Paralelne načítame detaily pre jednotlivé hovory (pre získanie external_number a summary)
+        // 2. Filtrujeme iba konverzácie pre NTC agenta
+        const ntcRawConversations = rawConversations.filter((conv) => {
+            const name = (conv.agent_name || "").toLowerCase();
+            const id = (conv.agent_id || "").toLowerCase();
+            return (
+                name.includes("ntc") || 
+                name.includes("tenis") || 
+                name.includes("kurt") || 
+                id.includes(ntcAgentId.toLowerCase())
+            );
+        });
+
+        // 3. Paralelne načítame detaily pre jednotlivé NTC hovory
         const callsWithDetails = await Promise.all(
-            rawConversations.map(async (conv) => {
+            ntcRawConversations.map(async (conv) => {
                 let externalNumber: string | null = null;
-                let summaryTitle = conv.call_summary_title || "Rozhovor s asistentom";
+                let summaryTitle = conv.call_summary_title || "Rozhovor s NTC asistentom";
                 let transcriptSummary = conv.transcript_summary || "";
 
                 try {
@@ -801,7 +821,7 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
                     // Fallback na dáta z listu
                 }
 
-                // 3. Spárovanie telefónneho čísla s menom zákazníka v booking_users
+                // Spárovanie telefónneho čísla s menom zákazníka v booking_users
                 let callerName: string | undefined = undefined;
                 if (externalNumber && !externalNumber.startsWith("client:")) {
                     const cleanPhone = externalNumber.replace(/\D/g, "").slice(-9);
@@ -823,8 +843,8 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
                     id: conv.conversation_id,
                     startedAt: new Date((conv.start_time_unix_secs || 0) * 1000).toISOString(),
                     durationSec: conv.call_duration_secs || 0,
-                    agentId: conv.agent_id || "",
-                    agentName: conv.agent_name || "Hlasový asistent",
+                    agentId: conv.agent_id || ntcAgentId,
+                    agentName: conv.agent_name || "NTC Asistent",
                     status: conv.status || "done",
                     callSuccessful: conv.call_successful || "success",
                     summaryTitle,
@@ -842,19 +862,11 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
         // Zoradenie od najnovších
         callsWithDetails.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
 
-        // Zoznam unikátnych agentov pre filter
-        const agentMap = new Map<string, string>();
-        callsWithDetails.forEach((c) => {
-            if (c.agentId && c.agentName) {
-                agentMap.set(c.agentId, c.agentName);
-            }
-        });
-        const agents: DashboardCallAgent[] = Array.from(agentMap.entries()).map(([id, name]) => ({ id, name }));
-
         return {
             success: true,
             calls: callsWithDetails,
-            agents
+            agents: [{ id: ntcAgentId, name: "NTC Asistent" }],
+            hasNtcKey
         };
     } catch (error: any) {
         console.error("fetchDashboardCallHistoryAction error:", error);

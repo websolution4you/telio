@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { 
   fetchDashboardCallHistoryAction, 
-  type DashboardCallItem, 
-  type DashboardCallAgent 
+  type DashboardCallItem 
 } from "@/app/actions/calls";
 import { 
   PhoneCall, 
@@ -12,17 +11,14 @@ import {
   Pause, 
   RotateCcw, 
   Search, 
-  Filter, 
   CheckCircle2, 
   XCircle, 
-  Clock, 
-  User, 
   Loader2, 
   Volume2, 
   VolumeX, 
   Info, 
   Sparkles,
-  ExternalLink
+  AlertCircle
 } from "lucide-react";
 
 const formatDate = (iso: string) => {
@@ -47,13 +43,12 @@ const formatSeconds = (sec: number) => {
 
 export default function AdminCallHistory() {
   const [calls, setCalls] = useState<DashboardCallItem[]>([]);
-  const [agents, setAgents] = useState<DashboardCallAgent[]>([]);
+  const [hasNtcKey, setHasNtcKey] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  // Filtre
-  const [selectedAgentId, setSelectedAgentId] = useState<string>("all");
+  // Vyhľadávanie
   const [searchQuery, setSearchQuery] = useState("");
 
   // Audio Prehrávač
@@ -74,10 +69,10 @@ export default function AdminCallHistory() {
     setError("");
 
     try {
-      const result = await fetchDashboardCallHistoryAction(30);
+      const result = await fetchDashboardCallHistoryAction(50);
       if (result.success && result.calls) {
         setCalls(result.calls);
-        setAgents(result.agents || []);
+        setHasNtcKey(Boolean(result.hasNtcKey));
       } else {
         setError(result.error || "Nepodarilo sa načítať históriu hovorov.");
       }
@@ -158,22 +153,16 @@ export default function AdminCallHistory() {
   // Filtrované hovory
   const filteredCalls = useMemo(() => {
     return calls.filter((c) => {
-      // Filter agenta
-      if (selectedAgentId !== "all" && c.agentId !== selectedAgentId) {
-        return false;
-      }
-      // Fulltext filter
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         const matchNum = c.callerNumber.toLowerCase().includes(query);
         const matchName = (c.callerName || "").toLowerCase().includes(query);
-        const matchAgent = c.agentName.toLowerCase().includes(query);
         const matchTitle = c.summaryTitle.toLowerCase().includes(query);
-        return matchNum || matchName || matchAgent || matchTitle;
+        return matchNum || matchName || matchTitle;
       }
       return true;
     });
-  }, [calls, selectedAgentId, searchQuery]);
+  }, [calls, searchQuery]);
 
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-md">
@@ -199,39 +188,20 @@ export default function AdminCallHistory() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-slate-900">História hlasových hovorov</h2>
+                <h2 className="text-xl font-bold text-slate-900">História hovorov NTC asistenta</h2>
                 <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
-                  {filteredCalls.length} hovorov
+                  {filteredCalls.length} {filteredCalls.length === 1 ? "hovor" : filteredCalls.length >= 2 && filteredCalls.length <= 4 ? "hovory" : "hovorov"}
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                Záznamy hovorov hlasových asistentov s možnosťou priameho vypočutia a zhrnutia.
+                Záznamy hovorov hlasového asistenta NTC s možnosťou priameho vypočutia a zhrnutia.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Nástroje: Refresh + Filtre */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Výber agenta */}
-          {agents.length > 1 && (
-            <div className="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs">
-              <Filter className="h-3.5 w-3.5 text-slate-400" />
-              <select
-                value={selectedAgentId}
-                onChange={(e) => setSelectedAgentId(e.target.value)}
-                className="bg-transparent font-medium text-slate-700 outline-none"
-              >
-                <option value="all">Všetci agenti</option>
-                {agents.map((ag) => (
-                  <option key={ag.id} value={ag.id}>
-                    {ag.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
+        {/* Nástroje: Hľadanie + Refresh */}
+        <div className="flex items-center gap-2">
           {/* Vyhľadávanie */}
           <div className="relative flex items-center">
             <Search className="absolute left-3 h-3.5 w-3.5 text-slate-400" />
@@ -248,7 +218,7 @@ export default function AdminCallHistory() {
           <button
             onClick={() => loadCalls(true)}
             disabled={refreshing || loading}
-            title="Obnoviť zoznam hovorov"
+            title="Obnoviť hovory NTC"
             className="flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900 active:scale-95 disabled:opacity-50"
           >
             <RotateCcw className={`h-4 w-4 ${refreshing ? "animate-spin text-indigo-600" : ""}`} />
@@ -267,23 +237,34 @@ export default function AdminCallHistory() {
 
       {/* Načítavanie */}
       {loading && !calls.length ? (
-        <div className="grid min-h-[220px] place-items-center">
+        <div className="grid min-h-[200px] place-items-center">
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
-            <span className="text-xs text-slate-500">Načítavam históriu hovorov...</span>
+            <span className="text-xs text-slate-500">Načítavam hovory NTC asistenta...</span>
           </div>
         </div>
       ) : filteredCalls.length === 0 ? (
-        <div className="grid min-h-[160px] place-items-center rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">
-          Nenašli sa žiadne hovory pre zvolený filter.
+        <div className="grid min-h-[170px] place-items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center text-sm text-slate-500">
+          <div className="max-w-md">
+            <PhoneCall className="mx-auto mb-2 h-7 w-7 text-slate-300" />
+            <p className="font-semibold text-slate-800">Zatiaľ žiadne hovory pre NTC asistenta</p>
+            <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
+              {!hasNtcKey ? (
+                <>
+                  Ak má NTC asistent samostatný ElevenLabs účet, zadajte jeho API kľúč do súboru <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] text-indigo-600 border border-slate-200">.env.local</code> ako <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] text-indigo-600 border border-slate-200">ELEVENLABS_NTC_API_KEY</code>.
+                </>
+              ) : (
+                "Hovory zákazníkov prijaté asistentom NTC sa automaticky zobrazia tu spolu so zvukovým záznamom."
+              )}
+            </p>
+          </div>
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <table className="w-full min-w-[700px] text-left text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-xs uppercase tracking-wider text-slate-400">
                 <th className="pb-3 pl-2">Čas hovoru</th>
-                <th className="pb-3">Asistent</th>
                 <th className="pb-3">Volajúci zákazník</th>
                 <th className="pb-3">Zhrnutie hovoru</th>
                 <th className="pb-3 text-center">Dĺžka</th>
@@ -308,14 +289,6 @@ export default function AdminCallHistory() {
                       {formatDate(call.startedAt)}
                     </td>
 
-                    {/* Názov agenta */}
-                    <td className="py-3.5">
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50/70 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
-                        <Sparkles className="h-3 w-3 text-indigo-500" />
-                        {call.agentName}
-                      </span>
-                    </td>
-
                     {/* Volajúci (Meno + Číslo) */}
                     <td className="py-3.5">
                       {call.callerName ? (
@@ -335,7 +308,7 @@ export default function AdminCallHistory() {
                     </td>
 
                     {/* Zhrnutie hovoru */}
-                    <td className="py-3.5 max-w-[260px]">
+                    <td className="py-3.5 max-w-[280px]">
                       <div className="flex items-center gap-1.5">
                         <span className="truncate font-medium text-slate-800" title={call.summaryTitle}>
                           {call.summaryTitle}
@@ -450,7 +423,7 @@ export default function AdminCallHistory() {
                     {activeSummaryModal.summaryTitle}
                   </h3>
                   <p className="text-xs text-slate-500">
-                    {activeSummaryModal.agentName} • {formatDate(activeSummaryModal.startedAt)}
+                    NTC Asistent • {formatDate(activeSummaryModal.startedAt)}
                   </p>
                 </div>
               </div>
