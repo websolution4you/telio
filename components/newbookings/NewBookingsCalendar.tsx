@@ -878,7 +878,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               {currentUser.role === "admin" ? (
                 <>
                   {/* Admin 3D Navigation: Používatelia | Štatistiky | Nastavenia */}
-                  <div className="flex items-center gap-2 lg:gap-3 mr-2 lg:mr-4">
+                  <div className="flex items-center gap-2 lg:gap-3 mr-6 lg:mr-8">
                     {/* 1. Používatelia */}
                     <Link
                       href="/dashboard/users"
@@ -922,21 +922,23 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     </Link>
                   </div>
 
-                  {/* Admin User Avatar s Dropdown menu (Transakcie + Odhlásiť) */}
+                  {/* Admin User Avatar Kocka s Dropdown menu (Transakcie + Odhlásiť) */}
                   <div className="relative" ref={adminMenuRef}>
                     <button
                       type="button"
                       onClick={() => setAdminMenuOpen((prev) => !prev)}
-                      className="flex items-center gap-2.5 rounded-2xl border border-slate-200/80 bg-white/95 px-3 py-1.5 shadow-2xs backdrop-blur-md transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 hover:shadow-sm cursor-pointer group"
+                      className="group relative flex flex-col items-center justify-center rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-2 min-w-[86px] shadow-2xs backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:shadow-md active:translate-y-0 cursor-pointer"
                       aria-expanded={adminMenuOpen}
                       aria-haspopup="true"
+                      title="Používateľské menu"
                     >
-                      <TennisBallAvatar name={currentUser.name} className="h-7 w-7 transition-transform duration-200 group-hover:scale-105" textSize="text-[10px]" />
-                      <div className="flex flex-col text-left">
-                        <span className="text-[13px] font-medium text-slate-800 max-w-[120px] truncate leading-tight">{currentUser.name}</span>
-                        <span className="text-[10.5px] font-normal text-indigo-600 leading-tight">Admin</span>
+                      <div className="transition-transform duration-200 group-hover:scale-108">
+                        <TennisBallAvatar name={currentUser.name} className="h-7 w-7 lg:h-8 lg:w-8" textSize="text-[10px]" />
                       </div>
-                      <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${adminMenuOpen ? "rotate-180 text-slate-600" : "group-hover:text-slate-600"}`} />
+                      <span className="mt-1 flex items-center justify-center gap-1 text-[12px] font-medium tracking-normal text-slate-600 transition-colors duration-200 group-hover:text-slate-900">
+                        <span className="max-w-[76px] truncate">{currentUser.name}</span>
+                        <ChevronDown className={`h-3 w-3 shrink-0 text-slate-400 transition-transform duration-200 ${adminMenuOpen ? "rotate-180 text-slate-700" : "group-hover:text-slate-600"}`} />
+                      </span>
                     </button>
 
                     {/* Dropdown Menu pre Admin User */}
