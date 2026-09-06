@@ -158,7 +158,7 @@ export default function NewBookingsHeader({
                   {/* 1. Používatelia */}
                   <Link
                     href="/dashboard/users"
-                    className={`group relative flex flex-col items-center justify-center rounded-2xl border px-4 py-2 min-w-[86px] backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
+                    className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
                       activeTab === "users"
                         ? "border-cyan-400 bg-white ring-2 ring-cyan-400/25 shadow-sm"
                         : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
@@ -180,7 +180,7 @@ export default function NewBookingsHeader({
                   {/* 2. Štatistiky */}
                   <Link
                     href="/dashboard/newbookings"
-                    className={`group relative flex flex-col items-center justify-center rounded-2xl border px-4 py-2 min-w-[86px] backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
+                    className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
                       activeTab === "stats"
                         ? "border-violet-400 bg-white ring-2 ring-violet-400/25 shadow-sm"
                         : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
@@ -202,7 +202,7 @@ export default function NewBookingsHeader({
                   {/* 3. Nastavenia */}
                   <Link
                     href="/dashboard/users-roles"
-                    className={`group relative flex flex-col items-center justify-center rounded-2xl border px-4 py-2 min-w-[86px] backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
+                    className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
                       activeTab === "settings"
                         ? "border-purple-400 bg-white ring-2 ring-purple-400/25 shadow-sm"
                         : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
@@ -227,7 +227,7 @@ export default function NewBookingsHeader({
                   <button
                     type="button"
                     onClick={() => setAdminMenuOpen((prev) => !prev)}
-                    className={`group relative flex flex-col items-center justify-center rounded-2xl border px-4 py-2 min-w-[86px] backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 cursor-pointer ${
+                    className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 cursor-pointer ${
                       activeTab === "transactions"
                         ? "border-emerald-400 bg-white ring-2 ring-emerald-400/25 shadow-sm"
                         : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
@@ -298,61 +298,60 @@ export default function NewBookingsHeader({
                 </div>
               </>
             ) : (
-              /* Non-admin používateľ: 1. Peňaženka kocka, 2. Avatar kocka s dropdownom */
+              /* Non-admin používateľ: 1. Peňaženka kocka, 2. Avatar kocka s dropdownom - IDENTICKÉ ROZMERY A FARBY */
               <div className="flex items-center gap-3 font-sans">
-                {/* 1. Peňaženka Kocka */}
+                {/* 1. Peňaženka Kocka (Presne w-[104px] h-[82px]) */}
                 <Link
                   href="/dashboard/transactions"
-                  className={`group relative flex flex-col items-center justify-center rounded-2xl border px-4 py-2 min-w-[88px] backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
+                  className={`group relative flex h-[82px] w-[104px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
                     activeTab === "transactions"
-                      ? "border-emerald-400 bg-white ring-2 ring-emerald-400/25 shadow-sm"
+                      ? "border-amber-400 bg-white ring-2 ring-amber-400/30 shadow-sm"
                       : walletHighlight
-                      ? "border-emerald-500 bg-emerald-50 ring-4 ring-emerald-300/80 scale-105"
-                      : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
+                      ? "border-amber-500 bg-amber-50/80 ring-4 ring-amber-300/80 scale-105"
+                      : "border-amber-200/80 bg-white/95 shadow-xs hover:border-amber-300 hover:bg-white"
                   }`}
                   title="Moja peňaženka a história transakcií"
                 >
                   <div className="transition-transform duration-200 group-hover:scale-108">
-                    <ThreeDWalletIcon className="h-7 w-7 lg:h-8 lg:w-8" />
+                    <ThreeDWalletIcon className="h-7 w-7" />
                   </div>
                   <span
-                    className={`mt-1 text-[12px] tracking-normal transition-colors duration-200 ${
-                      activeTab === "transactions"
-                        ? "font-semibold text-emerald-950"
-                        : "font-medium text-slate-600 group-hover:text-slate-900"
+                    className={`mt-1 text-[11.5px] leading-tight transition-colors duration-200 ${
+                      activeTab === "transactions" ? "font-semibold text-amber-950" : "font-medium text-slate-700 group-hover:text-amber-950"
                     }`}
                   >
                     Peňaženka
                   </span>
-                  {walletBalance !== null && (
-                    <span className="text-[11px] font-bold text-emerald-600 -mt-0.5">
-                      {walletBalance.toFixed(2)} €
-                    </span>
-                  )}
+                  <span className="mt-0.5 text-[11px] font-bold leading-tight text-amber-700">
+                    {walletBalance !== null ? `${walletBalance.toFixed(2)} €` : "0.00 €"}
+                  </span>
                 </Link>
 
-                {/* 2. Používateľ Avatar Kocka s Dropdown menu */}
+                {/* 2. Používateľ Avatar Kocka (Presne w-[104px] h-[82px]) */}
                 <div className="relative" ref={clientMenuRef}>
                   <button
                     type="button"
                     onClick={() => setClientMenuOpen((prev) => !prev)}
-                    className={`group relative flex flex-col items-center justify-center rounded-2xl border px-4 py-2 min-w-[92px] backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 cursor-pointer ${
+                    className={`group relative flex h-[82px] w-[104px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 cursor-pointer ${
                       activeTab === "stats"
-                        ? "border-indigo-400 bg-white ring-2 ring-indigo-400/25 shadow-sm"
-                        : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
+                        ? "border-amber-400 bg-white ring-2 ring-amber-400/30 shadow-sm"
+                        : "border-amber-200/80 bg-white/95 shadow-xs hover:border-amber-300 hover:bg-white"
                     }`}
                     aria-expanded={clientMenuOpen}
                     aria-haspopup="true"
                     title="Používateľské menu"
                   >
                     <div className="transition-transform duration-200 group-hover:scale-108">
-                      <TennisBallAvatar name={userName} className="h-7 w-7 lg:h-8 lg:w-8" textSize="text-[10px]" />
+                      <TennisBallAvatar name={userName} className="h-7 w-7" textSize="text-[10px]" />
                     </div>
-                    <span className="mt-1 flex items-center justify-center gap-1 text-[12px] font-medium tracking-normal text-slate-600 transition-colors duration-200 group-hover:text-slate-900">
-                      <span className="max-w-[95px] truncate">{userName}</span>
+                    <span className="mt-1 block max-w-[88px] truncate text-center text-[11.5px] font-medium leading-tight text-slate-700 transition-colors duration-200 group-hover:text-amber-950">
+                      {userName}
+                    </span>
+                    <span className="mt-0.5 flex items-center justify-center gap-0.5 text-[11px] font-semibold leading-tight text-amber-700">
+                      <span>Účet</span>
                       <ChevronDown
-                        className={`h-3 w-3 shrink-0 text-slate-400 transition-transform duration-200 ${
-                          clientMenuOpen ? "rotate-180 text-slate-700" : "group-hover:text-slate-600"
+                        className={`h-3 w-3 shrink-0 transition-transform duration-200 ${
+                          clientMenuOpen ? "rotate-180 text-amber-800" : "text-amber-700/80 group-hover:text-amber-800"
                         }`}
                       />
                     </span>
@@ -360,13 +359,13 @@ export default function NewBookingsHeader({
 
                   {/* Dropdown Menu pre Klienta */}
                   {clientMenuOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-64 origin-top-right rounded-2xl border border-slate-200/90 bg-white/95 p-1.5 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150 font-sans">
+                    <div className="absolute right-0 top-full mt-2 w-64 origin-top-right rounded-2xl border border-amber-200/90 bg-white/95 p-1.5 shadow-[0_20px_50px_rgba(180,83,9,0.16)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150 font-sans">
                       {/* Hlavička dropdownu */}
-                      <div className="flex items-center gap-2.5 px-3 py-2.5 mb-1 border-b border-slate-100 bg-slate-50/70 rounded-xl">
+                      <div className="flex items-center gap-2.5 px-3 py-2.5 mb-1 border-b border-amber-100/80 bg-amber-50/60 rounded-xl">
                         <TennisBallAvatar name={userName} className="h-8 w-8" textSize="text-[11px]" />
                         <div className="min-w-0 flex-1">
                           <span className="block truncate text-xs font-semibold text-slate-900">{userName}</span>
-                          <span className="block truncate text-[10.5px] font-normal text-slate-500">
+                          <span className="block truncate text-[10.5px] font-normal text-amber-700">
                             {currentUser.role === "trainer" ? "Tréner" : "Klient"}
                           </span>
                         </div>
@@ -378,15 +377,15 @@ export default function NewBookingsHeader({
                         onClick={() => setClientMenuOpen(false)}
                         className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium transition duration-150 group ${
                           activeTab === "stats"
-                            ? "bg-indigo-50 text-indigo-800 font-semibold"
-                            : "text-slate-700 hover:bg-indigo-50 hover:text-indigo-800"
+                            ? "bg-amber-100/70 text-amber-950 font-semibold"
+                            : "text-slate-700 hover:bg-amber-50 hover:text-amber-900"
                         }`}
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-100/80 text-indigo-700 group-hover:bg-indigo-600 group-hover:text-white transition duration-150 shadow-2xs">
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-100/90 text-amber-800 group-hover:bg-[#B8442A] group-hover:text-white transition duration-150 shadow-2xs">
                           <LayoutDashboard className="h-4 w-4" />
                         </span>
                         <div className="flex flex-col text-left">
-                          <span className="text-xs font-medium text-slate-800 group-hover:text-indigo-800">Moje rezervácie</span>
+                          <span className="text-xs font-medium text-slate-800 group-hover:text-amber-950">Moje rezervácie</span>
                           <span className="text-[10px] font-normal text-slate-400">Prehľad a štatistiky termínov</span>
                         </div>
                       </Link>
@@ -397,15 +396,15 @@ export default function NewBookingsHeader({
                         onClick={() => setClientMenuOpen(false)}
                         className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium transition duration-150 group ${
                           activeTab === "transactions"
-                            ? "bg-emerald-50 text-emerald-800 font-semibold"
-                            : "text-slate-700 hover:bg-emerald-50 hover:text-emerald-800"
+                            ? "bg-amber-100/70 text-amber-950 font-semibold"
+                            : "text-slate-700 hover:bg-amber-50 hover:text-amber-900"
                         }`}
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-100/80 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition duration-150 shadow-2xs">
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-100/90 text-amber-800 group-hover:bg-[#B8442A] group-hover:text-white transition duration-150 shadow-2xs">
                           <Receipt className="h-4 w-4" />
                         </span>
                         <div className="flex flex-col text-left">
-                          <span className="text-xs font-medium text-slate-800 group-hover:text-emerald-800">Moje transakcie</span>
+                          <span className="text-xs font-medium text-slate-800 group-hover:text-amber-950">Moje transakcie</span>
                           <span className="text-[10px] font-normal text-slate-400">História peňaženky a platieb</span>
                         </div>
                       </Link>

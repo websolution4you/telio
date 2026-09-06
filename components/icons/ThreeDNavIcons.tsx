@@ -315,30 +315,30 @@ export function ThreeDWalletIcon({ className = "h-7 w-7" }: { className?: string
       aria-hidden="true"
     >
       <defs>
-        {/* Ambient glow */}
+        {/* Ambient warm glow */}
         <filter id={`glow_${id}`} x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="3" stdDeviation="3.5" floodColor="#059669" floodOpacity="0.4" />
+          <feDropShadow dx="0" dy="3" stdDeviation="3.5" floodColor="#d97706" floodOpacity="0.35" />
         </filter>
 
-        {/* Wallet Body 3D Gradient (Emerald / Teal) */}
+        {/* Warm Cognac / Saddle Leather 3D Gradient matching Clay Court Aesthetic */}
         <linearGradient id={`walletGrad_${id}`} x1="10" y1="14" x2="38" y2="40" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#34d399" />
-          <stop offset="30%" stopColor="#10b981" />
-          <stop offset="70%" stopColor="#059669" />
-          <stop offset="100%" stopColor="#064e3b" />
+          <stop offset="0%" stopColor="#f59e0b" />
+          <stop offset="25%" stopColor="#d97706" />
+          <stop offset="65%" stopColor="#b45309" />
+          <stop offset="100%" stopColor="#78350f" />
         </linearGradient>
 
-        {/* Wallet Flap Gradient */}
+        {/* Wallet Flap Warm Amber Gradient */}
         <linearGradient id={`flapGrad_${id}`} x1="22" y1="22" x2="40" y2="34" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#6ee7b7" />
-          <stop offset="50%" stopColor="#059669" />
-          <stop offset="100%" stopColor="#065f46" />
+          <stop offset="0%" stopColor="#fbbf24" />
+          <stop offset="50%" stopColor="#d97706" />
+          <stop offset="100%" stopColor="#92400e" />
         </linearGradient>
 
-        {/* Bevel Highlight */}
+        {/* Bevel Warm Ivory Highlight */}
         <linearGradient id={`bevelGrad_${id}`} x1="10" y1="14" x2="38" y2="14" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
-          <stop offset="100%" stopColor="#a7f3d0" stopOpacity="0.2" />
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+          <stop offset="100%" stopColor="#fef3c7" stopOpacity="0.3" />
         </linearGradient>
 
         {/* Gold Coin Gradient 1 */}
@@ -376,7 +376,7 @@ export function ThreeDWalletIcon({ className = "h-7 w-7" }: { className?: string
         <ellipse cx="26.5" cy="11.5" rx="2" ry="1.2" fill="#ffffff" fillOpacity="0.8" />
       </g>
 
-      {/* 3D Wallet Body */}
+      {/* 3D Leather Wallet Body */}
       <g filter={`url(#glow_${id})`}>
         {/* Main Leather Base */}
         <rect x="8" y="16" width="32" height="23" rx="6" fill={`url(#walletGrad_${id})`} />
@@ -392,26 +392,26 @@ export function ThreeDWalletIcon({ className = "h-7 w-7" }: { className?: string
         {/* Wallet Leather Front Fold / Pocket Line */}
         <path
           d="M8 24C12 24.5 16 26 22 26H40"
-          stroke="#064e3b"
+          stroke="#78350f"
           strokeWidth="1.2"
           strokeLinecap="round"
-          opacity="0.6"
+          opacity="0.5"
         />
 
         {/* Side / Bottom Shadow */}
         <path
           d="M8 33C8 36.3137 10.6863 39 14 39H34C37.3137 39 40 36.3137 40 33"
-          stroke="#064e3b"
+          stroke="#451a03"
           strokeWidth="1.5"
           strokeLinecap="round"
-          opacity="0.7"
+          opacity="0.6"
         />
 
         {/* Clasp / Flap */}
         <path
           d="M24 23H38C39.1046 23 40 23.8954 40 25V31C40 32.1046 39.1046 33 38 33H24C22.3431 33 21 31.6569 21 30V26C21 24.3431 22.3431 23 24 23Z"
           fill={`url(#flapGrad_${id})`}
-          stroke="#064e3b"
+          stroke="#78350f"
           strokeWidth="0.8"
         />
 
