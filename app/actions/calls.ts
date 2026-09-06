@@ -727,6 +727,7 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
     success: boolean;
     calls?: DashboardCallItem[];
     agents?: DashboardCallAgent[];
+    configuredAgentId?: string;
     hasNtcKey?: boolean;
     error?: string;
 }> {
@@ -742,21 +743,22 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
             process.env.ELEVEN_LABS_API_KEY;
 
         if (!apiKey) {
-            return { success: false, error: "ElevenLabs API kľúč nie je nakonfigurovaný v .env.local" };
+            return { success: false, error: "ElevenLabs API kľúč nie je nakonfigurovaný v prostredí." };
         }
 
-        const ntcAgentId = (process.env.ELEVENLABS_NTC_AGENT_ID || "9901kv6j21rhfccr7f0nbdhew5ew").trim();
+        const rawAgentId = (
+            process.env.ELEVENLABS_NTC_AGENT_ID || 
+            process.env.NEXT_PUBLIC_ELEVENLABS_NTC_AGENT_ID || 
+            ""
+        ).trim();
+
+        const normalizedAgentId = rawAgentId
+            ? (rawAgentId.startsWith("agent_") ? rawAgentId : `agent_${rawAgentId}`)
+            : "";
+
         const hasNtcKey = Boolean(process.env.ELEVENLABS_NTC_API_KEY);
 
         // 1. Paralelne načítame hovory z ElevenLabs a používateľov z databázy
-        const listPromise = fetch(`https://api.elevenlabs.io/v1/convai/conversations?page_size=${Math.max(20, Math.min(limit, 100))}`, {
-            headers: {
-                "xi-api-key": apiKey,
-                "Accept": "application/json"
-            },
-            next: { revalidate: 0 }
-        });
-
         const db = getCoreServiceDb();
         const usersPromise = Promise.resolve(
             db.from("booking_users").select("id, name, phone")
@@ -764,28 +766,67 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
             .then(res => res.data || [])
             .catch(() => [] as any[]);
 
-        const [listRes, dbUsers] = await Promise.all([listPromise, usersPromise]);
+        let rawConversations: any[] = [];
 
-        if (!listRes.ok) {
-            return { success: false, error: `ElevenLabs API odpovedalo so stavom ${listRes.status}` };
+        if (normalizedAgentId) {
+            // Dopytujeme priamo ElevenLabs na konverzácie tohto konkrétneho agenta
+            let listRes = await fetch(`https://api.elevenlabs.io/v1/convai/conversations?agent_id=${encodeURIComponent(normalizedAgentId)}&page_size=${Math.max(20, Math.min(limit, 100))}`, {
+                headers: {
+                    "xi-api-key": apiKey,
+                    "Accept": "application/json"
+                },
+                next: { revalidate: 0 }
+            });
+
+            // Ak s 'agent_' prefixom neprešlo, skúsime rawAgentId bez prefixu
+            if (listRes.status === 404 && rawAgentId && !rawAgentId.startsWith("agent_")) {
+                listRes = await fetch(`https://api.elevenlabs.io/v1/convai/conversations?agent_id=${encodeURIComponent(rawAgentId)}&page_size=${Math.max(20, Math.min(limit, 100))}`, {
+                    headers: {
+                        "xi-api-key": apiKey,
+                        "Accept": "application/json"
+                    },
+                    next: { revalidate: 0 }
+                });
+            }
+
+            if (!listRes.ok) {
+                const errJson = await listRes.json().catch(() => ({}));
+                const detailMsg = errJson?.detail?.message || `HTTP ${listRes.status}`;
+                return { 
+                    success: false, 
+                    configuredAgentId: normalizedAgentId,
+                    error: `ElevenLabs nenašiel agenta (${normalizedAgentId}): ${detailMsg}. Overte, či ELEVENLABS_API_KEY patrí k účtu, v ktorom tento agent existuje.` 
+                };
+            }
+
+            const listData = await listRes.json();
+            rawConversations = listData.conversations || [];
+        } else {
+            // Nemáme ELEVENLABS_NTC_AGENT_ID, načítame zoznam a hľadáme agenta podľa názvu NTC/Tenis
+            const listRes = await fetch(`https://api.elevenlabs.io/v1/convai/conversations?page_size=${Math.max(20, Math.min(limit, 100))}`, {
+                headers: {
+                    "xi-api-key": apiKey,
+                    "Accept": "application/json"
+                },
+                next: { revalidate: 0 }
+            });
+
+            if (!listRes.ok) {
+                return { success: false, error: `ElevenLabs API odpovedalo so stavom ${listRes.status}` };
+            }
+
+            const listData = await listRes.json();
+            rawConversations = (listData.conversations || []).filter((conv: any) => {
+                const name = (conv.agent_name || "").toLowerCase();
+                const id = (conv.agent_id || "").toLowerCase();
+                return name.includes("ntc") || name.includes("tenis") || name.includes("kurt");
+            });
         }
 
-        const listData = await listRes.json();
-        const rawConversations: any[] = listData.conversations || [];
+        const dbUsers = await usersPromise;
+        const ntcRawConversations = rawConversations;
 
-        // 2. Filtrujeme iba konverzácie pre NTC agenta
-        const ntcRawConversations = rawConversations.filter((conv) => {
-            const name = (conv.agent_name || "").toLowerCase();
-            const id = (conv.agent_id || "").toLowerCase();
-            return (
-                name.includes("ntc") || 
-                name.includes("tenis") || 
-                name.includes("kurt") || 
-                id.includes(ntcAgentId.toLowerCase())
-            );
-        });
-
-        // 3. Paralelne načítame detaily pre jednotlivé NTC hovory
+        // 2. Paralelne načítame detaily pre jednotlivé NTC hovory
         const callsWithDetails = await Promise.all(
             ntcRawConversations.map(async (conv) => {
                 let externalNumber: string | null = null;
@@ -843,7 +884,7 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
                     id: conv.conversation_id,
                     startedAt: new Date((conv.start_time_unix_secs || 0) * 1000).toISOString(),
                     durationSec: conv.call_duration_secs || 0,
-                    agentId: conv.agent_id || ntcAgentId,
+                    agentId: conv.agent_id || normalizedAgentId || "agent_ntc",
                     agentName: conv.agent_name || "NTC Asistent",
                     status: conv.status || "done",
                     callSuccessful: conv.call_successful || "success",
@@ -865,7 +906,8 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
         return {
             success: true,
             calls: callsWithDetails,
-            agents: [{ id: ntcAgentId, name: "NTC Asistent" }],
+            agents: [{ id: normalizedAgentId || "agent_ntc", name: "NTC Asistent" }],
+            configuredAgentId: normalizedAgentId,
             hasNtcKey
         };
     } catch (error: any) {

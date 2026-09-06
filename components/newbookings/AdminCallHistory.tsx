@@ -43,6 +43,7 @@ const formatSeconds = (sec: number) => {
 
 export default function AdminCallHistory() {
   const [calls, setCalls] = useState<DashboardCallItem[]>([]);
+  const [configuredAgentId, setConfiguredAgentId] = useState<string>("");
   const [hasNtcKey, setHasNtcKey] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -72,8 +73,10 @@ export default function AdminCallHistory() {
       const result = await fetchDashboardCallHistoryAction(50);
       if (result.success && result.calls) {
         setCalls(result.calls);
+        setConfiguredAgentId(result.configuredAgentId || "");
         setHasNtcKey(Boolean(result.hasNtcKey));
       } else {
+        setConfiguredAgentId(result.configuredAgentId || "");
         setError(result.error || "Nepodarilo sa načítať históriu hovorov.");
       }
     } catch (err: any) {
@@ -193,8 +196,13 @@ export default function AdminCallHistory() {
                   {filteredCalls.length} {filteredCalls.length === 1 ? "hovor" : filteredCalls.length >= 2 && filteredCalls.length <= 4 ? "hovory" : "hovorov"}
                 </span>
               </div>
-              <p className="text-xs text-slate-500">
-                Záznamy hovorov hlasového asistenta NTC s možnosťou priameho vypočutia a zhrnutia.
+              <p className="text-xs text-slate-500 flex items-center flex-wrap gap-1.5 mt-0.5">
+                <span>Záznamy hovorov hlasového asistenta NTC s možnosťou priameho vypočutia a zhrnutia.</span>
+                {configuredAgentId && (
+                  <span className="font-mono text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full font-semibold">
+                    Agent: {configuredAgentId}
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -229,8 +237,8 @@ export default function AdminCallHistory() {
       {error && (
         <div className="mb-4 flex items-center justify-between rounded-2xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">
           <span>{error}</span>
-          <button onClick={() => setError("")} className="text-red-500 hover:text-red-700">
-            Zavrieť
+          <button onClick={() => setError("")} className="text-red-500 hover:text-red-700 font-bold ml-2">
+            ✕
           </button>
         </div>
       )}
@@ -249,12 +257,10 @@ export default function AdminCallHistory() {
             <PhoneCall className="mx-auto mb-2 h-7 w-7 text-slate-300" />
             <p className="font-semibold text-slate-800">Zatiaľ žiadne hovory pre NTC asistenta</p>
             <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
-              {!hasNtcKey ? (
-                <>
-                  Ak má NTC asistent samostatný ElevenLabs účet, zadajte jeho API kľúč do súboru <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] text-indigo-600 border border-slate-200">.env.local</code> ako <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] text-indigo-600 border border-slate-200">ELEVENLABS_NTC_API_KEY</code>.
-                </>
+              {configuredAgentId ? (
+                <>Pre agenta <code className="font-mono font-bold text-indigo-600">{configuredAgentId}</code> neboli nájdené žiadne hovory.</>
               ) : (
-                "Hovory zákazníkov prijaté asistentom NTC sa automaticky zobrazia tu spolu so zvukovým záznamom."
+                <>V premenných nie je nastavené <code className="font-mono text-indigo-600 font-semibold">ELEVENLABS_NTC_AGENT_ID</code>.</>
               )}
             </p>
           </div>
