@@ -298,3 +298,128 @@ export function ThreeDSettingsIcon({ className = "h-7 w-7" }: { className?: stri
     </svg>
   );
 }
+
+/**
+ * 3D Wallet & Coins Icon for "Peňaženka"
+ * Glossy emerald-green dimensional leather wallet with glowing golden coins emerging.
+ */
+export function ThreeDWalletIcon({ className = "h-7 w-7" }: { className?: string }) {
+  const id = useId().replace(/:/g, "_");
+
+  return (
+    <svg
+      viewBox="0 0 48 48"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <defs>
+        {/* Ambient glow */}
+        <filter id={`glow_${id}`} x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="3" stdDeviation="3.5" floodColor="#059669" floodOpacity="0.4" />
+        </filter>
+
+        {/* Wallet Body 3D Gradient (Emerald / Teal) */}
+        <linearGradient id={`walletGrad_${id}`} x1="10" y1="14" x2="38" y2="40" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#34d399" />
+          <stop offset="30%" stopColor="#10b981" />
+          <stop offset="70%" stopColor="#059669" />
+          <stop offset="100%" stopColor="#064e3b" />
+        </linearGradient>
+
+        {/* Wallet Flap Gradient */}
+        <linearGradient id={`flapGrad_${id}`} x1="22" y1="22" x2="40" y2="34" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#6ee7b7" />
+          <stop offset="50%" stopColor="#059669" />
+          <stop offset="100%" stopColor="#065f46" />
+        </linearGradient>
+
+        {/* Bevel Highlight */}
+        <linearGradient id={`bevelGrad_${id}`} x1="10" y1="14" x2="38" y2="14" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+          <stop offset="100%" stopColor="#a7f3d0" stopOpacity="0.2" />
+        </linearGradient>
+
+        {/* Gold Coin Gradient 1 */}
+        <radialGradient id={`goldGrad1_${id}`} cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#fef08a" />
+          <stop offset="40%" stopColor="#facc15" />
+          <stop offset="85%" stopColor="#ca8a04" />
+          <stop offset="100%" stopColor="#854d0e" />
+        </radialGradient>
+
+        {/* Gold Coin Gradient 2 */}
+        <radialGradient id={`goldGrad2_${id}`} cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#fffbeb" />
+          <stop offset="50%" stopColor="#fde047" />
+          <stop offset="90%" stopColor="#d97706" />
+          <stop offset="100%" stopColor="#92400e" />
+        </radialGradient>
+      </defs>
+
+      {/* Floating Ambient Ground Shadow */}
+      <ellipse cx="24" cy="42" rx="14" ry="3.5" fill="#0f172a" fillOpacity="0.18" />
+
+      {/* 3D Gold Coins Poking Out Behind Wallet */}
+      {/* Back Coin */}
+      <g>
+        <circle cx="21" cy="15" r="7" fill={`url(#goldGrad1_${id})`} stroke="#b45309" strokeWidth="0.8" />
+        <circle cx="21" cy="15" r="5" stroke="#fde047" strokeWidth="0.8" strokeDasharray="2 1" fill="none" opacity="0.8" />
+        <ellipse cx="19" cy="13" rx="2" ry="1.2" fill="#ffffff" fillOpacity="0.75" />
+      </g>
+
+      {/* Front / Angled Coin */}
+      <g>
+        <ellipse cx="28" cy="13" rx="6.5" ry="6.5" fill={`url(#goldGrad2_${id})`} stroke="#b45309" strokeWidth="0.8" />
+        <ellipse cx="28" cy="13" rx="4.5" ry="4.5" stroke="#fef08a" strokeWidth="0.8" fill="none" opacity="0.8" />
+        <ellipse cx="26.5" cy="11.5" rx="2" ry="1.2" fill="#ffffff" fillOpacity="0.8" />
+      </g>
+
+      {/* 3D Wallet Body */}
+      <g filter={`url(#glow_${id})`}>
+        {/* Main Leather Base */}
+        <rect x="8" y="16" width="32" height="23" rx="6" fill={`url(#walletGrad_${id})`} />
+
+        {/* Top Rim Specular Highlight */}
+        <path
+          d="M10 17.5C10 16.6716 10.6716 16 11.5 16H36.5C37.3284 16 38 16.6716 38 17.5"
+          stroke={`url(#bevelGrad_${id})`}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+
+        {/* Wallet Leather Front Fold / Pocket Line */}
+        <path
+          d="M8 24C12 24.5 16 26 22 26H40"
+          stroke="#064e3b"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          opacity="0.6"
+        />
+
+        {/* Side / Bottom Shadow */}
+        <path
+          d="M8 33C8 36.3137 10.6863 39 14 39H34C37.3137 39 40 36.3137 40 33"
+          stroke="#064e3b"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          opacity="0.7"
+        />
+
+        {/* Clasp / Flap */}
+        <path
+          d="M24 23H38C39.1046 23 40 23.8954 40 25V31C40 32.1046 39.1046 33 38 33H24C22.3431 33 21 31.6569 21 30V26C21 24.3431 22.3431 23 24 23Z"
+          fill={`url(#flapGrad_${id})`}
+          stroke="#064e3b"
+          strokeWidth="0.8"
+        />
+
+        {/* Golden Clasp Snap Button */}
+        <circle cx="32" cy="28" r="2.8" fill={`url(#goldGrad1_${id})`} stroke="#78350f" strokeWidth="0.6" />
+        <circle cx="31.2" cy="27.2" r="0.8" fill="#ffffff" />
+      </g>
+    </svg>
+  );
+}
+

@@ -15,7 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
-import { ThreeDChartIcon, ThreeDSettingsIcon, ThreeDUserAvatarIcon } from "@/components/icons/ThreeDNavIcons";
+import { ThreeDChartIcon, ThreeDSettingsIcon, ThreeDUserAvatarIcon, ThreeDWalletIcon } from "@/components/icons/ThreeDNavIcons";
 import HolographicTennisCourt from "./HolographicTennisCourt";
 import { logoutAction } from "@/app/actions/auth";
 import type { BookingUser, SessionPayload } from "@/lib/auth/bookingAuth";
@@ -55,8 +55,10 @@ export default function NewBookingsHeader({
   const router = useRouter();
   const userName = currentUser?.name || "Užívateľ";
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const [clientMenuOpen, setClientMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const adminMenuRef = useRef<HTMLDivElement>(null);
+  const clientMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns when clicking outside
@@ -64,6 +66,9 @@ export default function NewBookingsHeader({
     function handleClickOutside(event: MouseEvent) {
       if (adminMenuRef.current && !adminMenuRef.current.contains(event.target as Node)) {
         setAdminMenuOpen(false);
+      }
+      if (clientMenuRef.current && !clientMenuRef.current.contains(event.target as Node)) {
+        setClientMenuOpen(false);
       }
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setUserMenuOpen(false);
@@ -75,6 +80,7 @@ export default function NewBookingsHeader({
 
   const handleLogout = async () => {
     setAdminMenuOpen(false);
+    setClientMenuOpen(false);
     setUserMenuOpen(false);
     if (!window.confirm("Chcete sa naozaj odhlásiť?")) return;
     await logoutAction();
@@ -292,64 +298,135 @@ export default function NewBookingsHeader({
                 </div>
               </>
             ) : (
-              /* Non-admin používateľ */
-              <>
-                <div className="flex items-center gap-1.5 lg:gap-2 mr-3 lg:mr-6">
-                  <Link
-                    href="/dashboard/newbookings"
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs font-medium text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-indigo-300 hover:bg-indigo-50/70 hover:text-indigo-700"
-                  >
-                    <LayoutDashboard className="h-4 w-4 text-indigo-600" />
-                    <span>Štatistiky</span>
-                  </Link>
-
-                  <Link
-                    href="/dashboard/transactions"
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs font-medium text-slate-700 shadow-2xs backdrop-blur-md transition hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-700"
-                  >
-                    <Coins className="h-4 w-4 text-emerald-600" />
-                    <span>Moje transakcie</span>
-                  </Link>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {walletBalance !== null && (
-                    <div
-                      className={`flex items-center gap-2 rounded-xl border bg-white/95 px-3 py-2 text-slate-900 shadow-2xs backdrop-blur-xl transition-all duration-500 ${
-                        walletHighlight
-                          ? "border-emerald-500 bg-emerald-50 ring-4 ring-emerald-300/80 scale-105"
-                          : "border-[#d2f500]"
-                      }`}
-                      title="Aktuálny kredit"
-                    >
-                      <Coins
-                        className={`h-4 w-4 shrink-0 transition-transform duration-500 ${
-                          walletHighlight ? "text-emerald-600 scale-125" : "text-slate-700"
-                        }`}
-                      />
-                      <span className="text-xs font-medium text-slate-700">Kredit:</span>
-                      <strong className="text-xs lg:text-sm font-semibold text-slate-900">
-                        {walletBalance.toFixed(2)} €
-                      </strong>
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-1.5 shadow-2xs">
-                    <TennisBallAvatar name={userName} className="h-7 w-7" textSize="text-[10px]" />
-                    <span className="text-xs font-medium text-slate-800 max-w-[130px] truncate">{userName}</span>
+              /* Non-admin používateľ: 1. Peňaženka kocka, 2. Avatar kocka s dropdownom */
+              <div className="flex items-center gap-3 font-sans">
+                {/* 1. Peňaženka Kocka */}
+                <Link
+                  href="/dashboard/transactions"
+                  className={`group relative flex flex-col items-center justify-center rounded-2xl border px-4 py-2 min-w-[88px] backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
+                    activeTab === "transactions"
+                      ? "border-emerald-400 bg-white ring-2 ring-emerald-400/25 shadow-sm"
+                      : walletHighlight
+                      ? "border-emerald-500 bg-emerald-50 ring-4 ring-emerald-300/80 scale-105"
+                      : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
+                  }`}
+                  title="Moja peňaženka a história transakcií"
+                >
+                  <div className="transition-transform duration-200 group-hover:scale-108">
+                    <ThreeDWalletIcon className="h-7 w-7 lg:h-8 lg:w-8" />
                   </div>
+                  <span
+                    className={`mt-1 text-[12px] tracking-normal transition-colors duration-200 ${
+                      activeTab === "transactions"
+                        ? "font-semibold text-emerald-950"
+                        : "font-medium text-slate-600 group-hover:text-slate-900"
+                    }`}
+                  >
+                    Peňaženka
+                  </span>
+                  {walletBalance !== null && (
+                    <span className="text-[11px] font-bold text-emerald-600 -mt-0.5">
+                      {walletBalance.toFixed(2)} €
+                    </span>
+                  )}
+                </Link>
 
+                {/* 2. Používateľ Avatar Kocka s Dropdown menu */}
+                <div className="relative" ref={clientMenuRef}>
                   <button
                     type="button"
-                    onClick={handleLogout}
-                    className="flex items-center gap-1.5 rounded-xl border border-red-200/80 bg-red-50/60 px-3 py-2 text-xs font-medium text-red-600 shadow-2xs transition hover:bg-red-600 hover:text-white cursor-pointer"
-                    title="Odhlásiť sa"
+                    onClick={() => setClientMenuOpen((prev) => !prev)}
+                    className={`group relative flex flex-col items-center justify-center rounded-2xl border px-4 py-2 min-w-[92px] backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 cursor-pointer ${
+                      activeTab === "stats"
+                        ? "border-indigo-400 bg-white ring-2 ring-indigo-400/25 shadow-sm"
+                        : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
+                    }`}
+                    aria-expanded={clientMenuOpen}
+                    aria-haspopup="true"
+                    title="Používateľské menu"
                   >
-                    <LogOut className="h-4 w-4" />
-                    <span className="hidden xl:inline">Odhlásiť</span>
+                    <div className="transition-transform duration-200 group-hover:scale-108">
+                      <TennisBallAvatar name={userName} className="h-7 w-7 lg:h-8 lg:w-8" textSize="text-[10px]" />
+                    </div>
+                    <span className="mt-1 flex items-center justify-center gap-1 text-[12px] font-medium tracking-normal text-slate-600 transition-colors duration-200 group-hover:text-slate-900">
+                      <span className="max-w-[95px] truncate">{userName}</span>
+                      <ChevronDown
+                        className={`h-3 w-3 shrink-0 text-slate-400 transition-transform duration-200 ${
+                          clientMenuOpen ? "rotate-180 text-slate-700" : "group-hover:text-slate-600"
+                        }`}
+                      />
+                    </span>
                   </button>
+
+                  {/* Dropdown Menu pre Klienta */}
+                  {clientMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-64 origin-top-right rounded-2xl border border-slate-200/90 bg-white/95 p-1.5 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150 font-sans">
+                      {/* Hlavička dropdownu */}
+                      <div className="flex items-center gap-2.5 px-3 py-2.5 mb-1 border-b border-slate-100 bg-slate-50/70 rounded-xl">
+                        <TennisBallAvatar name={userName} className="h-8 w-8" textSize="text-[11px]" />
+                        <div className="min-w-0 flex-1">
+                          <span className="block truncate text-xs font-semibold text-slate-900">{userName}</span>
+                          <span className="block truncate text-[10.5px] font-normal text-slate-500">
+                            {currentUser.role === "trainer" ? "Tréner" : "Klient"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 1. Moje rezervácie (predtým Štatistiky) */}
+                      <Link
+                        href="/dashboard/newbookings"
+                        onClick={() => setClientMenuOpen(false)}
+                        className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium transition duration-150 group ${
+                          activeTab === "stats"
+                            ? "bg-indigo-50 text-indigo-800 font-semibold"
+                            : "text-slate-700 hover:bg-indigo-50 hover:text-indigo-800"
+                        }`}
+                      >
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-100/80 text-indigo-700 group-hover:bg-indigo-600 group-hover:text-white transition duration-150 shadow-2xs">
+                          <LayoutDashboard className="h-4 w-4" />
+                        </span>
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-medium text-slate-800 group-hover:text-indigo-800">Moje rezervácie</span>
+                          <span className="text-[10px] font-normal text-slate-400">Prehľad a štatistiky termínov</span>
+                        </div>
+                      </Link>
+
+                      {/* 2. Moje transakcie */}
+                      <Link
+                        href="/dashboard/transactions"
+                        onClick={() => setClientMenuOpen(false)}
+                        className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium transition duration-150 group ${
+                          activeTab === "transactions"
+                            ? "bg-emerald-50 text-emerald-800 font-semibold"
+                            : "text-slate-700 hover:bg-emerald-50 hover:text-emerald-800"
+                        }`}
+                      >
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-100/80 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition duration-150 shadow-2xs">
+                          <Receipt className="h-4 w-4" />
+                        </span>
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-medium text-slate-800 group-hover:text-emerald-800">Moje transakcie</span>
+                          <span className="text-[10px] font-normal text-slate-400">História peňaženky a platieb</span>
+                        </div>
+                      </Link>
+
+                      <div className="my-1 border-t border-slate-100" />
+
+                      {/* 3. Odhlásiť sa */}
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition duration-150 group cursor-pointer text-left"
+                      >
+                        <span className="grid h-7 w-7 place-items-center rounded-lg bg-red-100/80 text-red-600 group-hover:bg-red-600 group-hover:text-white transition duration-150 shadow-2xs">
+                          <LogOut className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="text-xs font-medium text-red-700">Odhlásiť sa</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </>
+              </div>
             )}
           </nav>
         ) : (
@@ -518,7 +595,7 @@ export default function NewBookingsHeader({
                         <span className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition duration-150">
                           <LayoutDashboard className="h-4 w-4" />
                         </span>
-                        <span>Moje štatistiky</span>
+                        <span>Moje rezervácie</span>
                       </Link>
 
                       <Link
