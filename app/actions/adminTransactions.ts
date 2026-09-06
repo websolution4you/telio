@@ -2,6 +2,8 @@
 
 import { getSession } from "@/lib/auth/bookingAuth";
 import { getCoreServiceDb } from "@/lib/server/supabase";
+import { getStripe } from "@/lib/server/stripe";
+import { getTatraPaymentStatus } from "@/lib/server/tatrabanka";
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
 const PAGE_SIZE = 20;
@@ -17,6 +19,7 @@ export type AdminTransactionItem = {
   categoryLabel: string;
   status: PaymentStatusType;
   statusLabel: string;
+  errorMessage?: string | null;
   createdAt: string;
   bookingId: string | null;
   bookingDetails: {
@@ -172,6 +175,7 @@ export async function fetchAdminTransactionsAction(
       categoryLabel,
       status,
       statusLabel,
+      errorMessage: pay.error_message || null,
       createdAt: pay.created_at,
       bookingId: null,
       bookingDetails: null,
@@ -343,3 +347,215 @@ export async function fetchAdminTransactionsAction(
     statusCounts,
   };
 }
+
+export type ReconcileAdminPaymentsResponse =
+  | {
+      success: true;
+      checked: number;
+      successful: number;
+      failed: number;
+      pending: number;
+      message: string;
+    }
+  | {
+      success: false;
+      error: string;
+    };
+
+export async function reconcileAdminPendingPaymentsAction(): Promise<ReconcileAdminPaymentsResponse> {
+  const session = await getSession();
+  if (!session || session.role !== "admin") {
+    return { success: false, error: "Nemáte oprávnenie na overovanie platieb." };
+  }
+
+  const db = getCoreServiceDb();
+
+  const { data: payments, error } = await db
+    .from("payments")
+    .select("id, user_id, amount_eur, provider, provider_payment_id, status, metadata, created_at")
+    .eq("tenant_id", TENANT_ID)
+    .in("status", ["processing", "pending"])
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("reconcileAdminPendingPaymentsAction lookup failed:", error);
+    return { success: false, error: "Nepodarilo sa načítať čakajúce platby." };
+  }
+
+  let checked = 0;
+  let successful = 0;
+  let failed = 0;
+  let pending = 0;
+
+  for (const payment of payments || []) {
+    checked += 1;
+    const createdAtMs = new Date(payment.created_at).getTime();
+    const ageMinutes = (Date.now() - createdAtMs) / (1000 * 60);
+
+    // 1. TATRA BANKA CARDPAY
+    if (payment.provider === "tatrabanka") {
+      if (!payment.provider_payment_id) {
+        if (ageMinutes > 30) {
+          await db
+            .from("payments")
+            .update({
+              status: "failed",
+              error_message: "Platba nebola inicializovaná v Tatra banke (chýba provider_payment_id).",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", payment.id);
+          failed += 1;
+        } else {
+          pending += 1;
+        }
+        continue;
+      }
+
+      try {
+        const result = await getTatraPaymentStatus(payment.provider_payment_id);
+        if (result.state === "successful") {
+          const { error: processError } = await db.rpc("wallet_process_successful_payment", {
+            p_payment_id: payment.id,
+            p_provider_payment_id: payment.provider_payment_id,
+            p_provider_metadata: {
+              provider: "tatrabanka",
+              payment_method: "CARD_PAY",
+              verified_status: result.data,
+              verified_by_bank: true,
+              pending_bank_confirmation: false,
+              source: "admin_manual_reconciliation",
+            },
+          });
+          if (processError) {
+            console.error(`wallet_process_successful_payment failed for ${payment.id}:`, processError);
+            pending += 1;
+          } else {
+            successful += 1;
+          }
+        } else if (result.state === "failed") {
+          await db
+            .from("payments")
+            .update({
+              status: "failed",
+              error_message: "TatraPayPlus CardPay platba vypršala alebo bola zamietnutá bankou.",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", payment.id);
+          failed += 1;
+        } else {
+          // If TB still returns pending/auth_required but session is older than 2 hours:
+          if (ageMinutes > 120) {
+            await db
+              .from("payments")
+              .update({
+                status: "failed",
+                error_message: "Platobná relácia Tatra banky vypršala z dôvodu neaktivity.",
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", payment.id);
+            failed += 1;
+          } else {
+            pending += 1;
+          }
+        }
+      } catch (err) {
+        console.error(`Tatra banka reconciliation error for payment ${payment.id}:`, err);
+        pending += 1;
+      }
+      continue;
+    }
+
+    // 2. STRIPE CHECKOUT
+    if (payment.provider === "stripe") {
+      if (!payment.provider_payment_id) {
+        if (ageMinutes > 30) {
+          await db
+            .from("payments")
+            .update({
+              status: "failed",
+              error_message: "Stripe relácia nebola inicializovaná.",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", payment.id);
+          failed += 1;
+        } else {
+          pending += 1;
+        }
+        continue;
+      }
+
+      try {
+        const stripe = getStripe();
+        const checkout = await stripe.checkout.sessions.retrieve(payment.provider_payment_id);
+
+        if (checkout.payment_status === "paid" && checkout.status === "complete") {
+          const { error: processError } = await db.rpc("wallet_process_successful_payment", {
+            p_payment_id: payment.id,
+            p_provider_payment_id: checkout.id,
+            p_provider_metadata: {
+              stripe_checkout_session_id: checkout.id,
+              stripe_payment_status: checkout.payment_status,
+              source: "admin_manual_reconciliation",
+            },
+          });
+          if (processError) {
+            console.error(`wallet_process_successful_payment failed for Stripe ${payment.id}:`, processError);
+            pending += 1;
+          } else {
+            successful += 1;
+          }
+        } else if (checkout.status === "expired" || (checkout.status === "open" && ageMinutes > 1440)) {
+          await db
+            .from("payments")
+            .update({
+              status: "failed",
+              error_message: "Stripe relácia vypršala bez úhrady.",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", payment.id);
+          failed += 1;
+        } else {
+          pending += 1;
+        }
+      } catch (err) {
+        console.error(`Stripe reconciliation error for payment ${payment.id}:`, err);
+        pending += 1;
+      }
+      continue;
+    }
+
+    // Other providers
+    if (ageMinutes > 1440) {
+      await db
+        .from("payments")
+        .update({
+          status: "failed",
+          error_message: "Čakajúca platba expirovala.",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", payment.id);
+      failed += 1;
+    } else {
+      pending += 1;
+    }
+  }
+
+  let message = `Skontrolovaných ${checked} čakajúcich platieb.`;
+  if (successful > 0 || failed > 0) {
+    message += ` (${successful} úspešných a pripísaných, ${failed} neúspešných / vypršaných)`;
+  } else if (checked === 0) {
+    message = "Žiadne čakajúce platby na overenie.";
+  } else {
+    message += " Všetky platby sú stále v procese overovania.";
+  }
+
+  return {
+    success: true,
+    checked,
+    successful,
+    failed,
+    pending,
+    message,
+  };
+}
+
