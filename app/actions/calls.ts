@@ -723,30 +723,6 @@ function formatDisplayPhone(raw: string): string {
     return raw;
 }
 
-function matchPhoneNumber(rawPhone: string | null | undefined, phoneMap: Map<string, string>): string | undefined {
-    if (!rawPhone) return undefined;
-    const digits = rawPhone.replace(/\D/g, "");
-    if (!digits) return undefined;
-
-    // 1. Skúsiť posledných 9 číslic (štandard SK/CZ mobilných čísiel)
-    if (digits.length >= 9) {
-        const last9 = digits.slice(-9);
-        if (phoneMap.has(last9)) return phoneMap.get(last9);
-    }
-    // 2. Presná zhoda celých číslic
-    if (phoneMap.has(digits)) return phoneMap.get(digits);
-
-    // 3. Fallback na koncovku čísla
-    if (digits.length >= 7) {
-        for (const [key, name] of phoneMap.entries()) {
-            if (digits.endsWith(key) || key.endsWith(digits)) {
-                return name;
-            }
-        }
-    }
-    return undefined;
-}
-
 export async function fetchDashboardCallHistoryAction(limit: number = 30): Promise<{
     success: boolean;
     calls?: DashboardCallItem[];
@@ -781,67 +757,6 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
             : "agent_9901kv6j21rhfccr7f0nbdhew5ew";
 
         const hasNtcKey = Boolean(process.env.ELEVENLABS_NTC_API_KEY);
-
-        // 1. Paralelne načítame používateľov aj zákazníkov z existujúcich rezervácií
-        const db = getCoreServiceDb();
-        const [usersRes, bookingsRes] = await Promise.all([
-            Promise.resolve(
-                db.from("booking_users").select("id, name, phone")
-            ).then(res => res.data || []).catch(() => [] as any[]),
-            Promise.resolve(
-                db.from("bookings")
-                  .select("customer_name, customer_phone, created_at")
-                  .not("customer_name", "is", null)
-                  .not("customer_phone", "is", null)
-                  .order("created_at", { ascending: true })
-            ).then(res => res.data || []).catch(() => [] as any[])
-        ]);
-
-        const phoneToNameMap = new Map<string, string>();
-
-        const isMeaningfulName = (name: string | null | undefined): boolean => {
-            if (!name) return false;
-            const trimmed = name.trim();
-            if (trimmed.length < 2) return false;
-            const lower = trimmed.toLowerCase();
-            if (
-                lower === "neznáme" || 
-                lower === "neznámy" || 
-                lower === "neznámy zákazník" ||
-                lower === "test" || 
-                lower === "aaa" || 
-                lower === "admin user" ||
-                lower === "null" ||
-                lower === "undefined"
-            ) {
-                return false;
-            }
-            return true;
-        };
-
-        // A. Z rezervácií (staršie najprv, aby novšie rezervácie prepísali prípadné staršie meno)
-        (bookingsRes || []).forEach((b: any) => {
-            if (b.customer_phone && isMeaningfulName(b.customer_name)) {
-                const name = b.customer_name.trim();
-                const digits = b.customer_phone.replace(/\D/g, "");
-                if (digits.length >= 7) {
-                    phoneToNameMap.set(digits.slice(-9), name);
-                    phoneToNameMap.set(digits, name);
-                }
-            }
-        });
-
-        // B. Z registrovaných používateľov (majú najvyššiu prioritu)
-        (usersRes || []).forEach((u: any) => {
-            if (u.phone && isMeaningfulName(u.name)) {
-                const name = u.name.trim();
-                const digits = u.phone.replace(/\D/g, "");
-                if (digits.length >= 7) {
-                    phoneToNameMap.set(digits.slice(-9), name);
-                    phoneToNameMap.set(digits, name);
-                }
-            }
-        });
 
         let rawConversations: any[] = [];
 
@@ -954,51 +869,6 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
                     // Fallback na dáta z listu
                 }
 
-                // 1. Spárovanie telefónneho čísla s menom zákazníka v databáze (bookings + booking_users)
-                let callerName: string | undefined = matchPhoneNumber(externalNumber, phoneToNameMap);
-
-                // 2. Ak sme nenašli podľa čísla v DB, skúsime nájsť meno v detailoch z ElevenLabs (dynamic variables, data collection)
-                if (!callerName && conversationDetail) {
-                    // Dynamic variables
-                    const dyn = conversationDetail.conversation_initiation_client_data?.dynamic_variables;
-                    if (dyn) {
-                        const cand = dyn.customer_name || dyn.client_name || dyn.caller_name || dyn.user_name || dyn.name || dyn.full_name;
-                        if (cand && typeof cand === "string" && isMeaningfulName(cand)) {
-                            callerName = cand.trim();
-                        }
-                    }
-
-                    // Custom variables
-                    if (!callerName && conversationDetail.metadata?.custom_variables) {
-                        const cv = conversationDetail.metadata.custom_variables;
-                        const cand = cv.customer_name || cv.client_name || cv.caller_name || cv.user_name || cv.name || cv.full_name;
-                        if (cand && typeof cand === "string" && isMeaningfulName(cand)) {
-                            callerName = cand.trim();
-                        }
-                    }
-
-                    // Data collection results
-                    if (!callerName && conversationDetail.analysis?.data_collection_results) {
-                        for (const [key, val] of Object.entries(conversationDetail.analysis.data_collection_results as Record<string, any>)) {
-                            if (/name|meno/i.test(key) && val?.value && typeof val.value === "string") {
-                                if (isMeaningfulName(val.value)) {
-                                    callerName = val.value.trim();
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Ak sme našli meno a máme aj telefónne číslo, uložíme do mapy pre ďalšie hovory z tohto čísla
-                if (callerName && externalNumber) {
-                    const cleanDigits = externalNumber.replace(/\D/g, "");
-                    if (cleanDigits.length >= 7) {
-                        phoneToNameMap.set(cleanDigits.slice(-9), callerName);
-                        phoneToNameMap.set(cleanDigits, callerName);
-                    }
-                }
-
                 const callerDisplay = formatDisplayPhone(externalNumber || "Neznáme");
 
                 const callItem: DashboardCallItem = {
@@ -1012,7 +882,6 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
                     summaryTitle,
                     transcriptSummary: transcriptSummary || undefined,
                     callerNumber: callerDisplay,
-                    callerName,
                     hasAudio: true,
                     audioUrl: `/api/calls/audio?conversation_id=${conv.conversation_id}`
                 };

@@ -215,7 +215,7 @@ export default function AdminCallHistory() {
             <Search className="absolute left-3 h-3.5 w-3.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Hľadať volajúceho..."
+              placeholder="Hľadať číslo alebo text..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-40 rounded-2xl border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-xs font-medium text-slate-700 placeholder-slate-400 transition-all focus:w-52 focus:border-indigo-300 focus:bg-white focus:outline-none"
@@ -271,7 +271,7 @@ export default function AdminCallHistory() {
             <thead>
               <tr className="border-b border-slate-100 text-xs uppercase tracking-wider text-slate-400">
                 <th className="pb-3 pl-2">Čas hovoru</th>
-                <th className="pb-3">Volajúci zákazník</th>
+                <th className="pb-3">Telefónne číslo</th>
                 <th className="pb-3">Zhrnutie hovoru</th>
                 <th className="pb-3 text-center">Dĺžka</th>
                 <th className="pb-3 text-center">Stav</th>
@@ -295,22 +295,11 @@ export default function AdminCallHistory() {
                       {formatDate(call.startedAt)}
                     </td>
 
-                    {/* Volajúci (Meno + Číslo) */}
+                    {/* Telefónne číslo volajúceho */}
                     <td className="py-3.5">
-                      {call.callerName ? (
-                        <div>
-                          <b className="block text-sm font-semibold text-slate-900">
-                            {call.callerName}
-                          </b>
-                          <span className="font-mono text-xs text-slate-500">
-                            {call.callerNumber}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="font-mono text-xs font-medium text-slate-700">
-                          {call.callerNumber}
-                        </span>
-                      )}
+                      <span className="font-mono text-xs font-semibold text-slate-800">
+                        {call.callerNumber}
+                      </span>
                     </td>
 
                     {/* Zhrnutie hovoru */}
@@ -451,7 +440,7 @@ export default function AdminCallHistory() {
             </div>
 
             <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-              <span>Volajúci: <b className="text-slate-800">{activeSummaryModal.callerName || activeSummaryModal.callerNumber}</b></span>
+              <span>Telefónne číslo: <b className="font-mono text-slate-800">{activeSummaryModal.callerNumber}</b></span>
               <span>Trvanie: <b className="text-slate-800">{formatSeconds(activeSummaryModal.durationSec)}</b></span>
             </div>
 
