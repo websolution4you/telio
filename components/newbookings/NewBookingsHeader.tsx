@@ -18,6 +18,7 @@ import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { ThreeDChartIcon, ThreeDSettingsIcon, ThreeDUserAvatarIcon, ThreeDWalletIcon } from "@/components/icons/ThreeDNavIcons";
 import HolographicTennisCourt from "./HolographicTennisCourt";
 import { logoutAction } from "@/app/actions/auth";
+import { getWalletAction } from "@/app/actions/wallet";
 import type { BookingUser, SessionPayload } from "@/lib/auth/bookingAuth";
 
 export type ActiveTab = "calendar" | "users" | "stats" | "settings" | "transactions";
@@ -45,7 +46,7 @@ export type NewBookingsHeaderProps = {
 
 export default function NewBookingsHeader({
   currentUser,
-  walletBalance = null,
+  walletBalance: propWalletBalance = null,
   walletHighlight = false,
   activeTab,
   onAuthModal,
@@ -54,12 +55,33 @@ export default function NewBookingsHeader({
 }: NewBookingsHeaderProps) {
   const router = useRouter();
   const userName = currentUser?.name || "Užívateľ";
+  const [walletBalance, setWalletBalance] = useState<number | null>(propWalletBalance);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [clientMenuOpen, setClientMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const adminMenuRef = useRef<HTMLDivElement>(null);
   const clientMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Sync propWalletBalance when provided from page
+  useEffect(() => {
+    if (propWalletBalance !== null && propWalletBalance !== undefined) {
+      setWalletBalance(propWalletBalance);
+    }
+  }, [propWalletBalance]);
+
+  // Automatically fetch live wallet balance from database whenever user is logged in
+  useEffect(() => {
+    if (currentUser) {
+      getWalletAction().then((res) => {
+        if (res.success && res.balanceEur !== undefined && res.balanceEur !== null) {
+          setWalletBalance(res.balanceEur);
+        }
+      }).catch((err) => {
+        console.error("NewBookingsHeader live wallet fetch error:", err);
+      });
+    }
+  }, [currentUser, activeTab]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
