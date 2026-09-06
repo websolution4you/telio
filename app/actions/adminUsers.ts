@@ -44,7 +44,9 @@ export async function fetchAdminUsersAction(page = 1, query = "") {
   const to = from + USERS_PAGE_SIZE - 1;
   let usersQuery = context.db
     .from("booking_users")
-    .select("id, name, email, phone, card_number, role, created_at", { count: "exact" });
+    .select("id, name, email, phone, card_number, role, created_at", { count: "exact" })
+    .not("email", "ilike", "deleted_%@deleted.local")
+    .neq("name", "[Zmazaný používateľ]");
   if (safeQuery) {
     const term = `%${safeQuery}%`;
     usersQuery = usersQuery.or(`name.ilike.${term},email.ilike.${term},phone.ilike.${term},card_number.ilike.${term},role.ilike.${term}`);
@@ -200,7 +202,9 @@ export async function fetchAdminUsersDirectoryAction(
       : "id, name, email, phone, card_number, role, created_at";
 
     let q = (context.db.from("booking_users") as any)
-      .select(selectCols, { count: "exact" });
+      .select(selectCols, { count: "exact" })
+      .not("email", "ilike", "deleted_%@deleted.local")
+      .neq("name", "[Zmazaný používateľ]");
 
     if (roleFilter !== "all" && ALLOWED_ROLES.includes(roleFilter)) {
       q = q.eq("role", roleFilter);
@@ -679,46 +683,62 @@ export async function deleteBookingUserByAdminAction(
     return { success: false as const, error: "Používateľ nebol nájdený." };
   }
 
-  // 1. Delete associated payments if table exists
+  // 1. Delete user's bookings (always succeeds)
   try {
+    await db.from("bookings").delete().eq("user_id", targetUserId);
+  } catch (err) {
+    console.warn("Could not delete user bookings:", err);
+  }
+
+  // 2. Try hard deletion first
+  let hardDeleteSuccess = false;
+  try {
+    // Delete payments
     await db.from("payments").delete().eq("user_id", targetUserId);
-  } catch (err) {
-    console.warn("Could not delete payments:", err);
-  }
 
-  // 2. Delete wallet transactions & wallets
-  try {
-    const { data: wallets } = await db.from("wallets").select("id").eq("user_id", targetUserId);
-    const walletIds = (wallets || []).map((w: any) => w.id);
-    if (walletIds.length > 0) {
-      await db.from("wallet_transactions").delete().in("wallet_id", walletIds);
-    }
-    await db.from("wallet_transactions").delete().eq("user_id", targetUserId);
+    // Delete wallets (succeeds if no append-only transactions exist)
     await db.from("wallets").delete().eq("user_id", targetUserId);
+
+    // Delete user from booking_users
+    const { error: userDeleteError } = await db
+      .from("booking_users")
+      .delete()
+      .eq("id", targetUserId);
+
+    if (!userDeleteError) {
+      hardDeleteSuccess = true;
+    }
   } catch (err) {
-    console.warn("Could not delete wallets/transactions:", err);
+    console.warn("Hard delete attempt failed, archiving user instead:", err);
   }
 
-  // 3. Delete user's bookings
-  const { error: bookingsError } = await db
-    .from("bookings")
-    .delete()
-    .eq("user_id", targetUserId);
+  // 3. Fallback: if database constraints (e.g. accounting ledger on wallet_transactions) prevent hard deletion
+  if (!hardDeleteSuccess) {
+    // Zero out wallet balance
+    try {
+      await db.from("wallets").update({ balance_eur: 0 }).eq("user_id", targetUserId);
+    } catch (err) {
+      console.warn("Could not zero out wallet balance:", err);
+    }
 
-  if (bookingsError) {
-    console.error("Failed to delete user bookings:", bookingsError);
-    return { success: false as const, error: "Nepodarilo sa odstrániť rezervácie používateľa: " + bookingsError.message };
-  }
+    // Free up email, phone, card_number and invalidate credentials
+    const cleanDeletedEmail = `deleted_${targetUserId}@deleted.local`;
+    const { error: archiveError } = await db
+      .from("booking_users")
+      .update({
+        name: "[Zmazaný používateľ]",
+        email: cleanDeletedEmail,
+        phone: null,
+        card_number: null,
+        password_hash: "deleted_" + crypto.randomUUID(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", targetUserId);
 
-  // 4. Delete user record
-  const { error: userDeleteError } = await db
-    .from("booking_users")
-    .delete()
-    .eq("id", targetUserId);
-
-  if (userDeleteError) {
-    console.error("Failed to delete user:", userDeleteError);
-    return { success: false as const, error: "Nepodarilo sa odstrániť používateľa: " + userDeleteError.message };
+    if (archiveError) {
+      console.error("Failed to delete/archive user:", archiveError);
+      return { success: false as const, error: "Používateľa sa nepodarilo odstrániť: " + archiveError.message };
+    }
   }
 
   revalidatePath("/dashboard/users");
