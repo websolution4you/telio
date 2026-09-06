@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Settings } from "lucide-react";
 import { getSession } from "@/lib/auth/bookingAuth";
 import AdminUsersAndRoles from "@/components/newbookings/AdminUsersAndRoles";
+import NewBookingsHeader from "@/components/newbookings/NewBookingsHeader";
 
 export const metadata = {
   title: "Nastavenia | Telio NTC",
@@ -14,19 +15,30 @@ export default async function UsersAndRolesPage() {
   if (session.role !== "admin") redirect("/dashboard/newbookings");
 
   return (
-    <main className="min-h-screen bg-[#f4f7f5] px-4 py-6 text-slate-900 sm:px-6 lg:py-10">
-      {/* Mobile webview compatibility dummy first-child */}
-      <div className="hidden" aria-hidden="true" />
-      <div className="mx-auto max-w-[1500px]">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Nastavenia</h1>
-            <p className="mt-2 text-sm text-slate-500">Správa používateľských rolí a rezervačných privilégií.</p>
+    <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+      <NewBookingsHeader currentUser={session} activeTab="settings" />
+      <main className="px-4 py-6 text-slate-900 sm:px-6 lg:py-8">
+        {/* Mobile webview compatibility dummy first-child */}
+        <div className="hidden" aria-hidden="true" />
+        <div className="mx-auto max-w-[1500px]">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-violet-600 to-purple-700 text-white shadow-md">
+                <Settings className="h-5 w-5" />
+              </span>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Nastavenia</h1>
+                <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">Správa používateľských rolí a rezervačných privilégií.</p>
+              </div>
+            </div>
+            <Link href="/newbookings" className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-50">
+              <ArrowLeft className="h-4 w-4" />
+              Späť na kalendár
+            </Link>
           </div>
-          <Link href="/newbookings" className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"><ArrowLeft className="h-4 w-4" />Späť na kalendár</Link>
+          <AdminUsersAndRoles />
         </div>
-        <AdminUsersAndRoles />
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

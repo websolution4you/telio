@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowDownLeft, ArrowLeft, ArrowUpRight, CheckCircle2, Clock, Coins, CreditCard, LayoutDashboard, Loader2, Sparkles } from "lucide-react";
 import { addTestWalletCreditAction, createWalletCardPayAction, getWalletHistoryAction, reconcileWalletCardPayAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
 import type { SessionPayload } from "@/lib/auth/bookingAuth";
+import NewBookingsHeader from "./NewBookingsHeader";
 
 type WalletTransaction = {
   id: string;
@@ -169,40 +170,13 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
 
   return (
     <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-      <header className="relative isolate overflow-hidden border-b border-emerald-100/80 bg-gradient-to-r from-white via-emerald-50/70 to-teal-50/70 shadow-[0_10px_35px_rgba(15,23,42,0.07)]">
-        <div className="pointer-events-none absolute -left-16 -top-24 h-44 w-44 rounded-full bg-emerald-300/20 blur-3xl" />
-        <div className="pointer-events-none absolute -right-12 -top-28 h-48 w-48 rounded-full bg-teal-300/20 blur-3xl" />
-        <div className="relative mx-auto flex min-h-[76px] max-w-[1400px] items-center justify-between gap-3 px-4 py-3 sm:min-h-[86px] sm:px-6">
-          <Link href="/newbookings" className="flex items-center gap-3">
-            <span className="relative grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-emerald-700 text-white shadow-[0_10px_24px_rgba(16,185,129,0.3)]">
-              <b>T</b>
-              <Sparkles className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-white p-0.5 text-emerald-600" />
-            </span>
-            <span>
-              <b className="block tracking-[0.12em]">TELIO</b>
-              <small className="text-slate-500">Peňaženka a transakcie</small>
-            </span>
-          </Link>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              href="/dashboard/newbookings"
-              className="flex items-center gap-2 rounded-2xl border border-indigo-200 bg-white/90 px-3 py-2.5 text-xs font-bold text-indigo-700 shadow-xs hover:-translate-y-0.5 hover:bg-indigo-50 sm:px-4 sm:text-sm"
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              <span className="hidden sm:inline">Moje štatistiky</span>
-            </Link>
-            <Link
-              href="/newbookings"
-              className="flex items-center gap-2 rounded-2xl border border-white bg-white/90 px-3 py-2.5 text-xs font-bold text-slate-700 shadow-xs hover:-translate-y-0.5 sm:px-4 sm:text-sm"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Späť na kalendár</span>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <NewBookingsHeader
+        currentUser={currentUser}
+        walletBalance={wallet?.balanceEur ?? null}
+        activeTab="transactions"
+      />
 
-      <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:py-12">
+      <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:py-8">
         <div className="mb-8">
           <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700">
             <Coins className="h-3.5 w-3.5" /> Moje transakcie

@@ -130,15 +130,17 @@ function WalletHistory({ balanceEur, transactions }: { balanceEur: number; trans
   );
 }
 
+import NewBookingsHeader from "./NewBookingsHeader";
+
 export default function NewBookingsDashboard({ currentUser }: { currentUser: SessionPayload }) {
-  return currentUser.role === "admin" ? <AdminDashboardPage /> : <UserDashboardPage currentUser={currentUser} />;
+  return currentUser.role === "admin" ? <AdminDashboardPage currentUser={currentUser} /> : <UserDashboardPage currentUser={currentUser} />;
 }
 
-function AdminDashboardPage() {
+function AdminDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
   return (
     <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-      <header className="border-b border-cyan-100 bg-gradient-to-r from-white via-cyan-50 to-indigo-50 shadow-sm"><div className="mx-auto flex min-h-[76px] max-w-[1400px] items-center justify-between px-4 sm:px-6"><Link href="/newbookings" className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-violet-600 font-bold text-white shadow-lg">T</span><span><b className="block tracking-[0.12em]">TELIO</b><small className="text-slate-500">Prehľad rezervácií</small></span></Link><Link href="/newbookings" className="flex items-center gap-2 rounded-2xl border border-white bg-white/80 px-4 py-2.5 text-sm font-bold shadow-sm"><ArrowLeft className="h-4 w-4" /><span className="hidden sm:inline">Späť na kalendár</span></Link></div></header>
-      <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:py-12">
+      <NewBookingsHeader currentUser={currentUser} activeTab="stats" />
+      <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:py-8">
         <div className="hidden" aria-hidden="true" />
         <NewBookingsAdminDashboard />
       </main>
@@ -184,38 +186,8 @@ function UserDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
 
   return (
     <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-      <header className="relative isolate overflow-hidden border-b border-cyan-100/80 bg-gradient-to-r from-white via-cyan-50/80 to-indigo-50/80 shadow-[0_10px_35px_rgba(15,23,42,0.07)]">
-        <div className="pointer-events-none absolute -left-16 -top-24 h-44 w-44 rounded-full bg-cyan-300/20 blur-3xl" /><div className="pointer-events-none absolute -right-12 -top-28 h-48 w-48 rounded-full bg-violet-300/20 blur-3xl" />
-        <div className="relative mx-auto flex min-h-[76px] max-w-[1400px] items-center justify-between gap-3 px-4 py-3 sm:min-h-[86px] sm:px-6">
-          <Link href="/newbookings" className="flex items-center gap-3">
-            <span className="relative grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-violet-600 text-white shadow-[0_10px_24px_rgba(37,99,235,0.3)]">
-              <b>T</b>
-              <Sparkles className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-white p-0.5 text-violet-600" />
-            </span>
-            <span>
-              <b className="block tracking-[0.12em]">TELIO</b>
-              <small className="text-slate-500">Prehľad rezervácií</small>
-            </span>
-          </Link>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              href="/dashboard/transactions"
-              className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-white/90 px-3 py-2.5 text-xs font-bold text-emerald-700 shadow-xs hover:-translate-y-0.5 hover:bg-emerald-50 sm:px-4 sm:text-sm"
-            >
-              <Coins className="h-4 w-4 text-emerald-600" />
-              <span className="hidden sm:inline">Moje transakcie</span>
-            </Link>
-            <Link
-              href="/newbookings"
-              className="flex items-center gap-2 rounded-2xl border border-white bg-white/80 px-3 py-2.5 text-xs font-bold text-slate-700 shadow-sm hover:-translate-y-0.5 sm:px-4 sm:text-sm"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Späť na kalendár</span>
-            </Link>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:py-12">
+      <NewBookingsHeader currentUser={currentUser} activeTab="stats" />
+      <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:py-8">
         <div className="mb-8"><span className="mb-3 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-indigo-700"><LayoutDashboard className="h-3.5 w-3.5" /> Moje rezervácie</span><h1 className="text-3xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-4xl" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>Vitaj, {currentUser.name}</h1><p className="mt-2 text-sm text-slate-500">Tvoje rezervácie a osobná športová štatistika.</p></div>
         {error && <button onClick={() => setError("")} className="mb-6 w-full rounded-2xl border border-red-200 bg-red-50 p-4 text-left text-sm font-semibold text-red-700">{error}</button>}
         {loading && !bookings.length ? (

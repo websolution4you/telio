@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, Users } from "lucide-react";
 import { getSession } from "@/lib/auth/bookingAuth";
 import AdminUsersDirectory from "@/components/newbookings/AdminUsersDirectory";
+import NewBookingsHeader from "@/components/newbookings/NewBookingsHeader";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -18,7 +19,9 @@ export default async function UsersDirectoryPage() {
   if (session.role !== "admin") redirect("/dashboard/newbookings");
 
   return (
-    <main className="min-h-screen bg-[#f4f7f5] px-4 py-6 text-slate-900 sm:px-6 lg:py-10">
+    <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+      <NewBookingsHeader currentUser={session} activeTab="users" />
+      <main className="px-4 py-6 text-slate-900 sm:px-6 lg:py-8">
       {/* Mobile webview compatibility dummy first-child */}
       <div className="hidden" aria-hidden="true" />
       <div className="mx-auto max-w-[1500px]">
@@ -52,5 +55,6 @@ export default async function UsersDirectoryPage() {
         <AdminUsersDirectory />
       </div>
     </main>
-  );
+  </div>
+);
 }
