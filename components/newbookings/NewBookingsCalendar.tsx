@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -8,7 +8,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard,
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { createBookingAction, deleteBookingAction, fetchBookingsAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
-import { createWalletCardPayAction, createWalletCheckoutAction, getWalletAction, reconcileWalletCardPayAction } from "@/app/actions/wallet";
+import { createWalletCardPayAction, createWalletCheckoutAction, getWalletAction, reconcileWalletCardPayAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
 
 import { supabase } from "@/lib/supabase";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
@@ -286,14 +286,57 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  // Restore pending slot if user was in booking dialog before top-up
+  const restorePendingSlotAfterTopUp = useCallback(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const savedRaw = sessionStorage.getItem("ntc_pending_booking_after_topup");
+      if (savedRaw) {
+        sessionStorage.removeItem("ntc_pending_booking_after_topup");
+        const saved = JSON.parse(savedRaw);
+        if (saved && saved.courtId && saved.date && typeof saved.hour === "number") {
+          const parsedDate = new Date(saved.date);
+          setTimeout(() => {
+            setSlot({
+              courtId: saved.courtId,
+              date: parsedDate,
+              hour: saved.hour,
+            });
+            if (saved.duration) setDuration(saved.duration);
+            if (saved.phone) setPhone(saved.phone);
+            if (saved.title) setTitle(saved.title);
+          }, 300);
+        }
+      }
+    } catch (e) {
+      console.warn("Could not restore slot after top up:", e);
+    }
+  }, []);
+
   // Handle return from payment gateway (CardPay / Stripe)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const walletStatus = params.get("wallet");
     const amount = params.get("amount");
+    const sessionId = params.get("session_id");
 
-    if (walletStatus === "success") {
+    if (sessionId) {
+      window.history.replaceState({}, "", window.location.pathname);
+      reconcileWalletCheckoutAction(sessionId).then((res) => {
+        if (res.success) {
+          setNotice("Platba cez Stripe bola úspešne pripísaná na váš účet.");
+          getWalletAction().then((walletRes) => {
+            if (walletRes.success && walletRes.enabled) {
+              setWalletBalance(walletRes.balanceEur);
+              setWalletHighlight(true);
+              setTimeout(() => setWalletHighlight(false), 3500);
+              restorePendingSlotAfterTopUp();
+            }
+          });
+        }
+      });
+    } else if (walletStatus === "success") {
       setNotice(
         amount
           ? `Platba cez Tatra banka CardPay (${amount} €) bola úspešne pripísaná na váš účet.`
@@ -305,6 +348,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           setWalletBalance(result.balanceEur);
           setWalletHighlight(true);
           setTimeout(() => setWalletHighlight(false), 3500);
+          restorePendingSlotAfterTopUp();
         }
       });
     } else if (walletStatus === "pending") {
@@ -326,17 +370,18 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             setWalletBalance(walletRes.balanceEur);
             setWalletHighlight(true);
             setTimeout(() => setWalletHighlight(false), 3500);
+            restorePendingSlotAfterTopUp();
           }
         } else if (attempts >= 6) {
           clearInterval(interval);
         }
       }, 2000);
       return () => clearInterval(interval);
-    } else if (walletStatus === "failed") {
-      setNotice("Platba kartou zlyhala alebo bola zrušená.");
+    } else if (walletStatus === "failed" || walletStatus === "cancelled") {
+      setNotice("Platba bola zrušená alebo zlyhala.");
       window.history.replaceState({}, "", window.location.pathname);
     }
-  }, []);
+  }, [restorePendingSlotAfterTopUp]);
 
   const courtColumnWidth = 100;
   const timeColumnMinWidth = 64;
@@ -514,6 +559,13 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     if (user) {
       setCurrentUser(user);
       router.refresh();
+      getWalletAction().then((res) => {
+        if (res.success && typeof res.balanceEur === "number") {
+          setWalletBalance(res.balanceEur);
+        } else {
+          setWalletBalance(0);
+        }
+      });
       if (pendingSlot) {
         const targetSlot = pendingSlot;
         setPendingSlot(null);
@@ -620,6 +672,23 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           const startTopUp = async (amountEur: number, provider: "stripe" | "cardpay") => {
     setTopUpLoading(amountEur);
     setNotice("");
+    if (slot && typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem(
+          "ntc_pending_booking_after_topup",
+          JSON.stringify({
+            courtId: slot.courtId,
+            date: slot.date instanceof Date ? slot.date.toISOString() : new Date(slot.date).toISOString(),
+            hour: slot.hour,
+            duration,
+            phone,
+            title,
+          })
+        );
+      } catch (e) {
+        console.warn("Could not save pending booking slot:", e);
+      }
+    }
     const operationId = crypto.randomUUID();
     const result = provider === "cardpay"
       ? await createWalletCardPayAction(amountEur, operationId)
@@ -1249,6 +1318,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           hasMultisport={Boolean(currentUser?.hasMultisport)}
           error={notice || undefined}
           loading={loading}
+          walletBalance={walletBalance}
+          onTopUp={startTopUp}
+          topUpLoading={topUpLoading}
           onDuration={setDuration}
           onTitle={setTitle}
           onPhone={setPhone}

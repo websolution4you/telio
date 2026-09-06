@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Clock3, CreditCard, MessageSquare, Phone, Sparkles, Trash2, User, X } from "lucide-react";
+import { Clock3, Coins, CreditCard, Loader2, MessageSquare, Phone, Sparkles, Trash2, User, X } from "lucide-react";
 import type { Booking, Court } from "@/lib/bookings/mockBookings";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import { formatDuration } from "@/lib/bookings/rolePolicy";
@@ -22,6 +22,9 @@ type CreateDialogProps = {
   onMultisportCardsCount: (count: 0 | 1 | 2) => void;
   error?: string;
   loading: boolean;
+  walletBalance?: number | null;
+  onTopUp?: (amountEur: number, provider: "stripe" | "cardpay") => Promise<void>;
+  topUpLoading?: number | null;
   onDuration: (value: number) => void;
   onTitle: (value: string) => void;
   onPhone: (value: string) => void;
@@ -48,6 +51,15 @@ export function CreateBookingDialog(props: CreateDialogProps) {
     props.discountEurPerHour,
     props.multisportCardsCount
   );
+
+  const isInsufficientCredit =
+    !props.isAdmin &&
+    pricing.totalPriceEur > 0 &&
+    (Boolean(props.error?.toLowerCase().includes("zostatok")) ||
+      (typeof props.walletBalance === "number" && props.walletBalance < pricing.totalPriceEur));
+
+  const missingEur = Math.max(0, pricing.totalPriceEur - (props.walletBalance ?? 0));
+  const neededTopUp = Math.max(10, Math.ceil(missingEur));
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4">
@@ -103,11 +115,89 @@ export function CreateBookingDialog(props: CreateDialogProps) {
           </div>
         </div>
 
-        {props.error && (
+        {isInsufficientCredit && props.onTopUp ? (
+          <div className="mb-4 rounded-2xl border-2 border-amber-300/90 bg-gradient-to-br from-amber-50/95 via-yellow-50/80 to-orange-50/60 p-4 shadow-sm animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 shadow-2xs">
+                <Coins className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-bold text-slate-900">Nedostatočný zostatok v peňaženke</h4>
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
+                  <span>Aktuálny kredit: <b className="text-slate-900">{(props.walletBalance ?? 0).toFixed(2)} €</b></span>
+                  <span>•</span>
+                  <span>Cena: <b className="text-slate-900">{pricing.formattedPrice}</b></span>
+                  <span>•</span>
+                  <span>Chýba: <b className="text-amber-700">{missingEur.toFixed(2)} €</b></span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3.5 pt-3 border-t border-amber-200/80">
+              <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-2">
+                Vyberte sumu a spôsob dobitia kreditu:
+              </span>
+
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { amount: neededTopUp, label: `+${neededTopUp} €`, note: "Potrebná suma" },
+                  { amount: 20, label: "+20 €", note: "Obľúbené" },
+                  { amount: 50, label: "+50 €", note: "Výhodné" },
+                ]
+                  .filter((item, idx, arr) => arr.findIndex((t) => t.amount === item.amount) === idx)
+                  .map((opt) => (
+                    <div key={opt.amount} className="flex flex-col gap-1">
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 font-semibold px-0.5">
+                        <span>{opt.note}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1">
+                        <button
+                          type="button"
+                          disabled={props.topUpLoading !== null}
+                          onClick={() => props.onTopUp!(opt.amount, "cardpay")}
+                          className="flex flex-col items-center justify-center rounded-xl border border-sky-300 bg-white py-2 px-1 text-center shadow-2xs transition hover:border-sky-500 hover:bg-sky-50 active:scale-95 disabled:opacity-50 cursor-pointer"
+                          title="Tatra banka CardPay"
+                        >
+                          {props.topUpLoading === opt.amount ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-sky-700 my-1" />
+                          ) : (
+                            <>
+                              <span className="text-xs font-black text-sky-800">{opt.label}</span>
+                              <span className="text-[9px] font-bold text-sky-600">CardPay</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={props.topUpLoading !== null}
+                          onClick={() => props.onTopUp!(opt.amount, "stripe")}
+                          className="flex flex-col items-center justify-center rounded-xl border border-amber-300 bg-white py-2 px-1 text-center shadow-2xs transition hover:border-amber-500 hover:bg-amber-50 active:scale-95 disabled:opacity-50 cursor-pointer"
+                          title="Stripe (Karta / Google Pay / Apple Pay)"
+                        >
+                          {props.topUpLoading === opt.amount ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-amber-700 my-1" />
+                          ) : (
+                            <>
+                              <span className="text-xs font-black text-amber-800">{opt.label}</span>
+                              <span className="text-[9px] font-bold text-amber-600">Stripe</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+
+              <p className="mt-2.5 text-[11px] text-slate-500 text-center">
+                Po bezpečnom zaplatení sa automaticky vrátite k potvrdeniu rezervácie.
+              </p>
+            </div>
+          </div>
+        ) : props.error ? (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700 sm:text-sm">
             {props.error}
           </div>
-        )}
+        ) : null}
 
         <form onSubmit={props.onSubmit} className="space-y-3.5 sm:space-y-4">
           <Field icon={Phone} label="Telefón" value={props.phone} onChange={props.onPhone} type="tel" />
@@ -217,10 +307,19 @@ export function CreateBookingDialog(props: CreateDialogProps) {
 
           <Field icon={MessageSquare} label="Poznámka" value={props.title} onChange={props.onTitle} placeholder="Voliteľná poznámka k rezervácii..." />
           <button
-            disabled={props.loading}
-            className="mt-2 w-full rounded-xl bg-emerald-600 px-4 py-3 text-xs font-bold text-white transition hover:bg-emerald-700 disabled:opacity-50 sm:px-5 sm:py-3.5 sm:text-sm cursor-pointer shadow-xs"
+            type="submit"
+            disabled={props.loading || isInsufficientCredit}
+            className={`mt-2 w-full rounded-xl px-4 py-3 text-xs font-bold text-white transition sm:px-5 sm:py-3.5 sm:text-sm shadow-xs ${
+              isInsufficientCredit
+                ? "bg-slate-400 cursor-not-allowed opacity-80"
+                : "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
+            }`}
           >
-            {props.loading ? "Ukladanie..." : "Vytvoriť rezerváciu"}
+            {props.loading
+              ? "Ukladanie..."
+              : isInsufficientCredit
+              ? `Najprv dobite kredit (${(props.walletBalance ?? 0).toFixed(2)} € / ${pricing.formattedPrice})`
+              : "Vytvoriť rezerváciu"}
           </button>
         </form>
       </div>

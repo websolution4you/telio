@@ -249,8 +249,8 @@ export async function createWalletCheckoutAction(amountEur: number, operationId:
   if (!walletEnabledForUser(session.userId)) {
     return { success: false as const, error: "Dobíjanie kreditu nie je pre tento účet povolené." };
   }
-  if (![10, 20, 50].includes(amountEur)) {
-    return { success: false as const, error: "Nepovolená suma dobitia." };
+  if (typeof amountEur !== "number" || isNaN(amountEur) || amountEur < 5 || amountEur > 1000) {
+    return { success: false as const, error: "Nepovolená suma dobitia (min. 5 €)." };
   }
   if (!operationId || operationId.length > 100) {
     return { success: false as const, error: "Neplatný identifikátor operácie." };
@@ -291,8 +291,8 @@ export async function createWalletCheckoutAction(amountEur: number, operationId:
       customer_email: session.email,
       metadata: { paymentId: payment.id, userId: session.userId, tenantId: TENANT_ID },
       payment_intent_data: { metadata: { paymentId: payment.id, userId: session.userId, tenantId: TENANT_ID } },
-      success_url: `${getAppUrl()}/dashboard/transactions?wallet=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${getAppUrl()}/dashboard/transactions?wallet=cancelled`,
+      success_url: `${getAppUrl()}/newbookings?wallet=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${getAppUrl()}/newbookings?wallet=cancelled`,
     }, { idempotencyKey });
 
     const { error: updateError } = await db
@@ -315,8 +315,8 @@ export async function createWalletCardPayAction(amountEur: number, operationId: 
   if (!walletEnabledForUser(session.userId)) {
     return { success: false as const, error: "Dobíjanie kreditu nie je pre tento účet povolené." };
   }
-  if (![10, 20, 50].includes(amountEur)) {
-    return { success: false as const, error: "Nepovolená suma dobitia." };
+  if (typeof amountEur !== "number" || isNaN(amountEur) || amountEur < 5 || amountEur > 1000) {
+    return { success: false as const, error: "Nepovolená suma dobitia (min. 5 €)." };
   }
   if (!operationId || operationId.length > 100) {
     return { success: false as const, error: "Neplatný identifikátor operácie." };
