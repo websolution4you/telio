@@ -547,17 +547,10 @@ export default function AdminUsersDirectory() {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex flex-col gap-1 items-start">
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-mono font-bold text-slate-700">
-                      <CreditCard className="h-3.5 w-3.5 text-slate-400" />
-                      {user.cardNumber || "—"}
-                    </span>
-                    {user.hasMultisport && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-300 shadow-2xs">
-                        MultiSport
-                      </span>
-                    )}
-                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-mono font-bold text-slate-700">
+                    <CreditCard className="h-3.5 w-3.5 text-slate-400" />
+                    {user.cardNumber || "—"}
+                  </span>
                 </td>
                 <td className="px-6 py-4">
                   <span
@@ -621,11 +614,6 @@ export default function AdminUsersDirectory() {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                {user.hasMultisport && (
-                  <span className="rounded-lg bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-300">
-                    MS
-                  </span>
-                )}
                 <span
                   className={`rounded-lg border px-2 py-0.5 text-[11px] font-bold shadow-2xs ${
                     roleLabels[user.role]?.badge || "bg-slate-100 text-slate-800"
@@ -776,7 +764,7 @@ export default function AdminUsersDirectory() {
                         <>
                           <span className="font-mono font-bold text-slate-900">{detailData.user.cardNumber}</span>
                           {!cardEditMode && (
-                            <div className="flex items-center gap-1 border-l border-slate-200 pl-2 ml-1">
+                            <div className="flex items-center border-l border-slate-200 pl-2 ml-1">
                               <button
                                 type="button"
                                 onClick={() => {
@@ -786,15 +774,6 @@ export default function AdminUsersDirectory() {
                                 className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
                               >
                                 Zmeniť PIN
-                              </button>
-                              <span className="text-slate-300">•</span>
-                              <button
-                                type="button"
-                                disabled={cardActionLoading}
-                                onClick={handleRemoveCard}
-                                className="text-[11px] font-bold text-red-600 hover:text-red-700 hover:underline cursor-pointer disabled:opacity-50"
-                              >
-                                Odobrať
                               </button>
                             </div>
                           )}
@@ -1317,21 +1296,6 @@ export default function AdminUsersDirectory() {
                   <option value="trainer">Tréner</option>
                   <option value="admin">Administrátor</option>
                 </select>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editProfileForm.hasMultisport}
-                    onChange={(e) => setEditProfileForm({ ...editProfileForm, hasMultisport: e.target.checked })}
-                    className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer"
-                  />
-                  <div className="text-xs">
-                    <span className="font-bold text-slate-900">Držiteľ MultiSport karty</span>
-                    <p className="text-[11px] text-slate-500">Umožňuje uplatnenie 50 % zľavy na rezervácie.</p>
-                  </div>
-                </label>
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
