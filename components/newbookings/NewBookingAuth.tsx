@@ -84,6 +84,17 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
     };
   }, []);
 
+  useEffect(() => {
+    if (mode === "register") {
+      setFirstName("");
+      setLastName("");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+      setPhone("");
+    }
+  }, [mode]);
+
   return (
     <div className="fixed inset-0 z-[200] grid place-items-center p-4" role="dialog" aria-modal="true" aria-label="Prihlásenie a registrácia">
       <button type="button" className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={onClose} aria-label="Zavrieť dialóg" />
@@ -107,12 +118,20 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
 
         {error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+          {/* Dummy inputs to prevent aggressive browser autofill of saved admin credentials */}
+          {mode === "register" && (
+            <div className="hidden" aria-hidden="true">
+              <input type="text" name="fake_username_remember" tabIndex={-1} autoComplete="off" />
+              <input type="password" name="fake_password_remember" tabIndex={-1} autoComplete="new-password" />
+            </div>
+          )}
+
           {mode === "register" && (
             <>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field label="Meno" value={firstName} onChange={setFirstName} placeholder="Janko" required />
-                <Field label="Priezvisko" value={lastName} onChange={setLastName} placeholder="Hraško" required />
+                <Field label="Meno" value={firstName} onChange={setFirstName} placeholder="Janko" name="register_first_name" required />
+                <Field label="Priezvisko" value={lastName} onChange={setLastName} placeholder="Hraško" name="register_last_name" required />
               </div>
               <div>
                 <label className="block">
@@ -132,6 +151,9 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
                     </select>
                     <input
                       type="tel"
+                      name="register_phone"
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={phone}
                       onChange={(e) => {
                         let val = e.target.value;
@@ -151,7 +173,16 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
             </>
           )}
 
-          <Field label="E-mail" type="email" value={email} onChange={setEmail} placeholder="vas@email.sk" required />
+          <Field
+            label="E-mail"
+            type="email"
+            value={email}
+            onChange={setEmail}
+            placeholder="vas@email.sk"
+            autoComplete={mode === "register" ? "new-password" : "email"}
+            name={mode === "register" ? "register_new_email" : "email"}
+            required
+          />
 
           {/* Password with eye toggle */}
           <div>
@@ -160,6 +191,9 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
+                  name={mode === "register" ? "register_new_password" : "password"}
+                  autoComplete={mode === "register" ? "new-password" : "current-password"}
+                  data-lpignore="true"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -187,6 +221,9 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? "text" : "password"}
+                    name="register_confirm_password"
+                    autoComplete="new-password"
+                    data-lpignore="true"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
@@ -215,7 +252,23 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
 
         <p className="mt-6 text-center text-sm text-slate-500">
           {mode === "login" ? "Ešte nemáte účet?" : "Už máte účet?"}{" "}
-          <button onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }} className="font-bold text-emerald-700 hover:text-emerald-800">
+          <button
+            type="button"
+            onClick={() => {
+              const nextMode = mode === "login" ? "register" : "login";
+              setMode(nextMode);
+              setError("");
+              if (nextMode === "register") {
+                setFirstName("");
+                setLastName("");
+                setEmail("");
+                setPassword("");
+                setConfirmPassword("");
+                setPhone("");
+              }
+            }}
+            className="font-bold text-emerald-700 hover:text-emerald-800"
+          >
             {mode === "login" ? "Registrovať sa" : "Prihlásiť sa"}
           </button>
         </p>
@@ -232,14 +285,19 @@ type FieldProps = {
   placeholder?: string;
   required?: boolean;
   minLength?: number;
+  autoComplete?: string;
+  name?: string;
 };
 
-function Field({ label, value, onChange, type = "text", placeholder, required, minLength }: FieldProps) {
+function Field({ label, value, onChange, type = "text", placeholder, required, minLength, autoComplete = "off", name }: FieldProps) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-sm font-semibold text-slate-700">{label}</span>
       <input
         type={type}
+        name={name}
+        autoComplete={autoComplete}
+        data-lpignore="true"
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
