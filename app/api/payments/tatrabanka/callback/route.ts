@@ -128,6 +128,24 @@ export async function GET(request: Request) {
       }
     }
 
+    // Bank is still processing clearing; credit the wallet in DB optimistically
+    // so the client can immediately book courts without being blocked
+    try {
+      await db.rpc("wallet_process_successful_payment", {
+        p_payment_id: payment.id,
+        p_provider_payment_id: paymentId,
+        p_provider_metadata: {
+          provider: "tatrabanka",
+          payment_method: paymentMethod || "CARD_PAY",
+          verified_by_bank: false,
+          pending_bank_confirmation: true,
+          source: "optimistic_callback_return",
+        },
+      });
+    } catch (optErr) {
+      console.error("Optimistic callback wallet credit failed:", optErr);
+    }
+
     return createRedirectWithSession(request, "pending", payment.user_id, Number(payment.amount_eur));
   } catch (error) {
     console.error("TatraPayPlus callback verification failed:", error);

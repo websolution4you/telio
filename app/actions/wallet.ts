@@ -146,6 +146,7 @@ export async function getWalletHistoryAction() {
     const amountEur = Number(row.amount_eur);
     const balanceAfterEur = runningBalance;
     runningBalance = Math.round((runningBalance - amountEur) * 100) / 100;
+    const isPending = row.metadata?.verified_by_bank === false || row.metadata?.pending_bank_confirmation === true;
     return {
       id: row.id,
       type: row.type as "payment" | "booking_charge" | "refund" | "manual_adjustment" | "bonus",
@@ -154,8 +155,8 @@ export async function getWalletHistoryAction() {
       createdAt: row.created_at,
       booking: row.booking_id ? bookingsById.get(row.booking_id) || null : null,
       reason: typeof row.metadata?.reason === "string" ? row.metadata.reason : null,
-      status: "paid" as const,
-      isPending: false,
+      status: isPending ? ("processing" as const) : ("paid" as const),
+      isPending,
     };
   });
 
@@ -183,14 +184,14 @@ export async function reconcileWalletCardPayAction(internalPaymentId?: string) {
   const db = getCoreServiceDb();
     let paymentQuery = db
     .from("payments")
-    .select("id, provider_payment_id, amount_eur, status")
+    .select("id, provider_payment_id, amount_eur, status, metadata")
     .eq("tenant_id", TENANT_ID)
     .eq("user_id", session.userId)
     .eq("provider", "tatrabanka")
     .not("provider_payment_id", "is", null);
   paymentQuery = internalPaymentId
     ? paymentQuery.eq("id", internalPaymentId)
-    : paymentQuery.in("status", ["processing", "pending"]);
+    : paymentQuery.or("status.in.(processing,pending),and(status.eq.paid,metadata->>verified_by_bank.eq.false)");
   const { data: payments, error } = await paymentQuery
     .order("created_at", { ascending: false })
     .limit(internalPaymentId ? 1 : 10);
@@ -200,11 +201,12 @@ export async function reconcileWalletCardPayAction(internalPaymentId?: string) {
     return { success: false as const, error: "CardPay platby sa nepodarilo overiť." };
   }
 
-    let successful = 0;
+  let successful = 0;
   let failed = 0;
   let pending = 0;
   for (const payment of payments || []) {
-    if (payment.status === "paid") {
+    const alreadyCredited = payment.status === "paid";
+    if (payment.status === "paid" && payment.metadata?.verified_by_bank !== false && payment.metadata?.pending_bank_confirmation !== true) {
       successful += 1;
       continue;
     }
@@ -220,17 +222,43 @@ export async function reconcileWalletCardPayAction(internalPaymentId?: string) {
           pending += 1;
           continue;
         }
-        const { error: processError } = await db.rpc("wallet_process_successful_payment", {
-          p_payment_id: payment.id,
-          p_provider_payment_id: payment.provider_payment_id,
-          p_provider_metadata: {
-            provider: "tatrabanka",
-            payment_method: "CARD_PAY",
-            verified_status: result.data,
-            source: "user_return_reconciliation",
-          },
-        });
-        if (processError) throw processError;
+
+        if (alreadyCredited) {
+          await Promise.all([
+            db.from("payments").update({
+              metadata: {
+                ...(typeof payment.metadata === "object" ? payment.metadata : {}),
+                verified_by_bank: true,
+                pending_bank_confirmation: false,
+                verified_status: result.data,
+              },
+            }).eq("id", payment.id),
+            db.from("wallet_transactions").update({
+              metadata: {
+                provider: "tatrabanka",
+                payment_method: "CARD_PAY",
+                verified_by_bank: true,
+                pending_bank_confirmation: false,
+                verified_status: result.data,
+                source: "user_return_reconciliation",
+              },
+            }).eq("payment_id", payment.id),
+          ]);
+        } else {
+          const { error: processError } = await db.rpc("wallet_process_successful_payment", {
+            p_payment_id: payment.id,
+            p_provider_payment_id: payment.provider_payment_id,
+            p_provider_metadata: {
+              provider: "tatrabanka",
+              payment_method: "CARD_PAY",
+              verified_status: result.data,
+              verified_by_bank: true,
+              pending_bank_confirmation: false,
+              source: "user_return_reconciliation",
+            },
+          });
+          if (processError) throw processError;
+        }
         successful += 1;
       } else if (result.state === "failed") {
         const { error: updateError } = await db

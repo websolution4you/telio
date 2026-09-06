@@ -384,17 +384,53 @@ export async function createBookingAction(payload: {
                                 .select("id, balance_eur")
                                 .eq("user_id", session.userId)
                                 .maybeSingle();
-                            if (freshWallet && Number(freshWallet.balance_eur) >= calculatedPrice) {
+                            if (freshWallet) {
                                 userWallet = freshWallet;
                                 currentBal = Number(freshWallet.balance_eur);
                             }
-                        } else if (recRes.success && recRes.pending > 0) {
-                            return {
-                                success: false,
-                                error: "Platba za dobitie kreditu ešte čaká na potvrdenie banky (zvyčajne ~1 minúta). Skúste to prosím o chvíľu znova.",
-                            };
                         }
-                    } catch {}
+
+                        if (currentBal < calculatedPrice) {
+                            // Check for pending CardPay payment and credit it optimistically so client can book
+                            const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+                            const { data: pendingPay } = await walletDb
+                                .from("payments")
+                                .select("id, provider_payment_id, amount_eur")
+                                .eq("tenant_id", TENANT_ID)
+                                .eq("user_id", session.userId)
+                                .eq("provider", "tatrabanka")
+                                .in("status", ["processing", "pending"])
+                                .gte("created_at", fifteenMinAgo)
+                                .order("created_at", { ascending: false })
+                                .limit(1)
+                                .maybeSingle();
+
+                            if (pendingPay) {
+                                await walletDb.rpc("wallet_process_successful_payment", {
+                                    p_payment_id: pendingPay.id,
+                                    p_provider_payment_id: pendingPay.provider_payment_id || `cardpay-${pendingPay.id}`,
+                                    p_provider_metadata: {
+                                        provider: "tatrabanka",
+                                        payment_method: "CARD_PAY",
+                                        source: "optimistic_booking_credit",
+                                        verified_by_bank: false,
+                                        pending_bank_confirmation: true,
+                                    },
+                                });
+                                const { data: freshWallet } = await walletDb
+                                    .from("wallets")
+                                    .select("id, balance_eur")
+                                    .eq("user_id", session.userId)
+                                    .maybeSingle();
+                                if (freshWallet) {
+                                    userWallet = freshWallet;
+                                    currentBal = Number(freshWallet.balance_eur);
+                                }
+                            }
+                        }
+                    } catch (cardPayErr) {
+                        console.error("CardPay optimistic booking credit failed:", cardPayErr);
+                    }
                     if (currentBal < calculatedPrice) {
                         return {
                             success: false,
@@ -492,15 +528,56 @@ export async function createBookingAction(payload: {
                                 } else if (retry.error) {
                                     return { success: false, error: "Nedostatočný zostatok v peňaženke." };
                                 }
-                            } else if (recRes.success && recRes.pending > 0) {
-                                return {
-                                    success: false,
-                                    error: "Platba za dobitie kreditu ešte čaká na potvrdenie banky (zvyčajne ~1 minúta). Skúste to prosím o chvíľu znova.",
-                                };
                             } else {
-                                return { success: false, error: "Nedostatočný zostatok v peňaženke." };
+                                // If Tatra banka hasn't settled yet, check for pending CardPay payment
+                                const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+                                const { data: pendingPay } = await walletDb
+                                    .from("payments")
+                                    .select("id, provider_payment_id, amount_eur")
+                                    .eq("tenant_id", TENANT_ID)
+                                    .eq("user_id", session.userId)
+                                    .eq("provider", "tatrabanka")
+                                    .in("status", ["processing", "pending"])
+                                    .gte("created_at", fifteenMinAgo)
+                                    .order("created_at", { ascending: false })
+                                    .limit(1)
+                                    .maybeSingle();
+
+                                if (pendingPay) {
+                                    await walletDb.rpc("wallet_process_successful_payment", {
+                                        p_payment_id: pendingPay.id,
+                                        p_provider_payment_id: pendingPay.provider_payment_id || `cardpay-${pendingPay.id}`,
+                                        p_provider_metadata: {
+                                            provider: "tatrabanka",
+                                            payment_method: "CARD_PAY",
+                                            source: "optimistic_booking_credit",
+                                            verified_by_bank: false,
+                                            pending_bank_confirmation: true,
+                                        },
+                                    });
+
+                                    const retry = await walletDb.rpc("wallet_create_ntc_booking", {
+                                        p_user_id: session.userId,
+                                        p_court_id: payload.courtId,
+                                        p_sport: sport,
+                                        p_customer_name: payload.customerName,
+                                        p_customer_phone: payload.phone || "",
+                                        p_start_at: payload.start,
+                                        p_end_at: payload.end,
+                                        p_notes: JSON.stringify(notesObj),
+                                        p_idempotency_key: payload.operationId,
+                                    });
+                                    if (!retry.error && retry.data?.[0]) {
+                                        data = retry.data;
+                                    } else {
+                                        return { success: false, error: retry.error ? retry.error.message : "Nedostatočný zostatok v peňaženke." };
+                                    }
+                                } else {
+                                    return { success: false, error: "Nedostatočný zostatok v peňaženke." };
+                                }
                             }
-                        } catch {
+                        } catch (cardPayErr) {
+                            console.error("CardPay optimistic booking credit error:", cardPayErr);
                             return { success: false, error: "Nedostatočný zostatok v peňaženke." };
                         }
                     } else if (message.includes("no longer available")) {
