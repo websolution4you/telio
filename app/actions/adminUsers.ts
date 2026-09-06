@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getSession, type BookingRole, hashPassword, normalizePhone } from "@/lib/auth/bookingAuth";
+import { getSession, type BookingRole, hashPassword, normalizePhone, verifyPassword } from "@/lib/auth/bookingAuth";
 import { getCoreServiceDb } from "@/lib/server/supabase";
 import { isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
 
@@ -279,6 +279,7 @@ export async function fetchAdminUsersDirectoryAction(
 
   return {
     success: true as const,
+    currentUserId: context.session.userId,
     page: safePage,
     pageSize,
     totalCount: count || 0,
@@ -633,3 +634,96 @@ export async function updateBookingUserProfileByAdminAction(userId: string, data
 
   return { success: true as const, user: updateResult.data };
 }
+
+export async function deleteBookingUserByAdminAction(
+  targetUserId: string,
+  adminPassword: string
+) {
+  const session = await getSession();
+  if (!session) {
+    return { success: false as const, error: "Nemáte oprávnenie spravovať používateľov." };
+  }
+
+  const db = getCoreServiceDb();
+  const { data: actor, error: actorError } = await db
+    .from("booking_users")
+    .select("id, role, password_hash")
+    .eq("id", session.userId)
+    .maybeSingle();
+
+  if (actorError || !actor || actor.role !== "admin") {
+    return { success: false as const, error: "Nemáte oprávnenie mazať používateľov." };
+  }
+
+  if (actor.id === targetUserId) {
+    return { success: false as const, error: "Nemôžete zmazať vlastný administrátorský účet." };
+  }
+
+  if (!adminPassword || typeof adminPassword !== "string" || !adminPassword.trim()) {
+    return { success: false as const, error: "Pre zmazanie používateľa musíte zadať vaše prihlasovacie heslo." };
+  }
+
+  const isPasswordValid = await verifyPassword(adminPassword, actor.password_hash);
+  if (!isPasswordValid) {
+    return { success: false as const, error: "Nesprávne administrátorské heslo." };
+  }
+
+  // Check target user exists
+  const { data: targetUser, error: targetError } = await db
+    .from("booking_users")
+    .select("id, name, email")
+    .eq("id", targetUserId)
+    .maybeSingle();
+
+  if (targetError || !targetUser) {
+    return { success: false as const, error: "Používateľ nebol nájdený." };
+  }
+
+  // 1. Delete associated payments if table exists
+  try {
+    await db.from("payments").delete().eq("user_id", targetUserId);
+  } catch (err) {
+    console.warn("Could not delete payments:", err);
+  }
+
+  // 2. Delete wallet transactions & wallets
+  try {
+    const { data: wallets } = await db.from("wallets").select("id").eq("user_id", targetUserId);
+    const walletIds = (wallets || []).map((w: any) => w.id);
+    if (walletIds.length > 0) {
+      await db.from("wallet_transactions").delete().in("wallet_id", walletIds);
+    }
+    await db.from("wallet_transactions").delete().eq("user_id", targetUserId);
+    await db.from("wallets").delete().eq("user_id", targetUserId);
+  } catch (err) {
+    console.warn("Could not delete wallets/transactions:", err);
+  }
+
+  // 3. Delete user's bookings
+  const { error: bookingsError } = await db
+    .from("bookings")
+    .delete()
+    .eq("user_id", targetUserId);
+
+  if (bookingsError) {
+    console.error("Failed to delete user bookings:", bookingsError);
+    return { success: false as const, error: "Nepodarilo sa odstrániť rezervácie používateľa: " + bookingsError.message };
+  }
+
+  // 4. Delete user record
+  const { error: userDeleteError } = await db
+    .from("booking_users")
+    .delete()
+    .eq("id", targetUserId);
+
+  if (userDeleteError) {
+    console.error("Failed to delete user:", userDeleteError);
+    return { success: false as const, error: "Nepodarilo sa odstrániť používateľa: " + userDeleteError.message };
+  }
+
+  revalidatePath("/dashboard/users");
+  revalidatePath("/dashboard/newbookings");
+
+  return { success: true as const };
+}
+
