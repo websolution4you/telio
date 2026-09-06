@@ -390,8 +390,28 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         }
       });
     } else if (walletStatus === "pending") {
-      setNotice("Overujem platbu s Tatra bankou... Kredit sa automaticky navýši.");
+      setNotice(
+        amount
+          ? `Platba cez Tatra banka CardPay (${amount} €) bola prijatá. Kredit sme vám predbežne pripísali, prebieha overenie bankou...`
+          : "Platba cez Tatra banka CardPay bola prijatá. Kredit sme vám predbežne pripísali, prebieha overenie bankou..."
+      );
       window.history.replaceState({}, "", window.location.pathname);
+
+      if (amount) {
+        const numAmount = Number(amount);
+        if (!isNaN(numAmount) && numAmount > 0) {
+          setWalletBalance((prev) => Math.round(((prev ?? 0) + numAmount) * 100) / 100);
+        }
+      }
+      getWalletAction().then((result) => {
+        if (result.success && result.enabled && result.balanceEur !== null) {
+          setWalletBalance(result.balanceEur);
+        }
+      });
+      setWalletHighlight(true);
+      setTimeout(() => setWalletHighlight(false), 3500);
+      restorePendingSlotAfterTopUp();
+
       let attempts = 0;
       const maxAttempts = 10; // 10 * 30s = 5 minút
 
@@ -402,8 +422,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           clearInterval(interval);
           setNotice(
             amount
-              ? `Platba cez Tatra banka CardPay (${amount} €) bola úspešne pripísaná na váš účet.`
-              : "Platba cez Tatra banka CardPay bola úspešne pripísaná na váš účet."
+              ? `Platba cez Tatra banka CardPay (${amount} €) bola úspešne potvrdená bankou.`
+              : "Platba cez Tatra banka CardPay bola úspešne potvrdená bankou."
           );
           const walletRes = await getWalletAction();
           if (walletRes.success && walletRes.enabled) {
@@ -414,7 +434,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           }
         } else if (attempts >= maxAttempts) {
           clearInterval(interval);
-          setNotice("Platba sa stále spracováva v Tatra banke. Kredit sa pripíše automaticky hneď po potvrdení bankou.");
+          setNotice("Platba sa stále spracováva v Tatra banke. Kredit sa definitívne potvrdí automaticky hneď po dokončení v banke.");
         }
       };
 

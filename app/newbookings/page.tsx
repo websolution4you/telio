@@ -101,15 +101,26 @@ export default async function NewBookingsPage() {
   let initialWalletBalance: number | null = null;
   if (session && currentUser && currentUser.role !== "admin") {
     const serviceDb = getCoreServiceDb();
-    const { data: walletData } = await serviceDb
-      .from("wallets")
-      .select("balance_eur")
-      .eq("tenant_id", "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf")
-      .eq("user_id", session.userId)
-      .maybeSingle();
-    if (walletData) {
-      initialWalletBalance = Number(walletData.balance_eur);
-    }
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const [{ data: walletData }, { data: pendingPayments }] = await Promise.all([
+      serviceDb
+        .from("wallets")
+        .select("balance_eur")
+        .eq("tenant_id", "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf")
+        .eq("user_id", session.userId)
+        .maybeSingle(),
+      serviceDb
+        .from("payments")
+        .select("amount_eur")
+        .eq("tenant_id", "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf")
+        .eq("user_id", session.userId)
+        .eq("provider", "tatrabanka")
+        .in("status", ["processing", "pending"])
+        .gte("created_at", fifteenMinutesAgo),
+    ]);
+    const confirmed = walletData ? Number(walletData.balance_eur) : 0;
+    const pending = (pendingPayments || []).reduce((sum, p) => sum + Number(p.amount_eur || 0), 0);
+    initialWalletBalance = Math.round((confirmed + pending) * 100) / 100;
   }
 
   const start = new Date();
