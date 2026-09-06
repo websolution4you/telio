@@ -17,20 +17,39 @@ export async function getWalletAction() {
   if (!enabled) return { success: true as const, enabled: false, balanceEur: null };
 
   const db = getCoreServiceDb();
-  const { data, error } = await db.rpc("wallet_get_balance", {
-    p_tenant_id: TENANT_ID,
-    p_user_id: session.userId,
-  });
+  const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+
+  const [{ data, error }, { data: pendingPayments }] = await Promise.all([
+    db.rpc("wallet_get_balance", {
+      p_tenant_id: TENANT_ID,
+      p_user_id: session.userId,
+    }),
+    db
+      .from("payments")
+      .select("id, amount_eur, status, created_at")
+      .eq("tenant_id", TENANT_ID)
+      .eq("user_id", session.userId)
+      .eq("provider", "tatrabanka")
+      .in("status", ["processing", "pending"])
+      .gte("created_at", fifteenMinutesAgo),
+  ]);
 
   if (error) {
     console.error("getWalletAction failed:", error);
     return { success: false as const, enabled: true, error: "Zostatok sa nepodarilo načítať." };
   }
 
+  const confirmedBalanceEur = data?.[0] ? Number(data[0].balance_eur) : 0;
+  const pendingEur = (pendingPayments || []).reduce((sum, p) => sum + Number(p.amount_eur || 0), 0);
+  const balanceEur = Math.round((confirmedBalanceEur + pendingEur) * 100) / 100;
+
   return {
     success: true as const,
     enabled: true,
-    balanceEur: data?.[0] ? Number(data[0].balance_eur) : 0,
+    balanceEur,
+    confirmedBalanceEur,
+    pendingEur,
+    hasPendingPayment: (pendingPayments || []).length > 0,
   };
 }
 
@@ -41,8 +60,14 @@ export async function getWalletHistoryAction() {
     return { success: true as const, enabled: false, balanceEur: null, transactions: [] };
   }
 
-    const db = getCoreServiceDb();
-  const [{ data: balanceData, error: balanceError }, { data: rows, error: historyError }] = await Promise.all([
+  const db = getCoreServiceDb();
+  const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+
+  const [
+    { data: balanceData, error: balanceError },
+    { data: rows, error: historyError },
+    { data: pendingPayments, error: pendingError }
+  ] = await Promise.all([
     db.rpc("wallet_get_balance", {
       p_tenant_id: TENANT_ID,
       p_user_id: session.userId,
@@ -54,6 +79,15 @@ export async function getWalletHistoryAction() {
       .eq("user_id", session.userId)
       .order("created_at", { ascending: false })
       .limit(100),
+    db
+      .from("payments")
+      .select("id, amount_eur, status, created_at, provider")
+      .eq("tenant_id", TENANT_ID)
+      .eq("user_id", session.userId)
+      .eq("provider", "tatrabanka")
+      .in("status", ["processing", "pending"])
+      .gte("created_at", fifteenMinutesAgo)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (balanceError || historyError) {
@@ -86,12 +120,32 @@ export async function getWalletHistoryAction() {
     }
   }
 
-  const balanceEur = balanceData?.[0] ? Number(balanceData[0].balance_eur) : 0;
-  let runningBalance = balanceEur;
-  const transactions = (rows || []).map((row) => {
+  const confirmedBalanceEur = balanceData?.[0] ? Number(balanceData[0].balance_eur) : 0;
+  const pendingEur = (pendingPayments || []).reduce((sum, p) => sum + Number(p.amount_eur || 0), 0);
+  const totalBalanceEur = Math.round((confirmedBalanceEur + pendingEur) * 100) / 100;
+
+  let runningBalance = totalBalanceEur;
+  const pendingTransactions = (pendingPayments || []).map((payment) => {
+    const amountEur = Number(payment.amount_eur);
+    const balanceAfterEur = runningBalance;
+    runningBalance = Math.round((runningBalance - amountEur) * 100) / 100;
+    return {
+      id: payment.id,
+      type: "payment" as const,
+      amountEur,
+      balanceAfterEur,
+      createdAt: payment.created_at,
+      booking: null,
+      reason: "Dobitie cez Tatra banka CardPay",
+      status: "processing" as const,
+      isPending: true,
+    };
+  });
+
+  const confirmedTransactions = (rows || []).map((row) => {
     const amountEur = Number(row.amount_eur);
     const balanceAfterEur = runningBalance;
-    runningBalance -= amountEur;
+    runningBalance = Math.round((runningBalance - amountEur) * 100) / 100;
     return {
       id: row.id,
       type: row.type as "payment" | "booking_charge" | "refund" | "manual_adjustment" | "bonus",
@@ -100,10 +154,19 @@ export async function getWalletHistoryAction() {
       createdAt: row.created_at,
       booking: row.booking_id ? bookingsById.get(row.booking_id) || null : null,
       reason: typeof row.metadata?.reason === "string" ? row.metadata.reason : null,
+      status: "paid" as const,
+      isPending: false,
     };
   });
 
-      return { success: true as const, enabled: true, balanceEur, transactions };
+  return {
+    success: true as const,
+    enabled: true,
+    balanceEur: totalBalanceEur,
+    confirmedBalanceEur,
+    pendingEur,
+    transactions: [...pendingTransactions, ...confirmedTransactions],
+  };
 }
 
 export async function reconcileWalletCardPayAction(internalPaymentId?: string) {

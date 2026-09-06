@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Coins, CreditCard, LayoutDashboard, Loader2, Sparkles } from "lucide-react";
+import { ArrowDownLeft, ArrowLeft, ArrowUpRight, CheckCircle2, Clock, Coins, CreditCard, LayoutDashboard, Loader2, Sparkles } from "lucide-react";
 import { addTestWalletCreditAction, createWalletCardPayAction, getWalletHistoryAction, reconcileWalletCardPayAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
 import type { SessionPayload } from "@/lib/auth/bookingAuth";
 
@@ -14,6 +14,8 @@ type WalletTransaction = {
   createdAt: string;
   booking: { startAt: string; courtId: string | null } | null;
   reason: string | null;
+  status?: "processing" | "pending" | "paid" | "failed";
+  isPending?: boolean;
 };
 
 type FilterType = "all" | "booking_charge" | "refund" | "payment" | "manual_adjustment";
@@ -78,7 +80,7 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
       }
       if (walletStatus === "cancelled") setWalletNotice("Dobíjanie kreditu bolo zrušené.");
       if (walletStatus === "failed") setWalletNotice("CardPay platba nebola úspešná.");
-      if (walletStatus === "pending" && (!cardPayResult.success || cardPayResult.successful === 0)) setWalletNotice("CardPay platba čaká na potvrdenie. Stav skontrolujeme automaticky.");
+      if (walletStatus === "pending" && (!cardPayResult.success || cardPayResult.successful === 0)) setWalletNotice("CardPay platba čaká na potvrdenie banky. Kredit bol predbežne pripísaný.");
       if (walletStatus === "error") setWalletNotice("CardPay platbu sa nepodarilo overiť.");
       if (walletStatus === "login-required") setWalletNotice("Pre dokončenie CardPay platby sa prihláste.");
       if (walletStatus === "success" && !checkoutSessionId && (!cardPayResult.success || cardPayResult.successful === 0)) setWalletNotice("CardPay platba bola úspešná a kredit bol pripísaný.");
@@ -91,7 +93,7 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
             if (active) await loadData();
 
       if (active && cardPayResult.success && cardPayResult.pending > 0) {
-        setWalletNotice("CardPay platba čaká na finálne potvrdenie banky. Kredit sa obnoví automaticky.");
+        setWalletNotice("CardPay platba čaká na finálne potvrdenie banky. Kredit bol predbežne pripísaný.");
         for (let attempt = 0; attempt < 100 && active; attempt += 1) {
           await new Promise((resolve) => window.setTimeout(resolve, 3_000));
           if (!active) return;
@@ -325,18 +327,65 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
                     const detail = transaction.booking
                       ? `${transaction.booking.courtId ? courtName(transaction.booking.courtId) : "Rezervácia"} · ${formatDate(transaction.booking.startAt)} o ${formatTime(transaction.booking.startAt)}`
                       : transaction.reason;
+                    const isPending = Boolean(transaction.isPending);
+
                     return (
-                      <div key={transaction.id} className="flex items-center gap-3 px-5 py-4 sm:px-6">
-                        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${positive ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>
-                          {positive ? <ArrowDownLeft className="h-5 w-5" /> : <ArrowUpRight className="h-5 w-5" />}
+                      <div
+                        key={transaction.id}
+                        className={`flex items-center gap-3 px-5 py-4 sm:px-6 transition-colors ${
+                          isPending ? "bg-amber-50/40" : ""
+                        }`}
+                      >
+                        <span
+                          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+                            isPending
+                              ? "bg-amber-100 text-amber-700"
+                              : positive
+                              ? "bg-emerald-50 text-emerald-600"
+                              : "bg-red-50 text-red-600"
+                          }`}
+                        >
+                          {isPending ? (
+                            <Clock className="h-5 w-5 animate-pulse text-amber-600" />
+                          ) : positive ? (
+                            <ArrowDownLeft className="h-5 w-5" />
+                          ) : (
+                            <ArrowUpRight className="h-5 w-5" />
+                          )}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <b className="block text-sm text-slate-900">{labels[transaction.type]}</b>
-                          <p className="truncate text-xs text-slate-500">{detail || `${formatDate(transaction.createdAt)} o ${formatTime(transaction.createdAt)}`}</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <b className="text-sm text-slate-900">{labels[transaction.type]}</b>
+                            {isPending && (
+                              <span className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
+                                Čaká na potvrdenie banky
+                              </span>
+                            )}
+                            {transaction.type === "payment" && !isPending && (
+                              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Zaplatené / Overené
+                              </span>
+                            )}
+                          </div>
+                          <p className="truncate text-xs text-slate-500">
+                            {isPending
+                              ? "Platba kartou prijatá · čaká na finálne zúčtovanie v Tatra banke"
+                              : detail || `${formatDate(transaction.createdAt)} o ${formatTime(transaction.createdAt)}`}
+                          </p>
                           <p className="mt-1 text-[10px] text-slate-400">{formatDate(transaction.createdAt)}, {formatTime(transaction.createdAt)}</p>
                         </div>
                         <div className="text-right">
-                          <strong className={`block whitespace-nowrap text-sm ${positive ? "text-emerald-600" : "text-red-600"}`}>
+                          <strong
+                            className={`block whitespace-nowrap text-sm ${
+                              isPending
+                                ? "text-amber-700"
+                                : positive
+                                ? "text-emerald-600"
+                                : "text-red-600"
+                            }`}
+                          >
                             {positive ? "+" : ""}{formatEur(transaction.amountEur)}
                           </strong>
                           <small className="whitespace-nowrap text-[10px] text-slate-400">Zostatok {formatEur(transaction.balanceAfterEur)}</small>

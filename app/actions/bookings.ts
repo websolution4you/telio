@@ -367,18 +367,40 @@ export async function createBookingAction(payload: {
                 };
             } else if (multisportCount === 1) {
                 // 50% zľava (1 MultiSport karta): overenie a odčítanie 50% z peňaženky
-                const { data: userWallet } = await walletDb
+                let { data: userWallet } = await walletDb
                     .from("wallets")
                     .select("id, balance_eur")
                     .eq("user_id", session.userId)
                     .maybeSingle();
 
-                const currentBal = Number(userWallet?.balance_eur ?? 0);
+                let currentBal = Number(userWallet?.balance_eur ?? 0);
                 if (currentBal < calculatedPrice) {
-                    return {
-                        success: false,
-                        error: `Nedostatočný zostatok v peňaženke. Potrebná suma po zľave 50 %: ${calculatedPrice.toFixed(2)} €, aktuálny zostatok: ${currentBal.toFixed(2)} €.`
-                    };
+                    try {
+                        const { reconcileWalletCardPayAction } = await import("./wallet");
+                        const recRes = await reconcileWalletCardPayAction();
+                        if (recRes.success && recRes.successful > 0) {
+                            const { data: freshWallet } = await walletDb
+                                .from("wallets")
+                                .select("id, balance_eur")
+                                .eq("user_id", session.userId)
+                                .maybeSingle();
+                            if (freshWallet && Number(freshWallet.balance_eur) >= calculatedPrice) {
+                                userWallet = freshWallet;
+                                currentBal = Number(freshWallet.balance_eur);
+                            }
+                        } else if (recRes.success && recRes.pending > 0) {
+                            return {
+                                success: false,
+                                error: "Platba za dobitie kreditu ešte čaká na potvrdenie banky (zvyčajne ~1 minúta). Skúste to prosím o chvíľu znova.",
+                            };
+                        }
+                    } catch {}
+                    if (currentBal < calculatedPrice) {
+                        return {
+                            success: false,
+                            error: `Nedostatočný zostatok v peňaženke. Potrebná suma po zľave 50 %: ${calculatedPrice.toFixed(2)} €, aktuálny zostatok: ${currentBal.toFixed(2)} €.`,
+                        };
+                    }
                 }
 
                 const newBal = Math.round((currentBal - calculatedPrice) * 100) / 100;
@@ -436,7 +458,7 @@ export async function createBookingAction(payload: {
             } else {
                 // 0 kariet: volanie RPC funkcie wallet_create_ntc_booking
                 const sport = payload.courtId.replace(/-\d+$/, "");
-                const { data, error } = await walletDb.rpc("wallet_create_ntc_booking", {
+                let { data, error } = await walletDb.rpc("wallet_create_ntc_booking", {
                     p_user_id: session.userId,
                     p_court_id: payload.courtId,
                     p_sport: sport,
@@ -450,12 +472,42 @@ export async function createBookingAction(payload: {
                 if (error) {
                     const message = error.message.toLowerCase();
                     if (message.includes("insufficient wallet balance")) {
-                        return { success: false, error: "Nedostatočný zostatok v peňaženke." };
-                    }
-                    if (message.includes("no longer available")) {
+                        try {
+                            const { reconcileWalletCardPayAction } = await import("./wallet");
+                            const recRes = await reconcileWalletCardPayAction();
+                            if (recRes.success && recRes.successful > 0) {
+                                const retry = await walletDb.rpc("wallet_create_ntc_booking", {
+                                    p_user_id: session.userId,
+                                    p_court_id: payload.courtId,
+                                    p_sport: sport,
+                                    p_customer_name: payload.customerName,
+                                    p_customer_phone: payload.phone || "",
+                                    p_start_at: payload.start,
+                                    p_end_at: payload.end,
+                                    p_notes: JSON.stringify(notesObj),
+                                    p_idempotency_key: payload.operationId,
+                                });
+                                if (!retry.error && retry.data?.[0]) {
+                                    data = retry.data;
+                                } else if (retry.error) {
+                                    return { success: false, error: "Nedostatočný zostatok v peňaženke." };
+                                }
+                            } else if (recRes.success && recRes.pending > 0) {
+                                return {
+                                    success: false,
+                                    error: "Platba za dobitie kreditu ešte čaká na potvrdenie banky (zvyčajne ~1 minúta). Skúste to prosím o chvíľu znova.",
+                                };
+                            } else {
+                                return { success: false, error: "Nedostatočný zostatok v peňaženke." };
+                            }
+                        } catch {
+                            return { success: false, error: "Nedostatočný zostatok v peňaženke." };
+                        }
+                    } else if (message.includes("no longer available")) {
                         return { success: false, error: "Vybraný kurt je už obsadený." };
+                    } else {
+                        throw new Error(`Wallet booking error: ${error.message}`);
                     }
-                    throw new Error(`Wallet booking error: ${error.message}`);
                 }
                 const result = data?.[0];
                 if (!result) throw new Error("Wallet booking did not return a result");
