@@ -994,13 +994,13 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                         } else {
                           if (isMaintenanceOrAdmin) {
                             labelText = "Údržba";
-                            bookingClasses = "border-red-300/90 bg-gradient-to-br from-[#F87171] via-[#EF4444] to-[#DC2626] text-white shadow-[0_4px_14px_rgba(239,68,68,0.35)]";
+                            bookingClasses = "border-slate-700 bg-slate-600 text-white shadow-xs";
                           } else if (own) {
                             labelText = "Vaša rezervácia";
-                            bookingClasses = "border-emerald-300/90 bg-gradient-to-br from-[#15803D] via-[#16A34A] to-[#14532D] text-white shadow-[0_4px_14px_rgba(22,163,74,0.35)]";
+                            bookingClasses = "border-emerald-700 bg-emerald-600 text-white shadow-xs hover:bg-emerald-700";
                           } else {
                             labelText = "Obsadené";
-                            bookingClasses = "border-orange-300/90 bg-gradient-to-br from-[#D95A3F] via-[#E26A4F] to-[#C44B31] text-white shadow-[0_4px_14px_rgba(180,83,9,0.35)]";
+                            bookingClasses = "border-red-700 bg-red-600 text-white shadow-xs";
                           }
                         }
 
@@ -1012,16 +1012,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                               voiceHighlight ? "voice-booking-highlight" : ""
                             } ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${bookingClasses}`}
                             style={position(booking)}
-                            title={canManage ? `Detail: ${labelText}` : "Obsadené"}
+                            title={canManage ? `Detail: ${labelText}` : (isMaintenanceOrAdmin ? "Údržba" : "Obsadené")}
                           >
-                            {!isAdmin && (
-                              <div className="pointer-events-none absolute inset-0 opacity-25">
-                                <svg viewBox="0 0 100 100" className="h-full w-full" preserveAspectRatio="none">
-                                  <rect x="5" y="5" width="90" height="90" fill="none" stroke="#FFFFFF" strokeWidth="3" />
-                                  <line x1="50" y1="5" x2="50" y2="95" stroke="#FFFFFF" strokeWidth="2" strokeDasharray="6,4" />
-                                </svg>
-                              </div>
-                            )}
                             {voiceHighlight && (
                               <>
                                 <div className="pointer-events-none absolute inset-0 z-30 overflow-visible">
@@ -1062,12 +1054,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                               </div>
                             ) : (
                               <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center text-white font-sans select-none pointer-events-none">
-                                <div className="text-[clamp(8.5px,0.72vw,12px)] font-medium leading-tight tracking-normal drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] [overflow-wrap:anywhere]">
+                                <div className="text-[clamp(8.5px,0.72vw,12px)] font-semibold leading-tight tracking-normal [overflow-wrap:anywhere]">
                                   <span className="block">{formatTime(booking.start)}</span>
                                   <span className="block leading-[0.55] opacity-80" aria-hidden="true">–</span>
                                   <span className="block">{formatTime(booking.end)}</span>
                                 </div>
-                                <span className="mt-0.5 block text-[clamp(7.5px,0.62vw,10.5px)] font-medium tracking-normal leading-tight opacity-95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] [overflow-wrap:anywhere]">
+                                <span className="mt-0.5 block text-[clamp(7.5px,0.62vw,10.5px)] font-medium tracking-normal leading-tight opacity-95 [overflow-wrap:anywhere]">
                                   {labelText}
                                 </span>
                               </div>
@@ -1104,15 +1096,15 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           ) : (
             <>
               <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-emerald-400 bg-gradient-to-br from-[#15803D] to-[#14532D] shadow-xs" />
+                <i className="h-3.5 w-3.5 rounded-md border border-emerald-700 bg-emerald-600 shadow-xs" />
                 Vaša rezervácia
               </span>
               <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-orange-300 bg-gradient-to-br from-[#D95A3F] to-[#C44B31] shadow-xs" />
+                <i className="h-3.5 w-3.5 rounded-md border border-red-700 bg-red-600 shadow-xs" />
                 Obsadené
               </span>
               <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-red-300 bg-gradient-to-br from-[#F87171] to-[#DC2626] shadow-xs" />
+                <i className="h-3.5 w-3.5 rounded-md border border-slate-700 bg-slate-600 shadow-xs" />
                 Údržba
               </span>
             </>
