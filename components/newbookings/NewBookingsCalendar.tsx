@@ -997,7 +997,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                             bookingClasses = "border-slate-700 bg-slate-600 text-white shadow-xs";
                           } else if (own) {
                             labelText = "Vaša rezervácia";
-                            bookingClasses = "border-emerald-700 bg-emerald-600 text-white shadow-xs hover:bg-emerald-700";
+                            bookingClasses = "border-[#84CC16] bg-[#B0FC38] text-slate-950 font-bold shadow-xs hover:bg-[#A3ED2E]";
                           } else {
                             labelText = "Obsadené";
                             bookingClasses = "border-red-700 bg-red-600 text-white shadow-xs";
@@ -1053,13 +1053,13 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                                 ))}
                               </div>
                             ) : (
-                              <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center text-white font-sans select-none pointer-events-none">
-                                <div className="text-[clamp(8.5px,0.72vw,12px)] font-semibold leading-tight tracking-normal [overflow-wrap:anywhere]">
+                              <div className={`relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center font-sans select-none pointer-events-none ${own ? "text-slate-950" : "text-white"}`}>
+                                <div className="text-[clamp(8.5px,0.72vw,12px)] font-bold leading-tight tracking-normal [overflow-wrap:anywhere]">
                                   <span className="block">{formatTime(booking.start)}</span>
                                   <span className="block leading-[0.55] opacity-80" aria-hidden="true">–</span>
                                   <span className="block">{formatTime(booking.end)}</span>
                                 </div>
-                                <span className="mt-0.5 block text-[clamp(7.5px,0.62vw,10.5px)] font-medium tracking-normal leading-tight opacity-95 [overflow-wrap:anywhere]">
+                                <span className="mt-0.5 block text-[clamp(7.5px,0.62vw,10.5px)] font-bold tracking-normal leading-tight [overflow-wrap:anywhere]">
                                   {labelText}
                                 </span>
                               </div>
@@ -1096,7 +1096,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           ) : (
             <>
               <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-emerald-700 bg-emerald-600 shadow-xs" />
+                <i className="h-3.5 w-3.5 rounded-md border border-[#84CC16] bg-[#B0FC38] shadow-xs" />
                 Vaša rezervácia
               </span>
               <span className="flex items-center gap-2">
