@@ -1095,10 +1095,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             </>
           ) : (
             <>
-              <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-[#84CC16] bg-[#B0FC38] shadow-xs" />
-                Vaša rezervácia
-              </span>
+              {currentUser && (
+                <span className="flex items-center gap-2">
+                  <i className="h-3.5 w-3.5 rounded-md border border-[#84CC16] bg-[#B0FC38] shadow-xs" />
+                  Vaša rezervácia
+                </span>
+              )}
               <span className="flex items-center gap-2">
                 <i className="h-3.5 w-3.5 rounded-md border border-red-700 bg-red-600 shadow-xs" />
                 Obsadené
