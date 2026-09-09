@@ -23,8 +23,8 @@ export default async function UsersAndRolesPage() {
         <div className="mx-auto max-w-[1500px]">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2.5">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-violet-600 to-purple-700 text-white shadow-md">
-                <Settings className="h-5 w-5" />
+              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-slate-950 text-white shadow-md shadow-slate-950/20 ring-1 ring-slate-800">
+                <Settings className="h-5 w-5 text-white" />
               </span>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Nastavenia</h1>

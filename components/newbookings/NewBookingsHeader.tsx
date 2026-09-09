@@ -182,7 +182,7 @@ export default function NewBookingsHeader({
                     href="/dashboard/users"
                     className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
                       activeTab === "users"
-                        ? "border-cyan-400 bg-white ring-2 ring-cyan-400/25 shadow-sm"
+                        ? "border-slate-900 bg-white ring-2 ring-slate-900/15 shadow-sm"
                         : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
                     }`}
                     title="Správa používateľov"
@@ -204,7 +204,7 @@ export default function NewBookingsHeader({
                     href="/dashboard/newbookings"
                     className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
                       activeTab === "stats"
-                        ? "border-violet-400 bg-white ring-2 ring-violet-400/25 shadow-sm"
+                        ? "border-slate-900 bg-white ring-2 ring-slate-900/15 shadow-sm"
                         : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
                     }`}
                     title="Prehľad a štatistiky"
@@ -226,7 +226,7 @@ export default function NewBookingsHeader({
                     href="/dashboard/users-roles"
                     className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
                       activeTab === "settings"
-                        ? "border-purple-400 bg-white ring-2 ring-purple-400/25 shadow-sm"
+                        ? "border-slate-900 bg-white ring-2 ring-slate-900/15 shadow-sm"
                         : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
                     }`}
                     title="Nastavenia systému a rolí"

@@ -49,11 +49,10 @@ const statTones = {
   emerald: "border-emerald-100 from-emerald-50 to-teal-50 text-emerald-700 bg-emerald-100",
 };
 
-function StatCard({ icon: Icon, label, value, tone }: { icon: typeof Clock3; label: string; value: string; tone: keyof typeof statTones }) {
-  const [border, from, to, text, background] = statTones[tone].split(" ");
+function StatCard({ icon: Icon, label, value }: { icon: typeof Clock3; label: string; value: string; tone?: string }) {
   return (
-    <div className={`rounded-3xl border bg-gradient-to-br p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)] ${border} ${from} ${to}`}>
-      <span className={`mb-5 grid h-11 w-11 place-items-center rounded-2xl ${background} ${text}`}><Icon className="h-5 w-5" /></span>
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-md">
+      <span className="mb-5 grid h-11 w-11 place-items-center rounded-2xl bg-slate-950 text-white shadow-md shadow-slate-950/20 ring-1 ring-slate-800"><Icon className="h-5 w-5 text-white" /></span>
       <p className="text-sm font-medium text-slate-500">{label}</p>
       <strong className="mt-1 block text-3xl font-bold tracking-tight text-slate-950">{value}</strong>
     </div>
@@ -188,7 +187,7 @@ function UserDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
     <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
       <NewBookingsHeader currentUser={currentUser} activeTab="stats" />
       <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:py-8">
-        <div className="mb-8"><span className="mb-3 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-indigo-700"><LayoutDashboard className="h-3.5 w-3.5" /> Moje rezervácie</span><h1 className="text-3xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-4xl" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>Vitaj, {currentUser.name}</h1><p className="mt-2 text-sm text-slate-500">Tvoje rezervácie a osobná športová štatistika.</p></div>
+        <div className="mb-8"><span className="mb-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-800"><LayoutDashboard className="h-3.5 w-3.5 text-slate-950" /> Moje rezervácie a štatistika</span><h1 className="text-3xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-4xl" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>Vitaj, {currentUser.name}</h1><p className="mt-2 text-sm text-slate-500">Tvoje rezervácie a osobná športová štatistika.</p></div>
         {error && <button onClick={() => setError("")} className="mb-6 w-full rounded-2xl border border-red-200 bg-red-50 p-4 text-left text-sm font-semibold text-red-700">{error}</button>}
         {loading && !bookings.length ? (
           <div className="grid min-h-[360px] place-items-center"><Loader2 className="h-8 w-8 animate-spin text-cyan-600" /></div>

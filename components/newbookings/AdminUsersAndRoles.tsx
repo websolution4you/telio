@@ -119,7 +119,9 @@ export default function AdminUsersAndRoles() {
   return (
     <section id="users-roles" className="scroll-mt-24 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-5 flex items-center gap-3">
-        <span className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-100 text-indigo-700"><ShieldCheck className="h-5 w-5" /></span>
+        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-slate-950 text-white shadow-md shadow-slate-950/20 ring-1 ring-slate-800">
+          <ShieldCheck className="h-5 w-5 text-white" />
+        </span>
         <div><h2 className="text-xl font-bold">Používatelia a roly</h2><p className="text-sm text-slate-500">Rola sa používateľovi prejaví pri ďalšom prihlásení.</p></div>
       </div>
 
@@ -128,11 +130,11 @@ export default function AdminUsersAndRoles() {
 
             <div className="relative mb-4 max-w-xl">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Hľadať podľa mena, loginu, telefónu alebo karty" className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-10 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
-        {loading && <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-indigo-600" />}
+        <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Hľadať podľa mena, loginu, telefónu alebo karty" className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-10 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100" />
+        {loading && <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-600" />}
       </div>
 
-      {loading ? <div className="grid min-h-32 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-indigo-600" /></div> : (
+      {loading ? <div className="grid min-h-32 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-slate-600" /></div> : (
         <>
           <div className="overflow-auto">
             <table className="w-full min-w-[850px] text-left text-sm">
@@ -141,7 +143,7 @@ export default function AdminUsersAndRoles() {
                 <td className="py-4"><b className="block text-slate-900">{user.name}</b><small className="text-slate-400">{user.id === currentUserId ? "Tvoj účet" : `Registrovaný ${formatDate(user.created_at)}`}</small></td>
                 <td><span className="block text-slate-700">{user.email}</span><small className="text-slate-400">{user.phone || "Bez telefónu"}</small></td>
                 <td><span className="inline-flex items-center gap-2 text-slate-700"><CreditCard className="h-4 w-4 text-slate-400" />{user.card_number || "Bez karty"}</span></td>
-                <td><div className="flex items-center gap-2"><select value={pendingRoles[user.id] || user.role} disabled={user.id === currentUserId || savingUserId === user.id} onChange={(event) => selectRole(user.id, event.target.value as BookingRole)} className="min-w-40 rounded-xl border border-slate-200 bg-white px-3 py-2 font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100">{roles.map((role) => <option key={role} value={role}>{roleLabels[role]}</option>)}</select>{pendingRoles[user.id] && <button type="button" disabled={savingUserId === user.id} onClick={() => void saveUserRole(user)} className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-indigo-700 disabled:opacity-50">{savingUserId === user.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Uložiť zmenu</button>}</div></td>
+                <td><div className="flex items-center gap-2"><select value={pendingRoles[user.id] || user.role} disabled={user.id === currentUserId || savingUserId === user.id} onChange={(event) => selectRole(user.id, event.target.value as BookingRole)} className="min-w-40 rounded-xl border border-slate-200 bg-white px-3 py-2 font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100">{roles.map((role) => <option key={role} value={role}>{roleLabels[role]}</option>)}</select>{pendingRoles[user.id] && <button type="button" disabled={savingUserId === user.id} onClick={() => void saveUserRole(user)} className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800 disabled:opacity-50">{savingUserId === user.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Uložiť zmenu</button>}</div></td>
               </tr>)}</tbody>
             </table>
             {!users.length && <p className="py-8 text-center text-sm text-slate-500">Nenašli sa žiadni používatelia.</p>}
