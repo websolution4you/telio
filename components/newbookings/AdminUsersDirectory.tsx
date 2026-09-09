@@ -496,9 +496,9 @@ export default function AdminUsersDirectory() {
                 setCreateUserError(null);
                 setCreateUserOpen(true);
               }}
-              className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md shadow-orange-600/25 transition hover:from-orange-500 hover:to-amber-500 hover:shadow-orange-600/35 cursor-pointer shrink-0 active:scale-[0.98] border border-orange-400/30"
+              className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-200 hover:text-slate-900 cursor-pointer shrink-0 active:scale-[0.98]"
             >
-              <UserPlus className="h-4 w-4 text-amber-100" />
+              <UserPlus className="h-4 w-4 text-slate-500" />
               <span>Nový používateľ</span>
             </button>
           </div>
@@ -1328,9 +1328,9 @@ export default function AdminUsersDirectory() {
                 <button
                   type="submit"
                   disabled={createUserLoading}
-                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:from-orange-500 hover:to-amber-500 disabled:opacity-50 cursor-pointer"
+                  className="flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-slate-800 disabled:opacity-50 cursor-pointer"
                 >
-                  {createUserLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4 text-amber-100" />}
+                  {createUserLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4 text-slate-300" />}
                   <span>{createUserLoading ? "Vytváram..." : "Vytvoriť používateľa"}</span>
                 </button>
               </div>
