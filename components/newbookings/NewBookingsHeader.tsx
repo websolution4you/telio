@@ -351,11 +351,11 @@ export default function NewBookingsHeader({
                     <span className="mt-1 block max-w-[88px] truncate text-center text-[11.5px] font-medium leading-tight text-slate-700 transition-colors duration-200 group-hover:text-slate-950">
                       {userName}
                     </span>
-                    <span className="mt-0.5 flex items-center justify-center gap-0.5 text-[11px] font-semibold leading-tight text-slate-500">
+                    <span className="mt-0.5 flex items-center justify-center gap-0.5 text-[11px] font-bold leading-tight text-emerald-700">
                       <span>Účet</span>
                       <ChevronDown
                         className={`h-3 w-3 shrink-0 transition-transform duration-200 ${
-                          clientMenuOpen ? "rotate-180 text-slate-800" : "text-slate-500 group-hover:text-slate-800"
+                          clientMenuOpen ? "rotate-180 text-emerald-800" : "text-emerald-700 group-hover:text-emerald-800"
                         }`}
                       />
                     </span>
