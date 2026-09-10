@@ -561,6 +561,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   }, [courts, sport, date]);
   const bookings = useMemo(() => items.filter((booking) => booking.status !== "cancelled" && dateKey(new Date(booking.start)) === dateKey(date) && courts.find((court) => court.id === booking.courtId)?.sport === sport), [items, date, courts, sport]);
   const isToday = dateKey(date) === dateKey(now);
+  const currentTimePercent = useMemo(() => {
+    const elapsedMinutes = (now.getHours() - openingHours.startHour) * 60 + now.getMinutes();
+    const totalMinutes = (openingHours.endHour - openingHours.startHour) * 60;
+    return Math.max(0, Math.min(100, elapsedMinutes / totalMinutes * 100));
+  }, [now]);
   const pastPercent = useMemo(() => {
     if (!isToday) {
       return dateKey(date) < dateKey(now) ? 100 : 0;
@@ -914,8 +919,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                   {hours.map((hour) => (
                     <div key={hour} className="py-3.5 text-center text-xs font-bold text-slate-500 tracking-wide">{hour}:00</div>
                   ))}
-                  {isToday && pastPercent > 0 && pastPercent < 100 && (
-                    <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${pastPercent}%` }} />
+                  {isToday && currentTimePercent > 0 && currentTimePercent < 100 && (
+                    <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
                   )}
                 </div>
                 <div className="bg-slate-50/50" aria-hidden="true" />
@@ -1080,8 +1085,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                         );
                       })}
                     </div>
-                    {isToday && pastPercent > 0 && pastPercent < 100 && (
-                      <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${pastPercent}%` }} />
+                    {isToday && currentTimePercent > 0 && currentTimePercent < 100 && (
+                      <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
                     )}
                   </div>
                   <div className="bg-slate-50/20" aria-hidden="true" />
