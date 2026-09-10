@@ -120,43 +120,19 @@ export default function NewBookingsHeader({
       }}
     >
       <div className="relative mx-auto flex min-h-[72px] max-w-[1500px] items-center justify-between gap-2 px-4 py-2.5 sm:min-h-[78px] sm:gap-4 sm:px-6 lg:px-8">
-        {/* NTC Logo / Brand directly matching reference screenshot */}
+        {/* NTC Logo / Official Brand directly matching reference screenshot */}
         <Link
           href="/newbookings"
-          className="group flex shrink-0 items-center transition duration-200 hover:opacity-95 active:scale-[0.99]"
+          className="group flex shrink-0 items-center transition duration-200 hover:opacity-90 active:scale-[0.99]"
           aria-label="NTC Domov - Kalendár"
           title="Prejsť na kalendár rezervácií"
         >
-          <div className="flex items-center py-1">
-            <span
-              className="flex items-center gap-1 sm:gap-1.5 text-base sm:text-lg md:text-xl lg:text-2xl font-black uppercase tracking-wider text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] select-none"
-              style={{ fontFamily: "var(--font-poppins), sans-serif" }}
-            >
-              NÁRODNÉ TENIS
-              <span className="inline-flex items-center justify-center mx-[1px] sm:mx-[2px]">
-                <svg
-                  viewBox="0 0 36 36"
-                  className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 drop-shadow-[0_1px_3px_rgba(0,0,0,0.65)]"
-                  fill="none"
-                >
-                  <circle cx="18" cy="18" r="16.5" fill="#F4EA14" stroke="#FFFFFF" strokeWidth="2" />
-                  <path
-                    d="M 4.5,7 C 12.5,12 12.5,24 4.5,29"
-                    stroke="#FFFFFF"
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M 31.5,7 C 23.5,12 23.5,24 31.5,29"
-                    stroke="#FFFFFF"
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </span>
-              VÉ CENTRUM
-            </span>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/ntc-official-logo.png"
+            alt="Národné tenisové centrum"
+            className="h-5.5 sm:h-7 md:h-8 lg:h-[34px] w-auto max-w-[62vw] sm:max-w-none object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)] select-none"
+          />
         </Link>
 
         {/* Desktop Horizontal Navigation (md:flex) */}
