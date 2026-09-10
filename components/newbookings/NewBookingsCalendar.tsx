@@ -375,26 +375,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           });
         }
       });
-    } else if (walletStatus === "success") {
+    } else if (walletStatus === "success" || walletStatus === "pending") {
       setNotice(
         amount
           ? `Platba cez Tatra banka CardPay (${amount} €) bola úspešne pripísaná na váš účet.`
           : "Platba cez Tatra banka CardPay bola úspešne pripísaná na váš účet."
-      );
-      window.history.replaceState({}, "", window.location.pathname);
-      getWalletAction().then((result) => {
-        if (result.success && result.enabled) {
-          setWalletBalance(result.balanceEur);
-          setWalletHighlight(true);
-          setTimeout(() => setWalletHighlight(false), 3500);
-          restorePendingSlotAfterTopUp();
-        }
-      });
-    } else if (walletStatus === "pending") {
-      setNotice(
-        amount
-          ? `Platba cez Tatra banka CardPay (${amount} €) bola prijatá. Kredit sme vám predbežne pripísali, prebieha overenie bankou...`
-          : "Platba cez Tatra banka CardPay bola prijatá. Kredit sme vám predbežne pripísali, prebieha overenie bankou..."
       );
       window.history.replaceState({}, "", window.location.pathname);
 
@@ -413,37 +398,31 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       setTimeout(() => setWalletHighlight(false), 3500);
       restorePendingSlotAfterTopUp();
 
-      let attempts = 0;
-      const maxAttempts = 10; // 10 * 30s = 5 minút
+      if (walletStatus === "pending") {
+        let attempts = 0;
+        const maxAttempts = 10; // 10 * 30s = 5 minút
 
-      const checkPayment = async () => {
-        attempts++;
-        const res = await reconcileWalletCardPayAction();
-        if (res.success && res.successful > 0) {
-          clearInterval(interval);
-          setNotice(
-            amount
-              ? `Platba cez Tatra banka CardPay (${amount} €) bola úspešne potvrdená bankou.`
-              : "Platba cez Tatra banka CardPay bola úspešne potvrdená bankou."
-          );
-          const walletRes = await getWalletAction();
-          if (walletRes.success && walletRes.enabled) {
-            setWalletBalance(walletRes.balanceEur);
-            setWalletHighlight(true);
-            setTimeout(() => setWalletHighlight(false), 3500);
-            restorePendingSlotAfterTopUp();
+        const checkPayment = async () => {
+          attempts++;
+          const res = await reconcileWalletCardPayAction();
+          if (res.success && res.successful > 0) {
+            clearInterval(interval);
+            const walletRes = await getWalletAction();
+            if (walletRes.success && walletRes.enabled) {
+              setWalletBalance(walletRes.balanceEur);
+              restorePendingSlotAfterTopUp();
+            }
+          } else if (attempts >= maxAttempts) {
+            clearInterval(interval);
           }
-        } else if (attempts >= maxAttempts) {
-          clearInterval(interval);
-          setNotice("Platba sa stále spracováva v Tatra banke. Kredit sa definitívne potvrdí automaticky hneď po dokončení v banke.");
-        }
-      };
+        };
 
-      // Prvá kontrola hneď po načítaní
-      checkPayment();
-      // Následná kontrola každých 30 sekúnd počas 5 minút
-      const interval = setInterval(checkPayment, 30000);
-      return () => clearInterval(interval);
+        // Prvá kontrola hneď po načítaní
+        checkPayment();
+        // Následná kontrola každých 30 sekúnd počas 5 minút
+        const interval = setInterval(checkPayment, 30000);
+        return () => clearInterval(interval);
+      }
     } else if (walletStatus === "failed" || walletStatus === "cancelled") {
       setNotice("Platba bola zrušená alebo zlyhala.");
       window.history.replaceState({}, "", window.location.pathname);
@@ -452,8 +431,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
   const courtColumnWidth = 100;
   const timeColumnMinWidth = 64;
-    const calendarMinWidth = courtColumnWidth + hours.length * timeColumnMinWidth;
-  const calendarColumns = `${courtColumnWidth}px minmax(${hours.length * timeColumnMinWidth}px, 1fr)`;
+  const rightSpacerWidth = 24;
+  const calendarMinWidth = courtColumnWidth + hours.length * timeColumnMinWidth + rightSpacerWidth;
+  const calendarColumns = `${courtColumnWidth}px minmax(${hours.length * timeColumnMinWidth}px, 1fr) ${rightSpacerWidth}px`;
   const timeColumns = `repeat(${hours.length}, minmax(${timeColumnMinWidth}px, 1fr))`;
 
   useEffect(() => {
@@ -586,6 +566,20 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     const totalMinutes = (openingHours.endHour - openingHours.startHour) * 60;
     return Math.max(0, Math.min(100, elapsedMinutes / totalMinutes * 100));
   }, [now]);
+  const pastPercent = useMemo(() => {
+    if (!isToday) {
+      return dateKey(date) < dateKey(now) ? 100 : 0;
+    }
+    const elapsedHours = Math.max(
+      0,
+      Math.min(
+        openingHours.endHour - openingHours.startHour,
+        now.getHours() + 1 - openingHours.startHour
+      )
+    );
+    const totalHours = openingHours.endHour - openingHours.startHour;
+    return (elapsedHours / totalHours) * 100;
+  }, [now, isToday, date]);
   const currentTimeLabel = new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" }).format(now);
 
     const moveDate = (days: number) => {
@@ -929,6 +923,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
                   )}
                 </div>
+                <div className="bg-slate-50/50" aria-hidden="true" />
               </div>
               {visibleCourts.map((court) => (
                 <div key={court.id} className="grid border-b border-slate-100 py-1" style={{ gridTemplateColumns: calendarColumns }}>
@@ -939,14 +934,16 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                   <div className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
                     {hours.map((hour) => {
                       const label = blockedLabel(court.id, sport, hour);
-                      const past = new Date(date).setHours(hour, 0, 0, 0) < now.getTime();
+                      const isPast = isToday
+                        ? hour <= now.getHours()
+                        : dateKey(date) < dateKey(now);
                       return (
                         <div key={hour} className="p-1 h-full">
                           {label ? (
                             <div className="grid h-full min-h-[72px] cursor-not-allowed place-items-center rounded-2xl bg-amber-50/80 border border-amber-200/70 px-1 text-center text-[10px] font-bold text-amber-700 shadow-xs">
                               {label}
                             </div>
-                          ) : past ? (
+                          ) : isPast ? (
                             <div className="h-full min-h-[72px] cursor-not-allowed rounded-2xl bg-slate-100/40 border border-slate-200/40" />
                           ) : (
                             <button
@@ -960,11 +957,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                         </div>
                       );
                     })}
-                    {isToday && currentTimePercent > 0 && (
+                    {isToday && pastPercent > 0 && (
                       <div
                         className="pointer-events-none absolute inset-y-0 left-0 z-[2]"
                         style={{
-                          width: `${currentTimePercent}%`,
+                          width: `${pastPercent}%`,
                           background: "repeating-linear-gradient(135deg, rgba(148,163,184,0.18) 0px, rgba(148,163,184,0.18) 5px, rgba(241,245,249,0.3) 5px, rgba(241,245,249,0.3) 10px)",
                         }}
                       />
@@ -1092,6 +1089,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                       <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
                     )}
                   </div>
+                  <div className="bg-slate-50/20" aria-hidden="true" />
                 </div>
               ))}
             </div>

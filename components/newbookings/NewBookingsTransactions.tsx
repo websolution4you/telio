@@ -74,27 +74,22 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
     const initialize = async () => {
       const cardPayResult = await reconcileWalletCardPayAction();
       if (!active) return;
-      if (cardPayResult.success && cardPayResult.successful > 0) {
-        setWalletNotice(cardPayResult.successful === 1
-          ? "CardPay platba bola potvrdená a kredit bol pripísaný."
-          : `${cardPayResult.successful} CardPay platby boli potvrdené a kredit bol pripísaný.`);
-      }
       if (walletStatus === "cancelled") setWalletNotice("Dobíjanie kreditu bolo zrušené.");
       if (walletStatus === "failed") setWalletNotice("CardPay platba nebola úspešná.");
-      if (walletStatus === "pending" && (!cardPayResult.success || cardPayResult.successful === 0)) setWalletNotice("CardPay platba čaká na potvrdenie banky. Kredit bol predbežne pripísaný.");
       if (walletStatus === "error") setWalletNotice("CardPay platbu sa nepodarilo overiť.");
       if (walletStatus === "login-required") setWalletNotice("Pre dokončenie CardPay platby sa prihláste.");
-      if (walletStatus === "success" && !checkoutSessionId && (!cardPayResult.success || cardPayResult.successful === 0)) setWalletNotice("CardPay platba bola úspešná a kredit bol pripísaný.");
+      if ((walletStatus === "success" || walletStatus === "pending") && !checkoutSessionId) {
+        setWalletNotice("CardPay platba bola úspešná a kredit bol pripísaný.");
+      }
       if (walletStatus === "success" && checkoutSessionId) {
         setWalletNotice("Overujem platbu a pripisujem kredit...");
         const result = await reconcileWalletCheckoutAction(checkoutSessionId);
         if (!active) return;
         setWalletNotice(result.success ? "Platba bola úspešne prijatá a kredit bol pripísaný." : result.error || "Platbu sa zatiaľ nepodarilo potvrdiť.");
       }
-            if (active) await loadData();
+      if (active) await loadData();
 
       if (active && cardPayResult.success && cardPayResult.pending > 0) {
-        setWalletNotice("CardPay platba čaká na finálne potvrdenie banky. Kredit bol predbežne pripísaný.");
         for (let attempt = 0; attempt < 100 && active; attempt += 1) {
           await new Promise((resolve) => window.setTimeout(resolve, 3_000));
           if (!active) return;
@@ -102,9 +97,6 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
           if (!active) return;
           if (!nextResult.success) continue;
           if (nextResult.successful > 0) {
-            setWalletNotice(nextResult.successful === 1
-              ? "CardPay platba bola potvrdená a kredit bol pripísaný."
-              : `${nextResult.successful} CardPay platby boli potvrdené a kredit bol pripísaný.`);
             await loadData();
             return;
           }
