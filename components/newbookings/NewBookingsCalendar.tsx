@@ -561,11 +561,20 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   }, [courts, sport, date]);
   const bookings = useMemo(() => items.filter((booking) => booking.status !== "cancelled" && dateKey(new Date(booking.start)) === dateKey(date) && courts.find((court) => court.id === booking.courtId)?.sport === sport), [items, date, courts, sport]);
   const isToday = dateKey(date) === dateKey(now);
-  const currentTimePercent = useMemo(() => {
-    const elapsedMinutes = (now.getHours() - openingHours.startHour) * 60 + now.getMinutes();
-    const totalMinutes = (openingHours.endHour - openingHours.startHour) * 60;
-    return Math.max(0, Math.min(100, elapsedMinutes / totalMinutes * 100));
-  }, [now]);
+  const pastPercent = useMemo(() => {
+    if (!isToday) {
+      return dateKey(date) < dateKey(now) ? 100 : 0;
+    }
+    const elapsedHours = Math.max(
+      0,
+      Math.min(
+        openingHours.endHour - openingHours.startHour,
+        now.getHours() + 1 - openingHours.startHour
+      )
+    );
+    const totalHours = openingHours.endHour - openingHours.startHour;
+    return (elapsedHours / totalHours) * 100;
+  }, [now, isToday, date]);
   const currentTimeLabel = new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" }).format(now);
 
     const moveDate = (days: number) => {
@@ -905,8 +914,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                   {hours.map((hour) => (
                     <div key={hour} className="py-3.5 text-center text-xs font-bold text-slate-500 tracking-wide">{hour}:00</div>
                   ))}
-                  {isToday && currentTimePercent > 0 && currentTimePercent < 100 && (
-                    <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
+                  {isToday && pastPercent > 0 && pastPercent < 100 && (
+                    <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${pastPercent}%` }} />
                   )}
                 </div>
                 <div className="bg-slate-50/50" aria-hidden="true" />
@@ -920,14 +929,16 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                   <div className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
                     {hours.map((hour) => {
                       const label = blockedLabel(court.id, sport, hour);
-                      const past = new Date(date).setHours(hour, 0, 0, 0) < now.getTime();
+                      const isPast = isToday
+                        ? hour <= now.getHours()
+                        : dateKey(date) < dateKey(now);
                       return (
                         <div key={hour} className="p-1 h-full">
                           {label ? (
                             <div className="grid h-full min-h-[72px] cursor-not-allowed place-items-center rounded-2xl bg-amber-50/80 border border-amber-200/70 px-1 text-center text-[10px] font-bold text-amber-700 shadow-xs">
                               {label}
                             </div>
-                          ) : past ? (
+                          ) : isPast ? (
                             <div className="h-full min-h-[72px] cursor-not-allowed rounded-2xl bg-slate-100/40 border border-slate-200/40" />
                           ) : (
                             <button
@@ -941,11 +952,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                         </div>
                       );
                     })}
-                    {isToday && currentTimePercent > 0 && (
+                    {isToday && pastPercent > 0 && (
                       <div
                         className="pointer-events-none absolute inset-y-0 left-0 z-[2]"
                         style={{
-                          width: `${currentTimePercent}%`,
+                          width: `${pastPercent}%`,
                           background: "repeating-linear-gradient(135deg, rgba(148,163,184,0.18) 0px, rgba(148,163,184,0.18) 5px, rgba(241,245,249,0.3) 5px, rgba(241,245,249,0.3) 10px)",
                         }}
                       />
@@ -1069,8 +1080,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                         );
                       })}
                     </div>
-                    {isToday && currentTimePercent > 0 && currentTimePercent < 100 && (
-                      <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
+                    {isToday && pastPercent > 0 && pastPercent < 100 && (
+                      <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${pastPercent}%` }} />
                     )}
                   </div>
                   <div className="bg-slate-50/20" aria-hidden="true" />
