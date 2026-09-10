@@ -917,44 +917,57 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               </span>
             </div>
           </div>
-          <div className="overflow-auto border-t-2 border-slate-300 bg-white">
+          <div className="overflow-auto border-t-2 border-slate-200 bg-white">
             <div className="w-full" style={{ minWidth: `${calendarMinWidth}px` }}>
-              <div className="grid border-b-2 border-slate-300 bg-gradient-to-b from-slate-50 to-slate-100/70" style={{ gridTemplateColumns: calendarColumns }}>
-                <b className="sticky left-0 z-30 border-r-2 border-slate-300 bg-slate-50 p-4 text-xs font-extrabold tracking-wide text-slate-600">KURT</b>
+              <div className="grid border-b border-slate-200 bg-slate-50/80" style={{ gridTemplateColumns: calendarColumns }}>
+                <b className="sticky left-0 z-30 border-r border-slate-200 bg-slate-50 p-4 text-xs font-extrabold tracking-wide text-slate-600">KURT</b>
                 <div className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
-                  {hours.map((hour, index) => (
-                    <b key={hour} className={`${index === hours.length - 1 ? "" : "border-r border-slate-200"} p-4 text-center text-xs font-bold text-slate-500`}>{hour}:00</b>
+                  {hours.map((hour) => (
+                    <div key={hour} className="py-3.5 text-center text-xs font-bold text-slate-500 tracking-wide">{hour}:00</div>
                   ))}
                   {isToday && currentTimePercent > 0 && currentTimePercent < 100 && (
-                    <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#CCFF00]" style={{ left: `${currentTimePercent}%` }}>
-                      <span className="absolute left-1/2 top-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#CCFF00] px-2 py-1 text-[9px] font-black text-black shadow-md border border-[#99CC00]">{currentTimeLabel}</span>
-                    </div>
+                    <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
                   )}
                 </div>
               </div>
               {visibleCourts.map((court) => (
-                <div key={court.id} className="grid border-b border-slate-200" style={{ gridTemplateColumns: calendarColumns }}>
-                  <div className="sticky left-0 z-20 flex min-h-20 flex-col justify-center border-r-2 border-slate-300 bg-gradient-to-r from-white to-slate-50/80 px-4 shadow-[3px_0_10px_rgba(15,23,42,0.03)]">
-                    <b className="text-slate-900">{court.name}</b>
-                    <small className="mt-0.5 text-slate-500">{court.surface}</small>
+                <div key={court.id} className="grid border-b border-slate-100 py-1" style={{ gridTemplateColumns: calendarColumns }}>
+                  <div className="sticky left-0 z-20 flex min-h-20 flex-col justify-center border-r border-slate-200 bg-white/95 px-4 shadow-[3px_0_10px_rgba(15,23,42,0.03)] backdrop-blur-xs">
+                    <b className="text-slate-900 font-bold">{court.name}</b>
+                    <small className="mt-0.5 text-xs text-slate-500">{court.surface}</small>
                   </div>
                   <div className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
-                    {hours.map((hour, index) => {
+                    {hours.map((hour) => {
                       const label = blockedLabel(court.id, sport, hour);
                       const past = new Date(date).setHours(hour, 0, 0, 0) < now.getTime();
-                      const rightBorder = index === hours.length - 1 ? "" : "border-r border-slate-200";
-                      return label ? (
-                        <div key={hour} className={`grid min-h-20 cursor-not-allowed place-items-center bg-amber-50 px-1 text-center text-[10px] font-bold text-amber-700 ${rightBorder}`}>{label}</div>
-                      ) : past ? (
-                        <div key={hour} className={`min-h-20 cursor-not-allowed bg-slate-100 ${rightBorder}`} />
-                      ) : (
-                        <button key={hour} onClick={() => openSlot(court.id, hour)} className={`group grid min-h-20 cursor-pointer place-items-center transition-colors duration-200 hover:bg-emerald-50/80 ${rightBorder}`}>
-                          <Plus className="h-4 w-4 text-emerald-500 opacity-0 group-hover:opacity-100" />
-                        </button>
+                      return (
+                        <div key={hour} className="p-1 h-full">
+                          {label ? (
+                            <div className="grid h-full min-h-[72px] cursor-not-allowed place-items-center rounded-2xl bg-amber-50/80 border border-amber-200/70 px-1 text-center text-[10px] font-bold text-amber-700 shadow-xs">
+                              {label}
+                            </div>
+                          ) : past ? (
+                            <div className="h-full min-h-[72px] cursor-not-allowed rounded-2xl bg-slate-100/40 border border-slate-200/40" />
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openSlot(court.id, hour)}
+                              className="group grid h-full min-h-[72px] w-full cursor-pointer place-items-center rounded-2xl bg-[#F1F5F9] border border-slate-200/70 transition-all duration-150 hover:scale-[1.02] hover:bg-slate-200/90 hover:border-slate-300 shadow-xs"
+                            >
+                              <Plus className="h-4 w-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </button>
+                          )}
+                        </div>
                       );
                     })}
                     {isToday && currentTimePercent > 0 && (
-                      <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] border-r border-slate-300/80" style={{ width: `${currentTimePercent}%`, background: "repeating-linear-gradient(135deg, rgba(148,163,184,0.12) 0px, rgba(148,163,184,0.12) 5px, rgba(241,245,249,0.38) 5px, rgba(241,245,249,0.38) 10px)" }} />
+                      <div
+                        className="pointer-events-none absolute inset-y-0 left-0 z-[2]"
+                        style={{
+                          width: `${currentTimePercent}%`,
+                          background: "repeating-linear-gradient(135deg, rgba(148,163,184,0.18) 0px, rgba(148,163,184,0.18) 5px, rgba(241,245,249,0.3) 5px, rgba(241,245,249,0.3) 10px)",
+                        }}
+                      />
                     )}
                     <div className="pointer-events-none absolute inset-0 z-10">
                       {bookings.filter((booking) => booking.courtId === court.id).map((booking) => {
@@ -994,82 +1007,89 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                         } else {
                           if (isMaintenanceOrAdmin) {
                             labelText = "Údržba";
-                            bookingClasses = "border-slate-700 bg-slate-600 text-white shadow-xs";
+                            bookingClasses = "border-slate-400 bg-slate-500 text-white font-semibold shadow-xs";
                           } else if (own) {
                             labelText = "Vaša rezervácia";
-                            bookingClasses = "border-[#84CC16] bg-[#B0FC38] text-slate-950 font-bold shadow-xs hover:bg-[#A3ED2E]";
+                            bookingClasses = "border-emerald-300 bg-[#DCFCE7] text-emerald-950 font-bold shadow-xs hover:bg-[#BBF7D0]";
                           } else {
                             labelText = "Obsadené";
-                            bookingClasses = "border-red-700 bg-red-600 text-white shadow-xs";
+                            bookingClasses = "border-slate-300 bg-[#CBD5E1] text-slate-800 font-semibold shadow-xs";
                           }
                         }
 
                         return (
-                          <button
+                          <div
                             key={booking.id}
-                            onClick={() => canManage && setDetail(booking)}
-                            className={`pointer-events-auto absolute inset-y-1 overflow-hidden rounded-lg border px-1 py-0.5 text-center transition duration-150 hover:scale-[1.01] flex flex-col items-center justify-center ${
-                              voiceHighlight ? "voice-booking-highlight" : ""
-                            } ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${bookingClasses}`}
+                            className="absolute inset-y-0 p-1"
                             style={position(booking)}
-                            title={canManage ? `Detail: ${labelText}` : (isMaintenanceOrAdmin ? "Údržba" : "Obsadené")}
                           >
-                            {voiceHighlight && (
-                              <>
-                                <div className="pointer-events-none absolute inset-0 z-30 overflow-visible">
-                                  <svg className="h-full w-full" preserveAspectRatio="none" viewBox="0 0 100 100">
-                                    <rect
-                                      x="2"
-                                      y="2"
-                                      width="96"
-                                      height="96"
-                                      rx="8"
-                                      ry="8"
-                                      fill="none"
-                                      stroke="url(#orangeAgencyLaserGrad)"
-                                      strokeWidth="7"
-                                      className="laser-perimeter-beam"
-                                    />
-                                    <defs>
-                                      <linearGradient id="orangeAgencyLaserGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" stopColor="#FFF500" />
-                                        <stop offset="35%" stopColor="#FF6B00" />
-                                        <stop offset="70%" stopColor="#FF0055" />
-                                        <stop offset="100%" stopColor="#FFD700" />
-                                      </linearGradient>
-                                    </defs>
-                                  </svg>
-                                </div>
-                                <span className="voice-booking-scan" aria-hidden="true" />
-                              </>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => canManage && setDetail(booking)}
+                              className={`pointer-events-auto h-full w-full overflow-hidden rounded-2xl border px-1.5 py-1 text-center transition duration-150 hover:scale-[1.01] flex flex-col items-center justify-center ${
+                                voiceHighlight ? "voice-booking-highlight" : ""
+                              } ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${bookingClasses}`}
+                              title={canManage ? `Detail: ${labelText}` : (isMaintenanceOrAdmin ? "Údržba" : "Obsadené")}
+                            >
+                              {voiceHighlight && (
+                                <>
+                                  <div className="pointer-events-none absolute inset-0 z-30 overflow-visible">
+                                    <svg className="h-full w-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+                                      <rect
+                                        x="2"
+                                        y="2"
+                                        width="96"
+                                        height="96"
+                                        rx="8"
+                                        ry="8"
+                                        fill="none"
+                                        stroke="url(#orangeAgencyLaserGrad)"
+                                        strokeWidth="7"
+                                        className="laser-perimeter-beam"
+                                      />
+                                      <defs>
+                                        <linearGradient id="orangeAgencyLaserGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                          <stop offset="0%" stopColor="#FFF500" />
+                                          <stop offset="35%" stopColor="#FF6B00" />
+                                          <stop offset="70%" stopColor="#FF0055" />
+                                          <stop offset="100%" stopColor="#FFD700" />
+                                        </linearGradient>
+                                      </defs>
+                                    </svg>
+                                  </div>
+                                  <span className="voice-booking-scan" aria-hidden="true" />
+                                </>
+                              )}
 
-                            {isAdmin ? (
-                              <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(9px,0.72vw,12.5px)] font-bold leading-tight select-none pointer-events-none">
-                                {labelText.split(" ").filter(Boolean).map((part, idx) => (
-                                  <span key={idx} className="block leading-[1.15] break-words max-w-full">
-                                    {part}
-                                  </span>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className={`relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center font-sans select-none pointer-events-none ${own ? "text-slate-950" : "text-white"}`}>
-                                <div className="text-[clamp(8.5px,0.72vw,12px)] font-bold leading-tight tracking-normal [overflow-wrap:anywhere]">
-                                  <span className="block">{formatTime(booking.start)}</span>
-                                  <span className="block leading-[0.55] opacity-80" aria-hidden="true">–</span>
-                                  <span className="block">{formatTime(booking.end)}</span>
+                              {isAdmin ? (
+                                <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(9px,0.72vw,12.5px)] font-bold leading-tight select-none pointer-events-none">
+                                  {labelText.split(" ").filter(Boolean).map((part, idx) => (
+                                    <span key={idx} className="block leading-[1.15] break-words max-w-full">
+                                      {part}
+                                    </span>
+                                  ))}
                                 </div>
-                                <span className="mt-0.5 block text-[clamp(7.5px,0.62vw,10.5px)] font-bold tracking-normal leading-tight [overflow-wrap:anywhere]">
-                                  {labelText}
-                                </span>
-                              </div>
-                            )}
-                          </button>
+                              ) : (
+                                <div className={`relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center font-sans select-none pointer-events-none ${
+                                  own ? "text-emerald-950" : (isMaintenanceOrAdmin ? "text-white" : "text-slate-800")
+                                }`}>
+                                  <div className="text-[clamp(8.5px,0.72vw,12px)] font-bold leading-tight tracking-normal [overflow-wrap:anywhere]">
+                                    <span className="block">{formatTime(booking.start)}</span>
+                                    <span className="block leading-[0.55] opacity-70" aria-hidden="true">–</span>
+                                    <span className="block">{formatTime(booking.end)}</span>
+                                  </div>
+                                  <span className="mt-0.5 block text-[clamp(7.5px,0.62vw,10.5px)] font-bold tracking-normal leading-tight [overflow-wrap:anywhere]">
+                                    {labelText}
+                                  </span>
+                                </div>
+                              )}
+                            </button>
+                          </div>
                         );
                       })}
                     </div>
                     {isToday && currentTimePercent > 0 && currentTimePercent < 100 && (
-                      <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#CCFF00] drop-shadow-sm" style={{ left: `${currentTimePercent}%` }} />
+                      <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
                     )}
                   </div>
                 </div>
@@ -1097,16 +1117,16 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             <>
               {currentUser && (
                 <span className="flex items-center gap-2">
-                  <i className="h-3.5 w-3.5 rounded-md border border-[#84CC16] bg-[#B0FC38] shadow-xs" />
+                  <i className="h-3.5 w-3.5 rounded-md border border-emerald-300 bg-[#DCFCE7] shadow-xs" />
                   Vaša rezervácia
                 </span>
               )}
               <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-red-700 bg-red-600 shadow-xs" />
+                <i className="h-3.5 w-3.5 rounded-md border border-slate-300 bg-[#CBD5E1] shadow-xs" />
                 Obsadené
               </span>
               <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-slate-700 bg-slate-600 shadow-xs" />
+                <i className="h-3.5 w-3.5 rounded-md border border-slate-500 bg-slate-500 shadow-xs" />
                 Údržba
               </span>
             </>
