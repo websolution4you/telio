@@ -114,9 +114,9 @@ export default function NewBookingsHeader({
 
   return (
     <header
-      className="relative isolate z-40 border-b border-slate-600/70 shadow-[0_4px_20px_rgba(0,0,0,0.16)] text-white"
+      className="relative isolate z-40 border-b border-slate-700/80 shadow-[0_4px_24px_rgba(0,0,0,0.22)] text-white"
       style={{
-        background: "linear-gradient(180deg, #4A4E54 0%, #636973 48%, #8E94A0 100%)",
+        background: "linear-gradient(180deg, #1C1F24 0%, #333842 35%, #505764 70%, #6E7786 100%)",
       }}
     >
       <div className="relative mx-auto flex min-h-[72px] max-w-[1500px] items-center justify-between gap-2 px-4 py-2.5 sm:min-h-[78px] sm:gap-4 sm:px-6 lg:px-8">
