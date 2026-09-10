@@ -4,18 +4,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
+  CalendarCheck,
+  ChartLine,
   ChevronDown,
+  CircleUser,
   Coins,
   LayoutDashboard,
   LogIn,
   LogOut,
-  Receipt,
+  ReceiptText,
   Settings,
   UserPlus,
   Users,
+  Wallet,
 } from "lucide-react";
-import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
-import { ThreeDChartIcon, ThreeDSettingsIcon, ThreeDUserAvatarIcon, ThreeDWalletIcon } from "@/components/icons/ThreeDNavIcons";
 import HolographicTennisCourt from "./HolographicTennisCourt";
 import { logoutAction } from "@/app/actions/auth";
 import { getWalletAction } from "@/app/actions/wallet";
@@ -54,7 +56,8 @@ export default function NewBookingsHeader({
   topUpLoading = null,
 }: NewBookingsHeaderProps) {
   const router = useRouter();
-  const userName = currentUser?.name || "Užívateľ";
+  const rawUserName = currentUser?.name || "Užívateľ";
+  const userName = rawUserName.toLowerCase() === "admin user" ? "Admin" : rawUserName;
   const [walletBalance, setWalletBalance] = useState<number | null>(propWalletBalance);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [clientMenuOpen, setClientMenuOpen] = useState(false);
@@ -180,20 +183,18 @@ export default function NewBookingsHeader({
                   {/* 1. Používatelia */}
                   <Link
                     href="/dashboard/users"
-                    className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
-                      activeTab === "users"
+                    className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${activeTab === "users"
                         ? "border-slate-900 bg-white ring-2 ring-slate-900/15 shadow-sm"
                         : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
-                    }`}
+                      }`}
                     title="Správa používateľov"
                   >
                     <div className="transition-transform duration-200 group-hover:scale-108">
-                      <ThreeDUserAvatarIcon className="h-7 w-7 lg:h-8 lg:w-8" />
+                      <Users className="h-7 w-7 text-slate-800 transition-colors duration-200 group-hover:text-slate-950" strokeWidth={1.8} />
                     </div>
                     <span
-                      className={`mt-1 text-[12px] tracking-normal transition-colors duration-200 ${
-                        activeTab === "users" ? "font-semibold text-slate-950" : "font-medium text-slate-600 group-hover:text-slate-900"
-                      }`}
+                      className={`mt-1 text-[12px] tracking-normal transition-colors duration-200 ${activeTab === "users" ? "font-semibold text-slate-950" : "font-medium text-slate-600 group-hover:text-slate-900"
+                        }`}
                     >
                       Používatelia
                     </span>
@@ -202,20 +203,18 @@ export default function NewBookingsHeader({
                   {/* 2. Štatistiky */}
                   <Link
                     href="/dashboard/newbookings"
-                    className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
-                      activeTab === "stats"
+                    className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${activeTab === "stats"
                         ? "border-slate-900 bg-white ring-2 ring-slate-900/15 shadow-sm"
                         : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
-                    }`}
+                      }`}
                     title="Prehľad a štatistiky"
                   >
                     <div className="transition-transform duration-200 group-hover:scale-108">
-                      <ThreeDChartIcon className="h-7 w-7 lg:h-8 lg:w-8" />
+                      <ChartLine className="h-7 w-7 text-slate-800 transition-colors duration-200 group-hover:text-slate-950" strokeWidth={1.8} />
                     </div>
                     <span
-                      className={`mt-1 text-[12px] tracking-normal transition-colors duration-200 ${
-                        activeTab === "stats" ? "font-semibold text-slate-950" : "font-medium text-slate-600 group-hover:text-slate-900"
-                      }`}
+                      className={`mt-1 text-[12px] tracking-normal transition-colors duration-200 ${activeTab === "stats" ? "font-semibold text-slate-950" : "font-medium text-slate-600 group-hover:text-slate-900"
+                        }`}
                     >
                       Štatistiky
                     </span>
@@ -224,20 +223,18 @@ export default function NewBookingsHeader({
                   {/* 3. Nastavenia */}
                   <Link
                     href="/dashboard/users-roles"
-                    className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
-                      activeTab === "settings"
+                    className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${activeTab === "settings"
                         ? "border-slate-900 bg-white ring-2 ring-slate-900/15 shadow-sm"
                         : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
-                    }`}
+                      }`}
                     title="Nastavenia systému a rolí"
                   >
                     <div className="transition-transform duration-200 group-hover:scale-108">
-                      <ThreeDSettingsIcon className="h-7 w-7 lg:h-8 lg:w-8" />
+                      <Settings className="h-7 w-7 text-slate-800 transition-colors duration-200 group-hover:text-slate-950" strokeWidth={1.8} />
                     </div>
                     <span
-                      className={`mt-1 text-[12px] tracking-normal transition-colors duration-200 ${
-                        activeTab === "settings" ? "font-semibold text-slate-950" : "font-medium text-slate-600 group-hover:text-slate-900"
-                      }`}
+                      className={`mt-1 text-[12px] tracking-normal transition-colors duration-200 ${activeTab === "settings" ? "font-semibold text-slate-950" : "font-medium text-slate-600 group-hover:text-slate-900"
+                        }`}
                     >
                       Nastavenia
                     </span>
@@ -249,24 +246,22 @@ export default function NewBookingsHeader({
                   <button
                     type="button"
                     onClick={() => setAdminMenuOpen((prev) => !prev)}
-                    className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 cursor-pointer ${
-                      activeTab === "transactions"
+                    className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 cursor-pointer ${activeTab === "transactions"
                         ? "border-emerald-400 bg-white ring-2 ring-emerald-400/25 shadow-sm"
                         : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
-                    }`}
+                      }`}
                     aria-expanded={adminMenuOpen}
                     aria-haspopup="true"
                     title="Používateľské menu administrátora"
                   >
                     <div className="transition-transform duration-200 group-hover:scale-108">
-                      <TennisBallAvatar name={userName} className="h-7 w-7 lg:h-8 lg:w-8" textSize="text-[10px]" />
+                      <CircleUser className="h-7 w-7 lg:h-8 lg:w-8 text-slate-800 transition-colors duration-200 group-hover:text-slate-950" strokeWidth={1.8} />
                     </div>
                     <span className="mt-1 flex items-center justify-center gap-1 text-[12px] font-medium tracking-normal text-slate-600 transition-colors duration-200 group-hover:text-slate-900">
                       <span className="max-w-[76px] truncate">{userName}</span>
                       <ChevronDown
-                        className={`h-3 w-3 shrink-0 text-slate-400 transition-transform duration-200 ${
-                          adminMenuOpen ? "rotate-180 text-slate-700" : "group-hover:text-slate-600"
-                        }`}
+                        className={`h-3 w-3 shrink-0 text-slate-400 transition-transform duration-200 ${adminMenuOpen ? "rotate-180 text-slate-700" : "group-hover:text-slate-600"
+                          }`}
                       />
                     </span>
                   </button>
@@ -276,7 +271,9 @@ export default function NewBookingsHeader({
                     <div className="absolute right-0 top-full mt-2 w-64 origin-top-right rounded-2xl border border-slate-200/90 bg-white/95 p-1.5 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150 font-sans">
                       {/* Hlavička dropdownu */}
                       <div className="flex items-center gap-2.5 px-3 py-2.5 mb-1 border-b border-slate-100 bg-slate-50/70 rounded-xl">
-                        <TennisBallAvatar name={userName} className="h-8 w-8" textSize="text-[11px]" />
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+                          <CircleUser className="h-5 w-5" strokeWidth={1.8} />
+                        </div>
                         <div className="min-w-0 flex-1">
                           <span className="block truncate text-xs font-semibold text-slate-900">{userName}</span>
                           <span className="block truncate text-[10.5px] font-normal text-slate-500">Administrátor</span>
@@ -287,14 +284,13 @@ export default function NewBookingsHeader({
                       <Link
                         href="/dashboard/admin-transactions"
                         onClick={() => setAdminMenuOpen(false)}
-                        className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium transition duration-150 group ${
-                          activeTab === "transactions"
+                        className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium transition duration-150 group ${activeTab === "transactions"
                             ? "bg-emerald-50 text-emerald-800 font-semibold"
                             : "text-slate-700 hover:bg-emerald-50 hover:text-emerald-800"
-                        }`}
+                          }`}
                       >
                         <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-100/80 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition duration-150 shadow-2xs">
-                          <Receipt className="h-4 w-4" />
+                          <ReceiptText className="h-4 w-4" />
                         </span>
                         <div className="flex flex-col text-left">
                           <span className="text-xs font-medium text-slate-800 group-hover:text-emerald-800">Transakcie</span>
@@ -325,22 +321,20 @@ export default function NewBookingsHeader({
                 {/* 1. Peňaženka Kocka (Presne w-[104px] h-[82px]) */}
                 <Link
                   href="/dashboard/transactions"
-                  className={`group relative flex h-[82px] w-[104px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
-                    activeTab === "transactions"
+                  className={`group relative flex h-[82px] w-[104px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${activeTab === "transactions"
                       ? "border-amber-400 bg-white ring-2 ring-amber-400/30 shadow-sm"
                       : walletHighlight
-                      ? "border-amber-500 bg-amber-50/80 ring-4 ring-amber-300/80 scale-105"
-                      : "border-amber-200/80 bg-white/95 shadow-xs hover:border-amber-300 hover:bg-white"
-                  }`}
+                        ? "border-amber-500 bg-amber-50/80 ring-4 ring-amber-300/80 scale-105"
+                        : "border-amber-200/80 bg-white/95 shadow-xs hover:border-amber-300 hover:bg-white"
+                    }`}
                   title="Moja peňaženka a história transakcií"
                 >
                   <div className="transition-transform duration-200 group-hover:scale-108">
-                    <ThreeDWalletIcon className="h-7 w-7" />
+                    <Wallet className="h-7 w-7 text-slate-800 transition-colors duration-200 group-hover:text-amber-600" strokeWidth={1.8} />
                   </div>
                   <span
-                    className={`mt-1 text-[11.5px] leading-tight transition-colors duration-200 ${
-                      activeTab === "transactions" ? "font-semibold text-amber-950" : "font-medium text-slate-700 group-hover:text-amber-950"
-                    }`}
+                    className={`mt-1 text-[11.5px] leading-tight transition-colors duration-200 ${activeTab === "transactions" ? "font-semibold text-amber-950" : "font-medium text-slate-700 group-hover:text-amber-950"
+                      }`}
                   >
                     Peňaženka
                   </span>
@@ -354,17 +348,16 @@ export default function NewBookingsHeader({
                   <button
                     type="button"
                     onClick={() => setClientMenuOpen((prev) => !prev)}
-                    className={`group relative flex h-[82px] w-[104px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 cursor-pointer ${
-                      activeTab === "stats"
+                    className={`group relative flex h-[82px] w-[104px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 cursor-pointer ${activeTab === "stats"
                         ? "border-amber-400 bg-white ring-2 ring-amber-400/30 shadow-sm"
                         : "border-amber-200/80 bg-white/95 shadow-xs hover:border-amber-300 hover:bg-white"
-                    }`}
+                      }`}
                     aria-expanded={clientMenuOpen}
                     aria-haspopup="true"
                     title="Používateľské menu"
                   >
                     <div className="transition-transform duration-200 group-hover:scale-108">
-                      <TennisBallAvatar name={userName} className="h-7 w-7" textSize="text-[10px]" />
+                      <CircleUser className="h-7 w-7 text-slate-800 transition-colors duration-200 group-hover:text-amber-600" strokeWidth={1.8} />
                     </div>
                     <span className="mt-1 block max-w-[88px] truncate text-center text-[11.5px] font-medium leading-tight text-slate-700 transition-colors duration-200 group-hover:text-amber-950">
                       {userName}
@@ -372,9 +365,8 @@ export default function NewBookingsHeader({
                     <span className="mt-0.5 flex items-center justify-center gap-0.5 text-[11px] font-semibold leading-tight text-amber-700">
                       <span>Účet</span>
                       <ChevronDown
-                        className={`h-3 w-3 shrink-0 transition-transform duration-200 ${
-                          clientMenuOpen ? "rotate-180 text-amber-800" : "text-amber-700/80 group-hover:text-amber-800"
-                        }`}
+                        className={`h-3 w-3 shrink-0 transition-transform duration-200 ${clientMenuOpen ? "rotate-180 text-amber-800" : "text-amber-700/80 group-hover:text-amber-800"
+                          }`}
                       />
                     </span>
                   </button>
@@ -384,7 +376,9 @@ export default function NewBookingsHeader({
                     <div className="absolute right-0 top-full mt-2 w-64 origin-top-right rounded-2xl border border-amber-200/90 bg-white/95 p-1.5 shadow-[0_20px_50px_rgba(180,83,9,0.16)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150 font-sans">
                       {/* Hlavička dropdownu */}
                       <div className="flex items-center gap-2.5 px-3 py-2.5 mb-1 border-b border-amber-100/80 bg-amber-50/60 rounded-xl">
-                        <TennisBallAvatar name={userName} className="h-8 w-8" textSize="text-[11px]" />
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
+                          <CircleUser className="h-5 w-5" strokeWidth={1.8} />
+                        </div>
                         <div className="min-w-0 flex-1">
                           <span className="block truncate text-xs font-semibold text-slate-900">{userName}</span>
                           <span className="block truncate text-[10.5px] font-normal text-amber-700">
@@ -397,14 +391,13 @@ export default function NewBookingsHeader({
                       <Link
                         href="/dashboard/newbookings"
                         onClick={() => setClientMenuOpen(false)}
-                        className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium transition duration-150 group ${
-                          activeTab === "stats"
+                        className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium transition duration-150 group ${activeTab === "stats"
                             ? "bg-amber-100/70 text-amber-950 font-semibold"
                             : "text-slate-700 hover:bg-amber-50 hover:text-amber-900"
-                        }`}
+                          }`}
                       >
                         <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-100/90 text-amber-800 group-hover:bg-[#B8442A] group-hover:text-white transition duration-150 shadow-2xs">
-                          <LayoutDashboard className="h-4 w-4" />
+                          <CalendarCheck className="h-4 w-4" />
                         </span>
                         <div className="flex flex-col text-left">
                           <span className="text-xs font-medium text-slate-800 group-hover:text-amber-950">Moje rezervácie</span>
@@ -416,14 +409,13 @@ export default function NewBookingsHeader({
                       <Link
                         href="/dashboard/transactions"
                         onClick={() => setClientMenuOpen(false)}
-                        className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium transition duration-150 group ${
-                          activeTab === "transactions"
+                        className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium transition duration-150 group ${activeTab === "transactions"
                             ? "bg-amber-100/70 text-amber-950 font-semibold"
                             : "text-slate-700 hover:bg-amber-50 hover:text-amber-900"
-                        }`}
+                          }`}
                       >
                         <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-100/90 text-amber-800 group-hover:bg-[#B8442A] group-hover:text-white transition duration-150 shadow-2xs">
-                          <Receipt className="h-4 w-4" />
+                          <ReceiptText className="h-4 w-4" />
                         </span>
                         <div className="flex flex-col text-left">
                           <span className="text-xs font-medium text-slate-800 group-hover:text-amber-950">Moje transakcie</span>
@@ -495,27 +487,51 @@ export default function NewBookingsHeader({
 
         {/* Mobile Popover Dropdown (md:hidden) */}
         {currentUser && (
-          <div className="md:hidden relative z-50 flex items-center gap-2" ref={userMenuRef}>
+          <div className="md:hidden relative z-50 flex items-center gap-1.5" ref={userMenuRef}>
+            {/* Rýchly prístup k peňaženke na mobile pre non-admin */}
+            {currentUser.role !== "admin" && (
+              <Link
+                href="/dashboard/transactions"
+                className={`flex h-10 items-center gap-1.5 rounded-xl border px-2.5 py-1 text-slate-800 shadow-2xs backdrop-blur-md transition active:scale-95 ${activeTab === "transactions"
+                    ? "border-amber-400 bg-white ring-2 ring-amber-400/30"
+                    : "border-amber-200/80 bg-white/95 hover:border-amber-300"
+                  }`}
+                title="Moja peňaženka a transakcie"
+              >
+                <Wallet className="h-4 w-4 text-amber-600 shrink-0" strokeWidth={1.8} />
+                <span className="text-xs font-bold text-amber-800">
+                  {walletBalance !== null ? `${walletBalance.toFixed(2)} €` : "0.00 €"}
+                </span>
+              </Link>
+            )}
+
+            {/* Tlačidlo profilu na mobile */}
             <button
               type="button"
               onClick={() => setUserMenuOpen((prev) => !prev)}
-              className="shrink-0 cursor-pointer rounded-full p-0.5 transition hover:-translate-y-0.5 active:translate-y-0"
+              className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-amber-200/80 bg-white/95 text-slate-800 shadow-2xs backdrop-blur-md transition hover:border-amber-300 hover:bg-white active:scale-95"
               title={userName}
               aria-label="Používateľské menu"
               aria-expanded={userMenuOpen}
             >
-              <TennisBallAvatar name={userName} className="h-10 w-10" textSize="text-xs" />
+              <CircleUser className="h-5 w-5 text-slate-800" strokeWidth={1.8} />
             </button>
 
             {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-2.5 w-64 origin-top-right rounded-2xl border border-slate-200/90 bg-white/95 p-2 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150 font-sans">
-                <div className="flex items-center gap-3 border-b border-slate-100 px-3 py-3 mb-1">
-                  <TennisBallAvatar name={userName} className="h-10 w-10" textSize="text-sm" />
+              <div className="absolute right-0 top-full mt-2 w-64 origin-top-right rounded-2xl border border-slate-200/90 bg-white/95 p-2 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150 font-sans">
+                <div className="flex items-center gap-2.5 border-b border-slate-100 px-3 py-2.5 mb-1">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
+                    <CircleUser className="h-5 w-5" strokeWidth={1.8} />
+                  </div>
                   <div className="min-w-0 flex-1">
                     <b className="block truncate text-sm font-bold text-slate-900">{userName}</b>
-                    {currentUser.role === "admin" && (
+                    {currentUser.role === "admin" ? (
                       <span className="block truncate text-[11px] font-semibold text-indigo-600">
                         Administrátor
+                      </span>
+                    ) : (
+                      <span className="block truncate text-[11px] font-normal text-amber-700">
+                        {currentUser.role === "trainer" ? "Tréner" : "Klient"}
                       </span>
                     )}
                   </div>
@@ -590,7 +606,7 @@ export default function NewBookingsHeader({
                         className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition duration-150 group"
                       >
                         <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition duration-150">
-                          <Receipt className="h-4 w-4" />
+                          <ReceiptText className="h-4 w-4" />
                         </span>
                         <span>Transakcie</span>
                       </Link>
@@ -614,7 +630,7 @@ export default function NewBookingsHeader({
                         className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition duration-150 group"
                       >
                         <span className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition duration-150">
-                          <LayoutDashboard className="h-4 w-4" />
+                          <CalendarCheck className="h-4 w-4" />
                         </span>
                         <span>Moje rezervácie</span>
                       </Link>
@@ -625,7 +641,7 @@ export default function NewBookingsHeader({
                         className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition duration-150 group"
                       >
                         <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition duration-150">
-                          <Coins className="h-4 w-4" />
+                          <ReceiptText className="h-4 w-4" />
                         </span>
                         <span>Moje transakcie</span>
                       </Link>
