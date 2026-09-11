@@ -168,7 +168,7 @@ export default function AdminCallHistory() {
   }, [calls, searchQuery]);
 
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-md">
+    <section className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)] font-sans">
       {/* Skrytý audio element */}
       <audio
         ref={audioRef}
@@ -191,7 +191,7 @@ export default function AdminCallHistory() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-slate-900">História hovorov NTC asistenta</h2>
+                <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-950">História hovorov NTC asistenta</h2>
                 <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
                   {filteredCalls.length} {filteredCalls.length === 1 ? "hovor" : filteredCalls.length >= 2 && filteredCalls.length <= 4 ? "hovory" : "hovorov"}
                 </span>
@@ -266,16 +266,16 @@ export default function AdminCallHistory() {
           </div>
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200/90">
           <table className="w-full min-w-[700px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 text-xs uppercase tracking-wider text-slate-400">
-                <th className="pb-3 pl-2">Čas hovoru</th>
-                <th className="pb-3">Telefónne číslo</th>
-                <th className="pb-3">Zhrnutie hovoru</th>
-                <th className="pb-3 text-center">Dĺžka</th>
-                <th className="pb-3 text-center">Stav</th>
-                <th className="pb-3 pr-2 text-right">Nahrávka</th>
+            <thead className="border-b border-slate-200/90 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <tr>
+                <th className="px-5 py-3.5">Čas hovoru</th>
+                <th className="px-5 py-3.5">Telefónne číslo</th>
+                <th className="px-5 py-3.5">Zhrnutie hovoru</th>
+                <th className="px-5 py-3.5 text-center">Dĺžka</th>
+                <th className="px-5 py-3.5 text-center">Stav</th>
+                <th className="px-5 py-3.5 text-right">Nahrávka</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
