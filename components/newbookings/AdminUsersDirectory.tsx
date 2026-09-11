@@ -460,60 +460,62 @@ export default function AdminUsersDirectory() {
   return (
     <div className="space-y-6 font-sans">
       {/* Top search, Actions & Filter bar */}
-      <section className="rounded-3xl border border-slate-200/90 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)] sm:p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setPage(1);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    startTransition(() => {
-                      loadUsers(1, query, roleFilter);
-                    });
-                  }
-                }}
-                placeholder="Hľadať podľa mena, emailu, tel. alebo karty..."
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 py-2.5 pl-10 pr-10 text-sm font-medium text-slate-900 transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-emerald-500/10"
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setQuery("");
+      <section className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 lg:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
+        <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 flex-1">
+            <div className="flex items-center gap-2 flex-1 max-w-md w-full">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
                     setPage(1);
-                    startTransition(() => {
-                      loadUsers(1, "", roleFilter);
-                    });
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      startTransition(() => {
+                        loadUsers(1, query, roleFilter);
+                      });
+                    }
+                  }}
+                  placeholder="Hľadať podľa mena, emailu, tel. alebo karty..."
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 py-2.5 pl-9 pr-9 text-xs sm:text-sm font-medium text-slate-900 transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-emerald-500/10"
+                />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuery("");
+                      setPage(1);
+                      startTransition(() => {
+                        loadUsers(1, "", roleFilter);
+                      });
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-1"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
 
-            {/* "Hľadať" Button */}
-            <button
-              type="button"
-              onClick={() => {
-                startTransition(() => {
-                  loadUsers(1, query, roleFilter);
-                });
-              }}
-              className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-200 hover:text-slate-900 cursor-pointer shrink-0 active:scale-[0.98]"
-              title="Spustiť vyhľadávanie"
-            >
-              <Search className="h-4 w-4 text-slate-500" />
-              <span>Hľadať</span>
-            </button>
+              {/* "Hľadať" Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  startTransition(() => {
+                    loadUsers(1, query, roleFilter);
+                  });
+                }}
+                className="flex items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-200 hover:text-slate-900 cursor-pointer shrink-0 active:scale-[0.98]"
+                title="Spustiť vyhľadávanie"
+              >
+                <Search className="h-4 w-4 text-slate-500" />
+                <span>Hľadať</span>
+              </button>
+            </div>
 
             {/* "+ Nový používateľ" Button */}
             <button
@@ -522,7 +524,7 @@ export default function AdminUsersDirectory() {
                 setCreateUserError(null);
                 setCreateUserOpen(true);
               }}
-              className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-200 hover:text-slate-900 cursor-pointer shrink-0 active:scale-[0.98]"
+              className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-200 hover:text-slate-900 cursor-pointer shrink-0 active:scale-[0.98] w-full sm:w-auto"
             >
               <UserPlus className="h-4 w-4 text-slate-500" />
               <span>Nový používateľ</span>
@@ -582,8 +584,8 @@ export default function AdminUsersDirectory() {
       )}
 
       {/* Desktop Table View */}
-      <section className="hidden md:block overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
-        <table className="w-full text-left text-sm">
+      <section className="hidden md:block overflow-x-auto rounded-3xl border border-slate-200/90 bg-white shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
+        <table className="w-full min-w-[800px] text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50/80 text-xs font-bold tracking-wider text-slate-500 uppercase">
             <tr>
               <th className="px-6 py-4">Používateľ</th>

@@ -136,18 +136,18 @@ export default function AdminUsersAndRoles() {
   };
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-4 sm:space-y-6 font-sans">
       {/* 1. Samostatný vyhľadávací box ako v sekcii Používatelia */}
-      <section className="rounded-3xl border border-slate-200/90 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)] sm:p-6">
+      <section className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 lg:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             executeSearch(1, query);
           }}
-          className="flex flex-col gap-4"
+          className="flex flex-col gap-3.5"
         >
-          <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="relative flex-1 max-w-md">
+          <div className="flex items-center gap-2 max-w-md w-full">
+            <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
@@ -156,8 +156,8 @@ export default function AdminUsersAndRoles() {
                   setQuery(event.target.value);
                   setPage(1);
                 }}
-                placeholder="Hľadať podľa mena, loginu, telefónu alebo karty..."
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 py-2.5 pl-10 pr-10 text-sm font-medium text-slate-900 transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-emerald-500/10"
+                placeholder="Hľadať podľa mena, loginu, tel. alebo karty..."
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 py-2.5 pl-9 pr-9 text-xs sm:text-sm font-medium text-slate-900 transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:outline-hidden focus:ring-4 focus:ring-emerald-500/10"
               />
               {query && (
                 <button
@@ -167,7 +167,7 @@ export default function AdminUsersAndRoles() {
                     setPage(1);
                     executeSearch(1, "");
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-1"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -177,7 +177,7 @@ export default function AdminUsersAndRoles() {
             {/* "Hľadať" Button */}
             <button
               type="submit"
-              className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-200 hover:text-slate-900 cursor-pointer shrink-0 active:scale-[0.98]"
+              className="flex items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-200 hover:text-slate-900 cursor-pointer shrink-0 active:scale-[0.98]"
               title="Spustiť vyhľadávanie"
             >
               <Search className="h-4 w-4 text-slate-500" />
@@ -200,7 +200,7 @@ export default function AdminUsersAndRoles() {
       </section>
 
       {/* 2. Hlavná sekcia Používatelia a roly */}
-      <section id="users-roles" className="scroll-mt-24 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)] sm:p-6">
+      <section id="users-roles" className="scroll-mt-24 rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 lg:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
 
         {error && (
           <button
@@ -227,8 +227,9 @@ export default function AdminUsersAndRoles() {
           </div>
         ) : (
           <>
-            <div className="overflow-hidden rounded-2xl border border-slate-200/90">
-              <table className="w-full min-w-[850px] text-left text-sm">
+            {/* Desktop Table View (od md: vyššie) */}
+            <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200/90">
+              <table className="w-full min-w-[760px] text-left text-sm">
                 <thead className="border-b border-slate-200/90 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   <tr>
                     <th className="px-5 py-3.5">Používateľ</th>
@@ -294,12 +295,104 @@ export default function AdminUsersAndRoles() {
               )}
             </div>
 
+            {/* Mobile Card List View (pre mobily pod md:) */}
+            <div className="md:hidden space-y-3">
+              {users.map((user) => {
+                const activeRole = pendingRoles[user.id] || user.role;
+                return (
+                  <div
+                    key={user.id}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs transition"
+                  >
+                    {/* Header: Meno a Rola štítok */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <strong className="block truncate text-sm font-bold text-slate-900">{user.name}</strong>
+                        <span className="text-[11px] text-slate-400">
+                          {user.id === currentUserId ? "Tvoj účet" : `Registrovaný ${formatDate(user.created_at)}`}
+                        </span>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-lg px-2.5 py-0.5 text-[11px] font-bold border ${
+                          activeRole === "admin"
+                            ? "bg-slate-900 text-white border-slate-800"
+                            : activeRole === "trainer"
+                            ? "bg-[#8648E8] text-white border-[#6025B8]"
+                            : "bg-[#ECE81A] text-slate-950 border-[#C5BC00]"
+                        }`}
+                      >
+                        {roleLabels[activeRole]}
+                      </span>
+                    </div>
+
+                    {/* Kontakt a číslo karty */}
+                    <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-2.5 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-slate-400 text-[11px]">Email</span>
+                        <span className="font-medium text-slate-700 truncate max-w-[200px]">{user.email}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-slate-400 text-[11px]">Telefón</span>
+                        <span className="font-medium text-slate-700">{user.phone || "Bez telefónu"}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-slate-400 text-[11px]">Číslo karty</span>
+                        <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-mono font-semibold text-slate-700">
+                          <CreditCard className="h-3 w-3 text-slate-400" />
+                          {user.card_number || "Bez karty"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Nastavenie roly na mobile */}
+                    <div className="mt-3.5 border-t border-slate-100 pt-3">
+                      <label className="block text-[10.5px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                        Zmeniť rolu
+                      </label>
+                      <div className="flex flex-col gap-2">
+                        <select
+                          value={pendingRoles[user.id] || user.role}
+                          disabled={user.id === currentUserId || savingUserId === user.id}
+                          onChange={(event) => selectRole(user.id, event.target.value as BookingRole)}
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs focus:border-emerald-500 focus:bg-white focus:outline-hidden disabled:cursor-not-allowed disabled:bg-slate-100 cursor-pointer"
+                        >
+                          {roles.map((role) => (
+                            <option key={role} value={role}>
+                              {roleLabels[role]}
+                            </option>
+                          ))}
+                        </select>
+
+                        {pendingRoles[user.id] && (
+                          <button
+                            type="button"
+                            disabled={savingUserId === user.id}
+                            onClick={() => void saveUserRole(user)}
+                            className="flex items-center justify-center gap-1.5 rounded-xl bg-slate-950 px-3.5 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-slate-800 disabled:opacity-50 cursor-pointer active:scale-[0.98] w-full"
+                          >
+                            {savingUserId === user.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                            Uložiť zmenu
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {!users.length && (
+                <p className="py-8 text-center text-sm font-medium text-slate-500">
+                  Nenašli sa žiadni používatelia pre zadané vyhľadávanie.
+                </p>
+              )}
+            </div>
+
             {/* Stránkovanie */}
             <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between text-xs text-slate-500">
-              <p className="font-semibold">
+              <p className="font-semibold text-center sm:text-left">
                 Spolu <strong>{totalUsers}</strong> používateľov · Strana {page} z {totalPages} · 7 na stranu
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center gap-2">
                 <button
                   type="button"
                   disabled={page <= 1 || loading}
