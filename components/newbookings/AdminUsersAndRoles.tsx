@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, CreditCard, Loader2, Search, ShieldCheck, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, CreditCard, Loader2, Search, X } from "lucide-react";
 import {
   fetchAdminUsersAction,
   updateBookingUserRoleAction,
@@ -201,15 +201,6 @@ export default function AdminUsersAndRoles() {
 
       {/* 2. Hlavná sekcia Používatelia a roly */}
       <section id="users-roles" className="scroll-mt-24 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)] sm:p-6">
-        <div className="mb-5 flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-slate-950 text-white shadow-md shadow-slate-950/20 ring-1 ring-slate-800">
-            <ShieldCheck className="h-5 w-5 text-white" />
-          </span>
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-slate-950 sm:text-2xl">Používatelia a roly</h2>
-            <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">Rola sa používateľovi prejaví pri ďalšom prihlásení.</p>
-          </div>
-        </div>
 
         {error && (
           <button

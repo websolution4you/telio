@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Users } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { getSession } from "@/lib/auth/bookingAuth";
 import AdminUsersDirectory from "@/components/newbookings/AdminUsersDirectory";
 import NewBookingsHeader from "@/components/newbookings/NewBookingsHeader";
@@ -27,19 +27,12 @@ export default async function UsersDirectoryPage() {
       <div className="mx-auto max-w-[1500px]">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="flex items-center gap-2.5">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-slate-950 text-white shadow-md shadow-slate-950/20 ring-1 ring-slate-800">
-                <Users className="h-5 w-5 text-white drop-shadow-xs" />
-              </span>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-                  Používatelia
-                </h1>
-                <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
-                  Kompletný zoznam klientov, prehľad kreditov a detailná história rezervácií.
-                </p>
-              </div>
-            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+              Používatelia
+            </h1>
+            <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
+              Kompletný zoznam klientov, prehľad kreditov a detailná história rezervácií.
+            </p>
           </div>
           <div className="flex items-center gap-2.5">
             <Link

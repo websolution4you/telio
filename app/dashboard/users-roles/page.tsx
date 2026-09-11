@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Settings } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { getSession } from "@/lib/auth/bookingAuth";
 import AdminUsersAndRoles from "@/components/newbookings/AdminUsersAndRoles";
 import NewBookingsHeader from "@/components/newbookings/NewBookingsHeader";
@@ -22,14 +22,9 @@ export default async function UsersAndRolesPage() {
         <div className="hidden" aria-hidden="true" />
         <div className="mx-auto max-w-[1500px]">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-slate-950 text-white shadow-md shadow-slate-950/20 ring-1 ring-slate-800">
-                <Settings className="h-5 w-5 text-white" />
-              </span>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Nastavenia</h1>
-                <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">Správa používateľských rolí a rezervačných privilégií.</p>
-              </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Nastavenia</h1>
+              <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">Správa používateľských rolí a rezervačných privilégií.</p>
             </div>
             <Link href="/newbookings" className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-50">
               <ArrowLeft className="h-4 w-4" />
