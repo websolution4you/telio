@@ -6,7 +6,17 @@ const pageUrl = "https://telio.sk/telefonicky-rezervacny-system";
 export const metadata: Metadata = {
   title: "Telefonický rezervačný systém s AI",
   description: "Telio prijíma rezervácie cez telefón 24/7, overí dostupnosť v kalendári a vytvorí termín počas hovoru. AI rezervačný systém pre firmy.",
-  keywords: ["telefonický rezervačný systém", "AI rezervačný systém", "automatické telefonické rezervácie", "rezervácie cez telefón", "hlasové rezervácie"],
+  keywords: [
+    "AI rezervácie",
+    "telefonický asistent",
+    "hlasový asistent",
+    "AI objednávky",
+    "telefonický rezervačný systém",
+    "AI rezervačný systém",
+    "automatické telefonické rezervácie",
+    "rezervácie cez telefón",
+    "hlasové rezervácie"
+  ],
   alternates: { canonical: "/telefonicky-rezervacny-system" },
   openGraph: {
     title: "Telefonický rezervačný systém s AI | Telio",

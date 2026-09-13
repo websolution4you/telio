@@ -21,23 +21,39 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   metadataBase: new URL("https://telio.sk"),
   title: {
-    default: "Telio — AI hlasový asistent a telefonické rezervácie pre firmy",
+    default: "Telio — AI hlasový asistent, telefonický asistent a AI rezervácie",
     template: "%s | Telio",
-    },
+  },
   description:
-    "Telio je váš AI hlasový asistent 24/7. Zdvihne každý hovor, hovorí prirodzene po slovensky, rezervuje termíny v reálnom čase a nikdy si neberie voľno.",
+    "Telio je slovenský AI hlasový asistent a telefonický asistent 24/7. Vybavuje hovory v prirodzenej slovenčine, zabezpečuje AI rezervácie termínov a prijíma AI objednávky pre firmy.",
   applicationName: "Telio",
   authors: [{ name: "Telio", url: "https://telio.sk" }],
   creator: "Telio",
   publisher: "Telio",
-  keywords: ["AI hlasový asistent", "virtuálna recepčná", "automatizácia hovorov", "telefonické rezervácie", "Telio", "Slovensko", "AI operátor"],
+  keywords: [
+    "hlasový asistent",
+    "telefonický asistent",
+    "AI hlasový asistent",
+    "AI rezervácie",
+    "AI objednávky",
+    "telefonické rezervácie",
+    "virtuálna recepčná",
+    "automatizácia hovorov",
+    "automatizácia telefonátov",
+    "AI operátor",
+    "rezervačný systém",
+    "rezervačný systém pre kliniky",
+    "rezervačný systém pre športoviská",
+    "Telio",
+    "Slovensko"
+  ],
   alternates: {
     canonical: "/",
     languages: { "sk-SK": "/" },
   },
   openGraph: {
-    title: "Telio — AI hlasový asistent a telefonické rezervácie pre firmy",
-    description: "24/7 AI hlasový operátor pre slovenské prevádzky a kliniky. Zabezpečuje rezervácie a dvíha každý hovor.",
+    title: "Telio — Slovenský AI hlasový asistent, telefonický asistent a AI rezervácie",
+    description: "24/7 slovenský AI hlasový operátor pre firmy, kliniky a športoviská. Zabezpečuje AI rezervácie, vybavuje AI objednávky a dvíha každý hovor.",
     type: "website",
     url: "https://telio.sk",
     siteName: "Telio",
@@ -46,8 +62,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Telio — AI hlasový asistent",
-    description: "Už nikdy nezmeškajte telefonát od vášho zákazníka.",
+    title: "Telio — AI hlasový asistent a telefonické rezervácie",
+    description: "Slovenský AI hlasový asistent pre firmy. Už nikdy nezmeškajte telefonát ani rezerváciu od zákazníka.",
     images: ["/opengraph-image"],
   },
   robots: {

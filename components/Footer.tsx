@@ -73,6 +73,16 @@ export default function Footer() {
                 </a>
               </li>
               <li>
+                <a href="/rezervacny-system-pre-salony" className="text-sm transition-colors duration-200 hover:text-white" style={{ color: "var(--text-muted)" }}>
+                  Rezervačný systém pre salóny
+                </a>
+              </li>
+              <li>
+                <a href="/porovnanie-rezervacnych-systemov" className="text-sm transition-colors duration-200 hover:text-white" style={{ color: "var(--text-muted)" }}>
+                  Porovnanie rezervačných systémov
+                </a>
+              </li>
+              <li>
                 <a href="/ai-hlasovy-asistent-pre-kliniky" className="text-sm transition-colors duration-200 hover:text-white" style={{ color: "var(--text-muted)" }}>
                   AI asistent pre kliniky
                 </a>

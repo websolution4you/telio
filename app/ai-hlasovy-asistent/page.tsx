@@ -6,7 +6,18 @@ const pageUrl = "https://telio.sk/ai-hlasovy-asistent";
 export const metadata: Metadata = {
   title: "AI hlasový asistent pre firmy",
   description: "AI hlasový asistent Telio vybavuje telefonáty, rezervácie a otázky zákazníkov 24/7. Prirodzená slovenčina, kalendár a firemné integrácie.",
-  keywords: ["AI hlasový asistent", "hlasový AI asistent", "AI telefonický asistent", "AI operátor", "automatizácia telefonátov", "virtuálna recepčná"],
+  keywords: [
+    "hlasový asistent",
+    "telefonický asistent",
+    "AI hlasový asistent",
+    "AI rezervácie",
+    "AI objednávky",
+    "hlasový AI asistent",
+    "AI telefonický asistent",
+    "AI operátor",
+    "automatizácia telefonátov",
+    "virtuálna recepčná"
+  ],
   alternates: { canonical: "/ai-hlasovy-asistent" },
   openGraph: {
     title: "AI hlasový asistent pre firmy | Telio",
