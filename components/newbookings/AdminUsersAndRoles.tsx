@@ -317,8 +317,8 @@ export default function AdminUsersAndRoles() {
                           activeRole === "admin"
                             ? "bg-slate-900 text-white border-slate-800"
                             : activeRole === "trainer"
-                            ? "bg-[#8648E8] text-white border-[#6025B8]"
-                            : "bg-[#ECE81A] text-slate-950 border-[#C5BC00]"
+                            ? "bg-[#DCC7F0] text-slate-950 border-[#C0A0E0]"
+                            : "bg-[#FFF3B0] text-slate-950 border-[#EAD77B]"
                         }`}
                       >
                         {roleLabels[activeRole]}

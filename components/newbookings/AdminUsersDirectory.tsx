@@ -92,11 +92,11 @@ const roleLabels: Record<BookingRole, { label: string; badge: string }> = {
   },
   trainer: {
     label: "Tréner",
-    badge: "bg-[#8648E8] text-white border-[#6025B8] font-bold",
+    badge: "bg-[#DCC7F0] text-slate-950 border-[#C0A0E0] font-bold",
   },
   user: {
     label: "Používateľ",
-    badge: "bg-[#ECE81A] text-slate-950 border-[#C5BC00] font-bold",
+    badge: "bg-[#FFF3B0] text-slate-950 border-[#EAD77B] font-bold",
   },
 };
 

@@ -989,17 +989,17 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
                         if (isAdmin) {
                           if (isTrainer) {
-                            // Fialová / Purpurová presne podľa NTC dispečingu s čiernym textom
+                            // 10. Orgovánová z pastelovej palety s tmavým textom
                             labelText = booking.customerName || booking.title || "Tréner";
-                            bookingClasses = "border-[#6025B8] bg-[#8648E8] text-black font-bold shadow-xs hover:bg-[#965EF0]";
+                            bookingClasses = "border-[#C0A0E0] bg-[#DCC7F0] text-slate-950 font-bold shadow-xs hover:bg-[#D2B8EC]";
                           } else if (isMaintenanceOrAdmin) {
-                            // Admin blokácia / Údržba - svetlá červená s čiernym textom
+                            // 13. Koralová z pastelovej palety pre Údržbu s tmavým textom
                             labelText = "Údržba";
-                            bookingClasses = "border-[#EF4444] bg-[#FCA5A5] text-black font-bold shadow-xs hover:bg-[#F87171]";
+                            bookingClasses = "border-[#F29E9E] bg-[#FFC9C9] text-slate-950 font-bold shadow-xs hover:bg-[#FFBABA]";
                           } else {
-                            // Sýta čistá žltá presne podľa NTC dispečingu s čiernym textom
+                            // 16. Svetlo žltá z pastelovej palety pre klienta s tmavým textom
                             labelText = booking.customerName || booking.title || "Rezervácia";
-                            bookingClasses = "border-[#C5BC00] bg-[#ECE81A] text-black font-bold shadow-xs hover:bg-[#F7F438]";
+                            bookingClasses = "border-[#EAD77B] bg-[#FFF3B0] text-slate-950 font-bold shadow-xs hover:bg-[#FEECA0]";
                           }
                         } else {
                           if (isMaintenanceOrAdmin) {
@@ -1099,15 +1099,15 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           {currentUser?.role === "admin" ? (
             <>
               <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-[#C5BC00] bg-[#ECE81A] shadow-xs" />
+                <i className="h-3.5 w-3.5 rounded-md border border-[#EAD77B] bg-[#FFF3B0] shadow-xs" />
                 Klient (NTC karta / bežný)
               </span>
               <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-[#6025B8] bg-[#8648E8] shadow-xs" />
+                <i className="h-3.5 w-3.5 rounded-md border border-[#C0A0E0] bg-[#DCC7F0] shadow-xs" />
                 Tréner
               </span>
               <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-[#EF4444] bg-[#FCA5A5] shadow-xs" />
+                <i className="h-3.5 w-3.5 rounded-md border border-[#F29E9E] bg-[#FFC9C9] shadow-xs" />
                 Údržba
               </span>
             </>
