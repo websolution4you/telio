@@ -247,15 +247,15 @@ export default function NewBookingsHeader({
                         href="/dashboard/admin-transactions"
                         onClick={() => setAdminMenuOpen(false)}
                         className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium transition duration-150 group ${activeTab === "transactions"
-                            ? "bg-emerald-50 text-emerald-800 font-semibold"
-                            : "text-slate-700 hover:bg-emerald-50 hover:text-emerald-800"
+                            ? "bg-slate-100 text-slate-950 font-semibold"
+                            : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
                           }`}
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-100/80 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition duration-150 shadow-2xs">
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150 shadow-2xs">
                           <ReceiptText className="h-4 w-4" />
                         </span>
                         <div className="flex flex-col text-left">
-                          <span className="text-xs font-medium text-slate-800 group-hover:text-emerald-800">Transakcie</span>
+                          <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950">Transakcie</span>
                           <span className="text-[10px] font-normal text-slate-400">Prehľad platieb a kreditov</span>
                         </div>
                       </Link>
@@ -378,15 +378,15 @@ export default function NewBookingsHeader({
                         onClick={() => setClientMenuOpen(false)}
                         className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium transition duration-150 group ${
                           activeTab === "transactions"
-                            ? "bg-emerald-50 text-emerald-950 font-semibold"
+                            ? "bg-slate-100 text-slate-950 font-semibold"
                             : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
                         }`}
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-100/90 text-emerald-800 group-hover:bg-emerald-600 group-hover:text-white transition duration-150 shadow-2xs">
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150 shadow-2xs">
                           <ReceiptText className="h-4 w-4" />
                         </span>
                         <div className="flex flex-col text-left">
-                          <span className="text-xs font-medium text-slate-800 group-hover:text-emerald-950">Moje transakcie</span>
+                          <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950">Moje transakcie</span>
                           <span className="text-[10px] font-normal text-slate-400">História peňaženky a platieb</span>
                         </div>
                       </Link>
@@ -572,9 +572,9 @@ export default function NewBookingsHeader({
                       <Link
                         href="/dashboard/admin-transactions"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition duration-150 group"
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition duration-150 group"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition duration-150">
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150">
                           <ReceiptText className="h-4 w-4" />
                         </span>
                         <span>Transakcie</span>
@@ -607,9 +607,9 @@ export default function NewBookingsHeader({
                       <Link
                         href="/dashboard/transactions"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition duration-150 group"
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition duration-150 group"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition duration-150">
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150">
                           <ReceiptText className="h-4 w-4" />
                         </span>
                         <span>Moje transakcie</span>
