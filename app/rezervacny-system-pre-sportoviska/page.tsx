@@ -6,7 +6,20 @@ const pageUrl = "https://telio.sk/rezervacny-system-pre-sportoviska";
 export const metadata: Metadata = {
   title: "Rezervačný systém pre športoviská a kurty",
   description: "Online a AI rezervačný systém pre tenisové, squashové a badmintonové kurty. Rezervácie cez web aj telefonát, kalendár a správa športoviska.",
-  keywords: ["rezervačný systém pre športoviská", "rezervačný systém pre tenisové kurty", "online rezervácia kurtu", "rezervácia tenisového kurtu", "rezervácia squash kurtu", "rezervácia badmintonového kurtu", "AI rezervácia", "telefonická rezervácia kurtu", "správa kurtov"],
+  keywords: [
+    "AI rezervácie",
+    "rezervačný systém pre športoviská",
+    "rezervačný systém pre tenisové kurty",
+    "telefonický asistent",
+    "hlasový asistent",
+    "online rezervácia kurtu",
+    "rezervácia tenisového kurtu",
+    "rezervácia squash kurtu",
+    "rezervácia badmintonového kurtu",
+    "AI rezervácia",
+    "telefonická rezervácia kurtu",
+    "správa kurtov"
+  ],
   alternates: { canonical: "/rezervacny-system-pre-sportoviska" },
   openGraph: {
     title: "Rezervačný systém pre športoviská a kurty | Telio",

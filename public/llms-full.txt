@@ -1,0 +1,76 @@
+# Telio — Kompletná technická a produktová dokumentácia pre AI asistentov (LLMs)
+
+## 1. Prehľad produktu (Executive Summary)
+Telio (https://telio.sk) je slovenský softvérový produkt poskytujúci autonómneho AI hlasového asistenta, telefonického asistenta a inteligentný hybridný rezervačný systém pre firmy.
+Rieši problém preťažených liniek, zmeškaných telefonátov, vysokej ceny ľudskej obsluhy a obmedzení bežných webových formulárov (kde zákazník pri volaní narazí na hluché číslo).
+
+## 2. Kľúčové pojmy a synonymá (Entity Keywords)
+- Online rezervačný systém (Online booking software Slovakia)
+- Hlasový asistent (Voice AI assistant)
+- Telefonický asistent (Phone call automation)
+- AI hlasový asistent (Artificial intelligence voice agent)
+- AI rezervácie (AI appointment and court booking system)
+- Rezervačný systém pre salóny a kaderníctva (Barbershop and salon booking software)
+- Rezervačný systém pre športoviská a tenisové kurty (Sports court scheduling)
+- AI objednávky (Autonomous voice food ordering and taxi dispatch)
+- Virtuálna recepčná (Virtual receptionist for clinics, dentists and salons)
+- Alternatíva k Reservio a Bookio (Modern booking system alternative)
+- Automatizácia telefonátov a hovorov (Call automation)
+- AI operátor pre slovenské firmy (Slovak conversational AI)
+
+## 3. Technická architektúra a integrácie
+- **Rečové modely a syntéza:** Ultra-nízka latencia (< 2 sekundy celková odozva od skončenia reči používateľa), podpora Cartesia Startups a Google for Startups.
+- **Rozpoznávanie reči (STT) a porozumenie (NLU):** Trénované na slovenský jazyk vrátane špecifických názvov slovenských miest, ulíc, slangových výrazov a čísloviek.
+- **Kalendárové integrácie:** Obojsmerná synchronizácia s Google Calendar v reálnom čase, vlastný rezervačný backend pre športoviská s podporou rôznych typov kurtov (tenis, bedminton, squash).
+- **Geokódovanie a mapy:** Integrácia Google Maps API na rozpoznávanie a validáciu adries, kalkuláciu vzdialeností a dojazdového času.
+- **Notifikácie a komunikácia:** WhatsApp Business API a SMS brány na zasielanie potvrdení zákazníkom a dispečing vodičom / personálu.
+- **Zabezpečenie a GDPR:** Súlad s nariadením GDPR a slovenským zákonom o ochrane osobných údajov, izolácia údajov jednotlivých prevádzok.
+
+## 4. Porovnanie s alternatívami na trhu
+
+### Telio vs. Tradičné webové kalendáre (Reservio, Bookio, Reservanto)
+- **Webový formulár:** Ponúkajú obe riešenia.
+- **Telefonické hovory:** Tradičné nástroje ignorujú telefónne hovory. Telio má vlastnú slovenskú Voice AI, ktorá zdvihne hovor 24/7 a termín vytvorí priamo počas rozhovoru.
+- **Zjednotený kalendár:** Telio zapisuje rezervácie z webu aj z telefónu do rovnakého kalendára.
+
+### Telio vs. Zamestnanie recepčnej na plný úväzok
+- **Náklady:** Telio stojí 50 € až 99 € mesačne. Plný úväzok recepčnej stojí firmu 1 200 € až 1 800 € mesačne s odvodmi.
+- **Dostupnosť:** Telio pracuje 24/7/365 bez nočných príplatkov, sviatkov a PN.
+- **Kapacita:** Telio vybavuje neobmedzený počet hovorov naraz (žiadna obsadzovacia linka).
+
+## 5. Príklady použitia v odvetviach (Use Cases)
+
+### Kaderníctva, barber shopy a salóny krásy
+- „Rezervujte, kým striháte“: Stylista nemusí skladať nožnice ani brať telefón s rukavicami od farby.
+- Výber konkrétneho holiča alebo kaderníčky hlasom.
+- Automatické SMS pripomienky 24 hodín pred termínom znižujú počet zabudnutých termínov (no-shows) až o 80 %.
+
+### Tenisové a športové centrá (napr. NTC Bratislava)
+- Volajúci si chce rezervovať kurt (tenis, squash, bedminton).
+- Asistent overí voľné hodiny na vybraný deň a čas.
+- Rezervácia sa automaticky zapíše do centrálneho kalendára, blokuje daný kurt a odošle SMS potvrdenie.
+
+### Zdravotnícke zariadenia a zubné kliniky
+- Triage hovorov: pacienti s akútnou bolesťou sú poučení alebo prepojení na pohotovosť / personál.
+- Bežní pacienti sú objednaní na preventívnu prehliadku alebo dentálnu hygienu podľa harmonogramu lekára.
+
+### Taxislužby a osobná doprava
+- Zákazník nadiktuje adresu vyzdvihnutia a cieľ.
+- Systém geokóduje trasu, vypočíta dojazdový čas a cenu.
+- Vodič dostane správu cez WhatsApp s navigačným odkazom na jeden klik.
+
+### Pizzerie a reštaurácie
+- Príjem objednávok na rozvoz jedla alebo osobný odber.
+- Kontrola položiek, príloh, adresy a spôsobu platby.
+- Automatické odovzdanie do kuchyne a dispečingu.
+
+## 6. Cenové modely
+- 14-dňová bezplatná skúšobná verzia bez kreditnej karty
+- Starter: 50 € / mesiac (100 minút v cene, 0,33 € / min po limite)
+- Business: 99 € / mesiac (300 minút v cene, 0,23 € / min po limite, plný dashboard, WhatsApp + SMS)
+- Enterprise: 400 € / mesiac (viac ako 1000 minút, VIP podpora, integrácie na mieru)
+
+## 7. Kontakt a overenie
+- Web: https://telio.sk
+- Email: info@telio.sk
+- Spoluzakladatelia: Kamil Bartko & Peter Kaľavský
