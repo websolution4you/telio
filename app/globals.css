@@ -548,8 +548,72 @@ body {
   }
 }
 
+/* ============================================================
+   NTC — New Booking Realtime Highlight Animation
+   Pulzujúci obrys rezervačného boxu pri príchode novej rezervácie
+   ============================================================ */
 
+/* Keyframe: laserový lúč beží po obvode SVG rect */
+@keyframes laser-beam-run {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -800;
+  }
+}
 
+/* Keyframe: celý box pulzuje žiarou */
+@keyframes booking-box-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 0px 0px rgba(255, 140, 0, 0),
+      0 0 0px 0px rgba(255, 200, 0, 0);
+  }
+  25% {
+    box-shadow:
+      0 0 8px 3px rgba(255, 200, 0, 0.55),
+      0 0 20px 6px rgba(255, 100, 0, 0.28);
+  }
+  50% {
+    box-shadow:
+      0 0 14px 5px rgba(255, 60, 120, 0.50),
+      0 0 30px 10px rgba(255, 200, 0, 0.22);
+  }
+  75% {
+    box-shadow:
+      0 0 8px 3px rgba(255, 200, 0, 0.55),
+      0 0 20px 6px rgba(255, 100, 0, 0.28);
+  }
+}
+
+/* Keyframe: fade-out posledná sekunda */
+@keyframes booking-box-fadeout {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Trieda na samotnom button boxe — pulsujúci glow po 5 sekúnd */
+.voice-booking-highlight {
+  position: relative;
+  animation: booking-box-glow 0.85s ease-in-out infinite;
+  /* Zastavíme animáciu po 5 sekundách cez JS, tu len definujeme */
+  z-index: 5;
+}
+
+/* SVG laser beam — čiara bežiaca po obvode */
+.laser-perimeter-beam {
+  /* perimeter ≈ 2*(96+96) = 384, zaokrúhlene 400 pre hladký pohyb */
+  stroke-dasharray: 80 320;
+  stroke-dashoffset: 0;
+  animation: laser-beam-run 0.9s linear infinite;
+  filter: drop-shadow(0 0 4px #FF6B00) drop-shadow(0 0 8px #FFD700);
+}
+
+/* Voliteľný overlay skener (rezerva pre budúce rozšírenie) */
+.voice-booking-scan {
+  display: none;
+}
 
 
 

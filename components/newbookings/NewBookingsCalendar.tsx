@@ -526,7 +526,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       const timer = window.setTimeout(() => {
         setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
         timers.delete(bookingId);
-      }, 4500);
+      }, 5000);
       timers.set(bookingId, timer);
     }).subscribe();
 
@@ -741,7 +741,19 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     setLoading(false);
     if (!result.success || !result.booking) return setNotice(result.error || "Rezerváciu sa nepodarilo vytvoriť.");
     if (result.wallet && currentUser.role !== "admin") setWalletBalance(result.wallet.balanceEur);
-    setItems((current) => [...current, result.booking as Booking]);
+    const newBooking = result.booking as Booking;
+    setItems((current) => [...current, newBooking]);
+    // Trigger highlight animation on the new booking box for 5 seconds
+    const newId = newBooking.id;
+    const timers = voiceHighlightTimers.current;
+    setHighlightedVoiceBookings((current) => current.includes(newId) ? current : [...current, newId]);
+    const existingTimer = timers.get(newId);
+    if (existingTimer) window.clearTimeout(existingTimer);
+    const highlightTimer = window.setTimeout(() => {
+      setHighlightedVoiceBookings((current) => current.filter((id) => id !== newId));
+      timers.delete(newId);
+    }, 5000);
+    timers.set(newId, highlightTimer);
     setSlot(null);
     setNotice(
       result.wallet && result.wallet.chargedEur > 0
