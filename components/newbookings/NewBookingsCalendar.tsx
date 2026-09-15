@@ -502,8 +502,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
   useEffect(() => {
     const timers = voiceHighlightTimers.current;
+
+    // 1. Supabase Realtime WebSocket listener (instant 0ms response when event arrives)
     const channel = supabase.channel("newbookings-realtime").on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, (payload) => {
-      setReload((value) => value + 1);
       if (currentUser && currentUser.role !== "admin") {
         getWalletAction().then((res) => {
           if (res.success && res.enabled) {
@@ -512,22 +513,60 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         });
       }
 
-      if (payload.eventType !== "INSERT") return;
+      if (payload.eventType === "INSERT") {
+        const raw = payload.new as any;
+        if (!raw?.id) return;
 
-      playTennisHitSound();
+        playTennisHitSound();
 
-      const raw = payload.new as any;
-      if (!raw?.id) return;
+        let notesObj: any = {};
+        try { notesObj = JSON.parse(raw.notes || "{}"); } catch {}
+        const mappedBooking: Booking = {
+          id: raw.id,
+          courtId: notesObj.courtId || raw.court_id || "badminton-1",
+          title: notesObj.notes || raw.customer_name || "Rezervácia",
+          customerName: raw.customer_name || "Rezervácia",
+          phone: raw.customer_phone || undefined,
+          start: raw.start_at,
+          end: raw.end_at,
+          status: (raw.status || "confirmed") as any,
+          source: (notesObj.source || "voice-assistant") as any,
+          user_id: raw.user_id || undefined,
+          userRole: "user",
+        };
 
-      const bookingId = raw.id;
-      setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
-      const existingTimer = timers.get(bookingId);
-      if (existingTimer) window.clearTimeout(existingTimer);
-      const timer = window.setTimeout(() => {
-        setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
-        timers.delete(bookingId);
-      }, 5000);
-      timers.set(bookingId, timer);
+        setItems((current) => {
+          const exists = current.some((b) => b.id === mappedBooking.id);
+          if (exists) return current.map((b) => b.id === mappedBooking.id ? mappedBooking : b);
+          return [...current, mappedBooking];
+        });
+
+        const bookingId = raw.id;
+        setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
+        const existingTimer = timers.get(bookingId);
+        if (existingTimer) window.clearTimeout(existingTimer);
+        const timer = window.setTimeout(() => {
+          setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
+          timers.delete(bookingId);
+        }, 5000);
+        timers.set(bookingId, timer);
+      } else if (payload.eventType === "DELETE") {
+        const oldId = (payload.old as any)?.id;
+        if (oldId) {
+          setItems((current) => current.filter((b) => b.id !== oldId));
+        }
+      } else if (payload.eventType === "UPDATE") {
+        const updated = payload.new as any;
+        if (updated?.id) {
+          if (updated.status === "cancelled") {
+            setItems((current) => current.filter((b) => b.id !== updated.id));
+          } else {
+            setItems((current) => current.map((b) => b.id === updated.id ? { ...b, status: updated.status } : b));
+          }
+        }
+      }
+
+      setReload((value) => value + 1);
     }).subscribe();
 
     const walletChannel = supabase.channel("wallets-realtime").on("postgres_changes", { event: "*", schema: "public", table: "wallets" }, (payload) => {
@@ -541,13 +580,56 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       }
     }).subscribe();
 
+    // 2. Background Polling from Google Cloud SQL every 3.5s
+    // Ensures real-time updates even when database writes bypass Supabase websockets
+    const pollInterval = window.setInterval(async () => {
+      const start = new Date(date); start.setHours(0, 0, 0, 0);
+      const end = new Date(date); end.setHours(23, 59, 59, 999);
+      const result = await fetchBookingsAction(start.toISOString(), end.toISOString());
+      if (!result.success || !result.bookings) return;
+
+      const freshBookings = result.bookings as Booking[];
+      setItems((prevItems) => {
+        const prevIds = new Set(prevItems.map((b) => b.id));
+        const newArrivals = freshBookings.filter(
+          (fb) => !prevIds.has(fb.id) && fb.status !== "cancelled"
+        );
+
+        if (newArrivals.length > 0) {
+          playTennisHitSound();
+          for (const nb of newArrivals) {
+            const bookingId = nb.id;
+            setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
+            const existingTimer = timers.get(bookingId);
+            if (existingTimer) window.clearTimeout(existingTimer);
+            const timer = window.setTimeout(() => {
+              setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
+              timers.delete(bookingId);
+            }, 5000);
+            timers.set(bookingId, timer);
+          }
+        }
+        return freshBookings;
+      });
+
+      if (currentUser && currentUser.role !== "admin") {
+        getWalletAction().then((wRes) => {
+          if (wRes.success && wRes.enabled && wRes.balanceEur !== undefined) {
+            setWalletBalance(wRes.balanceEur);
+          }
+        });
+      }
+    }, 3500);
+
     return () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(walletChannel);
+      window.clearInterval(pollInterval);
       timers.forEach((timer) => window.clearTimeout(timer));
       timers.clear();
     };
-  }, [currentUser]);
+  }, [currentUser, date]);
+
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30_000);
