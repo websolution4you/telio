@@ -493,7 +493,17 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       const start = new Date(date); start.setHours(0, 0, 0, 0);
       const end = new Date(date); end.setHours(23, 59, 59, 999);
       const result = await fetchBookingsAction(start.toISOString(), end.toISOString());
-      if (active && result.success && result.bookings) setItems(result.bookings as Booking[]);
+      if (active && result.success && result.bookings) {
+        const fetched = result.bookings as Booking[];
+        setItems((prev) => {
+          const freshMap = new Map(fetched.map((b) => [b.id, b]));
+          // Keep any newly highlighted bookings if DB query hasn't returned them yet
+          const retainedHighlights = prev.filter(
+            (b) => highlightedVoiceBookings.includes(b.id) && !freshMap.has(b.id)
+          );
+          return [...freshMap.values(), ...retainedHighlights];
+        });
+      }
       if (active) setLoading(false);
     }
     load();
@@ -520,10 +530,14 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         playTennisHitSound();
 
         let notesObj: any = {};
-        try { notesObj = JSON.parse(raw.notes || "{}"); } catch {}
+        try {
+          notesObj = typeof raw.notes === "string" ? JSON.parse(raw.notes) : (raw.notes || {});
+        } catch {}
+
+        const resolvedCourtId = notesObj.courtId || raw.court_id || raw.courtId || "badminton-1";
         const mappedBooking: Booking = {
           id: raw.id,
-          courtId: notesObj.courtId || raw.court_id || "badminton-1",
+          courtId: resolvedCourtId,
           title: notesObj.notes || raw.customer_name || "Rezervácia",
           customerName: raw.customer_name || "Rezervácia",
           phone: raw.customer_phone || undefined,
@@ -536,9 +550,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         };
 
         setItems((current) => {
-          const exists = current.some((b) => b.id === mappedBooking.id);
-          if (exists) return current.map((b) => b.id === mappedBooking.id ? mappedBooking : b);
-          return [...current, mappedBooking];
+          const filtered = current.filter((b) => b.id !== mappedBooking.id);
+          return [...filtered, mappedBooking];
         });
 
         const bookingId = raw.id;
@@ -565,8 +578,6 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           }
         }
       }
-
-      setReload((value) => value + 1);
     }).subscribe();
 
     const walletChannel = supabase.channel("wallets-realtime").on("postgres_changes", { event: "*", schema: "public", table: "wallets" }, (payload) => {
