@@ -127,50 +127,13 @@ export default function NewBookingsHeader({
           aria-label="NTC Domov - Kalendár"
           title="Prejsť na kalendár rezervácií"
         >
-          {/* Mobile compact NTC brand with tennis ball as 'C' (< sm) */}
-          <div className="flex sm:hidden items-center gap-0.5 select-none py-1">
-            <span className="text-2xl font-black tracking-tighter text-white font-sans drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-              NT
-            </span>
-            <div className="relative flex items-center justify-center ml-0.5">
-              <svg viewBox="0 0 32 32" className="h-7 w-7 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]">
-                <defs>
-                  <radialGradient id="ntcMobileBallGrad" cx="35%" cy="30%" r="70%">
-                    <stop offset="0%" stopColor="#f7ff57" />
-                    <stop offset="60%" stopColor="#d2f500" />
-                    <stop offset="100%" stopColor="#9ec200" />
-                  </radialGradient>
-                </defs>
-                <circle cx="16" cy="16" r="14.5" fill="url(#ntcMobileBallGrad)" />
-                <path
-                  d="M 5,5 C 12,10 12,22 5,27"
-                  stroke="#ffffff"
-                  strokeWidth="2.4"
-                  strokeLinecap="round"
-                  opacity="0.95"
-                />
-                <path
-                  d="M 27,5 C 20,10 20,22 27,27"
-                  stroke="#ffffff"
-                  strokeWidth="2.4"
-                  strokeLinecap="round"
-                  opacity="0.95"
-                />
-                <text
-                  x="16"
-                  y="21.5"
-                  textAnchor="middle"
-                  fill="#0f172a"
-                  fontWeight="900"
-                  fontSize="16"
-                  fontFamily="system-ui, -apple-system, sans-serif"
-                  className="select-none"
-                >
-                  C
-                </text>
-              </svg>
-            </div>
-          </div>
+          {/* Mobile compact NTC brand logo (< sm) */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/ntc-mobile-logo.png"
+            alt="NTC"
+            className="block sm:hidden h-8 w-auto max-w-[95px] object-contain drop-shadow-[0_2px_5px_rgba(0,0,0,0.4)] select-none"
+          />
 
           {/* Desktop full official brand logo (sm:block) */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
