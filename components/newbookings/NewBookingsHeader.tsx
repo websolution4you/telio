@@ -119,21 +119,68 @@ export default function NewBookingsHeader({
         background: "linear-gradient(180deg, #1C1F24 0%, #333842 35%, #505764 70%, #6E7786 100%)",
       }}
     >
-      <div className="relative mx-auto flex min-h-[72px] max-w-[1500px] items-center justify-between gap-2 px-4 py-2.5 sm:min-h-[78px] sm:gap-4 sm:px-6 lg:px-8">
-        {/* NTC Logo / Official Brand directly matching reference screenshot */}
+      <div className="relative mx-auto flex min-h-[64px] max-w-[1500px] items-center justify-between gap-1.5 px-3 py-2 sm:min-h-[78px] sm:gap-4 sm:px-6 lg:px-8">
+        {/* NTC Logo / Official Brand */}
         <Link
           href="/newbookings"
           className="group flex shrink-0 items-center transition duration-200 hover:opacity-90 active:scale-[0.99]"
           aria-label="NTC Domov - Kalendár"
           title="Prejsť na kalendár rezervácií"
         >
+          {/* Mobile compact NTC brand with tennis ball as 'C' (< sm) */}
+          <div className="flex sm:hidden items-center gap-0.5 select-none py-1">
+            <span className="text-2xl font-black tracking-tighter text-white font-sans drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+              NT
+            </span>
+            <div className="relative flex items-center justify-center ml-0.5">
+              <svg viewBox="0 0 32 32" className="h-7 w-7 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]">
+                <defs>
+                  <radialGradient id="ntcMobileBallGrad" cx="35%" cy="30%" r="70%">
+                    <stop offset="0%" stopColor="#f7ff57" />
+                    <stop offset="60%" stopColor="#d2f500" />
+                    <stop offset="100%" stopColor="#9ec200" />
+                  </radialGradient>
+                </defs>
+                <circle cx="16" cy="16" r="14.5" fill="url(#ntcMobileBallGrad)" />
+                <path
+                  d="M 5,5 C 12,10 12,22 5,27"
+                  stroke="#ffffff"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  opacity="0.95"
+                />
+                <path
+                  d="M 27,5 C 20,10 20,22 27,27"
+                  stroke="#ffffff"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  opacity="0.95"
+                />
+                <text
+                  x="16"
+                  y="21.5"
+                  textAnchor="middle"
+                  fill="#0f172a"
+                  fontWeight="900"
+                  fontSize="16"
+                  fontFamily="system-ui, -apple-system, sans-serif"
+                  className="select-none"
+                >
+                  C
+                </text>
+              </svg>
+            </div>
+          </div>
+
+          {/* Desktop full official brand logo (sm:block) */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/ntc-official-logo.png"
             alt="Národné tenisové centrum"
-            className="h-5.5 sm:h-7 md:h-8 lg:h-[34px] w-auto max-w-[62vw] sm:max-w-none object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)] select-none"
+            className="hidden sm:block h-7 md:h-8 lg:h-[34px] w-auto object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)] select-none"
           />
         </Link>
+
 
         {/* Desktop Horizontal Navigation (md:flex) */}
         {currentUser ? (
@@ -412,41 +459,41 @@ export default function NewBookingsHeader({
           </nav>
         ) : (
           /* Neregistrovaný / Neautentifikovaný návštevník */
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {onAuthModal ? (
               <>
                 <button
                   type="button"
                   onClick={() => onAuthModal("register")}
-                  className="group flex cursor-pointer items-center gap-1.5 rounded-2xl border border-white/30 bg-white/95 px-3 py-2.5 text-xs font-bold text-slate-800 shadow-sm backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:bg-white sm:gap-2 sm:px-4 sm:text-sm"
+                  className="group flex cursor-pointer items-center gap-1 rounded-xl border border-white/30 bg-white/95 px-2.5 py-1.5 text-xs font-bold text-slate-800 shadow-sm backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:bg-white sm:gap-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-sm"
                 >
-                  <UserPlus className="h-4 w-4 text-slate-600 transition-transform duration-200 group-hover:scale-110" />
-                  <span>Registrovať sa</span>
+                  <UserPlus className="h-3.5 w-3.5 shrink-0 text-slate-600 transition-transform duration-200 group-hover:scale-110 sm:h-4 sm:w-4" />
+                  <span className="whitespace-nowrap">Registrovať sa</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => onAuthModal("login")}
-                  className="group flex cursor-pointer items-center gap-1.5 rounded-2xl border border-slate-900 bg-slate-950 px-3.5 py-2.5 text-xs font-bold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-slate-850 hover:shadow-lg active:translate-y-0 sm:gap-2 sm:px-5 sm:text-sm"
+                  className="group flex cursor-pointer items-center gap-1 rounded-xl border border-slate-900 bg-slate-950 px-2.5 py-1.5 text-xs font-bold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-slate-850 hover:shadow-lg active:translate-y-0 sm:gap-2 sm:rounded-2xl sm:px-5 sm:py-2.5 sm:text-sm"
                 >
-                  <LogIn className="h-4 w-4 text-[#CCFF00] transition-transform duration-200 group-hover:scale-110" />
-                  <span>Prihlásiť sa</span>
+                  <LogIn className="h-3.5 w-3.5 shrink-0 text-[#CCFF00] transition-transform duration-200 group-hover:scale-110 sm:h-4 sm:w-4" />
+                  <span className="whitespace-nowrap">Prihlásiť sa</span>
                 </button>
               </>
             ) : (
               <>
                 <Link
                   href="/newbookings?auth=register"
-                  className="group flex cursor-pointer items-center gap-1.5 rounded-2xl border border-white/30 bg-white/95 px-3 py-2.5 text-xs font-bold text-slate-800 shadow-sm backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:bg-white sm:gap-2 sm:px-4 sm:text-sm"
+                  className="group flex cursor-pointer items-center gap-1 rounded-xl border border-white/30 bg-white/95 px-2.5 py-1.5 text-xs font-bold text-slate-800 shadow-sm backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:bg-white sm:gap-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-sm"
                 >
-                  <UserPlus className="h-4 w-4 text-slate-600 transition-transform duration-200 group-hover:scale-110" />
-                  <span>Registrovať sa</span>
+                  <UserPlus className="h-3.5 w-3.5 shrink-0 text-slate-600 transition-transform duration-200 group-hover:scale-110 sm:h-4 sm:w-4" />
+                  <span className="whitespace-nowrap">Registrovať sa</span>
                 </Link>
                 <Link
                   href="/newbookings?auth=login"
-                  className="group flex cursor-pointer items-center gap-1.5 rounded-2xl border border-slate-900 bg-slate-950 px-3.5 py-2.5 text-xs font-bold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-slate-850 hover:shadow-lg active:translate-y-0 sm:gap-2 sm:px-5 sm:text-sm"
+                  className="group flex cursor-pointer items-center gap-1 rounded-xl border border-slate-900 bg-slate-950 px-2.5 py-1.5 text-xs font-bold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-slate-850 hover:shadow-lg active:translate-y-0 sm:gap-2 sm:rounded-2xl sm:px-5 sm:py-2.5 sm:text-sm"
                 >
-                  <LogIn className="h-4 w-4 text-[#CCFF00] transition-transform duration-200 group-hover:scale-110" />
-                  <span>Prihlásiť sa</span>
+                  <LogIn className="h-3.5 w-3.5 shrink-0 text-[#CCFF00] transition-transform duration-200 group-hover:scale-110 sm:h-4 sm:w-4" />
+                  <span className="whitespace-nowrap">Prihlásiť sa</span>
                 </Link>
               </>
             )}
