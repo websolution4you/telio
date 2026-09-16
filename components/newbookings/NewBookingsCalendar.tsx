@@ -931,10 +931,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         onTopUp={startTopUp}
         topUpLoading={topUpLoading}
       />
-      <main className="mx-auto max-w-[1500px] px-4 py-5 sm:px-6 lg:py-8">
-        <div className="mx-auto mb-6 flex w-full max-w-5xl flex-col items-center px-1 text-center sm:mb-8 sm:px-4">
-          <h1 className="max-w-4xl text-balance text-3xl font-semibold leading-[1.15] tracking-[-0.035em] text-slate-950 sm:text-4xl md:text-5xl" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>Komplexný rezervačný systém hlasového asistenta Telio</h1>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600 sm:mt-5 sm:text-base sm:leading-7">Webové aj hlasové rezervácie sa zobrazujú v jednom aktuálnom a prehľadnom kalendári.</p>
+      <main className="mx-auto max-w-[1500px] px-2 py-2 sm:px-6 sm:py-5 lg:py-8">
+        <div className="mx-auto mb-2 flex w-full max-w-5xl flex-col items-center px-1 text-center sm:mb-8 sm:px-4">
+          <h1 className="max-w-4xl text-balance text-lg font-bold leading-tight tracking-tight text-slate-950 sm:text-4xl md:text-5xl" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>Komplexný rezervačný systém hlasového asistenta Telio</h1>
+          <p className="mt-0.5 max-w-2xl text-[11px] leading-tight text-slate-600 sm:mt-5 sm:text-base sm:leading-7">Webové aj hlasové rezervácie sa zobrazujú v jednom aktuálnom a prehľadnom kalendári.</p>
         </div>
         <AnimatePresence mode="wait">
           {notice && (
@@ -944,11 +944,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -12, scale: 0.98, transition: { duration: 0.35, ease: "easeInOut" } }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="relative mb-5 overflow-hidden rounded-2xl border border-amber-200/90 bg-gradient-to-r from-yellow-50/95 via-amber-50/90 to-orange-50/95 p-4 text-left shadow-[0_6px_20px_rgba(245,158,11,0.12)] backdrop-blur-sm"
+              className="relative mb-2.5 sm:mb-5 overflow-hidden rounded-xl sm:rounded-2xl border border-amber-200/90 bg-gradient-to-r from-yellow-50/95 via-amber-50/90 to-orange-50/95 p-2.5 sm:p-4 text-left shadow-[0_6px_20px_rgba(245,158,11,0.12)] backdrop-blur-sm"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-900 text-sm">
+                  <span className="grid h-6 w-6 sm:h-7 sm:w-7 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-900 text-xs sm:text-sm">
                     🎾
                   </span>
                   <p className="text-xs sm:text-sm font-bold text-amber-950">{notice}</p>
@@ -971,47 +971,63 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             </motion.div>
           )}
         </AnimatePresence>
-        <section className="overflow-hidden rounded-3xl border-2 border-slate-300 bg-white shadow-[0_20px_55px_rgba(15,23,42,0.10)]">
-          <div className="border-b border-slate-200 p-4 sm:p-6">
-            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">{sports.map((item) => <button key={item.id} onClick={() => setSport(item.id)} className={`cursor-pointer rounded-xl border p-3 text-sm font-bold transition duration-200 ${sport === item.id ? "border-slate-950 bg-slate-950 text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 shadow-[0_2px_8px_rgba(15,23,42,0.04)] hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 hover:shadow-sm"}`}>{item.label}</button>)}</div>
-            <div className="mt-5 flex flex-col items-center justify-between gap-4 border-t border-slate-100 pt-5 md:flex-row">
+        <section className="overflow-hidden rounded-xl sm:rounded-3xl border sm:border-2 border-slate-300 bg-white shadow-sm sm:shadow-[0_20px_55px_rgba(15,23,42,0.10)]">
+          <div className="border-b border-slate-200 p-2 sm:p-6">
+            <div className="grid grid-cols-2 gap-1.5 lg:grid-cols-4 sm:gap-2">
+              {sports.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setSport(item.id)}
+                  className={`cursor-pointer rounded-lg sm:rounded-xl border py-1.5 px-2 sm:p-3 text-xs sm:text-sm font-semibold sm:font-bold transition duration-200 ${
+                    sport === item.id
+                      ? "border-slate-950 bg-slate-950 text-white shadow-xs sm:shadow-sm"
+                      : "border-slate-200 bg-white text-slate-600 shadow-2xs hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 hover:shadow-xs"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-1.5 border-t border-slate-100 pt-2 sm:mt-5 sm:gap-4 sm:pt-5">
               <button
                 onClick={() => setDate(new Date())}
-                className="cursor-pointer rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold shadow-xs hover:border-slate-400 hover:bg-slate-50 transition"
+                className="shrink-0 cursor-pointer rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm sm:font-bold sm:shadow-xs"
               >
                 Dnes
               </button>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-1 items-center justify-center gap-1 sm:flex-initial sm:gap-2">
                 <button
                   onClick={() => moveDate(-1)}
-                  className="cursor-pointer rounded-xl border border-slate-200 p-3 shadow-xs hover:border-slate-400 hover:bg-slate-50 transition"
+                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 p-1 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:p-3 sm:shadow-xs"
                   aria-label="Predchádzajúci deň"
                 >
-                  <ChevronLeft className="h-4 w-4 text-slate-700" />
+                  <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-700" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setDatePickerOpen(true)}
-                  className="flex min-w-[200px] cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-bold text-slate-800 shadow-xs transition hover:border-emerald-300 hover:bg-emerald-50/50 hover:text-emerald-700 sm:min-w-[280px]"
+                  className="flex flex-1 sm:flex-initial min-w-0 sm:min-w-[280px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-center text-xs font-semibold text-slate-800 shadow-2xs transition hover:border-emerald-300 hover:bg-emerald-50/50 hover:text-emerald-700 sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm sm:font-bold sm:shadow-xs"
                   aria-haspopup="dialog"
                 >
-                  <CalendarDays className="h-4.5 w-4.5 text-emerald-600" />
-                  {new Intl.DateTimeFormat("sk-SK", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  }).format(date)}
+                  <CalendarDays className="h-3.5 w-3.5 shrink-0 text-emerald-600 sm:h-4.5 sm:w-4.5" />
+                  <span className="truncate">
+                    {new Intl.DateTimeFormat("sk-SK", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    }).format(date)}
+                  </span>
                 </button>
                 <button
                   onClick={() => moveDate(1)}
-                  className="cursor-pointer rounded-xl border border-slate-200 p-3 shadow-xs hover:border-slate-400 hover:bg-slate-50 transition"
+                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 p-1 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:p-3 sm:shadow-xs"
                   aria-label="Nasledujúci deň"
                 >
-                  <ChevronRight className="h-4 w-4 text-slate-700" />
+                  <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-700" />
                 </button>
               </div>
-              <span className="flex items-center gap-2 text-xs font-medium text-slate-500">
+              <span className="hidden md:flex items-center gap-1.5 text-xs font-medium text-slate-500 shrink-0">
                 <Clock className="h-4 w-4 text-slate-400" /> Max. 14 dní
               </span>
             </div>
