@@ -127,20 +127,11 @@ export default function NewBookingsHeader({
           aria-label="NTC Domov - Kalendár"
           title="Prejsť na kalendár rezervácií"
         >
-          {/* Mobile compact NTC brand logo (< sm) */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/ntc-mobile-logo.png"
-            alt="NTC"
-            className="block sm:hidden h-8 w-auto max-w-[95px] object-contain drop-shadow-[0_2px_5px_rgba(0,0,0,0.4)] select-none"
-          />
-
-          {/* Desktop full official brand logo (sm:block) */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/ntc-official-logo.png"
+            src="/ntc-brand-logo.png"
             alt="Národné tenisové centrum"
-            className="hidden sm:block h-7 md:h-8 lg:h-[34px] w-auto object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)] select-none"
+            className="h-9 sm:h-11 md:h-12 lg:h-[50px] w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)] select-none"
           />
         </Link>
 
