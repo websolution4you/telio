@@ -675,7 +675,52 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   }, [now, isToday, date]);
   const currentTimeLabel = new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" }).format(now);
 
-    const moveDate = (days: number) => {
+  const calendarScrollRef = useRef<HTMLDivElement>(null);
+  const timeGridRef = useRef<HTMLDivElement>(null);
+
+  const scrollToCurrentTime = useCallback((smooth = false) => {
+    const container = calendarScrollRef.current;
+    const timeGrid = timeGridRef.current;
+    if (!container || !timeGrid) return;
+
+    if (isToday && currentTimePercent > 0) {
+      const timeGridWidth = timeGrid.offsetWidth || (hours.length * timeColumnMinWidth);
+      const lineLeftPx = timeGridWidth * (currentTimePercent / 100);
+      const targetScroll = Math.max(0, lineLeftPx - 6);
+
+      if (smooth) {
+        container.scrollTo({ left: targetScroll, behavior: "smooth" });
+      } else {
+        container.scrollLeft = targetScroll;
+      }
+    } else if (!isToday) {
+      if (smooth) {
+        container.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        container.scrollLeft = 0;
+      }
+    }
+  }, [isToday, currentTimePercent, hours.length, timeColumnMinWidth]);
+
+  useEffect(() => {
+    scrollToCurrentTime(false);
+    const t1 = window.setTimeout(() => scrollToCurrentTime(false), 80);
+    const t2 = window.setTimeout(() => scrollToCurrentTime(false), 260);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [date, sport, scrollToCurrentTime]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (isToday) scrollToCurrentTime(false);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [isToday, scrollToCurrentTime]);
+
+  const moveDate = (days: number) => {
     const next = new Date(date); next.setDate(next.getDate() + days); next.setHours(0, 0, 0, 0);
     if (next < today) return;
     if (next > maxDate) return setNotice(`Rezervácie sú pre vašu rolu možné maximálne ${bookingHorizonDays} dní vopred.`);
@@ -990,7 +1035,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             </div>
             <div className="mt-2 flex items-center justify-between gap-1.5 border-t border-slate-100 pt-2 sm:mt-5 sm:gap-4 sm:pt-5">
               <button
-                onClick={() => setDate(new Date())}
+                onClick={() => {
+                  setDate(new Date());
+                  setTimeout(() => scrollToCurrentTime(true), 60);
+                }}
                 className="shrink-0 cursor-pointer rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm sm:font-bold sm:shadow-xs"
               >
                 Dnes
@@ -1032,11 +1080,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               </span>
             </div>
           </div>
-          <div className="overflow-auto border-t-2 border-slate-200 bg-white">
+          <div ref={calendarScrollRef} className="overflow-auto border-t-2 border-slate-200 bg-white">
             <div className="w-full" style={{ minWidth: `${calendarMinWidth}px` }}>
               <div className="grid border-b border-slate-200 bg-slate-50/80" style={{ gridTemplateColumns: calendarColumns }}>
                 <b className="sticky left-0 z-30 flex items-center border-r border-slate-200 bg-slate-50 px-2 sm:px-2.5 py-3 text-[11px] sm:text-xs font-extrabold tracking-wide text-slate-600 uppercase">KURT</b>
-                <div className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
+                <div ref={timeGridRef} className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
                   {hours.map((hour) => (
                     <div key={hour} className="py-3.5 text-center text-xs font-bold text-slate-500 tracking-wide">{hour}:00</div>
                   ))}
