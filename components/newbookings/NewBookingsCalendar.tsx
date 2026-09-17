@@ -677,15 +677,21 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
   const calendarScrollRef = useRef<HTMLDivElement>(null);
   const timeGridRef = useRef<HTMLDivElement>(null);
+  const initialScrollDoneRef = useRef(false);
 
   const scrollToCurrentTime = useCallback((smooth = false) => {
     const container = calendarScrollRef.current;
     const timeGrid = timeGridRef.current;
     if (!container || !timeGrid) return;
 
-    if (isToday && currentTimePercent > 0) {
+    const currentNow = new Date();
+    const elapsedMinutes = (currentNow.getHours() - openingHours.startHour) * 60 + currentNow.getMinutes();
+    const totalMinutes = (openingHours.endHour - openingHours.startHour) * 60;
+    const percent = Math.max(0, Math.min(100, (elapsedMinutes / totalMinutes) * 100));
+
+    if (percent > 0) {
       const timeGridWidth = timeGrid.offsetWidth || (hours.length * timeColumnMinWidth);
-      const lineLeftPx = timeGridWidth * (currentTimePercent / 100);
+      const lineLeftPx = timeGridWidth * (percent / 100);
       const targetScroll = Math.max(0, lineLeftPx - 6);
 
       if (smooth) {
@@ -693,32 +699,22 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       } else {
         container.scrollLeft = targetScroll;
       }
-    } else if (!isToday) {
-      if (smooth) {
-        container.scrollTo({ left: 0, behavior: "smooth" });
-      } else {
-        container.scrollLeft = 0;
-      }
     }
-  }, [isToday, currentTimePercent, hours.length, timeColumnMinWidth]);
+  }, [hours.length, timeColumnMinWidth]);
 
+  // Vykoná sa IBA JEDENKRÁT pri prvom načítaní/otvorení stránky kalendára
   useEffect(() => {
+    if (initialScrollDoneRef.current) return;
+    initialScrollDoneRef.current = true;
+
     scrollToCurrentTime(false);
     const t1 = window.setTimeout(() => scrollToCurrentTime(false), 80);
-    const t2 = window.setTimeout(() => scrollToCurrentTime(false), 260);
+    const t2 = window.setTimeout(() => scrollToCurrentTime(false), 300);
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
     };
-  }, [date, sport, scrollToCurrentTime]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (isToday) scrollToCurrentTime(false);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [isToday, scrollToCurrentTime]);
+  }, [scrollToCurrentTime]);
 
   const moveDate = (days: number) => {
     const next = new Date(date); next.setDate(next.getDate() + days); next.setHours(0, 0, 0, 0);
