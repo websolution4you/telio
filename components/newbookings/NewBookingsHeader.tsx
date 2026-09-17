@@ -248,16 +248,16 @@ export default function NewBookingsHeader({
                       <Link
                         href="/dashboard/admin-transactions"
                         onClick={() => setAdminMenuOpen(false)}
-                        className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium transition duration-150 group ${activeTab === "transactions"
-                            ? "bg-slate-100 text-slate-950 font-semibold"
-                            : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                        className={`flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 text-xs font-medium transition-colors duration-150 group ${activeTab === "transactions"
+                            ? "bg-slate-100 text-slate-950 font-semibold border-slate-200/80"
+                            : "text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950"
                           }`}
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150 shadow-2xs">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
                           <ReceiptText className="h-4 w-4" />
                         </span>
                         <div className="flex flex-col text-left">
-                          <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950">Transakcie</span>
+                          <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Transakcie</span>
                           <span className="text-[10px] font-normal text-slate-400">Prehľad platieb a kreditov</span>
                         </div>
                       </Link>
@@ -268,12 +268,12 @@ export default function NewBookingsHeader({
                       <button
                         type="button"
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition duration-150 group cursor-pointer text-left"
+                        className="w-full flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2 text-xs font-medium text-red-600 hover:border-red-200/70 hover:bg-red-50 hover:text-red-700 transition-colors duration-150 group cursor-pointer text-left"
                       >
-                        <span className="grid h-7 w-7 place-items-center rounded-lg bg-red-100/80 text-red-600 group-hover:bg-red-600 group-hover:text-white transition duration-150 shadow-2xs">
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-red-100/80 text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors duration-150 shadow-2xs">
                           <LogOut className="h-3.5 w-3.5" />
                         </span>
-                        <span className="text-xs font-medium text-red-700">Odhlásiť sa</span>
+                        <span className="text-xs font-medium text-red-700 transition-colors duration-150">Odhlásiť sa</span>
                       </button>
                     </div>
                   )}
@@ -359,17 +359,17 @@ export default function NewBookingsHeader({
                       <Link
                         href="/dashboard/newbookings"
                         onClick={() => setClientMenuOpen(false)}
-                        className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium transition duration-150 group ${
+                        className={`flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 text-xs font-medium transition-colors duration-150 group ${
                           activeTab === "stats"
-                            ? "bg-slate-100 text-slate-950 font-semibold"
-                            : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                            ? "bg-slate-100 text-slate-950 font-semibold border-slate-200/80"
+                            : "text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950"
                         }`}
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150 shadow-2xs">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
                           <CalendarCheck className="h-4 w-4" />
                         </span>
                         <div className="flex flex-col text-left">
-                          <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950">Moje rezervácie</span>
+                          <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Moje rezervácie</span>
                           <span className="text-[10px] font-normal text-slate-400">Prehľad a štatistiky termínov</span>
                         </div>
                       </Link>
@@ -378,17 +378,17 @@ export default function NewBookingsHeader({
                       <Link
                         href="/dashboard/transactions"
                         onClick={() => setClientMenuOpen(false)}
-                        className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium transition duration-150 group ${
+                        className={`flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 text-xs font-medium transition-colors duration-150 group ${
                           activeTab === "transactions"
-                            ? "bg-slate-100 text-slate-950 font-semibold"
-                            : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                            ? "bg-slate-100 text-slate-950 font-semibold border-slate-200/80"
+                            : "text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950"
                         }`}
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150 shadow-2xs">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
                           <ReceiptText className="h-4 w-4" />
                         </span>
                         <div className="flex flex-col text-left">
-                          <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950">Moje transakcie</span>
+                          <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Moje transakcie</span>
                           <span className="text-[10px] font-normal text-slate-400">História peňaženky a platieb</span>
                         </div>
                       </Link>
@@ -399,12 +399,12 @@ export default function NewBookingsHeader({
                       <button
                         type="button"
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition duration-150 group cursor-pointer text-left"
+                        className="w-full flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2 text-xs font-medium text-red-600 hover:border-red-200/70 hover:bg-red-50 hover:text-red-700 transition-colors duration-150 group cursor-pointer text-left"
                       >
-                        <span className="grid h-7 w-7 place-items-center rounded-lg bg-red-100/80 text-red-600 group-hover:bg-red-600 group-hover:text-white transition duration-150 shadow-2xs">
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-red-100/80 text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors duration-150 shadow-2xs">
                           <LogOut className="h-3.5 w-3.5" />
                         </span>
-                        <span className="text-xs font-medium text-red-700">Odhlásiť sa</span>
+                        <span className="text-xs font-medium text-red-700 transition-colors duration-150">Odhlásiť sa</span>
                       </button>
                     </div>
                   )}
@@ -539,12 +539,12 @@ export default function NewBookingsHeader({
                   <Link
                     href="/newbookings"
                     onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition duration-150 group"
+                    className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
                   >
-                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150">
                       <CalendarDays className="h-4 w-4" />
                     </span>
-                    <span>Kalendár rezervácií</span>
+                    <span className="transition-colors duration-150">Kalendár rezervácií</span>
                   </Link>
 
                   {currentUser.role === "admin" ? (
@@ -552,45 +552,45 @@ export default function NewBookingsHeader({
                       <Link
                         href="/dashboard/users"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition duration-150 group"
+                        className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150">
                           <Users className="h-4 w-4" />
                         </span>
-                        <span>Používatelia</span>
+                        <span className="transition-colors duration-150">Používatelia</span>
                       </Link>
 
                       <Link
                         href="/dashboard/newbookings"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition duration-150 group"
+                        className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150">
                           <LayoutDashboard className="h-4 w-4" />
                         </span>
-                        <span>Štatistiky</span>
+                        <span className="transition-colors duration-150">Štatistiky</span>
                       </Link>
 
                       <Link
                         href="/dashboard/admin-transactions"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition duration-150 group"
+                        className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150">
                           <ReceiptText className="h-4 w-4" />
                         </span>
-                        <span>Transakcie</span>
+                        <span className="transition-colors duration-150">Transakcie</span>
                       </Link>
 
                       <Link
                         href="/dashboard/users-roles"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition duration-150 group"
+                        className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150">
                           <Settings className="h-4 w-4" />
                         </span>
-                        <span>Nastavenia</span>
+                        <span className="transition-colors duration-150">Nastavenia</span>
                       </Link>
                     </>
                   ) : (
@@ -598,23 +598,23 @@ export default function NewBookingsHeader({
                       <Link
                         href="/dashboard/newbookings"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition duration-150 group"
+                        className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150">
                           <CalendarCheck className="h-4 w-4" />
                         </span>
-                        <span>Moje rezervácie</span>
+                        <span className="transition-colors duration-150">Moje rezervácie</span>
                       </Link>
 
                       <Link
                         href="/dashboard/transactions"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition duration-150 group"
+                        className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150">
                           <ReceiptText className="h-4 w-4" />
                         </span>
-                        <span>Moje transakcie</span>
+                        <span className="transition-colors duration-150">Moje transakcie</span>
                       </Link>
                     </>
                   )}
@@ -622,12 +622,12 @@ export default function NewBookingsHeader({
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-red-600 hover:bg-red-50 transition duration-150 group cursor-pointer"
+                    className="w-full flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-red-600 hover:border-red-200/70 hover:bg-red-50 hover:text-red-700 transition-colors duration-150 group cursor-pointer text-left"
                   >
-                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white transition duration-150">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors duration-150">
                       <LogOut className="h-4 w-4" />
                     </span>
-                    <span>Odhlásiť sa</span>
+                    <span className="transition-colors duration-150">Odhlásiť sa</span>
                   </button>
                 </div>
               </div>
