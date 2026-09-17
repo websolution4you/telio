@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
   CalendarCheck,
+  CalendarDays,
   ChartLine,
   ChevronDown,
   CircleUser,
@@ -239,7 +240,7 @@ export default function NewBookingsHeader({
                         </div>
                         <div className="min-w-0 flex-1">
                           <span className="block truncate text-xs font-semibold text-slate-900">{userName}</span>
-                          <span className="block truncate text-[10.5px] font-normal text-slate-500">Administrátor</span>
+                          <span className="block truncate text-[10.5px] font-bold text-[#65a30d]">Administrátor</span>
                         </div>
                       </div>
 
@@ -496,7 +497,7 @@ export default function NewBookingsHeader({
                   <div className="min-w-0 flex-1">
                     <b className="block truncate text-sm font-bold text-slate-900">{userName}</b>
                     {currentUser.role === "admin" ? (
-                      <span className="block truncate text-[11px] font-semibold text-indigo-600">
+                      <span className="block truncate text-[11px] font-bold text-[#65a30d]">
                         Administrátor
                       </span>
                     ) : (
@@ -541,7 +542,7 @@ export default function NewBookingsHeader({
                     className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition duration-150 group"
                   >
                     <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150">
-                      🎾
+                      <CalendarDays className="h-4 w-4" />
                     </span>
                     <span>Kalendár rezervácií</span>
                   </Link>
@@ -551,9 +552,9 @@ export default function NewBookingsHeader({
                       <Link
                         href="/dashboard/users"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-cyan-50 hover:text-cyan-700 transition duration-150 group"
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition duration-150 group"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-cyan-50 text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white transition duration-150">
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150">
                           <Users className="h-4 w-4" />
                         </span>
                         <span>Používatelia</span>
@@ -562,9 +563,9 @@ export default function NewBookingsHeader({
                       <Link
                         href="/dashboard/newbookings"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition duration-150 group"
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition duration-150 group"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition duration-150">
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150">
                           <LayoutDashboard className="h-4 w-4" />
                         </span>
                         <span>Štatistiky</span>
@@ -573,7 +574,7 @@ export default function NewBookingsHeader({
                       <Link
                         href="/dashboard/admin-transactions"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition duration-150 group"
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition duration-150 group"
                       >
                         <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150">
                           <ReceiptText className="h-4 w-4" />
@@ -584,9 +585,9 @@ export default function NewBookingsHeader({
                       <Link
                         href="/dashboard/users-roles"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 transition duration-150 hover:bg-violet-50 hover:text-violet-700 group"
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition duration-150 group"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white transition duration-150">
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150">
                           <Settings className="h-4 w-4" />
                         </span>
                         <span>Nastavenia</span>
@@ -597,9 +598,9 @@ export default function NewBookingsHeader({
                       <Link
                         href="/dashboard/newbookings"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition duration-150 group"
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition duration-150 group"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition duration-150">
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150">
                           <CalendarCheck className="h-4 w-4" />
                         </span>
                         <span>Moje rezervácie</span>
@@ -608,7 +609,7 @@ export default function NewBookingsHeader({
                       <Link
                         href="/dashboard/transactions"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition duration-150 group"
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-950 transition duration-150 group"
                       >
                         <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition duration-150">
                           <ReceiptText className="h-4 w-4" />
