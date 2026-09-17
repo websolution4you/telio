@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, ArrowLeft, CalendarDays, Check, Loader2, Users, Wrench, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, Loader2, Users, Wrench, X } from "lucide-react";
 import { createBookingAction, fetchAdminDashboardDataAction } from "@/app/actions/bookings";
 import AdminCallHistory from "./AdminCallHistory";
 
@@ -13,18 +13,6 @@ type Stats = { pastHoursThisMonth?: number; futureHoursThisMonth?: number; pastR
 const time = (value: string) => new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 const date = (value: string) => new Intl.DateTimeFormat("sk-SK").format(new Date(value));
 const court = (value: string) => value.replace("tennis-clay", "Antuka").replace("badminton", "Bedminton").replace("tennis", "Tenis").replace("squash", "Squash").replace("-", " ");
-
-function Metric({ label, value, icon: Icon, color }: { label: string; value: string; icon: typeof Activity; color: string }) {
-  return (
-    <div className="rounded-3xl border border-slate-200/90 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)] transition hover:shadow-md">
-      <span className={`mb-4 grid h-10 w-10 place-items-center rounded-2xl ${color} shadow-2xs`}>
-        <Icon className="h-5 w-5" />
-      </span>
-      <p className="text-xs sm:text-sm font-medium text-slate-500">{label}</p>
-      <strong className="mt-1 block text-2xl sm:text-3xl font-bold tracking-tight text-slate-950">{value}</strong>
-    </div>
-  );
-}
 
 export default function NewBookingsAdminDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -144,57 +132,52 @@ export default function NewBookingsAdminDashboard() {
         </button>
       )}
 
-      {/* Metriky */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <Metric
-          label="Odhadované tržby"
-          value={`${((stats.pastRevenueThisMonth || 0) + (stats.futureRevenueThisMonth || 0)).toFixed(0)} €`}
-          icon={Activity}
-          color="bg-emerald-100 text-emerald-700"
-        />
-        <Metric
-          label="Zrealizované"
-          value={`${(stats.pastHoursThisMonth || 0).toFixed(1)} h`}
-          icon={Activity}
-          color="bg-cyan-100 text-cyan-700"
-        />
-        <Metric
-          label="Plánované"
-          value={`${(stats.futureHoursThisMonth || 0).toFixed(1)} h`}
-          icon={CalendarDays}
-          color="bg-indigo-100 text-indigo-700"
-        />
-        <Metric
-          label="Rezervácie"
-          value={String(stats.totalBookings || 0)}
-          icon={CalendarDays}
-          color="bg-violet-100 text-violet-700"
-        />
-        <Metric
-          label="Aktívni zákazníci"
-          value={String(stats.activeCustomers || 0)}
-          icon={Users}
-          color="bg-amber-100 text-amber-700"
-        />
-      </div>
-
       {/* Vyťaženosť a VIP zákazníci */}
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr] xl:grid-cols-[1.7fr_1fr]">
         <section className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
-          <h2 className="mb-4 text-lg sm:text-xl font-bold tracking-tight text-slate-950">Vyťaženosť kurtov</h2>
-          <div className="overflow-x-auto">
-            <div className="min-w-[620px] space-y-1">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <CalendarDays className="h-5 w-5 text-emerald-600" />
+                <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-950">Vyťaženosť kurtov</h2>
+              </div>
+              <p className="mt-0.5 text-xs text-slate-500">Týždenný rozptyl rezervácií od 7:00 do 22:00</p>
+            </div>
+            {/* Legenda vyťaženosti */}
+            <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+              <span>Menej</span>
+              <span className="h-3 w-3 rounded-xs bg-emerald-500/10 border border-emerald-500/20" />
+              <span className="h-3 w-3 rounded-xs bg-emerald-500/40" />
+              <span className="h-3 w-3 rounded-xs bg-emerald-500/70" />
+              <span className="h-3 w-3 rounded-xs bg-emerald-500" />
+              <span>Viac</span>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto pb-1">
+            <div className="min-w-[620px] space-y-1.5">
+              {/* Hodiny na vrchu kalendára */}
+              <div className="grid items-center gap-1 text-[10px] font-bold text-slate-400" style={{ gridTemplateColumns: "32px repeat(16, 1fr)" }}>
+                <span className="text-center"></span>
+                {Array.from({ length: 16 }, (_, offset) => (
+                  <span key={offset} className="text-center tracking-tight">
+                    {offset + 7}h
+                  </span>
+                ))}
+              </div>
+
+              {/* Riadky pre jednotlivé dni v týždni */}
               {["Po", "Ut", "St", "Št", "Pi", "So", "Ne"].map((day, dayIndex) => (
-                <div key={day} className="grid items-center gap-1" style={{ gridTemplateColumns: "30px repeat(16, 1fr)" }}>
-                  <b className="text-xs font-bold text-slate-500">{day}</b>
+                <div key={day} className="grid items-center gap-1" style={{ gridTemplateColumns: "32px repeat(16, 1fr)" }}>
+                  <b className="text-center text-xs font-bold text-slate-600">{day}</b>
                   {Array.from({ length: 16 }, (_, offset) => {
                     const count = stats.heatmap?.[dayIndex]?.[offset + 7] || 0;
                     return (
                       <span
                         key={offset}
-                        className="h-7 rounded-md bg-emerald-500 transition-opacity"
-                        style={{ opacity: count ? Math.max(0.2, count / maxHeat) : 0.06 }}
-                        title={`${offset + 7}:00 — ${count} rezervácií`}
+                        className="h-7 rounded-md bg-emerald-500 transition-all hover:scale-105"
+                        style={{ opacity: count ? Math.max(0.2, count / maxHeat) : 0.07 }}
+                        title={`${day} ${offset + 7}:00 — ${count} rezervácií`}
                       />
                     );
                   })}
@@ -202,28 +185,72 @@ export default function NewBookingsAdminDashboard() {
               ))}
             </div>
           </div>
+
+          {/* Legenda na mobile */}
+          <div className="mt-3 flex sm:hidden items-center justify-end gap-1.5 text-[10px] font-medium text-slate-500">
+            <span>Menej</span>
+            <span className="h-2.5 w-2.5 rounded-xs bg-emerald-500/10 border border-emerald-500/20" />
+            <span className="h-2.5 w-2.5 rounded-xs bg-emerald-500/40" />
+            <span className="h-2.5 w-2.5 rounded-xs bg-emerald-500/70" />
+            <span className="h-2.5 w-2.5 rounded-xs bg-emerald-500" />
+            <span>Viac</span>
+          </div>
         </section>
 
         <section className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
-          <h2 className="mb-4 text-lg sm:text-xl font-bold tracking-tight text-slate-950">VIP zákazníci</h2>
-          <div className="space-y-2.5">
-            {(stats.topCustomers || []).map((customer, index) => (
-              <div
-                key={customer.name}
-                className="flex items-center justify-between rounded-2xl bg-slate-50/80 border border-slate-100 p-3 transition hover:bg-slate-100/70"
-              >
-                <span className="flex items-center gap-3">
-                  <span className="grid h-8 w-8 place-items-center rounded-xl bg-indigo-100 text-xs font-bold text-indigo-700 shadow-2xs">
-                    {index + 1}
-                  </span>
-                  <strong className="text-sm font-bold text-slate-900 capitalize">{customer.name}</strong>
-                </span>
-                <span className="text-right">
-                  <strong className="block text-sm font-bold text-emerald-600">{customer.revenue.toFixed(2)} €</strong>
-                  <span className="text-xs text-slate-400">{customer.hours.toFixed(1)} h</span>
-                </span>
+          {/* Hlavička VIP zákazníkov s údajom Aktívni zákazníci vpravo */}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-950">VIP zákazníci</h2>
+              <p className="text-xs text-slate-500">Najaktívnejší hráči tento mesiac</p>
+            </div>
+
+            {/* Údaj Aktívni zákazníci presunutý do pravej časti */}
+            <div className="flex items-center gap-2.5 rounded-2xl border border-amber-200/80 bg-gradient-to-r from-amber-50 to-orange-50/60 px-3.5 py-1.5 shadow-2xs">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-800 shadow-2xs">
+                <Users className="h-4 w-4" />
+              </span>
+              <div className="text-left sm:text-right">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Aktívni zákazníci</span>
+                <strong className="block text-base sm:text-lg font-extrabold leading-tight text-slate-950">
+                  {stats.activeCustomers || 0}
+                </strong>
               </div>
-            ))}
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            {(!stats.topCustomers || stats.topCustomers.length === 0) && (
+              <p className="py-6 text-center text-xs text-slate-400">Tento mesiac zatiaľ nie sú zaznamenané rezervácie.</p>
+            )}
+            {(stats.topCustomers || []).map((customer, index) => {
+              const badgeClass =
+                index === 0
+                  ? "bg-amber-100 text-amber-800 border border-amber-300 font-black"
+                  : index === 1
+                  ? "bg-slate-200 text-slate-700 border border-slate-300 font-bold"
+                  : index === 2
+                  ? "bg-orange-100 text-orange-800 border border-orange-300 font-bold"
+                  : "bg-slate-100 text-slate-600 border border-slate-200 font-semibold";
+
+              return (
+                <div
+                  key={customer.name}
+                  className="flex items-center justify-between rounded-2xl bg-slate-50/80 border border-slate-100 p-3 transition hover:bg-slate-100/80"
+                >
+                  <span className="flex items-center gap-3">
+                    <span className={`grid h-7 w-7 sm:h-8 sm:w-8 place-items-center rounded-xl text-xs shadow-2xs ${badgeClass}`}>
+                      {index + 1}
+                    </span>
+                    <strong className="text-xs sm:text-sm font-bold text-slate-900 capitalize">{customer.name}</strong>
+                  </span>
+                  <span className="text-right">
+                    <strong className="block text-xs sm:text-sm font-bold text-emerald-600">{customer.revenue.toFixed(2)} €</strong>
+                    <span className="text-[11px] text-slate-400">{customer.hours.toFixed(1)} h</span>
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </section>
       </div>
