@@ -223,34 +223,23 @@ export default function NewBookingsAdminDashboard() {
             {(!stats.topCustomers || stats.topCustomers.length === 0) && (
               <p className="py-6 text-center text-xs text-slate-400">Tento mesiac zatiaľ nie sú zaznamenané rezervácie.</p>
             )}
-            {(stats.topCustomers || []).map((customer, index) => {
-              const badgeClass =
-                index === 0
-                  ? "bg-amber-100 text-amber-800 border border-amber-300 font-black"
-                  : index === 1
-                  ? "bg-slate-200 text-slate-700 border border-slate-300 font-bold"
-                  : index === 2
-                  ? "bg-orange-100 text-orange-800 border border-orange-300 font-bold"
-                  : "bg-slate-100 text-slate-600 border border-slate-200 font-semibold";
-
-              return (
-                <div
-                  key={customer.name}
-                  className="flex items-center justify-between rounded-2xl bg-slate-50/80 border border-slate-100 p-3 transition hover:bg-slate-100/80"
-                >
-                  <span className="flex items-center gap-3">
-                    <span className={`grid h-7 w-7 sm:h-8 sm:w-8 place-items-center rounded-xl text-xs shadow-2xs ${badgeClass}`}>
-                      {index + 1}
-                    </span>
-                    <strong className="text-xs sm:text-sm font-bold text-slate-900 capitalize">{customer.name}</strong>
+            {(stats.topCustomers || []).map((customer, index) => (
+              <div
+                key={customer.name}
+                className="flex items-center justify-between rounded-2xl bg-slate-50/80 border border-slate-100 p-3 transition hover:bg-slate-100/80"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="grid h-7 w-7 sm:h-8 sm:w-8 place-items-center rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 shadow-2xs">
+                    {index + 1}
                   </span>
-                  <span className="text-right">
-                    <strong className="block text-xs sm:text-sm font-bold text-emerald-600">{customer.revenue.toFixed(2)} €</strong>
-                    <span className="text-[11px] text-slate-400">{customer.hours.toFixed(1)} h</span>
-                  </span>
-                </div>
-              );
-            })}
+                  <strong className="text-xs sm:text-sm font-bold text-slate-900 capitalize">{customer.name}</strong>
+                </span>
+                <span className="text-right">
+                  <strong className="block text-xs sm:text-sm font-bold text-emerald-600">{customer.revenue.toFixed(2)} €</strong>
+                  <span className="text-[11px] text-slate-400">{customer.hours.toFixed(1)} h</span>
+                </span>
+              </div>
+            ))}
           </div>
         </section>
       </div>
