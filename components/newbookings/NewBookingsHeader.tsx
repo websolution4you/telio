@@ -8,8 +8,10 @@ import {
   CalendarDays,
   ChartLine,
   ChevronDown,
+  ChevronRight,
   CircleUser,
   Coins,
+  CreditCard,
   LayoutDashboard,
   LogIn,
   LogOut,
@@ -20,8 +22,9 @@ import {
   Wallet,
 } from "lucide-react";
 import HolographicTennisCourt from "./HolographicTennisCourt";
+import NewBookingProfileModal from "./NewBookingProfileModal";
 import { logoutAction } from "@/app/actions/auth";
-import { getWalletAction } from "@/app/actions/wallet";
+import { createWalletCardPayAction, getWalletAction } from "@/app/actions/wallet";
 import type { BookingUser, SessionPayload } from "@/lib/auth/bookingAuth";
 
 export type ActiveTab = "calendar" | "users" | "stats" | "settings" | "transactions";
@@ -57,15 +60,29 @@ export default function NewBookingsHeader({
   topUpLoading = null,
 }: NewBookingsHeaderProps) {
   const router = useRouter();
-  const rawUserName = currentUser?.name || "Užívateľ";
+  const [headerUser, setHeaderUser] = useState<HeaderUser | null | undefined>(currentUser);
+
+  useEffect(() => {
+    setHeaderUser(currentUser);
+  }, [currentUser]);
+
+  const rawUserName = headerUser?.name || currentUser?.name || "Užívateľ";
   const userName = rawUserName.toLowerCase() === "admin user" ? "Admin" : rawUserName;
   const [walletBalance, setWalletBalance] = useState<number | null>(propWalletBalance);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [clientMenuOpen, setClientMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [walletMenuOpen, setWalletMenuOpen] = useState(false);
+  const [mobileWalletMenuOpen, setMobileWalletMenuOpen] = useState(false);
+  const [internalLoadingAmount, setInternalLoadingAmount] = useState<number | null>(null);
+  const [topUpError, setTopUpError] = useState<string | null>(null);
+
   const adminMenuRef = useRef<HTMLDivElement>(null);
   const clientMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const walletMenuRef = useRef<HTMLDivElement>(null);
+  const mobileWalletMenuRef = useRef<HTMLDivElement>(null);
 
   // Sync propWalletBalance when provided from page
   useEffect(() => {
@@ -99,18 +116,90 @@ export default function NewBookingsHeader({
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setUserMenuOpen(false);
       }
+      if (walletMenuRef.current && !walletMenuRef.current.contains(event.target as Node)) {
+        setWalletMenuOpen(false);
+      }
+      if (mobileWalletMenuRef.current && !mobileWalletMenuRef.current.contains(event.target as Node)) {
+        setMobileWalletMenuOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleTopUp = async (amount: number) => {
+    setTopUpError(null);
+    setInternalLoadingAmount(amount);
+    try {
+      if (onTopUp) {
+        await onTopUp(amount, "cardpay");
+      } else {
+        const operationId = crypto.randomUUID();
+        const res = await createWalletCardPayAction(amount, operationId);
+        if (res.success && res.url) {
+          window.location.href = res.url;
+          return;
+        }
+        setTopUpError(res.error || "Nepodarilo sa vytvoriť platbu.");
+        setInternalLoadingAmount(null);
+      }
+    } catch (err: any) {
+      console.error("Top-up failed:", err);
+      setTopUpError(err?.message || "Nepodarilo sa inicializovať platbu.");
+      setInternalLoadingAmount(null);
+    }
+  };
+
+  const renderTopUpPopover = () => {
+    const isAnyLoading = topUpLoading !== null || internalLoadingAmount !== null;
+    const isLoading = (amount: number) => topUpLoading === amount || internalLoadingAmount === amount;
+
+    return (
+      <div className="text-slate-900 font-sans">
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <p className="flex items-center gap-2 text-sm font-bold text-slate-800">
+            <CreditCard className="h-4 w-4 text-sky-700 shrink-0" />
+            Dobiť cez Tatra banka CardPay
+          </p>
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-sky-700">
+            Sandbox
+          </span>
+        </div>
+        <p className="mb-3 text-xs text-slate-500 leading-relaxed">
+          Budete presmerovaný na zabezpečenú testovaciu platobnú stránku Tatra banky.
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {[10, 20, 50].map((amount) => (
+            <button
+              key={amount}
+              type="button"
+              disabled={isAnyLoading}
+              onClick={() => handleTopUp(amount)}
+              className="cursor-pointer rounded-xl border border-sky-200 bg-white py-2.5 text-center text-xs font-extrabold text-sky-700 shadow-xs transition hover:border-sky-400 hover:bg-sky-50 active:scale-95 disabled:cursor-wait disabled:opacity-50"
+            >
+              {isLoading(amount) ? "Otváram..." : `${amount} €`}
+            </button>
+          ))}
+        </div>
+        {topUpError && (
+          <p className="mt-2 text-xs font-semibold text-red-600">
+            {topUpError}
+          </p>
+        )}
+      </div>
+    );
+  };
+
   const handleLogout = async () => {
     setAdminMenuOpen(false);
     setClientMenuOpen(false);
     setUserMenuOpen(false);
-    if (!window.confirm("Chcete sa naozaj odhlásiť?")) return;
-    await logoutAction();
-    window.location.href = "/newbookings";
+    try {
+      await logoutAction();
+    } catch (err) {
+      console.error("Logout action error:", err);
+    }
+    window.location.href = "/api/auth/logout";
   };
 
   return (
@@ -139,27 +228,25 @@ export default function NewBookingsHeader({
 
         {/* Desktop Horizontal Navigation (md:flex) */}
         {currentUser ? (
-          <nav className="hidden md:flex items-center gap-3 lg:gap-4 font-sans">
+          <nav className="hidden md:flex items-center gap-2 lg:gap-3 font-sans">
             {currentUser.role === "admin" ? (
               <>
-                {/* Admin 3D Navigation: Používatelia | Štatistiky | Nastavenia */}
-                <div className="flex items-center gap-2 lg:gap-3 mr-6 lg:mr-8">
+                {/* Admin Navigation: Používatelia | Štatistiky | Nastavenia */}
+                <div className="flex items-center gap-1.5 lg:gap-2 mr-3 lg:mr-4">
                   {/* 1. Používatelia */}
                   <Link
                     href="/dashboard/users"
-                    className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${activeTab === "users"
-                        ? "border-slate-900 bg-white ring-2 ring-slate-900/15 shadow-sm"
-                        : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
-                      }`}
+                    className={`group relative flex h-[58px] w-[80px] shrink-0 flex-col items-center justify-center rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 ${
+                      activeTab === "users"
+                        ? "border-white/25 bg-white/15 text-white shadow-inner"
+                        : "border-transparent bg-transparent text-slate-300 hover:border-white/10 hover:bg-white/10 hover:text-white"
+                    }`}
                     title="Správa používateľov"
                   >
-                    <div className="transition-transform duration-200 group-hover:scale-108">
-                      <Users className="h-7 w-7 text-slate-800 transition-colors duration-200 group-hover:text-slate-950" strokeWidth={1.8} />
+                    <div className="transition-transform duration-200 group-hover:scale-105">
+                      <Users className="h-4.5 w-4.5 transition-colors duration-200" strokeWidth={1.8} />
                     </div>
-                    <span
-                      className={`mt-1 text-[12px] tracking-normal transition-colors duration-200 ${activeTab === "users" ? "font-semibold text-slate-950" : "font-medium text-slate-600 group-hover:text-slate-900"
-                        }`}
-                    >
+                    <span className="mt-1 text-[11px] font-medium tracking-normal transition-colors duration-200">
                       Používatelia
                     </span>
                   </Link>
@@ -167,19 +254,17 @@ export default function NewBookingsHeader({
                   {/* 2. Štatistiky */}
                   <Link
                     href="/dashboard/newbookings"
-                    className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${activeTab === "stats"
-                        ? "border-slate-900 bg-white ring-2 ring-slate-900/15 shadow-sm"
-                        : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
-                      }`}
+                    className={`group relative flex h-[58px] w-[80px] shrink-0 flex-col items-center justify-center rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 ${
+                      activeTab === "stats"
+                        ? "border-white/25 bg-white/15 text-white shadow-inner"
+                        : "border-transparent bg-transparent text-slate-300 hover:border-white/10 hover:bg-white/10 hover:text-white"
+                    }`}
                     title="Prehľad a štatistiky"
                   >
-                    <div className="transition-transform duration-200 group-hover:scale-108">
-                      <ChartLine className="h-7 w-7 text-slate-800 transition-colors duration-200 group-hover:text-slate-950" strokeWidth={1.8} />
+                    <div className="transition-transform duration-200 group-hover:scale-105">
+                      <ChartLine className="h-4.5 w-4.5 transition-colors duration-200" strokeWidth={1.8} />
                     </div>
-                    <span
-                      className={`mt-1 text-[12px] tracking-normal transition-colors duration-200 ${activeTab === "stats" ? "font-semibold text-slate-950" : "font-medium text-slate-600 group-hover:text-slate-900"
-                        }`}
-                    >
+                    <span className="mt-1 text-[11px] font-medium tracking-normal transition-colors duration-200">
                       Štatistiky
                     </span>
                   </Link>
@@ -187,45 +272,45 @@ export default function NewBookingsHeader({
                   {/* 3. Nastavenia */}
                   <Link
                     href="/dashboard/users-roles"
-                    className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${activeTab === "settings"
-                        ? "border-slate-900 bg-white ring-2 ring-slate-900/15 shadow-sm"
-                        : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
-                      }`}
+                    className={`group relative flex h-[58px] w-[80px] shrink-0 flex-col items-center justify-center rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 ${
+                      activeTab === "settings"
+                        ? "border-white/25 bg-white/15 text-white shadow-inner"
+                        : "border-transparent bg-transparent text-slate-300 hover:border-white/10 hover:bg-white/10 hover:text-white"
+                    }`}
                     title="Nastavenia systému a rolí"
                   >
-                    <div className="transition-transform duration-200 group-hover:scale-108">
-                      <Settings className="h-7 w-7 text-slate-800 transition-colors duration-200 group-hover:text-slate-950" strokeWidth={1.8} />
+                    <div className="transition-transform duration-200 group-hover:scale-105">
+                      <Settings className="h-4.5 w-4.5 transition-colors duration-200" strokeWidth={1.8} />
                     </div>
-                    <span
-                      className={`mt-1 text-[12px] tracking-normal transition-colors duration-200 ${activeTab === "settings" ? "font-semibold text-slate-950" : "font-medium text-slate-600 group-hover:text-slate-900"
-                        }`}
-                    >
+                    <span className="mt-1 text-[11px] font-medium tracking-normal transition-colors duration-200">
                       Nastavenia
                     </span>
                   </Link>
                 </div>
 
-                {/* Admin User Avatar Kocka s Dropdown menu (Transakcie + Odhlásiť) */}
+                {/* Admin User Avatar s Dropdown menu (Transakcie + Odhlásiť) */}
                 <div className="relative" ref={adminMenuRef}>
                   <button
                     type="button"
                     onClick={() => setAdminMenuOpen((prev) => !prev)}
-                    className={`group relative flex h-[82px] w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 cursor-pointer ${activeTab === "transactions"
-                        ? "border-emerald-400 bg-white ring-2 ring-emerald-400/25 shadow-sm"
-                        : "border-slate-200/80 bg-white/90 shadow-2xs hover:border-slate-300 hover:bg-white"
-                      }`}
+                    className={`group relative flex h-[58px] w-[80px] shrink-0 flex-col items-center justify-center rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer ${
+                      adminMenuOpen || activeTab === "transactions"
+                        ? "border-white/25 bg-white/15 text-white shadow-inner"
+                        : "border-transparent bg-transparent text-slate-300 hover:border-white/10 hover:bg-white/10 hover:text-white"
+                    }`}
                     aria-expanded={adminMenuOpen}
                     aria-haspopup="true"
                     title="Používateľské menu administrátora"
                   >
-                    <div className="transition-transform duration-200 group-hover:scale-108">
-                      <CircleUser className="h-7 w-7 lg:h-8 lg:w-8 text-slate-800 transition-colors duration-200 group-hover:text-slate-950" strokeWidth={1.8} />
+                    <div className="transition-transform duration-200 group-hover:scale-105">
+                      <CircleUser className="h-4.5 w-4.5 text-emerald-400 transition-colors duration-200 group-hover:text-emerald-300" strokeWidth={1.8} />
                     </div>
-                    <span className="mt-1 flex items-center justify-center gap-1 text-[12px] font-medium tracking-normal text-slate-600 transition-colors duration-200 group-hover:text-slate-900">
-                      <span className="max-w-[76px] truncate">{userName}</span>
+                    <span className="mt-1 flex items-center justify-center gap-0.5 text-[11px] font-medium tracking-normal transition-colors duration-200">
+                      <span className="max-w-[60px] truncate">{userName}</span>
                       <ChevronDown
-                        className={`h-3 w-3 shrink-0 text-slate-400 transition-transform duration-200 ${adminMenuOpen ? "rotate-180 text-slate-700" : "group-hover:text-slate-600"
-                          }`}
+                        className={`h-3 w-3 shrink-0 text-slate-400 transition-transform duration-200 ${
+                          adminMenuOpen ? "rotate-180 text-white" : "group-hover:text-white"
+                        }`}
                       />
                     </span>
                   </button>
@@ -243,6 +328,24 @@ export default function NewBookingsHeader({
                           <span className="block truncate text-[10.5px] font-bold text-[#65a30d]">Administrátor</span>
                         </div>
                       </div>
+
+                      {/* Môj profil */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAdminMenuOpen(false);
+                          setProfileModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 text-xs font-medium text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group cursor-pointer text-left"
+                      >
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                          <CircleUser className="h-4 w-4" />
+                        </span>
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Môj profil</span>
+                          <span className="text-[10px] font-normal text-slate-400">Údaje a zmena hesla</span>
+                        </div>
+                      </button>
 
                       {/* Transakcie presunuté do avatara */}
                       <Link
@@ -280,60 +383,73 @@ export default function NewBookingsHeader({
                 </div>
               </>
             ) : (
-              /* Non-admin používateľ: 1. Peňaženka kocka, 2. Avatar kocka s dropdownom - IDENTICKÉ ROZMERY A FARBY */
-              <div className="flex items-center gap-3 font-sans">
-                {/* 1. Peňaženka Kocka (Presne w-[104px] h-[82px]) */}
-                <Link
-                  href="/dashboard/transactions"
-                  className={`group relative flex h-[82px] w-[104px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
-                    activeTab === "transactions"
-                      ? "border-slate-900 bg-white ring-2 ring-slate-900/15 shadow-sm"
-                      : walletHighlight
-                      ? "border-emerald-500 bg-emerald-50/80 ring-4 ring-emerald-300/80 scale-105"
-                      : "border-white/20 bg-white/95 shadow-xs hover:border-white hover:bg-white"
-                  }`}
-                  title="Moja peňaženka a história transakcií"
-                >
-                  <div className="transition-transform duration-200 group-hover:scale-108">
-                    <Wallet className="h-7 w-7 text-slate-800 transition-colors duration-200 group-hover:text-emerald-600" strokeWidth={1.8} />
-                  </div>
-                  <span
-                    className={`mt-1 text-[11.5px] leading-tight transition-colors duration-200 ${
-                      activeTab === "transactions" ? "font-semibold text-slate-950" : "font-medium text-slate-700 group-hover:text-slate-950"
+              /* Non-admin používateľ: 1. Peňaženka, 2. Avatar s dropdownom */
+              <div className="flex items-center gap-2 font-sans">
+                {/* 1. Peňaženka s vybaľovacím oknom */}
+                <div className="relative" ref={walletMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWalletMenuOpen((prev) => !prev);
+                      setClientMenuOpen(false);
+                    }}
+                    className={`group relative flex h-[58px] w-[86px] shrink-0 flex-col items-center justify-center rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer ${
+                      walletMenuOpen
+                        ? "border-emerald-400/50 bg-white/15 ring-2 ring-emerald-400/30 text-white shadow-inner"
+                        : walletHighlight
+                        ? "border-emerald-500 bg-emerald-500/20 ring-4 ring-emerald-400/50 scale-105"
+                        : "border-transparent bg-transparent text-slate-300 hover:border-white/10 hover:bg-white/10 hover:text-white"
                     }`}
+                    title="Dobiť kredit peňaženky"
+                    aria-expanded={walletMenuOpen}
                   >
-                    Peňaženka
-                  </span>
-                  <span className="mt-0.5 text-[11px] font-bold leading-tight text-emerald-700">
-                    {walletBalance !== null ? `${walletBalance.toFixed(2)} €` : "0.00 €"}
-                  </span>
-                </Link>
+                    <div className="transition-transform duration-200 group-hover:scale-105">
+                      <Wallet className="h-4.5 w-4.5 text-emerald-400 transition-colors duration-200 group-hover:text-emerald-300" strokeWidth={1.8} />
+                    </div>
+                    <span
+                      className={`mt-0.5 text-[10.5px] leading-tight transition-colors duration-200 ${
+                        walletMenuOpen ? "font-semibold text-white" : "font-medium text-slate-300 group-hover:text-white"
+                      }`}
+                    >
+                      Peňaženka
+                    </span>
+                    <span className="mt-0.5 text-[10.5px] font-bold leading-tight text-emerald-400 group-hover:text-emerald-300">
+                      {walletBalance !== null ? `${walletBalance.toFixed(2)} €` : "0.00 €"}
+                    </span>
+                  </button>
 
-                {/* 2. Používateľ Avatar Kocka (Presne w-[104px] h-[82px]) */}
+                  {walletMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-80 origin-top-right rounded-2xl border border-slate-200/90 bg-white/98 p-5 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+                      {renderTopUpPopover()}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Používateľ Avatar s dropdownom */}
                 <div className="relative" ref={clientMenuRef}>
                   <button
                     type="button"
                     onClick={() => setClientMenuOpen((prev) => !prev)}
-                    className={`group relative flex h-[82px] w-[104px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 py-2 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 cursor-pointer ${
-                      activeTab === "stats"
-                        ? "border-slate-900 bg-white ring-2 ring-slate-900/15 shadow-sm"
-                        : "border-white/20 bg-white/95 shadow-xs hover:border-white hover:bg-white"
+                    className={`group relative flex h-[58px] w-[86px] shrink-0 flex-col items-center justify-center rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer ${
+                      clientMenuOpen || activeTab === "stats"
+                        ? "border-white/25 bg-white/15 text-white shadow-inner"
+                        : "border-transparent bg-transparent text-slate-300 hover:border-white/10 hover:bg-white/10 hover:text-white"
                     }`}
                     aria-expanded={clientMenuOpen}
                     aria-haspopup="true"
                     title="Používateľské menu"
                   >
-                    <div className="transition-transform duration-200 group-hover:scale-108">
-                      <CircleUser className="h-7 w-7 text-slate-800 transition-colors duration-200 group-hover:text-slate-950" strokeWidth={1.8} />
+                    <div className="transition-transform duration-200 group-hover:scale-105">
+                      <CircleUser className="h-4.5 w-4.5 text-emerald-400 transition-colors duration-200 group-hover:text-emerald-300" strokeWidth={1.8} />
                     </div>
-                    <span className="mt-1 block max-w-[88px] truncate text-center text-[11.5px] font-medium leading-tight text-slate-700 transition-colors duration-200 group-hover:text-slate-950">
+                    <span className="mt-0.5 block max-w-[76px] truncate text-center text-[10.5px] font-medium leading-tight text-slate-200 transition-colors duration-200 group-hover:text-white">
                       {userName}
                     </span>
-                    <span className="mt-0.5 flex items-center justify-center gap-0.5 text-[11px] font-bold leading-tight text-emerald-700">
+                    <span className="mt-0.5 flex items-center justify-center gap-0.5 text-[10.5px] font-bold leading-tight text-emerald-400">
                       <span>Účet</span>
                       <ChevronDown
                         className={`h-3 w-3 shrink-0 transition-transform duration-200 ${
-                          clientMenuOpen ? "rotate-180 text-emerald-800" : "text-emerald-700 group-hover:text-emerald-800"
+                          clientMenuOpen ? "rotate-180 text-emerald-300" : "text-emerald-400 group-hover:text-emerald-300"
                         }`}
                       />
                     </span>
@@ -393,9 +509,27 @@ export default function NewBookingsHeader({
                         </div>
                       </Link>
 
+                      {/* 3. Môj profil */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setClientMenuOpen(false);
+                          setProfileModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 text-xs font-medium text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group cursor-pointer text-left"
+                      >
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                          <CircleUser className="h-4 w-4" />
+                        </span>
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Môj profil</span>
+                          <span className="text-[10px] font-normal text-slate-400">Údaje a zmena hesla</span>
+                        </div>
+                      </button>
+
                       <div className="my-1 border-t border-slate-100" />
 
-                      {/* 3. Odhlásiť sa */}
+                      {/* 4. Odhlásiť sa */}
                       <button
                         type="button"
                         onClick={handleLogout}
@@ -457,36 +591,53 @@ export default function NewBookingsHeader({
 
         {/* Mobile Popover Dropdown (md:hidden) */}
         {currentUser && (
-          <div className="md:hidden relative z-50 flex items-center gap-1.5" ref={userMenuRef}>
-            {/* Rýchly prístup k peňaženke na mobile pre non-admin */}
+          <div className="md:hidden relative z-50 flex items-center gap-1.5">
+            {/* Rýchly prístup k peňaženke na mobile s vybaľovacím oknom */}
             {currentUser.role !== "admin" && (
-              <Link
-                href="/dashboard/transactions"
-                className={`flex h-10 items-center gap-1.5 rounded-xl border px-2.5 py-1 text-slate-800 shadow-2xs backdrop-blur-md transition active:scale-95 ${
-                  activeTab === "transactions"
-                    ? "border-emerald-400 bg-white ring-2 ring-emerald-400/30"
-                    : "border-white/20 bg-white/95 hover:border-white"
-                }`}
-                title="Moja peňaženka a transakcie"
-              >
-                <Wallet className="h-4 w-4 text-emerald-600 shrink-0" strokeWidth={1.8} />
-                <span className="text-xs font-bold text-emerald-700">
-                  {walletBalance !== null ? `${walletBalance.toFixed(2)} €` : "0.00 €"}
-                </span>
-              </Link>
+              <div className="relative" ref={mobileWalletMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileWalletMenuOpen((prev) => !prev);
+                    setUserMenuOpen(false);
+                  }}
+                  className={`flex h-10 items-center gap-1.5 rounded-xl border px-2.5 py-1 text-slate-800 shadow-2xs backdrop-blur-md transition active:scale-95 cursor-pointer ${
+                    mobileWalletMenuOpen
+                      ? "border-slate-900 bg-white ring-2 ring-slate-900/15"
+                      : "border-white/20 bg-white/95 hover:border-white"
+                  }`}
+                  title="Dobiť kredit"
+                  aria-expanded={mobileWalletMenuOpen}
+                >
+                  <Wallet className="h-4 w-4 text-emerald-600 shrink-0" strokeWidth={1.8} />
+                  <span className="text-xs font-bold text-emerald-700">
+                    {walletBalance !== null ? `${walletBalance.toFixed(2)} €` : "0.00 €"}
+                  </span>
+                </button>
+
+                {mobileWalletMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 origin-top-right rounded-2xl border border-slate-200/90 bg-white/98 p-4 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+                    {renderTopUpPopover()}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Tlačidlo profilu na mobile */}
-            <button
-              type="button"
-              onClick={() => setUserMenuOpen((prev) => !prev)}
-              className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-white/95 text-slate-800 shadow-2xs backdrop-blur-md transition hover:border-white hover:bg-white active:scale-95"
-              title={userName}
-              aria-label="Používateľské menu"
-              aria-expanded={userMenuOpen}
-            >
-              <CircleUser className="h-5 w-5 text-slate-800" strokeWidth={1.8} />
-            </button>
+            <div className="relative" ref={userMenuRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setUserMenuOpen((prev) => !prev);
+                  setMobileWalletMenuOpen(false);
+                }}
+                className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-white/95 text-slate-800 shadow-2xs backdrop-blur-md transition hover:border-white hover:bg-white active:scale-95"
+                title={userName}
+                aria-label="Používateľské menu"
+                aria-expanded={userMenuOpen}
+              >
+                <CircleUser className="h-5 w-5 text-slate-800" strokeWidth={1.8} />
+              </button>
 
             {userMenuOpen && (
               <div className="absolute right-0 top-full mt-2 w-64 origin-top-right rounded-2xl border border-slate-200/90 bg-white/95 p-2 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150 font-sans">
@@ -619,6 +770,21 @@ export default function NewBookingsHeader({
                     </>
                   )}
 
+                  {/* Môj profil (mobil) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      setProfileModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group cursor-pointer text-left"
+                  >
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150">
+                      <CircleUser className="h-4 w-4" />
+                    </span>
+                    <span className="transition-colors duration-150">Môj profil a heslo</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleLogout}
@@ -632,7 +798,20 @@ export default function NewBookingsHeader({
                 </div>
               </div>
             )}
+            </div>
           </div>
+        )}
+        {/* Modálne okno profilu používateľa */}
+        {headerUser && (
+          <NewBookingProfileModal
+            currentUser={headerUser}
+            isOpen={profileModalOpen}
+            onClose={() => setProfileModalOpen(false)}
+            onUserUpdated={(updatedUser) => {
+              setHeaderUser((prev) => ({ ...prev, ...updatedUser }));
+              router.refresh();
+            }}
+          />
         )}
       </div>
     </header>

@@ -116,6 +116,13 @@ export async function getSession(): Promise<SessionPayload | null> {
  */
 export async function clearSession() {
     const cookieStore = await cookies();
+    cookieStore.set(SESSION_COOKIE_NAME, "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 0,
+        path: "/",
+    });
     cookieStore.delete(SESSION_COOKIE_NAME);
 }
 
@@ -141,4 +148,48 @@ export function normalizePhone(rawPhone?: string): string | null {
     }
     return clean;
 }
+
+/**
+ * Create a secure time-limited token for password reset (valid for 1 hour)
+ */
+export async function createPasswordResetToken(
+    userId: string,
+    email: string,
+    passwordHash: string
+): Promise<string> {
+    const payload = {
+        userId,
+        email,
+        passHashFragment: passwordHash.slice(0, 16),
+        purpose: "password_reset",
+    };
+
+    return await new SignJWT(payload)
+        .setProtectedHeader({ alg: "HS256" })
+        .setExpirationTime("1h")
+        .sign(JWT_SECRET);
+}
+
+/**
+ * Verify password reset token
+ */
+export async function verifyPasswordResetToken(
+    token: string
+): Promise<{ userId: string; email: string; passHashFragment: string } | null> {
+    try {
+        const verified = await jwtVerify(token, JWT_SECRET);
+        const payload = verified.payload as any;
+        if (payload?.purpose !== "password_reset" || !payload.userId || !payload.email) {
+            return null;
+        }
+        return {
+            userId: payload.userId,
+            email: payload.email,
+            passHashFragment: payload.passHashFragment,
+        };
+    } catch {
+        return null;
+    }
+}
+
 
