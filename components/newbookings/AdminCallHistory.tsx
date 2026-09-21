@@ -196,13 +196,8 @@ export default function AdminCallHistory() {
                   {filteredCalls.length} {filteredCalls.length === 1 ? "hovor" : filteredCalls.length >= 2 && filteredCalls.length <= 4 ? "hovory" : "hovorov"}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 flex items-center flex-wrap gap-1.5 mt-0.5">
-                <span>Záznamy hovorov hlasového asistenta NTC s možnosťou priameho vypočutia a zhrnutia.</span>
-                {configuredAgentId && (
-                  <span className="font-mono text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full font-semibold">
-                    Agent: {configuredAgentId}
-                  </span>
-                )}
+              <p className="text-xs text-slate-500 mt-0.5">
+                Záznamy hovorov hlasového asistenta NTC s možnosťou priameho vypočutia a zhrnutia.
               </p>
             </div>
           </div>
@@ -257,25 +252,21 @@ export default function AdminCallHistory() {
             <PhoneCall className="mx-auto mb-2 h-7 w-7 text-slate-300" />
             <p className="font-semibold text-slate-800">Zatiaľ žiadne hovory pre NTC asistenta</p>
             <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
-              {configuredAgentId ? (
-                <>Pre agenta <code className="font-mono font-bold text-indigo-600">{configuredAgentId}</code> neboli nájdené žiadne hovory.</>
-              ) : (
-                <>V premenných nie je nastavené <code className="font-mono text-indigo-600 font-semibold">ELEVENLABS_NTC_AGENT_ID</code>.</>
-              )}
+              V systéme zatiaľ neboli nájdené žiadne záznamy hovorov.
             </p>
           </div>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-slate-200/90">
-          <table className="w-full min-w-[700px] text-left text-sm">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200/90 pb-1">
+          <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="border-b border-slate-200/90 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
               <tr>
-                <th className="px-5 py-3.5">Čas hovoru</th>
-                <th className="px-5 py-3.5">Telefónne číslo</th>
-                <th className="px-5 py-3.5">Zhrnutie hovoru</th>
-                <th className="px-5 py-3.5 text-center">Dĺžka</th>
-                <th className="px-5 py-3.5 text-center">Stav</th>
-                <th className="px-5 py-3.5 text-right">Nahrávka</th>
+                <th className="px-5 py-3.5 whitespace-nowrap min-w-[150px]">Čas hovoru</th>
+                <th className="px-5 py-3.5 whitespace-nowrap min-w-[160px]">Telefónne číslo</th>
+                <th className="px-5 py-3.5 min-w-[220px]">Zhrnutie hovoru</th>
+                <th className="px-4 py-3.5 text-center whitespace-nowrap min-w-[75px]">Dĺžka</th>
+                <th className="px-4 py-3.5 text-center whitespace-nowrap min-w-[65px]">Stav</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap min-w-[130px]">Nahrávka</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -291,19 +282,19 @@ export default function AdminCallHistory() {
                     }`}
                   >
                     {/* Dátum a čas */}
-                    <td className="py-3.5 pl-2 font-medium text-slate-900 whitespace-nowrap">
+                    <td className="px-5 py-3.5 font-medium text-slate-900 whitespace-nowrap">
                       {formatDate(call.startedAt)}
                     </td>
 
                     {/* Telefónne číslo volajúceho */}
-                    <td className="py-3.5">
+                    <td className="px-5 py-3.5 whitespace-nowrap">
                       <span className="font-mono text-xs font-semibold text-slate-800">
                         {call.callerNumber}
                       </span>
                     </td>
 
                     {/* Zhrnutie hovoru */}
-                    <td className="py-3.5 max-w-[280px]">
+                    <td className="px-5 py-3.5 max-w-[280px]">
                       <div className="flex items-center gap-1.5">
                         <span className="truncate font-medium text-slate-800" title={call.summaryTitle}>
                           {call.summaryTitle}
@@ -311,7 +302,7 @@ export default function AdminCallHistory() {
                         {call.transcriptSummary && (
                           <button
                             onClick={() => setActiveSummaryModal(call)}
-                            className="text-slate-400 hover:text-indigo-600 transition-colors shrink-0"
+                            className="text-slate-400 hover:text-indigo-600 transition-colors shrink-0 cursor-pointer"
                             title="Zobraziť detailné zhrnutie"
                           >
                             <Info className="h-3.5 w-3.5" />
@@ -321,12 +312,12 @@ export default function AdminCallHistory() {
                     </td>
 
                     {/* Dĺžka */}
-                    <td className="py-3.5 text-center text-xs font-semibold text-slate-600 whitespace-nowrap">
+                    <td className="px-4 py-3.5 text-center text-xs font-semibold text-slate-600 whitespace-nowrap">
                       {formatSeconds(call.durationSec)}
                     </td>
 
                     {/* Stav */}
-                    <td className="py-3.5 text-center">
+                    <td className="px-4 py-3.5 text-center">
                       <span
                         className={`inline-grid h-7 w-7 place-items-center rounded-full ${
                           call.callSuccessful === "success"
@@ -344,7 +335,7 @@ export default function AdminCallHistory() {
                     </td>
 
                     {/* Prehrávač hovoru */}
-                    <td className="py-3.5 pr-2 text-right">
+                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-2">
                         {isActive && (
                           <div className="flex items-center gap-2 rounded-2xl bg-white border border-indigo-200 px-3 py-1.5 shadow-sm">
