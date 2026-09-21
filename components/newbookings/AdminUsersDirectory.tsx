@@ -21,6 +21,7 @@ import {
   Loader2,
   Lock,
   Mail,
+  Pencil,
   Phone,
   Plus,
   Receipt,
@@ -813,31 +814,44 @@ export default function AdminUsersDirectory() {
           />
           <div className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
             {/* Modal Header */}
-            <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-emerald-50/40 p-5 sm:p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <TennisBallAvatar
-                    name={detailData?.user.name || "NTC"}
-                    className="h-14 w-14 rounded-2xl shadow-md"
-                    textSize="text-sm"
-                  />
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-950 sm:text-2xl">
-                      {detailData?.user.name || "Načítavam..."}
-                    </h2>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                      <span className="flex items-center gap-1 text-slate-700">
-                        <Mail className="h-3.5 w-3.5 text-slate-400" /> {detailData?.user.email}
-                      </span>
-                      {detailData?.user.phone && (
-                        <span className="flex items-center gap-1 text-slate-700">
-                          <Phone className="h-3.5 w-3.5 text-slate-400" /> {detailData?.user.phone}
+            <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-emerald-50/40 p-4 sm:p-6">
+              <div className="flex flex-col gap-3.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                <div className="flex items-start justify-between gap-3 w-full sm:w-auto">
+                  <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+                    <TennisBallAvatar
+                      name={detailData?.user.name || "NTC"}
+                      className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl shadow-md shrink-0"
+                      textSize="text-sm"
+                    />
+                    <div className="min-w-0">
+                      <h2 className="text-lg sm:text-2xl font-bold text-slate-950 truncate">
+                        {detailData?.user.name || "Načítavam..."}
+                      </h2>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                        <span className="flex items-center gap-1 text-slate-700 break-all">
+                          <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {detailData?.user.email}
                         </span>
-                      )}
+                        {detailData?.user.phone && (
+                          <span className="flex items-center gap-1 text-slate-700">
+                            <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {detailData?.user.phone}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  {/* Close button on mobile right at the top-right corner */}
+                  <button
+                    type="button"
+                    onClick={closeDetail}
+                    className="sm:hidden shrink-0 rounded-xl border border-slate-200 bg-white p-2 text-slate-400 shadow-2xs hover:bg-slate-50 hover:text-slate-700 cursor-pointer"
+                    title="Zavrieť"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
-                <div className="flex items-center gap-2">
+
+                {/* Action buttons (Zmazať, Upraviť profil) + desktop close button */}
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                   {detailData && currentUserId !== detailData.user.id && (
                     <button
                       type="button"
@@ -849,7 +863,7 @@ export default function AdminUsersDirectory() {
                           bookingsCount: detailData.bookings.length,
                         });
                       }}
-                      className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50/80 px-3 py-1.5 text-xs font-bold text-rose-700 shadow-2xs hover:bg-rose-100 hover:text-rose-800 cursor-pointer transition"
+                      className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50/80 px-3 py-1.5 text-xs font-bold text-rose-700 shadow-2xs hover:bg-rose-100 hover:text-rose-800 cursor-pointer transition active:scale-[0.98]"
                       title="Zmazať používateľa"
                     >
                       <Trash2 className="h-3.5 w-3.5 text-rose-600" />
@@ -862,14 +876,17 @@ export default function AdminUsersDirectory() {
                       setEditProfileError(null);
                       setEditProfileOpen(true);
                     }}
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-slate-900 cursor-pointer"
+                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-slate-900 cursor-pointer transition active:scale-[0.98]"
                   >
+                    <Pencil className="h-3.5 w-3.5 text-slate-400" />
                     <span>Upraviť profil</span>
                   </button>
+                  {/* Close button on desktop */}
                   <button
                     type="button"
                     onClick={closeDetail}
-                    className="rounded-xl border border-slate-200 bg-white p-2 text-slate-400 shadow-2xs hover:bg-slate-50 hover:text-slate-700"
+                    className="hidden sm:flex rounded-xl border border-slate-200 bg-white p-2 text-slate-400 shadow-2xs hover:bg-slate-50 hover:text-slate-700 cursor-pointer"
+                    title="Zavrieť"
                   >
                     <X className="h-5 w-5" />
                   </button>
