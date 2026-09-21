@@ -39,8 +39,6 @@ export default function NewBookingAuth({ mode: initialMode, resetToken, onClose,
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [debugResetUrl, setDebugResetUrl] = useState<string | null>(null);
-  const [debugNote, setDebugNote] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -83,12 +81,6 @@ export default function NewBookingAuth({ mode: initialMode, resetToken, onClose,
         const res = await requestPasswordResetAction(email, origin);
         if (res.success) {
           setSuccessMessage(res.message || "Inštrukcie na obnovu hesla sme odoslali na váš email.");
-          if (res.debugResetUrl) {
-            setDebugResetUrl(res.debugResetUrl);
-          }
-          if (res.debugNote) {
-            setDebugNote(res.debugNote);
-          }
         } else {
           setError(res.error || "Nepodarilo sa odoslať žiadosť.");
         }
@@ -160,8 +152,6 @@ export default function NewBookingAuth({ mode: initialMode, resetToken, onClose,
     }
     setError("");
     setSuccessMessage("");
-    setDebugResetUrl(null);
-    setDebugNote(null);
   }, [mode]);
 
   return (
@@ -196,32 +186,9 @@ export default function NewBookingAuth({ mode: initialMode, resetToken, onClose,
 
         {error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700 animate-in fade-in">{error}</div>}
         {successMessage && (
-          <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800 animate-in fade-in">
+          <div className="mb-5 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800 animate-in fade-in">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
             <span>{successMessage}</span>
-          </div>
-        )}
-
-        {debugNote && (
-          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-medium text-amber-800 animate-in fade-in">
-            {debugNote}
-          </div>
-        )}
-
-        {debugResetUrl && (
-          <div className="mb-5 rounded-2xl border border-emerald-300 bg-emerald-50/80 p-3.5 text-xs text-emerald-950 animate-in fade-in shadow-xs">
-            <div className="font-bold mb-1 text-emerald-800 flex items-center gap-1.5">
-              <span>🛠️ Lokálny testovací odkaz:</span>
-            </div>
-            <p className="mb-2 text-[11px] text-emerald-700 leading-relaxed">
-              Keďže testujeme na lokálnom prostredí a emailová schránka nemusí existovať, môžete kliknúť priamo na tento odkaz:
-            </p>
-            <a
-              href={debugResetUrl}
-              className="inline-flex items-center gap-1 font-bold text-emerald-800 bg-white border border-emerald-300 rounded-lg px-3 py-1.5 text-xs hover:bg-emerald-100/50 transition shadow-2xs"
-            >
-              Prejsť na nastavenie nového hesla →
-            </a>
           </div>
         )}
 

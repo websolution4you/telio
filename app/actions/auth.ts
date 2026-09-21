@@ -476,8 +476,6 @@ export async function requestPasswordResetAction(email: string, clientOrigin?: s
         return {
             success: true,
             message: "Ak účet s týmto emailom existuje, inštrukcie na obnovu hesla sme vám odoslali na email.",
-            debugResetUrl: resetUrl,
-            debugNote: !user ? `(Upozornenie: Používateľ '${cleanEmail}' v systéme neexistuje. Pre testovanie použite email existujúceho používateľa alebo sa najprv zaregistrujte)` : undefined,
         };
     } catch (error: any) {
         console.error("Request password reset error:", error);
