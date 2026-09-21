@@ -445,7 +445,7 @@ export async function requestPasswordResetAction(email: string, clientOrigin?: s
             if (resend) {
                 try {
                     const fromEmail = process.env.RESEND_FROM || "onboarding@resend.dev";
-                    await resend.emails.send({
+                    const { data: resData, error: sendError } = await resend.emails.send({
                         from: fromEmail,
                         to: user.email,
                         subject: "Obnova hesla - NTC Rezervácie",
@@ -467,9 +467,17 @@ export async function requestPasswordResetAction(email: string, clientOrigin?: s
                         `,
                         text: `Dobrý deň ${user.name},\n\nPre obnovu hesla kliknite na nasledujúci odkaz (platný 1 hodinu):\n${resetUrl}\n\nAk ste o zmenu nežiadali, tento email ignorujte.`
                     });
+
+                    if (sendError) {
+                        console.error("[PASSWORD RESET] Resend send error:", sendError);
+                    } else {
+                        console.log("[PASSWORD RESET] Resend email dispatched successfully, id:", resData?.id);
+                    }
                 } catch (emailErr) {
-                    console.warn("Resend email delivery notice:", emailErr);
+                    console.error("[PASSWORD RESET] Exception while calling Resend:", emailErr);
                 }
+            } else {
+                console.warn("[PASSWORD RESET] RESEND_API_KEY is not configured in environment variables!");
             }
         }
 
