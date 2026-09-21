@@ -668,162 +668,190 @@ export default function NewBookingsHeader({
               </button>
 
             {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-64 origin-top-right rounded-2xl border border-slate-200/90 bg-white/95 p-2 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150 font-sans">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 px-3 py-2.5 mb-1">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-800">
+              <div className="absolute right-0 top-full mt-2 w-64 origin-top-right rounded-2xl border border-slate-200/90 bg-white/95 p-1.5 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150 font-sans">
+                {/* Hlavička dropdownu */}
+                <div className="flex items-center gap-2.5 px-3 py-2.5 mb-1 border-b border-slate-100 bg-slate-50/70 rounded-xl">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-800">
                     <CircleUser className="h-5 w-5" strokeWidth={1.8} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <b className="block truncate text-sm font-bold text-slate-900">{userName}</b>
+                    <span className="block truncate text-xs font-semibold text-slate-900">{userName}</span>
                     {currentUser.role === "admin" ? (
-                      <span className="block truncate text-[11px] font-bold text-[#65a30d]">
+                      <span className="block truncate text-[10.5px] font-bold text-[#65a30d]">
                         Administrátor
                       </span>
                     ) : (
-                      <span className="block truncate text-[11px] font-normal text-slate-500">
+                      <span className="block truncate text-[10.5px] font-normal text-slate-500">
                         {currentUser.role === "trainer" ? "Tréner" : "Klient"}
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Dobíjanie kreditu (pre non-admin) */}
-                {currentUser.role !== "admin" && walletBalance !== null && onTopUp && (
-                  <div className="mb-1 rounded-xl bg-slate-50 p-3 text-slate-900 border border-slate-200/80 shadow-xs">
-                    <div className="flex items-center justify-between text-sm font-bold text-slate-900">
-                      <span className="flex items-center gap-2">
-                        <Coins className="h-4 w-4 text-slate-700" /> Peňaženka
+                {currentUser.role === "admin" ? (
+                  <>
+                    {/* Admin navigačné linky na mobile */}
+                    <Link
+                      href="/newbookings"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2 text-xs font-medium text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
+                    >
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                        <CalendarDays className="h-4 w-4" />
                       </span>
-                      <span className="text-slate-900">{walletBalance.toFixed(2)} €</span>
-                    </div>
-                    <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-sky-700">CardPay dobitie</p>
-                    <div className="mt-1.5 grid grid-cols-3 gap-1.5">
-                      {[10, 20, 50].map((amount) => (
-                        <button
-                          key={`cardpay-${amount}`}
-                          type="button"
-                          disabled={topUpLoading !== null}
-                          onClick={() => onTopUp(amount, "cardpay")}
-                          className="cursor-pointer rounded-lg border border-sky-200 bg-white/90 px-2 py-2 text-xs font-extrabold text-sky-700 shadow-xs transition hover:border-sky-400 hover:bg-sky-50 disabled:cursor-wait disabled:opacity-50"
-                        >
-                          {topUpLoading === amount ? "..." : `+${amount} €`}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Kalendár rezervácií</span>
+                        <span className="text-[10px] font-normal text-slate-400">Prehľad všetkých kurtov</span>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/dashboard/users"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2 text-xs font-medium text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
+                    >
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                        <Users className="h-4 w-4" />
+                      </span>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Používatelia</span>
+                        <span className="text-[10px] font-normal text-slate-400">Správa klientov a rolí</span>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/dashboard/newbookings"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2 text-xs font-medium text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
+                    >
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                        <LayoutDashboard className="h-4 w-4" />
+                      </span>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Štatistiky</span>
+                        <span className="text-[10px] font-normal text-slate-400">Vyťaženosť a reporty</span>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/dashboard/admin-transactions"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2 text-xs font-medium text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
+                    >
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                        <ReceiptText className="h-4 w-4" />
+                      </span>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Transakcie</span>
+                        <span className="text-[10px] font-normal text-slate-400">Prehľad platieb a kreditov</span>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/dashboard/users-roles"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2 text-xs font-medium text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
+                    >
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                        <Settings className="h-4 w-4" />
+                      </span>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Nastavenia</span>
+                        <span className="text-[10px] font-normal text-slate-400">Nastavenia systému a rolí</span>
+                      </div>
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        setProfileModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2 text-xs font-medium text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group cursor-pointer text-left"
+                    >
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                        <CircleUser className="h-4 w-4" />
+                      </span>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Môj profil</span>
+                        <span className="text-[10px] font-normal text-slate-400">Údaje a zmena hesla</span>
+                      </div>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {/* Non-admin klient: zhodné s desktopovým menu */}
+                    {/* 1. Moje rezervácie */}
+                    <Link
+                      href="/dashboard/newbookings"
+                      onClick={() => setUserMenuOpen(false)}
+                      className={`flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 text-xs font-medium transition-colors duration-150 group ${
+                        activeTab === "stats"
+                          ? "bg-slate-100 text-slate-950 font-semibold border-slate-200/80"
+                          : "text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950"
+                      }`}
+                    >
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                        <CalendarCheck className="h-4 w-4" />
+                      </span>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Moje rezervácie</span>
+                        <span className="text-[10px] font-normal text-slate-400">Prehľad a štatistiky termínov</span>
+                      </div>
+                    </Link>
+
+                    {/* 2. Moje transakcie */}
+                    <Link
+                      href="/dashboard/transactions"
+                      onClick={() => setUserMenuOpen(false)}
+                      className={`flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 text-xs font-medium transition-colors duration-150 group ${
+                        activeTab === "transactions"
+                          ? "bg-slate-100 text-slate-950 font-semibold border-slate-200/80"
+                          : "text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950"
+                      }`}
+                    >
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                        <ReceiptText className="h-4 w-4" />
+                      </span>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Moje transakcie</span>
+                        <span className="text-[10px] font-normal text-slate-400">História peňaženky a platieb</span>
+                      </div>
+                    </Link>
+
+                    {/* 3. Môj profil */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        setProfileModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 text-xs font-medium text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group cursor-pointer text-left"
+                    >
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                        <CircleUser className="h-4 w-4" />
+                      </span>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Môj profil</span>
+                        <span className="text-[10px] font-normal text-slate-400">Údaje a zmena hesla</span>
+                      </div>
+                    </button>
+                  </>
                 )}
 
-                <div className="space-y-1">
-                  {/* Kalendár odkaz */}
-                  <Link
-                    href="/newbookings"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
-                  >
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150">
-                      <CalendarDays className="h-4 w-4" />
-                    </span>
-                    <span className="transition-colors duration-150">Kalendár rezervácií</span>
-                  </Link>
+                <div className="my-1 border-t border-slate-100" />
 
-                  {currentUser.role === "admin" ? (
-                    <>
-                      <Link
-                        href="/dashboard/users"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
-                      >
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150">
-                          <Users className="h-4 w-4" />
-                        </span>
-                        <span className="transition-colors duration-150">Používatelia</span>
-                      </Link>
-
-                      <Link
-                        href="/dashboard/newbookings"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
-                      >
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150">
-                          <LayoutDashboard className="h-4 w-4" />
-                        </span>
-                        <span className="transition-colors duration-150">Štatistiky</span>
-                      </Link>
-
-                      <Link
-                        href="/dashboard/admin-transactions"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
-                      >
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150">
-                          <ReceiptText className="h-4 w-4" />
-                        </span>
-                        <span className="transition-colors duration-150">Transakcie</span>
-                      </Link>
-
-                      <Link
-                        href="/dashboard/users-roles"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
-                      >
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150">
-                          <Settings className="h-4 w-4" />
-                        </span>
-                        <span className="transition-colors duration-150">Nastavenia</span>
-                      </Link>
-                    </>
-                  ) : (
-                    <>
-                      <Link
-                        href="/dashboard/newbookings"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
-                      >
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150">
-                          <CalendarCheck className="h-4 w-4" />
-                        </span>
-                        <span className="transition-colors duration-150">Moje rezervácie</span>
-                      </Link>
-
-                      <Link
-                        href="/dashboard/transactions"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
-                      >
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150">
-                          <ReceiptText className="h-4 w-4" />
-                        </span>
-                        <span className="transition-colors duration-150">Moje transakcie</span>
-                      </Link>
-                    </>
-                  )}
-
-                  {/* Môj profil (mobil) */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUserMenuOpen(false);
-                      setProfileModalOpen(true);
-                    }}
-                    className="w-full flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group cursor-pointer text-left"
-                  >
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150">
-                      <CircleUser className="h-4 w-4" />
-                    </span>
-                    <span className="transition-colors duration-150">Môj profil a heslo</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-xs sm:text-sm font-semibold text-red-600 hover:border-red-200/70 hover:bg-red-50 hover:text-red-700 transition-colors duration-150 group cursor-pointer text-left"
-                  >
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors duration-150">
-                      <LogOut className="h-4 w-4" />
-                    </span>
-                    <span className="transition-colors duration-150">Odhlásiť sa</span>
-                  </button>
-                </div>
+                {/* Odhlásiť sa */}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2 text-xs font-medium text-red-600 hover:border-red-200/70 hover:bg-red-50 hover:text-red-700 transition-colors duration-150 group cursor-pointer text-left"
+                >
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-red-100/80 text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                    <LogOut className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="text-xs font-medium text-red-700 transition-colors duration-150">Odhlásiť sa</span>
+                </button>
               </div>
             )}
             </div>
