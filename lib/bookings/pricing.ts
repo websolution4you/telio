@@ -111,11 +111,12 @@ export function calculateNtcBookingPrice(
 
   const validCards = Math.min(2, Math.max(0, Math.floor(multisportCardsCount || 0)));
   if (validCards === 1) {
-    // 1 MultiSport card = 50% discount
-    multisportDiscountEur = Math.round(roundedBeforeMultisport * 0.5 * 100) / 100;
-    finalTotal = Math.max(0, roundedBeforeMultisport - multisportDiscountEur);
+    // 1 MultiSport karta: najprv 10% zľava zo základnej ceny, a následne 50% zľava
+    const priceAfter10Percent = roundedBeforeMultisport * 0.9;
+    finalTotal = Math.max(0, priceAfter10Percent * 0.5);
+    multisportDiscountEur = Math.round((roundedBeforeMultisport - finalTotal) * 100) / 100;
   } else if (validCards >= 2) {
-    // 2 MultiSport cards = 100% discount (free)
+    // 2 MultiSport karty = 100% zľava (zadarmo)
     multisportDiscountEur = roundedBeforeMultisport;
     finalTotal = 0.00;
   }
