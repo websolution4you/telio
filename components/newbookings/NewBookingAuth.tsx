@@ -1,12 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, EyeOff, LogIn, UserPlus, X } from "lucide-react";
-import { loginAction, registerAction } from "@/app/actions/auth";
+import { CheckCircle2, Eye, EyeOff, KeyRound, Lock, LogIn, UserPlus, X } from "lucide-react";
+import {
+  loginAction,
+  registerAction,
+  requestPasswordResetAction,
+  resetPasswordWithTokenAction,
+} from "@/app/actions/auth";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 
 type NewBookingAuthProps = {
-  mode: "login" | "register";
+  mode: "login" | "register" | "forgot" | "reset";
+  resetToken?: string;
   onClose: () => void;
   onSuccess: (user?: BookingUser) => void;
 };
@@ -20,8 +26,8 @@ const PREFIX_OPTIONS = [
   { code: "+", flag: "🌐", label: "+ Iné" },
 ];
 
-export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }: NewBookingAuthProps) {
-  const [mode, setMode] = useState(initialMode);
+export default function NewBookingAuth({ mode: initialMode, resetToken, onClose, onSuccess }: NewBookingAuthProps) {
+  const [mode, setMode] = useState<"login" | "register" | "forgot" | "reset">(initialMode);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -32,11 +38,21 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [debugResetUrl, setDebugResetUrl] = useState<string | null>(null);
+  const [debugNote, setDebugNote] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (initialMode) {
+      setMode(initialMode);
+    }
+  }, [initialMode]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
+    setSuccessMessage("");
 
     if (mode === "register") {
       if (!firstName.trim() || !lastName.trim()) {
@@ -49,8 +65,56 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
       }
     }
 
+    if (mode === "reset") {
+      if (password.length < 6) {
+        setError("Nové heslo musí mať aspoň 6 znakov.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Heslá sa nezhodujú.");
+        return;
+      }
+    }
+
     setLoading(true);
     try {
+      if (mode === "forgot") {
+        const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+        const res = await requestPasswordResetAction(email, origin);
+        if (res.success) {
+          setSuccessMessage(res.message || "Inštrukcie na obnovu hesla sme odoslali na váš email.");
+          if (res.debugResetUrl) {
+            setDebugResetUrl(res.debugResetUrl);
+          }
+          if (res.debugNote) {
+            setDebugNote(res.debugNote);
+          }
+        } else {
+          setError(res.error || "Nepodarilo sa odoslať žiadosť.");
+        }
+        return;
+      }
+
+      if (mode === "reset") {
+        if (!resetToken) {
+          setError("Chýba platný token na obnovu hesla.");
+          return;
+        }
+        const res = await resetPasswordWithTokenAction(resetToken, password);
+        if (res.success) {
+          setSuccessMessage(res.message || "Heslo bolo úspešne zmenené! Teraz sa môžete prihlásiť.");
+          setTimeout(() => {
+            setMode("login");
+            setSuccessMessage("");
+            setPassword("");
+            setConfirmPassword("");
+          }, 2500);
+        } else {
+          setError(res.error || "Nepodarilo sa obnoviť heslo.");
+        }
+        return;
+      }
+
       let fullPhone: string | undefined = undefined;
       if (phone.trim()) {
         const cleanNumber = phone.trim().replace(/\s+/g, "");
@@ -70,8 +134,9 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
         return;
       }
       onSuccess(result.user);
-    } catch {
-      setError("Požiadavku sa nepodarilo spracovať.");
+    } catch (err: any) {
+      console.error("NewBookingAuth submit error:", err);
+      setError(err?.message || "Požiadavku sa nepodarilo spracovať.");
     } finally {
       setLoading(false);
     }
@@ -93,6 +158,10 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
       setConfirmPassword("");
       setPhone("");
     }
+    setError("");
+    setSuccessMessage("");
+    setDebugResetUrl(null);
+    setDebugNote(null);
   }, [mode]);
 
   return (
@@ -102,21 +171,59 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-              {mode === "login" ? <LogIn className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />}
+              {mode === "login" && <LogIn className="h-5 w-5" />}
+              {mode === "register" && <UserPlus className="h-5 w-5" />}
+              {mode === "forgot" && <KeyRound className="h-5 w-5" />}
+              {mode === "reset" && <Lock className="h-5 w-5" />}
             </div>
-            <h2 className="text-2xl font-bold text-slate-950">{mode === "login" ? "Prihlásenie" : "Rýchla registrácia"}</h2>
+            <h2 className="text-2xl font-bold text-slate-950">
+              {mode === "login" && "Prihlásenie"}
+              {mode === "register" && "Rýchla registrácia"}
+              {mode === "forgot" && "Obnova hesla"}
+              {mode === "reset" && "Nové heslo"}
+            </h2>
             <p className="mt-1 text-sm text-slate-500">
-              {mode === "login"
-                ? "Prihláste sa, aby ste mohli vytvárať a spravovať svoje rezervácie."
-                : "Vytvorte si účet za pár sekúnd pre okamžité rezervovanie kurtov."}
+              {mode === "login" && "Prihláste sa, aby ste mohli vytvárať a spravovať svoje rezervácie."}
+              {mode === "register" && "Vytvorte si účet za pár sekúnd pre okamžité rezervovanie kurtov."}
+              {mode === "forgot" && "Zadajte svoj email a zašleme vám odkaz na nastavenie nového hesla."}
+              {mode === "reset" && "Zadajte a potvrďte vaše nové prihlasovacie heslo."}
             </p>
           </div>
-          <button onClick={onClose} className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" aria-label="Zavrieť">
+          <button onClick={onClose} className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 cursor-pointer" aria-label="Zavrieť">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">{error}</div>}
+        {error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700 animate-in fade-in">{error}</div>}
+        {successMessage && (
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800 animate-in fade-in">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            <span>{successMessage}</span>
+          </div>
+        )}
+
+        {debugNote && (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-medium text-amber-800 animate-in fade-in">
+            {debugNote}
+          </div>
+        )}
+
+        {debugResetUrl && (
+          <div className="mb-5 rounded-2xl border border-emerald-300 bg-emerald-50/80 p-3.5 text-xs text-emerald-950 animate-in fade-in shadow-xs">
+            <div className="font-bold mb-1 text-emerald-800 flex items-center gap-1.5">
+              <span>🛠️ Lokálny testovací odkaz:</span>
+            </div>
+            <p className="mb-2 text-[11px] text-emerald-700 leading-relaxed">
+              Keďže testujeme na lokálnom prostredí a emailová schránka nemusí existovať, môžete kliknúť priamo na tento odkaz:
+            </p>
+            <a
+              href={debugResetUrl}
+              className="inline-flex items-center gap-1 font-bold text-emerald-800 bg-white border border-emerald-300 rounded-lg px-3 py-1.5 text-xs hover:bg-emerald-100/50 transition shadow-2xs"
+            >
+              Prejsť na nastavenie nového hesla →
+            </a>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           {/* Dummy inputs to prevent aggressive browser autofill of saved admin credentials */}
@@ -173,51 +280,73 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
             </>
           )}
 
-          <Field
-            label="E-mail"
-            type="email"
-            value={email}
-            onChange={setEmail}
-            placeholder="vas@email.sk"
-            autoComplete={mode === "register" ? "new-password" : "email"}
-            name={mode === "register" ? "register_new_email" : "email"}
-            required
-          />
+          {/* Email field (for login, register, forgot) */}
+          {mode !== "reset" && (
+            <Field
+              label="E-mail"
+              type="email"
+              value={email}
+              onChange={setEmail}
+              placeholder="vas@email.sk"
+              autoComplete={mode === "register" ? "new-password" : "email"}
+              name={mode === "register" ? "register_new_email" : "email"}
+              required
+            />
+          )}
 
-          {/* Password with eye toggle */}
-          <div>
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-semibold text-slate-700">Heslo</span>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name={mode === "register" ? "register_new_password" : "password"}
-                  autoComplete={mode === "register" ? "new-password" : "current-password"}
-                  data-lpignore="true"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  placeholder="Minimálne 6 znakov"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
-                  aria-label={showPassword ? "Skryť heslo" : "Zobraziť heslo"}
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-            </label>
-          </div>
-
-          {mode === "register" && (
+          {/* Password with eye toggle (for login, register, reset) */}
+          {mode !== "forgot" && (
             <div>
               <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold text-slate-700">Potvrdenie hesla</span>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-slate-700">
+                    {mode === "reset" ? "Nové heslo" : "Heslo"}
+                  </span>
+                  {mode === "login" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode("forgot");
+                        setError("");
+                      }}
+                      className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition cursor-pointer"
+                    >
+                      Zabudli ste heslo?
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name={mode === "register" ? "register_new_password" : "password"}
+                    autoComplete={mode === "register" ? "new-password" : "current-password"}
+                    data-lpignore="true"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={mode === "login" ? undefined : 6}
+                    placeholder={mode === "login" ? "Vaše heslo" : "Minimálne 6 znakov"}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                    aria-label={showPassword ? "Skryť heslo" : "Zobraziť heslo"}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+              </label>
+            </div>
+          )}
+
+          {/* Confirm password (for register and reset) */}
+          {(mode === "register" || mode === "reset") && (
+            <div>
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-semibold text-slate-700">Potvrdenie nového hesla</span>
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? "text" : "password"}
@@ -228,14 +357,14 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     minLength={6}
-                    placeholder="Zopakujte heslo"
+                    placeholder="Zopakujte nové heslo"
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     tabIndex={-1}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition cursor-pointer"
                     aria-label={showConfirmPassword ? "Skryť heslo" : "Zobraziť heslo"}
                   >
                     {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -245,37 +374,77 @@ export default function NewBookingAuth({ mode: initialMode, onClose, onSuccess }
             </div>
           )}
 
-          <button disabled={loading} className="mt-2 w-full rounded-xl bg-slate-950 px-5 py-3.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 shadow-md">
-            {loading ? "Spracovanie..." : mode === "login" ? "Prihlásiť sa" : "Vytvoriť účet"}
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-2 w-full rounded-xl bg-slate-950 px-5 py-3.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 shadow-md cursor-pointer"
+          >
+            {loading
+              ? "Spracovanie..."
+              : mode === "login"
+              ? "Prihlásiť sa"
+              : mode === "register"
+              ? "Vytvoriť účet"
+              : mode === "forgot"
+              ? "Odoslať odkaz na obnovu"
+              : "Uložiť nové heslo"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-slate-500">
-          {mode === "login" ? "Ešte nemáte účet?" : "Už máte účet?"}{" "}
-          <button
-            type="button"
-            onClick={() => {
-              const nextMode = mode === "login" ? "register" : "login";
-              setMode(nextMode);
-              setError("");
-              if (nextMode === "register") {
-                setFirstName("");
-                setLastName("");
-                setEmail("");
-                setPassword("");
-                setConfirmPassword("");
-                setPhone("");
-              }
-            }}
-            className="font-bold text-emerald-700 hover:text-emerald-800"
-          >
-            {mode === "login" ? "Registrovať sa" : "Prihlásiť sa"}
-          </button>
-        </p>
+        {/* Bottom links */}
+        <div className="mt-6 text-center text-sm text-slate-500">
+          {mode === "login" && (
+            <p>
+              Ešte nemáte účet?{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("register");
+                  setError("");
+                }}
+                className="font-bold text-emerald-700 hover:text-emerald-800 cursor-pointer"
+              >
+                Registrovať sa
+              </button>
+            </p>
+          )}
+
+          {mode === "register" && (
+            <p>
+              Už máte účet?{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("login");
+                  setError("");
+                }}
+                className="font-bold text-emerald-700 hover:text-emerald-800 cursor-pointer"
+              >
+                Prihlásiť sa
+              </button>
+            </p>
+          )}
+
+          {(mode === "forgot" || mode === "reset") && (
+            <p>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("login");
+                  setError("");
+                }}
+                className="font-bold text-emerald-700 hover:text-emerald-800 cursor-pointer"
+              >
+                ← Späť na prihlásenie
+              </button>
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
 }
+
 
 type FieldProps = {
   label: string;

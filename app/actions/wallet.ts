@@ -441,7 +441,7 @@ export async function createWalletCardPayAction(amountEur: number, operationId: 
   try {
     const requestHeaders = await headers();
     const forwardedIp = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim();
-        const ipAddress = forwardedIp || requestHeaders.get("x-real-ip") || "127.0.0.1";
+    const ipAddress = forwardedIp || requestHeaders.get("x-real-ip") || "87.197.100.1";
     const nameParts = session.name.trim().split(/\s+/).filter(Boolean);
     const firstName = nameParts.shift() || "Zakaznik";
     const lastName = nameParts.join(" ") || "Telio";

@@ -245,7 +245,22 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [items, setItems] = useState(initialBookings);
   const [reload, setReload] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [auth, setAuth] = useState<"login" | "register" | null>(null);
+  const [auth, setAuth] = useState<"login" | "register" | "forgot" | "reset" | null>(null);
+  const [resetToken, setResetToken] = useState<string | undefined>(undefined);
+
+  // Check URL query parameters for password reset token on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get("reset_token");
+      if (token) {
+        setResetToken(token);
+        setAuth("reset");
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    }
+  }, []);
   const [slot, setSlot] = useState<Slot | null>(null);
   const [detail, setDetail] = useState<Booking | null>(null);
   const [deleting, setDeleting] = useState<Booking | null>(null);
@@ -1301,8 +1316,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       {auth && (
         <NewBookingAuth
           mode={auth}
+          resetToken={resetToken}
           onClose={() => {
             setAuth(null);
+            setResetToken(undefined);
             setPendingSlot(null);
           }}
           onSuccess={(user) => handleAuthSuccess(user)}

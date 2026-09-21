@@ -31,6 +31,23 @@ function sanitizeName(value: string, fallback: string) {
   return sanitized || fallback;
 }
 
+function sanitizeIpAddress(ip?: string | null): string {
+  const fallback = "87.197.100.1";
+  if (!ip) return fallback;
+  const trimmed = ip.trim();
+  const parts = trimmed.split(".");
+  if (parts.length !== 4) return fallback;
+  const nums = parts.map((p) => Number(p));
+  if (nums.some((n) => isNaN(n) || n < 0 || n > 255)) return fallback;
+  // Exclude loopback (127.x.x.x) or zero
+  if (nums[0] === 127 || nums[0] === 0) return fallback;
+  // Exclude private ranges: 10.x.x.x, 192.168.x.x, 172.16-31.x.x
+  if (nums[0] === 10) return fallback;
+  if (nums[0] === 192 && nums[1] === 168) return fallback;
+  if (nums[0] === 172 && nums[1] >= 16 && nums[1] <= 31) return fallback;
+  return trimmed;
+}
+
 async function getAccessToken() {
   const clientId = requireConfig("TATRABANKA_CLIENT_ID");
   const clientSecret = requireConfig("TATRABANKA_SHARED_SECRET");
@@ -78,7 +95,7 @@ export async function createTatraPayment(input: {
     method: "POST",
     headers: {
       "X-Request-ID": input.requestId,
-      "IP-Address": input.ipAddress,
+      "IP-Address": sanitizeIpAddress(input.ipAddress),
       "Redirect-URI": input.redirectUri,
       "Automatic-Redirect": "true",
       "Preferred-Method": method,
