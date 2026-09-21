@@ -601,16 +601,27 @@ export default function NewBookingsHeader({
                     setMobileWalletMenuOpen((prev) => !prev);
                     setUserMenuOpen(false);
                   }}
-                  className={`flex h-10 items-center gap-1.5 rounded-xl border px-2.5 py-1 text-slate-800 shadow-2xs backdrop-blur-md transition active:scale-95 cursor-pointer ${
+                  className={`group relative flex h-[54px] w-[76px] xs:w-[84px] shrink-0 flex-col items-center justify-center rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer ${
                     mobileWalletMenuOpen
-                      ? "border-slate-900 bg-white ring-2 ring-slate-900/15"
-                      : "border-white/20 bg-white/95 hover:border-white"
+                      ? "border-emerald-400/50 bg-white/15 ring-2 ring-emerald-400/30 text-white shadow-inner"
+                      : walletHighlight
+                      ? "border-emerald-500 bg-emerald-500/20 ring-4 ring-emerald-400/50 scale-105"
+                      : "border-transparent bg-transparent text-slate-300 hover:border-white/10 hover:bg-white/10 hover:text-white"
                   }`}
-                  title="Dobiť kredit"
+                  title="Dobiť kredit peňaženky"
                   aria-expanded={mobileWalletMenuOpen}
                 >
-                  <Wallet className="h-4 w-4 text-emerald-600 shrink-0" strokeWidth={1.8} />
-                  <span className="text-xs font-bold text-emerald-700">
+                  <div className="transition-transform duration-200 group-hover:scale-105">
+                    <Wallet className="h-4 w-4 text-emerald-400 transition-colors duration-200 group-hover:text-emerald-300" strokeWidth={1.8} />
+                  </div>
+                  <span
+                    className={`mt-0.5 text-[10px] leading-tight transition-colors duration-200 ${
+                      mobileWalletMenuOpen ? "font-semibold text-white" : "font-medium text-slate-300 group-hover:text-white"
+                    }`}
+                  >
+                    Peňaženka
+                  </span>
+                  <span className="mt-0.5 text-[10px] font-bold leading-tight text-emerald-400 group-hover:text-emerald-300">
                     {walletBalance !== null ? `${walletBalance.toFixed(2)} €` : "0.00 €"}
                   </span>
                 </button>
@@ -631,12 +642,29 @@ export default function NewBookingsHeader({
                   setUserMenuOpen((prev) => !prev);
                   setMobileWalletMenuOpen(false);
                 }}
-                className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-white/95 text-slate-800 shadow-2xs backdrop-blur-md transition hover:border-white hover:bg-white active:scale-95"
+                className={`group relative flex h-[54px] w-[76px] xs:w-[84px] shrink-0 flex-col items-center justify-center rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer ${
+                  userMenuOpen
+                    ? "border-white/25 bg-white/15 text-white shadow-inner"
+                    : "border-transparent bg-transparent text-slate-300 hover:border-white/10 hover:bg-white/10 hover:text-white"
+                }`}
                 title={userName}
                 aria-label="Používateľské menu"
                 aria-expanded={userMenuOpen}
               >
-                <CircleUser className="h-5 w-5 text-slate-800" strokeWidth={1.8} />
+                <div className="transition-transform duration-200 group-hover:scale-105">
+                  <CircleUser className="h-4 w-4 text-emerald-400 transition-colors duration-200 group-hover:text-emerald-300" strokeWidth={1.8} />
+                </div>
+                <span className="mt-0.5 block max-w-[68px] truncate text-center text-[10px] font-medium leading-tight text-slate-200 transition-colors duration-200 group-hover:text-white">
+                  {userName}
+                </span>
+                <span className="mt-0.5 flex items-center justify-center gap-0.5 text-[10px] font-bold leading-tight text-emerald-400">
+                  <span>Účet</span>
+                  <ChevronDown
+                    className={`h-3 w-3 shrink-0 transition-transform duration-200 ${
+                      userMenuOpen ? "rotate-180 text-emerald-300" : "text-emerald-400 group-hover:text-emerald-300"
+                    }`}
+                  />
+                </span>
               </button>
 
             {userMenuOpen && (
