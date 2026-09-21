@@ -444,7 +444,7 @@ export async function requestPasswordResetAction(email: string, clientOrigin?: s
             const resend = getResendClient();
             if (resend) {
                 try {
-                    const fromEmail = process.env.RESEND_FROM || "onboarding@resend.dev";
+                    const fromEmail = process.env.RESEND_FROM || "NTC Rezervácie <rezervacie@telio.sk>";
                     const { data: resData, error: sendError } = await resend.emails.send({
                         from: fromEmail,
                         to: user.email,

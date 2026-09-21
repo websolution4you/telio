@@ -24,8 +24,9 @@ export async function sendContactFormAction(data: ContactFormData) {
 
     // Send email via Resend
     const targetEmail = process.env.CONTACT_EMAIL || 'info@telio.sk';
+    const fromEmail = process.env.RESEND_FROM || 'Telio <info@telio.sk>';
     const { data: resData, error } = await resend.emails.send({
-      from: 'onboarding@resend.dev',
+      from: fromEmail,
       to: targetEmail,
       replyTo: data.email,
       subject: `Nová správa od: ${data.name} (${data.business})`,
