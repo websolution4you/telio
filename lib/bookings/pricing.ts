@@ -102,7 +102,7 @@ export function calculateNtcBookingPrice(
     totalPrice += hourlyRate / 4;
   }
 
-  const roleDiscountEur = Math.max(0, discountEurPerHour) * duration / 60;
+  const roleDiscountEur = Math.round(Math.min(totalPrice, Math.max(0, discountEurPerHour)) * 100) / 100;
   const beforeMultisport = Math.max(0, totalPrice - roleDiscountEur);
   const roundedBeforeMultisport = Math.round(beforeMultisport * 100) / 100;
 
