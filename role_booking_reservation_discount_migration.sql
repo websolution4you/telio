@@ -1,8 +1,13 @@
 -- ============================================================================
--- Fix role discount to be applied once per reservation (instead of per hour)
+-- Fix NTC Member Card & Role discount: 2 € per reservation (instead of per hour)
 -- ============================================================================
 
 begin;
+
+-- Ensure user role policy has 0 extra role discount (member card provides the 2 € discount)
+update public.role_booking_policies
+set discount_eur_per_hour = 0
+where role = 'user';
 
 create or replace function public.wallet_create_ntc_booking(
     p_user_id uuid,
@@ -30,7 +35,9 @@ declare
     v_policy public.role_booking_policies%rowtype;
     v_duration_minutes integer;
     v_base_price numeric(10, 2);
-    v_role_discount numeric(10, 2);
+    v_card_discount numeric(10, 2) := 0.00;
+    v_role_discount numeric(10, 2) := 0.00;
+    v_total_discount numeric(10, 2) := 0.00;
     v_price numeric(10, 2);
     v_multisport_count integer := 0;
     v_new_balance numeric(10, 2);
@@ -93,11 +100,15 @@ begin
     end if;
 
     v_has_card := v_card_num is not null and trim(v_card_num) <> '';
-    v_base_price := public.calculate_ntc_booking_price(p_sport, p_start_at, p_end_at, v_has_card);
+    -- Calculate standard rack base price (without per-hour card discount)
+    v_base_price := public.calculate_ntc_booking_price(p_sport, p_start_at, p_end_at, false);
     
-    -- Fix: Role discount is applied once per reservation, not multiplied by hours
-    v_role_discount := least(v_base_price, greatest(0.00, coalesce(v_policy.discount_eur_per_hour, 0.00)));
-    v_price := greatest(0.00, v_base_price - v_role_discount);
+    -- Member card discount is 2.00 € per reservation (e.g. 13 - 2 = 11 € for 1h, 26 - 2 = 24 € for 2h)
+    v_card_discount := case when v_has_card then 2.00 else 0.00 end;
+    -- Role discount is per reservation
+    v_role_discount := greatest(0.00, coalesce(v_policy.discount_eur_per_hour, 0.00));
+    v_total_discount := least(v_base_price, v_card_discount + v_role_discount);
+    v_price := greatest(0.00, v_base_price - v_total_discount);
 
     -- MultiSport card discounts
     begin
@@ -168,7 +179,9 @@ begin
             'has_card', v_has_card,
             'base_price_eur', v_base_price,
             'role', v_role,
+            'card_discount_eur', v_card_discount,
             'role_discount_eur', v_role_discount,
+            'total_discount_eur', v_total_discount,
             'multisport_cards_count', v_multisport_count,
             'price_eur', v_price,
             'balance_after_eur', v_new_balance

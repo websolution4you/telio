@@ -30,18 +30,18 @@ export function getNtcHourlyRate(
   sport: SportType,
   hour: number,
   isWeekend: boolean,
-  hasCard: boolean
+  _hasCard: boolean = false
 ): number {
   if (isWeekend) {
     switch (sport) {
       case "badminton":
-        return hasCard ? 13 : 15;
+        return 15;
       case "tennis-clay":
-        return hasCard ? 13 : 15;
+        return 15;
       case "tennis":
-        return hasCard ? 17 : 19;
+        return 19;
       case "squash":
-        return hasCard ? 11 : 13;
+        return 13;
     }
   }
 
@@ -50,20 +50,20 @@ export function getNtcHourlyRate(
 
   switch (sport) {
     case "badminton":
-      return isPeak ? (hasCard ? 19 : 21) : (hasCard ? 13 : 15);
+      return isPeak ? 21 : 15;
     case "tennis-clay":
-      return isPeak ? (hasCard ? 15 : 17) : (hasCard ? 13 : 15);
+      return isPeak ? 17 : 15;
     case "tennis":
-      return isPeak ? (hasCard ? 19 : 21) : (hasCard ? 17 : 19);
+      return isPeak ? 21 : 19;
     case "squash":
-      return isPeak ? (hasCard ? 15 : 17) : (hasCard ? 11 : 13);
+      return isPeak ? 17 : 13;
   }
 }
 
 /**
  * Calculates exact NTC booking price for any sport, date/time, and duration.
- * Uses 15-minute slice precision across tariff boundaries, then applies fixed role discount,
- * and finally MultiSport card discounts (1 card = 50%, 2 cards = 100%).
+ * Uses 15-minute slice precision across tariff boundaries, applies 2 € member card discount per reservation
+ * plus any role discount, and finally MultiSport card discounts (1 card = 10% + 50%, 2 cards = 100%).
  */
 export function calculateNtcBookingPrice(
   sportOrCourtId: string,
@@ -93,7 +93,7 @@ export function calculateNtcBookingPrice(
     const isWeekend = weekday === "Sat" || weekday === "Sun";
     const hour = Number(localParts.find((part) => part.type === "hour")?.value || 0);
 
-    const hourlyRate = getNtcHourlyRate(normalizedSport, hour, isWeekend, hasCard);
+    const hourlyRate = getNtcHourlyRate(normalizedSport, hour, isWeekend);
     if (i === 0) {
       firstHourlyRate = hourlyRate;
     }
@@ -102,7 +102,12 @@ export function calculateNtcBookingPrice(
     totalPrice += hourlyRate / 4;
   }
 
-  const roleDiscountEur = Math.round(Math.min(totalPrice, Math.max(0, discountEurPerHour)) * 100) / 100;
+  // Member card discount: 2 € per reservation (e.g. 13 € - 2 € = 11 € for 1h, 26 € - 2 € = 24 € for 2h)
+  const cardDiscountEur = hasCard ? 2.00 : 0.00;
+  const roleDiscount = Math.max(0, discountEurPerHour);
+  const totalDiscount = Math.min(totalPrice, cardDiscountEur + roleDiscount);
+  const roleDiscountEur = Math.round(totalDiscount * 100) / 100;
+
   const beforeMultisport = Math.max(0, totalPrice - roleDiscountEur);
   const roundedBeforeMultisport = Math.round(beforeMultisport * 100) / 100;
 
