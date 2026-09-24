@@ -469,7 +469,7 @@ export default function AdminUsersAndRoles() {
                           </select>
                         </label>
                         <label className="block text-xs font-bold text-slate-600">
-                          Zľava za každú hodinu rezervácie (€)
+                          Zľava na rezerváciu (€)
                           <input
                             type="number"
                             min="0"

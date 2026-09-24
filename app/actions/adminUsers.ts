@@ -128,7 +128,7 @@ export async function updateRoleBookingPolicyAction(input: RoleBookingPolicyInpu
     return { success: false as const, error: "Rezervačný horizont musí byť od 0 do 730 dní." };
   }
   if (!Number.isFinite(input.discountEurPerHour) || input.discountEurPerHour < 0 || input.discountEurPerHour > 100) {
-    return { success: false as const, error: "Zľava musí byť od 0 do 100 € za hodinu." };
+    return { success: false as const, error: "Zľava musí byť od 0 do 100 € na rezerváciu." };
   }
   if (input.cancellationDeadlineHours < 0 || input.cancellationDeadlineHours > 8760) {
     return { success: false as const, error: "Storno lehota musí byť od 0 do 8760 hodín." };
