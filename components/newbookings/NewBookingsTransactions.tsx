@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowDownLeft, ArrowLeft, ArrowUpRight, CheckCircle2, Clock, Coins, CreditCard, LayoutDashboard, Loader2, Sparkles } from "lucide-react";
-import { addTestWalletCreditAction, createWalletCardPayAction, getWalletHistoryAction, reconcileWalletCardPayAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
+import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, Coins, Loader2 } from "lucide-react";
+import { getWalletHistoryAction, reconcileWalletCardPayAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
 import type { SessionPayload } from "@/lib/auth/bookingAuth";
 import NewBookingsHeader from "./NewBookingsHeader";
 
@@ -45,9 +44,6 @@ const labels: Record<WalletTransaction["type"], string> = {
 export default function NewBookingsTransactions({ currentUser }: { currentUser: SessionPayload }) {
   const [wallet, setWallet] = useState<{ balanceEur: number; transactions: WalletTransaction[] } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadingAmount, setLoadingAmount] = useState<number | null>(null);
-  const [cardPayLoadingAmount, setCardPayLoadingAmount] = useState<number | null>(null);
-  const [checkoutError, setCheckoutError] = useState("");
   const [walletNotice, setWalletNotice] = useState("");
   const [error, setError] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<FilterType>("all");
@@ -117,32 +113,6 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
     };
   }, [loadData]);
 
-  const addTestCredit = async (amountEur: number) => {
-    setLoadingAmount(amountEur);
-    setCheckoutError("");
-    const result = await addTestWalletCreditAction(amountEur, crypto.randomUUID());
-    if (!result.success) {
-      setCheckoutError(result.error || "Testovací kredit sa nepodarilo pridať.");
-      setLoadingAmount(null);
-      return;
-    }
-    setWalletNotice(`Testovací kredit +${formatEur(result.amountEur)} bol pridaný.`);
-    await loadData();
-    setLoadingAmount(null);
-  };
-
-      const startCardPay = async (amountEur: number) => {
-    setCardPayLoadingAmount(amountEur);
-    setCheckoutError("");
-    const result = await createWalletCardPayAction(amountEur, crypto.randomUUID());
-    if (!result.success || !result.url) {
-      setCheckoutError(result.error || "CardPay platbu sa nepodarilo pripraviť.");
-      setCardPayLoadingAmount(null);
-      return;
-    }
-    window.location.replace(result.url);
-  };
-
   const counts = useMemo(() => {
     const list = wallet?.transactions || [];
     return {
@@ -208,49 +178,6 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
                     <small className="block text-[10px] font-semibold uppercase tracking-wider text-emerald-100">AKTUÁLNY KREDIT</small>
                     <strong className="text-xl">{formatEur(wallet?.balanceEur || 0)}</strong>
                   </div>
-                </div>
-              </div>
-
-                            <div className="border-b border-slate-100 bg-sky-50/60 px-5 py-4 sm:px-6">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="flex items-center gap-2 text-sm font-bold text-slate-800"><CreditCard className="h-4 w-4 text-sky-700" /> Dobiť cez Tatra banka CardPay</p>
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-sky-700">Sandbox</span>
-                </div>
-                <p className="mb-3 text-xs text-slate-500">Budete presmerovaný na zabezpečenú testovaciu platobnú stránku Tatra banky.</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  {[10, 20, 50].map((amount) => (
-                    <button
-                      key={amount}
-                      type="button"
-                      disabled={cardPayLoadingAmount !== null}
-                      onClick={() => startCardPay(amount)}
-                      className="min-w-[76px] cursor-pointer rounded-xl border border-sky-200 bg-white px-4 py-2.5 text-xs font-extrabold text-sky-700 transition hover:border-sky-400 hover:bg-sky-50 disabled:cursor-wait disabled:opacity-50"
-                    >
-                      {cardPayLoadingAmount === amount ? "Otváram..." : `${amount} €`}
-                    </button>
-                  ))}
-                </div>
-                {checkoutError && <p className="mt-2 text-xs font-semibold text-red-600">{checkoutError}</p>}
-              </div>
-
-              {/* Test Top-up section */}
-              <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-4 sm:px-6">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-sm font-bold text-slate-800">Testovacie dobitie</p>
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Bez platobnej karty</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {[10, 20, 50].map((amount) => (
-                    <button
-                      key={amount}
-                      type="button"
-                      disabled={loadingAmount !== null}
-                      onClick={() => addTestCredit(amount)}
-                      className="min-w-[76px] rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-50 cursor-pointer"
-                    >
-                      {loadingAmount === amount ? "Pridávam..." : `+${amount} €`}
-                    </button>
-                                    ))}
                 </div>
               </div>
 
