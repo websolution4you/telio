@@ -28,6 +28,16 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
             return;
         }
 
+        if (password.length < 8) {
+            setError("Heslo musí mať minimálne 8 znakov");
+            return;
+        }
+
+        if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+            setError("Heslo musí obsahovať písmená aj číslice");
+            return;
+        }
+
         if (password !== confirmPassword) {
             setError("Heslá sa nezhodujú");
             return;
@@ -138,12 +148,15 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={8}
                     className="w-full px-3 py-2 rounded-lg border bg-black/30 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                     style={{ borderColor: "rgba(0,255,209,0.2)" }}
-                    placeholder="Heslo (min. 6 znakov)"
+                    placeholder="Heslo (min. 8 znakov)"
                     disabled={loading}
                 />
+                <p className="mt-1 text-xs text-gray-400">
+                    minimálne 8 znakov, musí obsahovať písmená a číslice
+                </p>
             </div>
 
             <div>
@@ -153,7 +166,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={8}
                     className="w-full px-3 py-2 rounded-lg border bg-black/30 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                     style={{ borderColor: "rgba(0,255,209,0.2)" }}
                     placeholder="Potvrdiť heslo"

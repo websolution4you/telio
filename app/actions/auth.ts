@@ -263,8 +263,12 @@ export async function registerAction(
             return { success: false, error: "Meno, email a heslo sú povinné" };
         }
 
-        if (password.length < 6) {
-            return { success: false, error: "Heslo musí mať aspoň 6 znakov" };
+        if (password.length < 8) {
+            return { success: false, error: "Heslo musí mať aspoň 8 znakov" };
+        }
+
+        if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+            return { success: false, error: "Heslo musí obsahovať aspoň jedno písmeno a jednu číslicu" };
         }
 
         const cleanEmail = email.toLowerCase().trim();

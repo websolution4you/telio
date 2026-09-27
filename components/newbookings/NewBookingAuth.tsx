@@ -57,6 +57,14 @@ export default function NewBookingAuth({ mode: initialMode, resetToken, onClose,
         setError("Meno a priezvisko sú povinné.");
         return;
       }
+      if (password.length < 8) {
+        setError("Heslo musí mať minimálne 8 znakov.");
+        return;
+      }
+      if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+        setError("Heslo musí obsahovať písmená aj číslice.");
+        return;
+      }
       if (password !== confirmPassword) {
         setError("Heslá sa nezhodujú.");
         return;
@@ -291,8 +299,8 @@ export default function NewBookingAuth({ mode: initialMode, resetToken, onClose,
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    minLength={mode === "login" ? undefined : 6}
-                    placeholder={mode === "login" ? "Vaše heslo" : "Minimálne 6 znakov"}
+                    minLength={mode === "login" ? undefined : 8}
+                    placeholder={mode === "login" ? "Vaše heslo" : "Minimálne 8 znakov"}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-11 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
                   />
                   <button
@@ -306,6 +314,11 @@ export default function NewBookingAuth({ mode: initialMode, resetToken, onClose,
                   </button>
                 </div>
               </label>
+              {mode === "register" && (
+                <p className="mt-1.5 text-xs text-slate-500">
+                  minimálne 8 znakov, musí obsahovať písmená a číslice
+                </p>
+              )}
             </div>
           )}
 
