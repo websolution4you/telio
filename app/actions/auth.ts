@@ -15,8 +15,92 @@ import {
 } from "@/lib/auth/bookingAuth";
 import { Resend } from "resend";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 
 const TENANT_ID = "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
+
+// Brute-force protection constants
+const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+const LOGIN_LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes lockout
+const ATTEMPT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes attempt window
+
+interface FailedLoginRecord {
+    count: number;
+    lastFailedAt: number;
+    lockedUntil?: number;
+}
+
+const loginAttemptsStore: Map<string, FailedLoginRecord> =
+    (globalThis as any).__telioLoginAttempts ||
+    ((globalThis as any).__telioLoginAttempts = new Map<string, FailedLoginRecord>());
+
+function formatRemainingTime(ms: number): string {
+    const totalSeconds = Math.max(1, Math.ceil(ms / 1000));
+    if (totalSeconds < 60) {
+        if (totalSeconds === 1) return "1 sekundu";
+        if (totalSeconds >= 2 && totalSeconds <= 4) return `${totalSeconds} sekundy`;
+        return `${totalSeconds} sekúnd`;
+    }
+    const mins = Math.ceil(totalSeconds / 60);
+    if (mins === 1) return "1 minútu";
+    if (mins >= 2 && mins <= 4) return `${mins} minúty`;
+    return `${mins} minút`;
+}
+
+function checkLoginLockout(emailKey: string): { isLocked: boolean; remainingMs: number } {
+    const record = loginAttemptsStore.get(emailKey);
+    if (!record) return { isLocked: false, remainingMs: 0 };
+
+    const now = Date.now();
+
+    if (record.lockedUntil && record.lockedUntil > now) {
+        return { isLocked: true, remainingMs: record.lockedUntil - now };
+    }
+
+    if (record.lockedUntil && record.lockedUntil <= now) {
+        loginAttemptsStore.delete(emailKey);
+        return { isLocked: false, remainingMs: 0 };
+    }
+
+    if (now - record.lastFailedAt > ATTEMPT_WINDOW_MS) {
+        loginAttemptsStore.delete(emailKey);
+        return { isLocked: false, remainingMs: 0 };
+    }
+
+    return { isLocked: false, remainingMs: 0 };
+}
+
+function recordFailedLogin(emailKey: string): { isNowLocked: boolean; remainingAttempts: number; lockoutTimeText?: string } {
+    const now = Date.now();
+    let record = loginAttemptsStore.get(emailKey);
+
+    if (!record || (now - record.lastFailedAt > ATTEMPT_WINDOW_MS && !record.lockedUntil)) {
+        record = { count: 1, lastFailedAt: now };
+    } else {
+        record.count += 1;
+        record.lastFailedAt = now;
+    }
+
+    if (record.count >= MAX_FAILED_LOGIN_ATTEMPTS) {
+        record.lockedUntil = now + LOGIN_LOCKOUT_MS;
+        loginAttemptsStore.set(emailKey, record);
+        return {
+            isNowLocked: true,
+            remainingAttempts: 0,
+            lockoutTimeText: formatRemainingTime(LOGIN_LOCKOUT_MS),
+        };
+    }
+
+    loginAttemptsStore.set(emailKey, record);
+    return {
+        isNowLocked: false,
+        remainingAttempts: MAX_FAILED_LOGIN_ATTEMPTS - record.count,
+    };
+}
+
+function clearFailedLogins(emailKey: string) {
+    loginAttemptsStore.delete(emailKey);
+}
 
 function getResendClient() {
     const key = process.env.RESEND_API_KEY;
@@ -28,13 +112,41 @@ function getResendClient() {
     }
 }
 
-
-
-
 export async function loginAction(email: string, password: string) {
     try {
         if (!email || !password) {
             return { success: false, error: "Email a heslo sú povinné" };
+        }
+
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // 1. Check client cookie lock (persists across serverless container restarts)
+        let cookieLockUntil: number | null = null;
+        try {
+            const cookieStore = await cookies();
+            const lockVal = cookieStore.get("telio_login_lock")?.value;
+            if (lockVal) {
+                const parsed = parseInt(lockVal, 10);
+                if (!isNaN(parsed) && parsed > Date.now()) {
+                    cookieLockUntil = parsed;
+                }
+            }
+        } catch {
+            // Ignore cookie reading errors
+        }
+
+        // 2. Check in-memory lockout
+        const lockStatus = checkLoginLockout(normalizedEmail);
+        const effectiveLockUntil = lockStatus.isLocked
+            ? (loginAttemptsStore.get(normalizedEmail)?.lockedUntil || 0)
+            : (cookieLockUntil || 0);
+
+        if (effectiveLockUntil > Date.now()) {
+            const remainingText = formatRemainingTime(effectiveLockUntil - Date.now());
+            return {
+                success: false,
+                error: `Bolo zadaných 5 nesprávnych hesiel. Z dôvodu ochrany pred neoprávneným prístupom je prihlásenie dočasne zablokované na ${remainingText}.`,
+            };
         }
 
         const db = getCoreDb();
@@ -43,14 +155,14 @@ export async function loginAction(email: string, password: string) {
         let { data: user, error: dbError } = await db
             .from("booking_users")
             .select("id, name, email, password_hash, card_number, phone, role, has_multisport")
-            .eq("email", email.toLowerCase().trim())
+            .eq("email", normalizedEmail)
             .maybeSingle();
 
         if (dbError && dbError.message?.includes("has_multisport")) {
             const fallback = await db
                 .from("booking_users")
                 .select("id, name, email, password_hash, card_number, phone, role")
-                .eq("email", email.toLowerCase().trim())
+                .eq("email", normalizedEmail)
                 .maybeSingle();
             user = fallback.data ? { ...fallback.data, has_multisport: false } : null;
             dbError = fallback.error;
@@ -59,16 +171,64 @@ export async function loginAction(email: string, password: string) {
         if (dbError) {
             console.error("Login DB Error:", dbError);
         }
+
         if (dbError || !user) {
-            return { success: false, error: "Nesprávny email alebo heslo" };
+            const fail = recordFailedLogin(normalizedEmail);
+            if (fail.isNowLocked) {
+                try {
+                    const cookieStore = await cookies();
+                    cookieStore.set("telio_login_lock", String(Date.now() + LOGIN_LOCKOUT_MS), {
+                        httpOnly: true,
+                        secure: process.env.NODE_ENV === "production",
+                        sameSite: "lax",
+                        maxAge: Math.floor(LOGIN_LOCKOUT_MS / 1000),
+                        path: "/",
+                    });
+                } catch {}
+                return {
+                    success: false,
+                    error: `Bolo zadaných 5 nesprávnych pokusov. Účet bol z bezpečnostných dôvodov zablokovaný na ${fail.lockoutTimeText}.`,
+                };
+            }
+            return {
+                success: false,
+                error: `Nesprávny email alebo heslo. Zostávajúce pokusy pred zablokovaním: ${fail.remainingAttempts}.`,
+            };
         }
 
         // Verify password
         const isValid = await verifyPassword(password, user.password_hash);
 
         if (!isValid) {
-            return { success: false, error: "Nesprávny email alebo heslo" };
+            const fail = recordFailedLogin(normalizedEmail);
+            if (fail.isNowLocked) {
+                try {
+                    const cookieStore = await cookies();
+                    cookieStore.set("telio_login_lock", String(Date.now() + LOGIN_LOCKOUT_MS), {
+                        httpOnly: true,
+                        secure: process.env.NODE_ENV === "production",
+                        sameSite: "lax",
+                        maxAge: Math.floor(LOGIN_LOCKOUT_MS / 1000),
+                        path: "/",
+                    });
+                } catch {}
+                return {
+                    success: false,
+                    error: `Bolo zadaných 5 nesprávnych hesiel. Účet bol z bezpečnostných dôvodov zablokovaný na ${fail.lockoutTimeText}.`,
+                };
+            }
+            return {
+                success: false,
+                error: `Nesprávny email alebo heslo. Zostávajúce pokusy pred zablokovaním: ${fail.remainingAttempts}.`,
+            };
         }
+
+        // Successful login: Clear failed login attempts and cookie
+        clearFailedLogins(normalizedEmail);
+        try {
+            const cookieStore = await cookies();
+            cookieStore.delete("telio_login_lock");
+        } catch {}
 
         // Create session
         const bookingUser: BookingUser = {
