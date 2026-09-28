@@ -444,7 +444,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     }
   }, [restorePendingSlotAfterTopUp]);
 
-  const courtColumnWidth = 75;
+  const courtColumnWidth = 82;
   const timeColumnMinWidth = 64;
   const rightSpacerWidth = 24;
   const calendarMinWidth = courtColumnWidth + hours.length * timeColumnMinWidth + rightSpacerWidth;
@@ -1098,7 +1098,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           <div ref={calendarScrollRef} className="overflow-auto border-t-2 border-slate-200 bg-white">
             <div className="w-full" style={{ minWidth: `${calendarMinWidth}px` }}>
               <div className="grid border-b border-slate-200 bg-slate-50/80" style={{ gridTemplateColumns: calendarColumns }}>
-                <b className="sticky left-0 z-30 flex items-center border-r border-slate-200 bg-slate-50 px-2 sm:px-2.5 py-3 text-[11px] sm:text-xs font-extrabold tracking-wide text-slate-600 uppercase">KURT</b>
+                <b className="sticky left-0 z-30 flex items-center border-r border-slate-200 bg-slate-50 px-1.5 py-3 text-[10px] sm:text-[11px] font-extrabold tracking-wide text-slate-600 uppercase">KURT</b>
                 <div ref={timeGridRef} className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
                   {hours.map((hour) => (
                     <div key={hour} className="py-3.5 text-center text-xs font-bold text-slate-500 tracking-wide">{hour}:00</div>
@@ -1111,9 +1111,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               </div>
               {visibleCourts.map((court) => (
                 <div key={court.id} className="grid border-b border-slate-100 py-1" style={{ gridTemplateColumns: calendarColumns }}>
-                  <div className="sticky left-0 z-20 flex min-h-20 flex-col justify-center border-r border-slate-200 bg-white/95 px-2 sm:px-2.5 shadow-[3px_0_10px_rgba(15,23,42,0.03)] backdrop-blur-xs overflow-hidden">
-                    <b className="text-slate-900 font-bold text-[12px] sm:text-[13px] leading-tight truncate">{court.name}</b>
-                    <small className="mt-0.5 text-[10px] sm:text-[11px] text-slate-500 leading-tight truncate">{court.surface.replace(" Court", "")}</small>
+                  <div className="sticky left-0 z-20 flex min-h-20 flex-col justify-center border-r border-slate-200 bg-white/95 px-1.5 shadow-[3px_0_10px_rgba(15,23,42,0.03)] backdrop-blur-xs">
+                    <b className="text-slate-900 font-bold text-[11px] sm:text-[11.5px] leading-tight tracking-tight whitespace-nowrap">{court.name}</b>
+                    <small className="mt-0.5 text-[9.5px] sm:text-[10px] text-slate-500 font-medium leading-tight tracking-tight whitespace-nowrap">{court.surface.replace(" Court", "")}</small>
                   </div>
                   <div className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
                     {hours.map((hour) => {
