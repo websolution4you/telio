@@ -990,10 +990,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       <main className="mx-auto max-w-[1500px] px-2 py-4 sm:px-6 sm:py-7 lg:py-8">
         <div className="mx-auto mb-4 sm:mb-7 flex w-full max-w-5xl flex-col items-center px-2 text-center pt-1 sm:pt-2">
           <h1
-            className="text-xl font-bold tracking-tight text-slate-950 sm:text-3xl lg:text-4xl"
+            className="text-2xl font-bold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl"
             style={{ fontFamily: "var(--font-poppins), sans-serif" }}
           >
-            Rezervačný systém Národné tenisové centrum <span className="font-semibold text-slate-600">(Peugeot Aréna)</span>
+            Rezervačný systém NTC
           </h1>
         </div>
         <AnimatePresence mode="wait">
