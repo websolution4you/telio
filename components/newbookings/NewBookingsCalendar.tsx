@@ -90,10 +90,8 @@ function DatePicker({ value, min, max, horizonDays, onSelect, onClose }: { value
 
 function blockedLabel(courtId: string, sport: SportType, hour: number) {
   if (sport !== "tennis-clay") return null;
-  if (["tennis-clay-1", "tennis-clay-2"].includes(courtId) && hour === 13) return "Údržba";
   if (["tennis-clay-10", "tennis-clay-11"].includes(courtId)) {
     if (hour === 7 || hour >= 17) return "Mimo prevádzky";
-    if (hour === 12) return "Údržba";
   }
   return null;
 }
@@ -101,10 +99,8 @@ function blockedLabel(courtId: string, sport: SportType, hour: number) {
 function clayError(courtId: string, sport: SportType, hour: number, duration: number) {
   if (sport !== "tennis-clay") return null;
   const end = hour + duration / 60;
-  if (["tennis-clay-1", "tennis-clay-2"].includes(courtId) && hour < 14 && end > 13) return "Od 13:00 do 14:00 prebieha údržba.";
   if (["tennis-clay-10", "tennis-clay-11"].includes(courtId)) {
     if (hour < 8) return "Dvorce 10 a 11 sú pred 8:00 mimo prevádzky.";
-    if (hour < 13 && end > 12) return "Od 12:00 do 13:00 prebieha údržba.";
     if (end > 16.5) return "Dvorce 10 a 11 sú otvorené iba do 16:30.";
   }
   return null;

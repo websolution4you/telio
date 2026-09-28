@@ -380,19 +380,9 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
 
     // Check block/maintenance times for clay courts
     if (selectedSport === "tennis-clay") {
-      if (courtId === "tennis-clay-1" || courtId === "tennis-clay-2") {
-        if (hour === 13 || (hour < 13 && hour + formDurationMinutes / 60 > 13)) {
-          setErrorMsg("V čase 13:00 - 14:00 prebieha údržba kurtov.");
-          return;
-        }
-      }
       if (courtId === "tennis-clay-10" || courtId === "tennis-clay-11") {
         if (hour === 7) {
           setErrorMsg("Dvorec 10 a 11 sú mimo prevádzky pred 8:00.");
-          return;
-        }
-        if (hour === 12 || (hour < 12 && hour + formDurationMinutes / 60 > 12)) {
-          setErrorMsg("V čase 12:00 - 13:00 prebieha údržba kurtov.");
           return;
         }
         if (hour > 16 || (hour === 16 && minute >= 30) || (hour + minute / 60 + formDurationMinutes / 60 > 16.5)) {
@@ -919,17 +909,9 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                   // Check block/maintenance times
                                   const blockStatus = (() => {
                                     if (selectedSport === "tennis-clay") {
-                                      if (court.id === "tennis-clay-1" || court.id === "tennis-clay-2") {
-                                        if (targetSlot.hour === 13) {
-                                          return { type: "maintenance", label: "Údržba" };
-                                        }
-                                      }
                                       if (court.id === "tennis-clay-10" || court.id === "tennis-clay-11") {
                                         if (targetSlot.hour === 7) {
                                           return { type: "closed", label: "Mimo prevádzky" };
-                                        }
-                                        if (targetSlot.hour === 12) {
-                                          return { type: "maintenance", label: "Údržba" };
                                         }
                                         if (targetSlot.hour > 16 || (targetSlot.hour === 16 && targetSlot.minute >= 30)) {
                                           return { type: "closed", label: "Mimo prevádzky" };

@@ -109,16 +109,6 @@ export const mockBookings: Booking[] = [
   },
   // Tenis antuka (clay) - exhibits half-hour intervals
   {
-    id: "tc-001",
-    courtId: "tennis-clay-1",
-    title: "Údržba kurtov",
-    customerName: "Technická správa",
-    start: atDayOffset(0, 13),
-    end: atDayOffset(0, 14),
-    status: "blocked",
-    source: "admin",
-  },
-  {
     id: "tc-002",
     courtId: "tennis-clay-1",
     title: "Tenis - Bartko",
@@ -127,16 +117,6 @@ export const mockBookings: Booking[] = [
     end: atDayOffset(0, 10, 30),
     status: "confirmed",
     source: "voice-assistant",
-  },
-  {
-    id: "tc-003",
-    courtId: "tennis-clay-2",
-    title: "Údržba kurtov",
-    customerName: "Technická správa",
-    start: atDayOffset(0, 13),
-    end: atDayOffset(0, 14),
-    status: "blocked",
-    source: "admin",
   },
   // Stacked days mock data
   {

@@ -46,13 +46,9 @@ export function getCourtOperatingLimitMinutes(courtId: string, start: Date): num
   const minuteOfDay = hour * 60 + minute;
   let boundaryMinute = 22 * 60;
 
-  if (["tennis-clay-1", "tennis-clay-2"].includes(courtId) && minuteOfDay < 14 * 60) {
-    boundaryMinute = 13 * 60;
-  }
-
   if (["tennis-clay-10", "tennis-clay-11"].includes(courtId)) {
-    if (minuteOfDay < 8 * 60 || (minuteOfDay >= 12 * 60 && minuteOfDay < 13 * 60) || minuteOfDay >= 16 * 60 + 30) return 0;
-    boundaryMinute = minuteOfDay < 12 * 60 ? 12 * 60 : 16 * 60 + 30;
+    if (minuteOfDay < 8 * 60 || minuteOfDay >= 16 * 60 + 30) return 0;
+    boundaryMinute = 16 * 60 + 30;
   }
 
   return Math.max(0, boundaryMinute - minuteOfDay);
