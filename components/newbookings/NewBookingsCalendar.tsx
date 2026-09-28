@@ -1290,9 +1290,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                               )}
 
                               {isAdmin ? (
-                                <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(9px,0.72vw,12.5px)] font-bold leading-tight select-none pointer-events-none">
+                                <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(8px,0.65vw,11px)] font-bold leading-tight select-none pointer-events-none tracking-tight">
                                   {labelText.split(" ").filter(Boolean).map((part, idx) => (
-                                    <span key={idx} className="block leading-[1.15] break-words max-w-full">
+                                    <span key={idx} className="block leading-[1.15] whitespace-nowrap max-w-full">
                                       {part}
                                     </span>
                                   ))}
@@ -1301,12 +1301,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                                 <div className={`relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center font-sans select-none pointer-events-none ${
                                   own ? "text-emerald-950" : (isAnyAdminOrBlock ? "text-white" : "text-slate-800")
                                 }`}>
-                                  <div className="text-[clamp(8.5px,0.72vw,12px)] font-bold leading-tight tracking-normal [overflow-wrap:anywhere]">
+                                  <div className="text-[clamp(8px,0.65vw,11px)] font-bold leading-tight tracking-tight whitespace-nowrap">
                                     <span className="block">{formatTime(booking.start)}</span>
                                     <span className="block leading-[0.55] opacity-70" aria-hidden="true">–</span>
                                     <span className="block">{formatTime(booking.end)}</span>
                                   </div>
-                                  <span className="mt-0.5 block text-[clamp(7.5px,0.62vw,10.5px)] font-bold tracking-normal leading-tight [overflow-wrap:anywhere]">
+                                  <span className="mt-0.5 block text-[clamp(7.5px,0.6vw,10px)] font-bold tracking-tight leading-tight whitespace-nowrap">
                                     {labelText}
                                   </span>
                                 </div>
