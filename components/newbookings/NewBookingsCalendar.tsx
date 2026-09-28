@@ -263,6 +263,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [notice, setNotice] = useState("");
   const [title, setTitle] = useState("");
   const [phone, setPhone] = useState("");
+  const [adminBlockType, setAdminBlockType] = useState<string>("Údržba kurtov");
   const [duration, setDuration] = useState(60);
   const [multisportCardsCount, setMultisportCardsCount] = useState<0 | 1 | 2>(0);
   const [walletBalance, setWalletBalance] = useState<number | null>(initialWalletBalance ?? null);
@@ -856,7 +857,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     } else {
       const options = getAvailableDurationOptions(courtId, start);
       const defaultDuration = options.length > 0 ? (options.includes(60) ? 60 : options[0]) : 60;
-      setTitle("Údržba");
+      setAdminBlockType("Údržba kurtov");
+      setTitle("");
       setPhone("");
       setDuration(defaultDuration);
       setMultisportCardsCount(0);
@@ -871,10 +873,14 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     const start = new Date(slot.date); start.setHours(slot.hour, 0, 0, 0); const end = new Date(start.getTime() + duration * 60000);
     if (hasConflict(slot.courtId, start, end)) return setNotice("Vybraný kurt je v tomto čase obsadený.");
     setLoading(true);
+    const effectiveBlockType = adminBlockType || "Údržba kurtov";
+    const customNote = title.trim();
     const result = await createBookingAction({
       courtId: slot.courtId,
-      title: title.trim() || (currentUser.role === "admin" ? "Údržba" : (sports.find((item) => item.id === sport)?.label || "Rezervácia")),
-      customerName: currentUser.role === "admin" ? "Údržba" : currentUser.name,
+      title: currentUser.role === "admin"
+        ? (customNote || effectiveBlockType)
+        : (customNote || (sports.find((item) => item.id === sport)?.label || "Rezervácia")),
+      customerName: currentUser.role === "admin" ? effectiveBlockType : currentUser.name,
       phone: phone || undefined,
       start: start.toISOString(),
       end: end.toISOString(),
@@ -905,7 +911,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         ? `Rezervácia bola vytvorená. Odpočítané: ${result.wallet.chargedEur.toFixed(2)} €.`
         : (multisportCardsCount === 2 
             ? "Rezervácia bola úspešne vytvorená so 100% zľavou (2x MultiSport karta zdarma)."
-            : (currentUser.role === "admin" ? "Kurt bol úspešne zablokovaný (Údržba)." : "Rezervácia bola úspešne vytvorená."))
+            : (currentUser.role === "admin" ? `Kurt bol úspešne zablokovaný (${effectiveBlockType}).` : "Rezervácia bola úspešne vytvorená."))
     );
   };
   const remove = async () => {
@@ -1179,37 +1185,56 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                         const canManage = own || isAdmin;
                         const voiceHighlight = highlightedVoiceBookings.includes(booking.id);
                         const isTrainer = booking.userRole === "trainer";
-                        const isMaintenanceOrAdmin =
-                          booking.source === "admin" ||
-                          booking.userRole === "admin" ||
-                          booking.status === "blocked" ||
-                          Boolean(booking.customerName && (
-                            booking.customerName.toLowerCase().includes("údržba") ||
-                            booking.customerName.toLowerCase().includes("admin")
-                          )) ||
-                          Boolean(booking.title && booking.title.toLowerCase().includes("údržba"));
+
+                        const nameLower = (booking.customerName || "").toLowerCase();
+                        const titleLower = (booking.title || "").toLowerCase();
+
+                        const isTraining =
+                          isTrainer ||
+                          nameLower.includes("tréning") ||
+                          titleLower.includes("tréning") ||
+                          nameLower.includes("trening") ||
+                          titleLower.includes("trening");
+
+                        const isAdminBlock =
+                          !isTraining &&
+                          (nameLower.includes("admin") || titleLower.includes("admin"));
+
+                        const isMaintenance =
+                          !isTraining &&
+                          !isAdminBlock &&
+                          (nameLower.includes("údržba") ||
+                           titleLower.includes("údržba") ||
+                           booking.status === "blocked" ||
+                           booking.source === "admin");
+
+                        const isAnyAdminOrBlock = isTraining || isAdminBlock || isMaintenance || booking.source === "admin" || booking.status === "blocked";
 
                         // Decide styling and text based on role
                         let bookingClasses = "";
                         let labelText = "";
 
                         if (isAdmin) {
-                          if (isTrainer) {
-                            // 10. Orgovánová z pastelovej palety s tmavým textom
-                            labelText = booking.customerName || booking.title || "Tréner";
+                          if (isTraining) {
+                            // 4. screen: Tréningy (farba zo 4. screenu: ružová / rose pastel)
+                            labelText = "Tréningy";
+                            bookingClasses = "border-[#EAAECF] bg-[#F4CDE4] text-slate-950 font-bold shadow-xs hover:bg-[#EEBDDC]";
+                          } else if (isAdminBlock) {
+                            // 3. screen: Rezervácia Admin (farba z 3. screenu: orgovánová / fialková pastel)
+                            labelText = "Rezervácia Admin";
                             bookingClasses = "border-[#C0A0E0] bg-[#DCC7F0] text-slate-950 font-bold shadow-xs hover:bg-[#D2B8EC]";
-                          } else if (isMaintenanceOrAdmin) {
-                            // 13. Koralová z pastelovej palety pre Údržbu s tmavým textom
-                            labelText = "Údržba";
+                          } else if (isMaintenance) {
+                            // 2. screen: Údržba kurtov (farba z 2. screenu: koralová / lososová pastel)
+                            labelText = "Údržba kurtov";
                             bookingClasses = "border-[#F29E9E] bg-[#FFC9C9] text-slate-950 font-bold shadow-xs hover:bg-[#FFBABA]";
                           } else {
-                            // 16. Svetlo žltá z pastelovej palety pre klienta s tmavým textom
+                            // Svetložltá z pastelovej palety pre klienta s tmavým textom
                             labelText = booking.customerName || booking.title || "Rezervácia";
                             bookingClasses = "border-[#EAD77B] bg-[#FFF3B0] text-slate-950 font-bold shadow-xs hover:bg-[#FEECA0]";
                           }
                         } else {
-                          if (isMaintenanceOrAdmin) {
-                            labelText = "Údržba";
+                          if (isAnyAdminOrBlock) {
+                            labelText = isMaintenance ? "Údržba" : "Obsadené";
                             bookingClasses = "border-slate-400 bg-slate-500 text-white font-semibold shadow-xs";
                           } else if (own) {
                             labelText = "Vaša rezervácia";
@@ -1232,7 +1257,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                               className={`pointer-events-auto h-full w-full overflow-hidden rounded-2xl border px-1.5 py-1 text-center transition duration-150 hover:scale-[1.01] flex flex-col items-center justify-center ${
                                 voiceHighlight ? "voice-booking-highlight" : ""
                               } ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${bookingClasses}`}
-                              title={canManage ? `Detail: ${labelText}` : (isMaintenanceOrAdmin ? "Údržba" : "Obsadené")}
+                              title={canManage ? `Detail: ${labelText}` : (isAnyAdminOrBlock ? "Údržba" : "Obsadené")}
                             >
                               {voiceHighlight && (
                                 <>
@@ -1274,7 +1299,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                                 </div>
                               ) : (
                                 <div className={`relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center font-sans select-none pointer-events-none ${
-                                  own ? "text-emerald-950" : (isMaintenanceOrAdmin ? "text-white" : "text-slate-800")
+                                  own ? "text-emerald-950" : (isAnyAdminOrBlock ? "text-white" : "text-slate-800")
                                 }`}>
                                   <div className="text-[clamp(8.5px,0.72vw,12px)] font-bold leading-tight tracking-normal [overflow-wrap:anywhere]">
                                     <span className="block">{formatTime(booking.start)}</span>
@@ -1307,15 +1332,19 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               <>
                 <span className="flex items-center gap-2">
                   <i className="h-3.5 w-3.5 rounded-md border border-[#EAD77B] bg-[#FFF3B0] shadow-xs" />
-                  Klient (NTC karta / bežný)
-                </span>
-                <span className="flex items-center gap-2">
-                  <i className="h-3.5 w-3.5 rounded-md border border-[#C0A0E0] bg-[#DCC7F0] shadow-xs" />
-                  Tréner
+                  Klient
                 </span>
                 <span className="flex items-center gap-2">
                   <i className="h-3.5 w-3.5 rounded-md border border-[#F29E9E] bg-[#FFC9C9] shadow-xs" />
-                  Údržba
+                  Údržba kurtov
+                </span>
+                <span className="flex items-center gap-2">
+                  <i className="h-3.5 w-3.5 rounded-md border border-[#C0A0E0] bg-[#DCC7F0] shadow-xs" />
+                  Rezervácia Admin
+                </span>
+                <span className="flex items-center gap-2">
+                  <i className="h-3.5 w-3.5 rounded-md border border-[#EAAECF] bg-[#F4CDE4] shadow-xs" />
+                  Tréningy
                 </span>
               </>
             ) : (
@@ -1392,6 +1421,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           onMultisportCardsCount={setMultisportCardsCount}
           title={title}
           phone={phone}
+          adminBlockType={adminBlockType}
+          onAdminBlockType={setAdminBlockType}
           isAdmin={currentUser?.role === "admin"}
           hasCard={Boolean(currentUser?.cardNumber && currentUser.cardNumber.trim().length > 0)}
           hasMultisport={Boolean(currentUser?.hasMultisport)}

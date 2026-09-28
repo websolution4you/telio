@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
-import { Clock3, Coins, CreditCard, Loader2, MessageSquare, Phone, Sparkles, Trash2, User, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, Clock3, Coins, CreditCard, Loader2, MessageSquare, Phone, Sparkles, Trash2, User, X } from "lucide-react";
 import type { Booking, Court } from "@/lib/bookings/mockBookings";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import { formatDuration } from "@/lib/bookings/rolePolicy";
+
+export const ADMIN_BLOCK_OPTIONS = [
+  { value: "Údržba kurtov", color: "#FFC9C9", border: "#F29E9E" },
+  { value: "Rezervácia Admin", color: "#DCC7F0", border: "#C0A0E0" },
+  { value: "Tréningy", color: "#F4CDE4", border: "#EAAECF" },
+] as const;
 
 type CreateDialogProps = {
   court?: Court;
@@ -13,6 +19,8 @@ type CreateDialogProps = {
   duration: number;
   title: string;
   phone: string;
+  adminBlockType?: string;
+  onAdminBlockType?: (value: string) => void;
   hasCard?: boolean;
   isAdmin?: boolean;
   hasMultisport?: boolean;
@@ -57,6 +65,10 @@ export function formatCourtDisplayName(court?: Court): string {
 }
 
 export function CreateBookingDialog(props: CreateDialogProps) {
+  const [adminBlockTypeOpen, setAdminBlockTypeOpen] = useState(false);
+  const currentBlockType = props.adminBlockType || "Údržba kurtov";
+  const selectedOption = ADMIN_BLOCK_OPTIONS.find((opt) => opt.value === currentBlockType) || ADMIN_BLOCK_OPTIONS[0];
+
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -91,7 +103,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
       <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-8">
         <DialogHeader
           title={props.isAdmin ? "Administrátorská rezervácia" : "Nová rezervácia"}
-          subtitle={props.isAdmin ? "Vytvorenie rezervácie alebo zablokovanie kurtu pre údržbu / klub." : "Skontrolujte vybraný termín a potvrďte rezerváciu."}
+          subtitle={props.isAdmin ? "Výber dôvodu blokovania kurtu a voliteľná poznámka." : "Skontrolujte vybraný termín a potvrďte rezerváciu."}
           onClose={props.onClose}
         />
         
@@ -175,7 +187,61 @@ export function CreateBookingDialog(props: CreateDialogProps) {
         ) : null}
 
         <form onSubmit={props.onSubmit} className="space-y-3.5 sm:space-y-4">
-          <Field icon={Phone} label="Telefón" value={props.phone} onChange={props.onPhone} type="tel" />
+          {props.isAdmin ? (
+            <div className="relative">
+              <span className="mb-1.5 block text-xs font-semibold text-slate-700 sm:mb-2 sm:text-sm">
+                Dôvod blokácie
+              </span>
+              <button
+                type="button"
+                onClick={() => setAdminBlockTypeOpen((prev) => !prev)}
+                className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-semibold text-slate-950 transition hover:bg-white focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 sm:px-4 sm:py-3 sm:text-sm cursor-pointer shadow-2xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className="h-4 w-4 rounded-md border shadow-2xs shrink-0"
+                    style={{
+                      backgroundColor: selectedOption.color,
+                      borderColor: selectedOption.border,
+                    }}
+                  />
+                  <span>{selectedOption.value}</span>
+                </div>
+                <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${adminBlockTypeOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {adminBlockTypeOpen && (
+                <div className="absolute left-0 right-0 z-50 mt-1.5 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-100">
+                  {ADMIN_BLOCK_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        props.onAdminBlockType?.(opt.value);
+                        setAdminBlockTypeOpen(false);
+                      }}
+                      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold transition text-left cursor-pointer ${
+                        currentBlockType === opt.value
+                          ? "bg-slate-100 text-slate-950"
+                          : "hover:bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      <span
+                        className="h-4 w-4 rounded-md border shadow-2xs shrink-0"
+                        style={{
+                          backgroundColor: opt.color,
+                          borderColor: opt.border,
+                        }}
+                      />
+                      <span className="text-xs sm:text-sm">{opt.value}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <Field icon={Phone} label="Telefón" value={props.phone} onChange={props.onPhone} type="tel" />
+          )}
           
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-slate-700 sm:mb-2 sm:text-sm">Dĺžka rezervácie</span>
@@ -239,10 +305,10 @@ export function CreateBookingDialog(props: CreateDialogProps) {
 
           <Field
             icon={MessageSquare}
-            label={props.isAdmin ? "Poznámka / Dôvod blokovania" : "Poznámka"}
+            label="Poznámka"
             value={props.title}
             onChange={props.onTitle}
-            placeholder={props.isAdmin ? "Údržba" : "Voliteľná poznámka k rezervácii..."}
+            placeholder={props.isAdmin ? "Voliteľná poznámka k blokácii..." : "Voliteľná poznámka k rezervácii..."}
           />
           <button
             type="submit"
@@ -260,7 +326,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
               : isInsufficientCredit
               ? `Najprv dobite kredit (${(props.walletBalance ?? 0).toFixed(2)} € / ${pricing.formattedPrice})`
               : props.isAdmin
-              ? "Zablokovať kurt (Údržba)"
+              ? `Zablokovať kurt (${selectedOption.value})`
               : "Vytvoriť rezerváciu"}
           </button>
         </form>
@@ -296,23 +362,28 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, canc
     booking.status === "blocked" ||
     Boolean(booking.customerName && (
       booking.customerName.toLowerCase().includes("údržba") ||
-      booking.customerName.toLowerCase().includes("admin")
+      booking.customerName.toLowerCase().includes("admin") ||
+      booking.customerName.toLowerCase().includes("tréning")
     )) ||
-    Boolean(booking.title && booking.title.toLowerCase().includes("údržba"));
+    Boolean(booking.title && (
+      booking.title.toLowerCase().includes("údržba") ||
+      booking.title.toLowerCase().includes("admin") ||
+      booking.title.toLowerCase().includes("tréning")
+    ));
   
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4">
       <button aria-label="Zavrieť" className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative max-h-[90vh] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-8">
         <DialogHeader
-          title={isMaintenanceOrAdmin ? "Detail blokovania / údržby" : "Detail rezervácie"}
+          title={isMaintenanceOrAdmin ? "Detail blokovania kurtu" : "Detail rezervácie"}
           subtitle={formatCourtDisplayName(court) || "Rezervované športovisko"}
           onClose={onClose}
         />
 
         <div className="space-y-2.5 sm:space-y-3">
           <Detail icon={Clock3} label="Termín" value={`${formatDate(booking.start)}, ${formatTime(booking.start)} – ${formatTime(booking.end)}`} />
-          <Detail icon={User} label={isMaintenanceOrAdmin ? "Typ" : "Meno"} value={isMaintenanceOrAdmin ? "Údržba" : (booking.customerName || "Neznáme")} />
+          <Detail icon={User} label={isMaintenanceOrAdmin ? "Dôvod blokácie" : "Meno"} value={isMaintenanceOrAdmin ? (booking.customerName || "Údržba kurtov") : (booking.customerName || "Neznáme")} />
           {booking.phone && !isMaintenanceOrAdmin && <Detail icon={Phone} label="Telefón" value={booking.phone} />}
           {booking.multisportCardsCount && booking.multisportCardsCount > 0 ? (
             <Detail
@@ -321,7 +392,9 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, canc
               value={booking.multisportCardsCount === 2 ? "2x karta (Zľava 100 % zdarma)" : "1x karta (Zľava 50 %)"}
             />
           ) : null}
-          {booking.title && booking.title !== "Údržba" && <Detail icon={MessageSquare} label="Poznámka" value={booking.title} />}
+          {booking.title && booking.title !== booking.customerName && booking.title !== "Údržba" && booking.title !== "Údržba kurtov" && (
+            <Detail icon={MessageSquare} label="Poznámka" value={booking.title} />
+          )}
         </div>
         {canManage && canCancel && (
           <button onClick={onDelete} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700 transition hover:bg-red-100 sm:mt-7 sm:px-5 sm:text-sm">

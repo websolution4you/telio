@@ -158,15 +158,17 @@ export async function fetchBookingsAction(startDateIso: string, endDateIso: stri
 
             let finalCustomerName = row.customer_name || userMeta?.name;
             if (isRowAdminOrBlock) {
-                if (!finalCustomerName || finalCustomerName === "Admin User" || finalCustomerName.toLowerCase().includes("admin") || finalCustomerName.toLowerCase().includes("údržba")) {
-                    finalCustomerName = "Údržba";
+                if (!finalCustomerName || finalCustomerName === "Admin User") {
+                    finalCustomerName = "Údržba kurtov";
                 }
             }
 
             return {
                 id: row.id,
                 courtId: notesObj.courtId || "badminton-1",
-                title: isRowAdminOrBlock && (!notesObj.notes || notesObj.notes === "Údržba / Blokovanie") ? "Údržba" : (notesObj.notes || row.customer_name || "Rezervácia"),
+                title: isRowAdminOrBlock && (!notesObj.notes || notesObj.notes === "Údržba / Blokovanie" || notesObj.notes === "Údržba")
+                    ? (finalCustomerName || "Údržba kurtov")
+                    : (notesObj.notes || row.customer_name || "Rezervácia"),
                 customerName: finalCustomerName,
                 phone: row.customer_phone || undefined,
                 start: row.start_at,
@@ -609,9 +611,9 @@ export async function createBookingAction(payload: {
                 };
             }
         } else {
-            const adminCustomerName = (payload.customerName && payload.customerName !== "Admin User" && !payload.customerName.toLowerCase().includes("admin"))
+            const adminCustomerName = (payload.customerName && payload.customerName !== "Admin User")
                 ? payload.customerName
-                : "Údržba";
+                : "Údržba kurtov";
             const effectiveCustomerName = (session.role === "admin" || payload.source === "admin")
                 ? adminCustomerName
                 : payload.customerName;
