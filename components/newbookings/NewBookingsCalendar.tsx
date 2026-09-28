@@ -92,7 +92,7 @@ function blockedLabel(courtId: string, sport: SportType, hour: number) {
   if (sport !== "tennis-clay") return null;
   if (["tennis-clay-1", "tennis-clay-2"].includes(courtId) && hour === 13) return "Údržba";
   if (["tennis-clay-10", "tennis-clay-11"].includes(courtId)) {
-    if (hour === 7 || hour >= 16) return "Mimo prevádzky";
+    if (hour === 7 || hour >= 17) return "Mimo prevádzky";
     if (hour === 12) return "Údržba";
   }
   return null;
@@ -1121,11 +1121,39 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                       const isPast = isToday
                         ? hour <= now.getHours()
                         : dateKey(date) < dateKey(now);
+                      const isClayPartial16 =
+                        sport === "tennis-clay" &&
+                        ["tennis-clay-10", "tennis-clay-11"].includes(court.id) &&
+                        hour === 16;
+
                       return (
                         <div key={hour} className="p-1 h-full">
                           {label ? (
                             <div className="grid h-full min-h-[72px] cursor-not-allowed place-items-center rounded-2xl bg-amber-50/80 border border-amber-200/70 px-1 text-center text-[10px] font-bold text-amber-700 shadow-xs">
                               {label}
+                            </div>
+                          ) : isClayPartial16 ? (
+                            <div className="flex h-full min-h-[72px] w-full overflow-hidden rounded-2xl border border-slate-200/70 shadow-xs">
+                              {/* 16:00 - 16:30 (Otvorené na rezerváciu) */}
+                              {isPast ? (
+                                <div className="h-full w-1/2 cursor-not-allowed bg-slate-100/40 border-r border-slate-200/50" />
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => openSlot(court.id, hour)}
+                                  className="group grid h-full w-1/2 cursor-pointer place-items-center bg-[#F1F5F9] border-r border-slate-200 transition-all duration-150 hover:bg-slate-200/90"
+                                  title="Rezervácia 16:00 – 16:30"
+                                >
+                                  <Plus className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </button>
+                              )}
+                              {/* 16:30 - 17:00 (Mimo prevádzky) */}
+                              <div
+                                className="grid h-full w-1/2 cursor-not-allowed place-items-center bg-amber-50/80 px-0.5 text-center text-[9px] font-bold text-amber-700 leading-tight select-none border-l border-amber-200/60"
+                                title="Od 16:30 mimo prevádzky"
+                              >
+                                <span>od 16:30<br/>Mimo prevádzky</span>
+                              </div>
                             </div>
                           ) : isPast ? (
                             <div className="h-full min-h-[72px] cursor-not-allowed rounded-2xl bg-slate-100/40 border border-slate-200/40" />

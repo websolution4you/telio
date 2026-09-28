@@ -395,7 +395,7 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
           setErrorMsg("V čase 12:00 - 13:00 prebieha údržba kurtov.");
           return;
         }
-        if (hour >= 16 || hour + formDurationMinutes / 60 > 16.5) {
+        if (hour > 16 || (hour === 16 && minute >= 30) || (hour + minute / 60 + formDurationMinutes / 60 > 16.5)) {
           setErrorMsg("Dvorec 10 a 11 sú v prevádzke len do 16:30.");
           return;
         }
@@ -931,7 +931,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                         if (targetSlot.hour === 12) {
                                           return { type: "maintenance", label: "Údržba" };
                                         }
-                                        if (targetSlot.hour >= 16) {
+                                        if (targetSlot.hour > 16 || (targetSlot.hour === 16 && targetSlot.minute >= 30)) {
                                           return { type: "closed", label: "Mimo prevádzky" };
                                         }
                                       }
