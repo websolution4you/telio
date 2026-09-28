@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Plus, Receipt, Settings, ShieldCheck, Sparkles, UserPlus, Users, X } from "lucide-react";
+import { ArrowUpRight, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Plus, Receipt, Settings, ShieldCheck, Sparkles, UserPlus, Users, X } from "lucide-react";
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { ThreeDChartIcon, ThreeDSettingsIcon, ThreeDUserAvatarIcon } from "@/components/icons/ThreeDNavIcons";
 import { createBookingAction, deleteBookingAction, fetchBookingsAction } from "@/app/actions/bookings";
@@ -987,11 +987,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         onTopUp={startTopUp}
         topUpLoading={topUpLoading}
       />
-      <main className="mx-auto max-w-[1500px] px-2 py-2 sm:px-6 sm:py-5 lg:py-8">
-        <div className="mx-auto mb-2 flex w-full max-w-5xl flex-col items-center px-1 text-center sm:mb-8 sm:px-4">
-          <h1 className="max-w-4xl text-balance text-lg font-bold leading-tight tracking-tight text-slate-950 sm:text-4xl md:text-5xl" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>Komplexný rezervačný systém hlasového asistenta Telio</h1>
-          <p className="mt-0.5 max-w-2xl text-[11px] leading-tight text-slate-600 sm:mt-5 sm:text-base sm:leading-7">Webové aj hlasové rezervácie sa zobrazujú v jednom aktuálnom a prehľadnom kalendári.</p>
-        </div>
+      <main className="mx-auto max-w-[1500px] px-2 py-2.5 sm:px-6 sm:py-5 lg:py-6">
         <AnimatePresence mode="wait">
           {notice && (
             <motion.div
@@ -1275,41 +1271,70 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             </div>
           </div>
         </section>
-        <div className="mt-5 flex flex-wrap items-center gap-6 text-sm font-semibold">
-          {currentUser?.role === "admin" ? (
-            <>
-              <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-[#EAD77B] bg-[#FFF3B0] shadow-xs" />
-                Klient (NTC karta / bežný)
-              </span>
-              <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-[#C0A0E0] bg-[#DCC7F0] shadow-xs" />
-                Tréner
-              </span>
-              <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-[#F29E9E] bg-[#FFC9C9] shadow-xs" />
-                Údržba
-              </span>
-            </>
-          ) : (
-            <>
-              {currentUser && (
+        <div className="mt-4 sm:mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-xs sm:text-sm font-semibold">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+            {currentUser?.role === "admin" ? (
+              <>
                 <span className="flex items-center gap-2">
-                  <i className="h-3.5 w-3.5 rounded-md border border-emerald-300 bg-[#DCFCE7] shadow-xs" />
-                  Vaša rezervácia
+                  <i className="h-3.5 w-3.5 rounded-md border border-[#EAD77B] bg-[#FFF3B0] shadow-xs" />
+                  Klient (NTC karta / bežný)
                 </span>
-              )}
-              <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-slate-300 bg-[#CBD5E1] shadow-xs" />
-                Obsadené
+                <span className="flex items-center gap-2">
+                  <i className="h-3.5 w-3.5 rounded-md border border-[#C0A0E0] bg-[#DCC7F0] shadow-xs" />
+                  Tréner
+                </span>
+                <span className="flex items-center gap-2">
+                  <i className="h-3.5 w-3.5 rounded-md border border-[#F29E9E] bg-[#FFC9C9] shadow-xs" />
+                  Údržba
+                </span>
+              </>
+            ) : (
+              <>
+                {currentUser && (
+                  <span className="flex items-center gap-2">
+                    <i className="h-3.5 w-3.5 rounded-md border border-emerald-300 bg-[#DCFCE7] shadow-xs" />
+                    Vaša rezervácia
+                  </span>
+                )}
+                <span className="flex items-center gap-2">
+                  <i className="h-3.5 w-3.5 rounded-md border border-slate-300 bg-[#CBD5E1] shadow-xs" />
+                  Obsadené
+                </span>
+                <span className="flex items-center gap-2">
+                  <i className="h-3.5 w-3.5 rounded-md border border-slate-500 bg-slate-500 shadow-xs" />
+                  Údržba
+                </span>
+              </>
+            )}
+            {loading && <span className="text-slate-500 font-normal">Aktualizujem...</span>}
+          </div>
+
+          <div className="flex items-center sm:justify-end">
+            <a
+              href="https://telio.sk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/90 px-3.5 py-1.5 text-xs text-slate-600 shadow-xs backdrop-blur-sm transition-all duration-300 hover:border-emerald-400 hover:bg-white hover:text-slate-900 hover:shadow-[0_4px_20px_rgba(16,185,129,0.15)] cursor-pointer"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <span className="text-[10px] font-medium tracking-wider uppercase text-slate-400 group-hover:text-slate-500 transition-colors">
+                  powered by
+                </span>
+                <strong className="font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 bg-clip-text text-transparent group-hover:from-emerald-500 group-hover:to-teal-500 transition-all">
+                  Telio
+                </strong>
               </span>
-              <span className="flex items-center gap-2">
-                <i className="h-3.5 w-3.5 rounded-md border border-slate-500 bg-slate-500 shadow-xs" />
-                Údržba
+              <span className="h-3 w-[1px] bg-slate-200" />
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500 group-hover:text-slate-700 transition-colors">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                </span>
+                AI hlasové služby 24/7
               </span>
-            </>
-          )}
-          {loading && <span className="text-slate-500 font-normal">Aktualizujem...</span>}
+              <ArrowUpRight className="h-3.5 w-3.5 text-slate-400 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-emerald-600" />
+            </a>
+          </div>
         </div>
       </main>
       {datePickerOpen && <DatePicker value={date} min={today} max={maxDate} horizonDays={bookingHorizonDays} onSelect={(selected) => selectDate(dateKey(selected))} onClose={() => setDatePickerOpen(false)} />}
