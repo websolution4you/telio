@@ -1147,13 +1147,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                                   <Plus className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </button>
                               )}
-                              {/* 16:30 - 17:00 (Mimo prevádzky) */}
+                              {/* 16:30 - 17:00 (Mimo prevádzky - bez textu) */}
                               <div
-                                className="grid h-full w-1/2 cursor-not-allowed place-items-center bg-amber-50/80 px-0.5 text-center text-[9px] font-bold text-amber-700 leading-tight select-none border-l border-amber-200/60"
+                                className="h-full w-1/2 cursor-not-allowed bg-amber-50/80 border-l border-amber-200/60"
                                 title="Od 16:30 mimo prevádzky"
-                              >
-                                <span>od 16:30<br/>Mimo prevádzky</span>
-                              </div>
+                              />
                             </div>
                           ) : isPast ? (
                             <div className="h-full min-h-[72px] cursor-not-allowed rounded-2xl bg-slate-100/40 border border-slate-200/40" />
