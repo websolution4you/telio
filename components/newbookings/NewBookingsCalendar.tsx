@@ -544,7 +544,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         let notesObj: any = {};
         try {
           notesObj = typeof raw.notes === "string" ? JSON.parse(raw.notes) : (raw.notes || {});
-        } catch {}
+        } catch { }
 
         const resolvedCourtId = notesObj.courtId || raw.court_id || raw.courtId || "badminton-1";
         const mappedBooking: Booking = {
@@ -734,14 +734,14 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     if (next > maxDate) return setNotice(`Rezervácie sú pre vašu rolu možné maximálne ${bookingHorizonDays} dní vopred.`);
     setDate(next);
   };
-    const selectDate = (value: string) => {
+  const selectDate = (value: string) => {
     if (!value) return;
     const selected = new Date(`${value}T12:00:00`);
     if (selected < today || selected > maxDate) return setNotice(`Vyberte dátum od dnešného dňa, maximálne ${bookingHorizonDays} dní vopred.`);
-        setDate(selected);
+    setDate(selected);
     setDatePickerOpen(false);
   };
-  
+
   const getAvailableDurationOptions = (courtId: string, start: Date) => {
     if (currentUser?.role !== "admin" && rolePolicy && !rolePolicy.isActive) return [];
     const courtBookings = bookings.filter((booking) => booking.courtId === courtId);
@@ -909,9 +909,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     setNotice(
       result.wallet && result.wallet.chargedEur > 0
         ? `Rezervácia bola vytvorená. Odpočítané: ${result.wallet.chargedEur.toFixed(2)} €.`
-        : (multisportCardsCount === 2 
-            ? "Rezervácia bola úspešne vytvorená so 100% zľavou (2x MultiSport karta zdarma)."
-            : (currentUser.role === "admin" ? `Kurt bol úspešne zablokovaný (${effectiveBlockType}).` : "Rezervácia bola úspešne vytvorená."))
+        : (multisportCardsCount === 2
+          ? "Rezervácia bola úspešne vytvorená so 100% zľavou (2x MultiSport karta zdarma)."
+          : (currentUser.role === "admin" ? `Kurt bol úspešne zablokovaný (${effectiveBlockType}).` : "Rezervácia bola úspešne vytvorená."))
     );
   };
   const remove = async () => {
@@ -940,7 +940,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       setNotice("Rezervácia bola zrušená.");
     }
   };
-          const startTopUp = async (amountEur: number, provider: "stripe" | "cardpay") => {
+  const startTopUp = async (amountEur: number, provider: "stripe" | "cardpay") => {
     setTopUpLoading(amountEur);
     setNotice("");
     if (slot && typeof window !== "undefined") {
@@ -1040,11 +1040,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                 <button
                   key={item.id}
                   onClick={() => setSport(item.id)}
-                  className={`cursor-pointer rounded-lg sm:rounded-xl border py-1.5 px-2 sm:p-3 text-xs sm:text-sm font-semibold sm:font-bold transition duration-200 ${
-                    sport === item.id
+                  className={`cursor-pointer rounded-lg sm:rounded-xl border py-1.5 px-2 sm:p-3 text-xs sm:text-sm font-semibold sm:font-bold transition duration-200 ${sport === item.id
                       ? "border-slate-950 bg-slate-950 text-white shadow-xs sm:shadow-sm"
                       : "border-slate-200 bg-white text-slate-600 shadow-2xs hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 hover:shadow-xs"
-                  }`}
+                    }`}
                 >
                   {item.label}
                 </button>
@@ -1097,11 +1096,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               </span>
             </div>
           </div>
-          <div ref={calendarScrollRef} className="overflow-auto border-t-2 border-slate-200 bg-white max-h-[calc(100dvh-130px)] sm:max-h-[calc(100vh-170px)] overscroll-contain">
+          <div ref={calendarScrollRef} className="overflow-auto border-t-2 border-slate-200 bg-white">
             <div className="w-full" style={{ minWidth: `${calendarMinWidth}px` }}>
-              <div className="sticky top-0 z-30 grid border-b border-slate-200 bg-slate-50 shadow-xs" style={{ gridTemplateColumns: calendarColumns }}>
-                <b className="sticky left-0 top-0 z-40 flex items-center justify-center text-center border-r border-slate-200 bg-slate-100 px-1.5 py-3 text-[10px] sm:text-[11px] font-extrabold tracking-wide text-slate-700 uppercase shadow-[2px_0_6px_rgba(15,23,42,0.04)]">KURT</b>
-                <div ref={timeGridRef} className="relative grid bg-slate-50" style={{ gridTemplateColumns: timeColumns }}>
+              <div className="grid border-b border-slate-200 bg-slate-50/80" style={{ gridTemplateColumns: calendarColumns }}>
+                <b className="sticky left-0 z-30 flex items-center justify-center text-center border-r border-slate-200 bg-slate-50 px-1.5 py-3 text-[10px] sm:text-[11px] font-extrabold tracking-wide text-slate-600 uppercase">KURT</b>
+                <div ref={timeGridRef} className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
                   {hours.map((hour) => (
                     <div key={hour} className="py-3.5 text-center text-xs font-bold text-slate-500 tracking-wide">{hour}:00</div>
                   ))}
@@ -1109,194 +1108,192 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
                   )}
                 </div>
-                <div className="bg-slate-50" aria-hidden="true" />
+                <div className="bg-slate-50/50" aria-hidden="true" />
               </div>
               {visibleCourts.map((court) => {
                 const courtHasHighlight = bookings.some(
                   (b) => b.courtId === court.id && highlightedVoiceBookings.includes(b.id)
                 );
                 return (
-                <div key={court.id} className={`grid border-b border-slate-100 py-1 ${courtHasHighlight ? "relative z-30" : ""}`} style={{ gridTemplateColumns: calendarColumns }}>
-                  <div className="sticky left-0 z-20 flex min-h-20 flex-col items-center justify-center text-center border-r border-slate-200 bg-white/95 px-1.5 shadow-[3px_0_10px_rgba(15,23,42,0.03)] backdrop-blur-xs">
-                    <b className="w-full text-center text-slate-900 font-bold text-[11px] sm:text-[11.5px] leading-tight tracking-tight whitespace-nowrap">{court.name}</b>
-                    <small className="mt-0.5 w-full text-center text-[9.5px] sm:text-[10px] text-slate-500 font-medium leading-tight tracking-tight whitespace-nowrap">{court.surface.replace(" Court", "")}</small>
-                  </div>
-                  <div className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
-                    {hours.map((hour) => {
-                      const label = blockedLabel(court.id, sport, hour);
-                      const isPast = isToday
-                        ? hour <= now.getHours()
-                        : dateKey(date) < dateKey(now);
-                      const isClayPartial16 =
-                        sport === "tennis-clay" &&
-                        ["tennis-clay-10", "tennis-clay-11"].includes(court.id) &&
-                        hour === 16;
-
-                      return (
-                        <div key={hour} className="p-1 h-full">
-                          {label ? (
-                            <div className="grid h-full min-h-[72px] cursor-not-allowed place-items-center rounded-2xl bg-amber-50/80 border border-amber-200/70 px-1 text-center text-[10px] font-bold text-amber-700 shadow-xs">
-                              {label}
-                            </div>
-                          ) : isClayPartial16 ? (
-                            <div className="flex h-full min-h-[72px] w-full overflow-hidden rounded-2xl border border-slate-200/70 shadow-xs">
-                              {/* 16:00 - 16:30 (Otvorené na rezerváciu) */}
-                              {isPast ? (
-                                <div className="h-full w-1/2 cursor-not-allowed bg-slate-100/40 border-r border-slate-200/50" />
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => openSlot(court.id, hour)}
-                                  className="group grid h-full w-1/2 cursor-pointer place-items-center bg-[#F1F5F9] border-r border-slate-200 transition-all duration-150 hover:bg-slate-200/90"
-                                  title="Rezervácia 16:00 – 16:30"
-                                >
-                                  <Plus className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </button>
-                              )}
-                              {/* 16:30 - 17:00 (Mimo prevádzky - bez textu) */}
-                              <div
-                                className="h-full w-1/2 cursor-not-allowed bg-amber-50/80 border-l border-amber-200/60"
-                                title="Od 16:30 mimo prevádzky"
-                              />
-                            </div>
-                          ) : isPast ? (
-                            <div className="h-full min-h-[72px] cursor-not-allowed rounded-2xl bg-slate-100/40 border border-slate-200/40" />
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => openSlot(court.id, hour)}
-                              className="group grid h-full min-h-[72px] w-full cursor-pointer place-items-center rounded-2xl bg-[#F1F5F9] border border-slate-200/70 transition-all duration-150 hover:scale-[1.02] hover:bg-slate-200/90 hover:border-slate-300 shadow-xs"
-                            >
-                              <Plus className="h-4 w-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                    {isToday && pastPercent > 0 && (
-                      <div
-                        className="pointer-events-none absolute inset-y-0 left-0 z-[2]"
-                        style={{
-                          width: `${pastPercent}%`,
-                          background: "repeating-linear-gradient(135deg, rgba(148,163,184,0.18) 0px, rgba(148,163,184,0.18) 5px, rgba(241,245,249,0.3) 5px, rgba(241,245,249,0.3) 10px)",
-                        }}
-                      />
-                    )}
-                    <div className={`pointer-events-none absolute inset-0 ${courtHasHighlight ? "z-40" : "z-10"}`}>
-                      {bookings.filter((booking) => booking.courtId === court.id).map((booking) => {
-                        const isAdmin = currentUser?.role === "admin";
-                        const own = !!currentUser && currentUser.id === booking.user_id;
-                        const canManage = own || isAdmin;
-                        const voiceHighlight = highlightedVoiceBookings.includes(booking.id);
-                        const isTrainer = booking.userRole === "trainer";
-
-                        const nameLower = (booking.customerName || "").toLowerCase();
-                        const titleLower = (booking.title || "").toLowerCase();
-
-                        const isTraining =
-                          isTrainer ||
-                          nameLower.includes("tréning") ||
-                          titleLower.includes("tréning") ||
-                          nameLower.includes("trening") ||
-                          titleLower.includes("trening");
-
-                        const isAdminBlock =
-                          !isTraining &&
-                          (nameLower.includes("admin") || titleLower.includes("admin"));
-
-                        const isMaintenance =
-                          !isTraining &&
-                          !isAdminBlock &&
-                          (nameLower.includes("údržba") ||
-                           titleLower.includes("údržba") ||
-                           booking.status === "blocked" ||
-                           booking.source === "admin");
-
-                        const isAnyAdminOrBlock = isTraining || isAdminBlock || isMaintenance || booking.source === "admin" || booking.status === "blocked";
-
-                        // Decide styling and text based on role
-                        let bookingClasses = "";
-                        let labelText = "";
-
-                        if (isAdmin) {
-                          if (isTraining) {
-                            // 4. screen: Tréningy (farba zo 4. screenu: ružová / rose pastel)
-                            labelText = "Tréningy";
-                            bookingClasses = "border-[#EAAECF] bg-[#F4CDE4] text-slate-950 font-bold shadow-xs hover:bg-[#EEBDDC]";
-                          } else if (isAdminBlock) {
-                            // 3. screen: Rezervácia Admin (farba z 3. screenu: orgovánová / fialková pastel)
-                            labelText = "Rezervácia Admin";
-                            bookingClasses = "border-[#C0A0E0] bg-[#DCC7F0] text-slate-950 font-bold shadow-xs hover:bg-[#D2B8EC]";
-                          } else if (isMaintenance) {
-                            // 2. screen: Údržba kurtov (farba z 2. screenu: koralová / lososová pastel)
-                            labelText = "Údržba kurtov";
-                            bookingClasses = "border-[#F29E9E] bg-[#FFC9C9] text-slate-950 font-bold shadow-xs hover:bg-[#FFBABA]";
-                          } else {
-                            // Svetložltá z pastelovej palety pre klienta s tmavým textom
-                            labelText = booking.customerName || booking.title || "Rezervácia";
-                            bookingClasses = "border-[#EAD77B] bg-[#FFF3B0] text-slate-950 font-bold shadow-xs hover:bg-[#FEECA0]";
-                          }
-                        } else {
-                          if (isAnyAdminOrBlock) {
-                            labelText = isMaintenance ? "Údržba" : "Obsadené";
-                            bookingClasses = "border-slate-400 bg-slate-500 text-white font-semibold shadow-xs";
-                          } else if (own) {
-                            labelText = "Vaša rezervácia";
-                            bookingClasses = "border-emerald-300 bg-[#DCFCE7] text-emerald-950 font-bold shadow-xs hover:bg-[#BBF7D0]";
-                          } else {
-                            labelText = "Obsadené";
-                            bookingClasses = "border-slate-300 bg-[#CBD5E1] text-slate-800 font-semibold shadow-xs";
-                          }
-                        }
+                  <div key={court.id} className={`grid border-b border-slate-100 py-1 ${courtHasHighlight ? "relative z-30" : ""}`} style={{ gridTemplateColumns: calendarColumns }}>
+                    <div className="sticky left-0 z-20 flex min-h-20 flex-col items-center justify-center text-center border-r border-slate-200 bg-white/95 px-1.5 shadow-[3px_0_10px_rgba(15,23,42,0.03)] backdrop-blur-xs">
+                      <b className="w-full text-center text-slate-900 font-bold text-[11px] sm:text-[11.5px] leading-tight tracking-tight whitespace-nowrap">{court.name}</b>
+                      <small className="mt-0.5 w-full text-center text-[9.5px] sm:text-[10px] text-slate-500 font-medium leading-tight tracking-tight whitespace-nowrap">{court.surface.replace(" Court", "")}</small>
+                    </div>
+                    <div className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
+                      {hours.map((hour) => {
+                        const label = blockedLabel(court.id, sport, hour);
+                        const isPast = isToday
+                          ? hour <= now.getHours()
+                          : dateKey(date) < dateKey(now);
+                        const isClayPartial16 =
+                          sport === "tennis-clay" &&
+                          ["tennis-clay-10", "tennis-clay-11"].includes(court.id) &&
+                          hour === 16;
 
                         return (
-                          <div
-                            key={booking.id}
-                            className={`absolute inset-y-0 p-1 ${voiceHighlight ? "z-50" : ""}`}
-                            style={position(booking)}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => canManage && setDetail(booking)}
-                              className={`pointer-events-auto h-full w-full overflow-hidden rounded-2xl border px-1.5 py-1 text-center transition duration-150 hover:scale-[1.01] flex flex-col items-center justify-center ${
-                                voiceHighlight ? "booking-magnify-drop" : ""
-                              } ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${bookingClasses}`}
-                              title={canManage ? `Detail: ${labelText}` : (isAnyAdminOrBlock ? "Údržba" : "Obsadené")}
-                            >
-
-                              {isAdmin ? (
-                                <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(8px,0.65vw,11px)] font-bold leading-tight select-none pointer-events-none tracking-tight">
-                                  {labelText.split(" ").filter(Boolean).map((part, idx) => (
-                                    <span key={idx} className="block leading-[1.15] whitespace-nowrap max-w-full">
-                                      {part}
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className={`relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center font-sans select-none pointer-events-none ${
-                                  own ? "text-emerald-950" : (isAnyAdminOrBlock ? "text-white" : "text-slate-800")
-                                }`}>
-                                  <div className="text-[clamp(8px,0.65vw,11px)] font-bold leading-tight tracking-tight whitespace-nowrap">
-                                    <span className="block">{formatTime(booking.start)}</span>
-                                    <span className="block leading-[0.55] opacity-70" aria-hidden="true">–</span>
-                                    <span className="block">{formatTime(booking.end)}</span>
-                                  </div>
-                                  <span className="mt-0.5 block text-[clamp(7.5px,0.6vw,10px)] font-bold tracking-tight leading-tight whitespace-nowrap">
-                                    {labelText}
-                                  </span>
-                                </div>
-                              )}
-                            </button>
+                          <div key={hour} className="p-1 h-full">
+                            {label ? (
+                              <div className="grid h-full min-h-[72px] cursor-not-allowed place-items-center rounded-2xl bg-amber-50/80 border border-amber-200/70 px-1 text-center text-[10px] font-bold text-amber-700 shadow-xs">
+                                {label}
+                              </div>
+                            ) : isClayPartial16 ? (
+                              <div className="flex h-full min-h-[72px] w-full overflow-hidden rounded-2xl border border-slate-200/70 shadow-xs">
+                                {/* 16:00 - 16:30 (Otvorené na rezerváciu) */}
+                                {isPast ? (
+                                  <div className="h-full w-1/2 cursor-not-allowed bg-slate-100/40 border-r border-slate-200/50" />
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => openSlot(court.id, hour)}
+                                    className="group grid h-full w-1/2 cursor-pointer place-items-center bg-[#F1F5F9] border-r border-slate-200 transition-all duration-150 hover:bg-slate-200/90"
+                                    title="Rezervácia 16:00 – 16:30"
+                                  >
+                                    <Plus className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </button>
+                                )}
+                                {/* 16:30 - 17:00 (Mimo prevádzky - bez textu) */}
+                                <div
+                                  className="h-full w-1/2 cursor-not-allowed bg-amber-50/80 border-l border-amber-200/60"
+                                  title="Od 16:30 mimo prevádzky"
+                                />
+                              </div>
+                            ) : isPast ? (
+                              <div className="h-full min-h-[72px] cursor-not-allowed rounded-2xl bg-slate-100/40 border border-slate-200/40" />
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => openSlot(court.id, hour)}
+                                className="group grid h-full min-h-[72px] w-full cursor-pointer place-items-center rounded-2xl bg-[#F1F5F9] border border-slate-200/70 transition-all duration-150 hover:scale-[1.02] hover:bg-slate-200/90 hover:border-slate-300 shadow-xs"
+                              >
+                                <Plus className="h-4 w-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </button>
+                            )}
                           </div>
                         );
                       })}
+                      {isToday && pastPercent > 0 && (
+                        <div
+                          className="pointer-events-none absolute inset-y-0 left-0 z-[2]"
+                          style={{
+                            width: `${pastPercent}%`,
+                            background: "repeating-linear-gradient(135deg, rgba(148,163,184,0.18) 0px, rgba(148,163,184,0.18) 5px, rgba(241,245,249,0.3) 5px, rgba(241,245,249,0.3) 10px)",
+                          }}
+                        />
+                      )}
+                      <div className={`pointer-events-none absolute inset-0 ${courtHasHighlight ? "z-40" : "z-10"}`}>
+                        {bookings.filter((booking) => booking.courtId === court.id).map((booking) => {
+                          const isAdmin = currentUser?.role === "admin";
+                          const own = !!currentUser && currentUser.id === booking.user_id;
+                          const canManage = own || isAdmin;
+                          const voiceHighlight = highlightedVoiceBookings.includes(booking.id);
+                          const isTrainer = booking.userRole === "trainer";
+
+                          const nameLower = (booking.customerName || "").toLowerCase();
+                          const titleLower = (booking.title || "").toLowerCase();
+
+                          const isTraining =
+                            isTrainer ||
+                            nameLower.includes("tréning") ||
+                            titleLower.includes("tréning") ||
+                            nameLower.includes("trening") ||
+                            titleLower.includes("trening");
+
+                          const isAdminBlock =
+                            !isTraining &&
+                            (nameLower.includes("admin") || titleLower.includes("admin"));
+
+                          const isMaintenance =
+                            !isTraining &&
+                            !isAdminBlock &&
+                            (nameLower.includes("údržba") ||
+                              titleLower.includes("údržba") ||
+                              booking.status === "blocked" ||
+                              booking.source === "admin");
+
+                          const isAnyAdminOrBlock = isTraining || isAdminBlock || isMaintenance || booking.source === "admin" || booking.status === "blocked";
+
+                          // Decide styling and text based on role
+                          let bookingClasses = "";
+                          let labelText = "";
+
+                          if (isAdmin) {
+                            if (isTraining) {
+                              // 4. screen: Tréningy (farba zo 4. screenu: ružová / rose pastel)
+                              labelText = "Tréningy";
+                              bookingClasses = "border-[#EAAECF] bg-[#F4CDE4] text-slate-950 font-bold shadow-xs hover:bg-[#EEBDDC]";
+                            } else if (isAdminBlock) {
+                              // 3. screen: Rezervácia Admin (farba z 3. screenu: orgovánová / fialková pastel)
+                              labelText = "Rezervácia Admin";
+                              bookingClasses = "border-[#C0A0E0] bg-[#DCC7F0] text-slate-950 font-bold shadow-xs hover:bg-[#D2B8EC]";
+                            } else if (isMaintenance) {
+                              // 2. screen: Údržba kurtov (farba z 2. screenu: koralová / lososová pastel)
+                              labelText = "Údržba kurtov";
+                              bookingClasses = "border-[#F29E9E] bg-[#FFC9C9] text-slate-950 font-bold shadow-xs hover:bg-[#FFBABA]";
+                            } else {
+                              // Svetložltá z pastelovej palety pre klienta s tmavým textom
+                              labelText = booking.customerName || booking.title || "Rezervácia";
+                              bookingClasses = "border-[#EAD77B] bg-[#FFF3B0] text-slate-950 font-bold shadow-xs hover:bg-[#FEECA0]";
+                            }
+                          } else {
+                            if (isAnyAdminOrBlock) {
+                              labelText = isMaintenance ? "Údržba" : "Obsadené";
+                              bookingClasses = "border-slate-400 bg-slate-500 text-white font-semibold shadow-xs";
+                            } else if (own) {
+                              labelText = "Vaša rezervácia";
+                              bookingClasses = "border-emerald-300 bg-[#DCFCE7] text-emerald-950 font-bold shadow-xs hover:bg-[#BBF7D0]";
+                            } else {
+                              labelText = "Obsadené";
+                              bookingClasses = "border-slate-300 bg-[#CBD5E1] text-slate-800 font-semibold shadow-xs";
+                            }
+                          }
+
+                          return (
+                            <div
+                              key={booking.id}
+                              className={`absolute inset-y-0 p-1 ${voiceHighlight ? "z-50" : ""}`}
+                              style={position(booking)}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => canManage && setDetail(booking)}
+                                className={`pointer-events-auto h-full w-full overflow-hidden rounded-2xl border px-1.5 py-1 text-center transition duration-150 hover:scale-[1.01] flex flex-col items-center justify-center ${voiceHighlight ? "booking-magnify-drop" : ""
+                                  } ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${bookingClasses}`}
+                                title={canManage ? `Detail: ${labelText}` : (isAnyAdminOrBlock ? "Údržba" : "Obsadené")}
+                              >
+
+                                {isAdmin ? (
+                                  <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(8px,0.65vw,11px)] font-bold leading-tight select-none pointer-events-none tracking-tight">
+                                    {labelText.split(" ").filter(Boolean).map((part, idx) => (
+                                      <span key={idx} className="block leading-[1.15] whitespace-nowrap max-w-full">
+                                        {part}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className={`relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center font-sans select-none pointer-events-none ${own ? "text-emerald-950" : (isAnyAdminOrBlock ? "text-white" : "text-slate-800")
+                                    }`}>
+                                    <div className="text-[clamp(8px,0.65vw,11px)] font-bold leading-tight tracking-tight whitespace-nowrap">
+                                      <span className="block">{formatTime(booking.start)}</span>
+                                      <span className="block leading-[0.55] opacity-70" aria-hidden="true">–</span>
+                                      <span className="block">{formatTime(booking.end)}</span>
+                                    </div>
+                                    <span className="mt-0.5 block text-[clamp(7.5px,0.6vw,10px)] font-bold tracking-tight leading-tight whitespace-nowrap">
+                                      {labelText}
+                                    </span>
+                                  </div>
+                                )}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {isToday && currentTimePercent > 0 && currentTimePercent < 100 && (
+                        <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
+                      )}
                     </div>
-                    {isToday && currentTimePercent > 0 && currentTimePercent < 100 && (
-                      <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
-                    )}
+                    <div className="bg-slate-50/20" aria-hidden="true" />
                   </div>
-                  <div className="bg-slate-50/20" aria-hidden="true" />
-                </div>
                 );
               })}
             </div>
