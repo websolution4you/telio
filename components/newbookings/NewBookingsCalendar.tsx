@@ -701,8 +701,30 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const currentTimeLabel = new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" }).format(now);
 
   const calendarScrollRef = useRef<HTMLDivElement>(null);
+  const floatingHeaderScrollRef = useRef<HTMLDivElement>(null);
+  const isSyncingScrollRef = useRef<"calendar" | "floating" | null>(null);
+  const [showFloatingHeader, setShowFloatingHeader] = useState(false);
   const timeGridRef = useRef<HTMLDivElement>(null);
   const initialScrollDoneRef = useRef(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const el = calendarScrollRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const shouldShow = rect.top < -30 && rect.bottom > 130;
+      setShowFloatingHeader(shouldShow);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, []);
 
   const scrollToCurrentTime = useCallback((smooth = false) => {
     const container = calendarScrollRef.current;
@@ -721,8 +743,14 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
       if (smooth) {
         container.scrollTo({ left: targetScroll, behavior: "smooth" });
+        if (floatingHeaderScrollRef.current) {
+          floatingHeaderScrollRef.current.scrollTo({ left: targetScroll, behavior: "smooth" });
+        }
       } else {
         container.scrollLeft = targetScroll;
+        if (floatingHeaderScrollRef.current) {
+          floatingHeaderScrollRef.current.scrollLeft = targetScroll;
+        }
       }
     }
   }, [hours.length, timeColumnMinWidth]);
@@ -1046,6 +1074,54 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Plávajúca prichytená hlavička s hodinami pri vertikálnom scrollovaní nadol */}
+        <div
+          className={`fixed top-0 left-0 right-0 z-40 transition-all duration-150 ${
+            showFloatingHeader
+              ? "opacity-100 translate-y-0 pointer-events-auto"
+              : "opacity-0 -translate-y-full pointer-events-none"
+          }`}
+          style={{
+            boxShadow: "0 4px 16px -2px rgba(15, 23, 42, 0.12)",
+          }}
+        >
+          <div className="border-b border-slate-300 bg-slate-50/98 backdrop-blur-md">
+            <div className="mx-auto max-w-[1500px] px-2 sm:px-6">
+              <div
+                ref={floatingHeaderScrollRef}
+                className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                onScroll={(e) => {
+                  if (calendarScrollRef.current && isSyncingScrollRef.current !== "calendar") {
+                    isSyncingScrollRef.current = "floating";
+                    calendarScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+                    isSyncingScrollRef.current = null;
+                  }
+                }}
+              >
+                <div className="w-full" style={{ minWidth: `${calendarMinWidth}px` }}>
+                  <div className="grid border-b border-slate-200 bg-slate-50" style={{ gridTemplateColumns: calendarColumns }}>
+                    <b className="sticky left-0 z-30 flex items-center justify-center text-center border-r border-slate-200 bg-slate-100 px-1.5 py-2.5 text-[10px] sm:text-[11px] font-extrabold tracking-wide text-slate-700 uppercase shadow-[2px_0_6px_rgba(15,23,42,0.04)]">
+                      KURT
+                    </b>
+                    <div className="relative grid bg-slate-50" style={{ gridTemplateColumns: timeColumns }}>
+                      {hours.map((hour) => (
+                        <div key={hour} className="py-2.5 text-center text-xs font-bold text-slate-600 tracking-wide">
+                          {hour}:00
+                        </div>
+                      ))}
+                      {isToday && currentTimePercent > 0 && currentTimePercent < 100 && (
+                        <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
+                      )}
+                    </div>
+                    <div className="bg-slate-50" aria-hidden="true" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <section className="overflow-hidden rounded-xl sm:rounded-3xl border sm:border-2 border-slate-300 bg-white shadow-sm sm:shadow-[0_20px_55px_rgba(15,23,42,0.10)]">
           <div className="border-b border-slate-200 p-2 sm:p-6">
             <div className="grid grid-cols-2 gap-1.5 lg:grid-cols-4 sm:gap-2">
@@ -1109,11 +1185,21 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               </span>
             </div>
           </div>
-          <div ref={calendarScrollRef} className="overflow-auto border-t-2 border-slate-200 bg-white max-h-[calc(100dvh-130px)] sm:max-h-[calc(100vh-170px)] overscroll-contain">
+          <div
+            ref={calendarScrollRef}
+            className="overflow-x-auto border-t-2 border-slate-200 bg-white"
+            onScroll={(e) => {
+              if (floatingHeaderScrollRef.current && isSyncingScrollRef.current !== "floating") {
+                isSyncingScrollRef.current = "calendar";
+                floatingHeaderScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+                isSyncingScrollRef.current = null;
+              }
+            }}
+          >
             <div className="w-full" style={{ minWidth: `${calendarMinWidth}px` }}>
-              <div className="sticky top-0 z-30 grid border-b border-slate-200 bg-slate-50 shadow-xs" style={{ gridTemplateColumns: calendarColumns }}>
-                <b className="sticky left-0 top-0 z-40 flex items-center justify-center text-center border-r border-slate-200 bg-slate-100 px-1.5 py-3 text-[10px] sm:text-[11px] font-extrabold tracking-wide text-slate-700 uppercase shadow-[2px_0_6px_rgba(15,23,42,0.04)]">KURT</b>
-                <div ref={timeGridRef} className="relative grid bg-slate-50" style={{ gridTemplateColumns: timeColumns }}>
+              <div className="grid border-b border-slate-200 bg-slate-50/80" style={{ gridTemplateColumns: calendarColumns }}>
+                <b className="sticky left-0 z-20 flex items-center justify-center text-center border-r border-slate-200 bg-slate-50 px-1.5 py-3 text-[10px] sm:text-[11px] font-extrabold tracking-wide text-slate-600 uppercase">KURT</b>
+                <div ref={timeGridRef} className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
                   {hours.map((hour) => (
                     <div key={hour} className="py-3.5 text-center text-xs font-bold text-slate-500 tracking-wide">{hour}:00</div>
                   ))}
@@ -1121,7 +1207,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
                   )}
                 </div>
-                <div className="bg-slate-50" aria-hidden="true" />
+                <div className="bg-slate-50/50" aria-hidden="true" />
               </div>
               {visibleCourts.map((court) => {
                 const courtHasHighlight = bookings.some(
