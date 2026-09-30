@@ -573,7 +573,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         const timer = window.setTimeout(() => {
           setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
           timers.delete(bookingId);
-        }, 5000);
+        }, 3000);
         timers.set(bookingId, timer);
       } else if (payload.eventType === "DELETE") {
         const oldId = (payload.old as any)?.id;
@@ -628,7 +628,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             const timer = window.setTimeout(() => {
               setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
               timers.delete(bookingId);
-            }, 5000);
+            }, 3000);
             timers.set(bookingId, timer);
           }
         }
@@ -903,7 +903,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     const highlightTimer = window.setTimeout(() => {
       setHighlightedVoiceBookings((current) => current.filter((id) => id !== newId));
       timers.delete(newId);
-    }, 5000);
+    }, 3000);
     timers.set(newId, highlightTimer);
     setSlot(null);
     setNotice(
@@ -1111,8 +1111,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                 </div>
                 <div className="bg-slate-50/50" aria-hidden="true" />
               </div>
-              {visibleCourts.map((court) => (
-                <div key={court.id} className="grid border-b border-slate-100 py-1" style={{ gridTemplateColumns: calendarColumns }}>
+              {visibleCourts.map((court) => {
+                const courtHasHighlight = bookings.some(
+                  (b) => b.courtId === court.id && highlightedVoiceBookings.includes(b.id)
+                );
+                return (
+                <div key={court.id} className={`grid border-b border-slate-100 py-1 ${courtHasHighlight ? "relative z-30" : ""}`} style={{ gridTemplateColumns: calendarColumns }}>
                   <div className="sticky left-0 z-20 flex min-h-20 flex-col items-center justify-center text-center border-r border-slate-200 bg-white/95 px-1.5 shadow-[3px_0_10px_rgba(15,23,42,0.03)] backdrop-blur-xs">
                     <b className="w-full text-center text-slate-900 font-bold text-[11px] sm:text-[11.5px] leading-tight tracking-tight whitespace-nowrap">{court.name}</b>
                     <small className="mt-0.5 w-full text-center text-[9.5px] sm:text-[10px] text-slate-500 font-medium leading-tight tracking-tight whitespace-nowrap">{court.surface.replace(" Court", "")}</small>
@@ -1178,7 +1182,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                         }}
                       />
                     )}
-                    <div className="pointer-events-none absolute inset-0 z-10">
+                    <div className={`pointer-events-none absolute inset-0 ${courtHasHighlight ? "z-40" : "z-10"}`}>
                       {bookings.filter((booking) => booking.courtId === court.id).map((booking) => {
                         const isAdmin = currentUser?.role === "admin";
                         const own = !!currentUser && currentUser.id === booking.user_id;
@@ -1248,46 +1252,17 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                         return (
                           <div
                             key={booking.id}
-                            className="absolute inset-y-0 p-1"
+                            className={`absolute inset-y-0 p-1 ${voiceHighlight ? "z-50" : ""}`}
                             style={position(booking)}
                           >
                             <button
                               type="button"
                               onClick={() => canManage && setDetail(booking)}
                               className={`pointer-events-auto h-full w-full overflow-hidden rounded-2xl border px-1.5 py-1 text-center transition duration-150 hover:scale-[1.01] flex flex-col items-center justify-center ${
-                                voiceHighlight ? "voice-booking-highlight" : ""
+                                voiceHighlight ? "booking-magnify-drop" : ""
                               } ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${bookingClasses}`}
                               title={canManage ? `Detail: ${labelText}` : (isAnyAdminOrBlock ? "Údržba" : "Obsadené")}
                             >
-                              {voiceHighlight && (
-                                <>
-                                  <div className="pointer-events-none absolute inset-0 z-30 overflow-visible">
-                                    <svg className="h-full w-full" preserveAspectRatio="none" viewBox="0 0 100 100">
-                                      <rect
-                                        x="2"
-                                        y="2"
-                                        width="96"
-                                        height="96"
-                                        rx="8"
-                                        ry="8"
-                                        fill="none"
-                                        stroke="url(#orangeAgencyLaserGrad)"
-                                        strokeWidth="7"
-                                        className="laser-perimeter-beam"
-                                      />
-                                      <defs>
-                                        <linearGradient id="orangeAgencyLaserGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                          <stop offset="0%" stopColor="#FFF500" />
-                                          <stop offset="35%" stopColor="#FF6B00" />
-                                          <stop offset="70%" stopColor="#FF0055" />
-                                          <stop offset="100%" stopColor="#FFD700" />
-                                        </linearGradient>
-                                      </defs>
-                                    </svg>
-                                  </div>
-                                  <span className="voice-booking-scan" aria-hidden="true" />
-                                </>
-                              )}
 
                               {isAdmin ? (
                                 <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(8px,0.65vw,11px)] font-bold leading-tight select-none pointer-events-none tracking-tight">
@@ -1322,7 +1297,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                   </div>
                   <div className="bg-slate-50/20" aria-hidden="true" />
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>
@@ -1446,77 +1422,59 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       {detail && <BookingDetailDialog booking={detail} court={courts.find((court) => court.id === detail.courtId)} canManage={!!currentUser && (currentUser.role === "admin" || currentUser.id === detail.user_id)} canCancel={currentUser?.role === "admin" || new Date(detail.start).getTime() - now.getTime() > (rolePolicy?.cancellationDeadlineHours ?? 24) * 60 * 60 * 1000} cancellationDeadlineHours={rolePolicy?.cancellationDeadlineHours ?? 24} onClose={() => setDetail(null)} onDelete={() => setDeleting(detail)} />}
       {deleting && <DeleteDialog loading={loading} error={notice || undefined} onCancel={() => { setDeleting(null); setNotice(""); }} onConfirm={remove} />}
       <style jsx global>{`
-        @keyframes orange-laser-perimeter-trace {
+        @keyframes booking-magnify-and-drop {
           0% {
-            stroke-dashoffset: 400;
-            opacity: 1;
-            filter: drop-shadow(0 0 10px #FF6B00) drop-shadow(0 0 20px #FFD700);
+            transform: scale(0.92);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
           }
-          85% {
-            stroke-dashoffset: 0;
-            opacity: 1;
-            filter: drop-shadow(0 0 14px #FF4500) drop-shadow(0 0 28px #FFD700);
+          14% {
+            transform: scale(1.30);
+            box-shadow: 
+              0 22px 38px -6px rgba(15, 23, 42, 0.32),
+              0 0 0 3px rgba(255, 255, 255, 0.95),
+              0 0 24px rgba(56, 189, 248, 0.22);
+            filter: brightness(1.04) contrast(1.03);
+          }
+          24% {
+            transform: scale(1.25);
+            box-shadow: 
+              0 18px 30px -6px rgba(15, 23, 42, 0.28),
+              0 0 0 2.5px rgba(255, 255, 255, 0.9),
+              0 0 18px rgba(56, 189, 248, 0.16);
+          }
+          70% {
+            transform: scale(1.23);
+            box-shadow: 
+              0 16px 26px -6px rgba(15, 23, 42, 0.24),
+              0 0 0 2px rgba(255, 255, 255, 0.85);
+          }
+          84% {
+            transform: scale(0.95);
+            box-shadow: 0 4px 8px rgba(15, 23, 42, 0.16);
+          }
+          92% {
+            transform: scale(1.04);
+            box-shadow: 0 8px 14px rgba(15, 23, 42, 0.14);
           }
           100% {
-            stroke-dashoffset: 0;
-            opacity: 0;
-          }
-        }
-        @keyframes orange-tile-agency-pulse {
-          0% {
-            box-shadow: 0 0 0 2px #FF6B00, 0 0 20px rgba(255, 107, 0, 0.9), inset 0 0 15px rgba(255, 215, 0, 0.6);
-            transform: scale(1.02);
-          }
-          20% {
-            box-shadow: 0 0 0 4px #FF9E00, 0 0 35px rgba(255, 158, 0, 1), inset 0 0 22px rgba(255, 215, 0, 0.8);
-            transform: scale(1.06);
-          }
-          40% {
-            box-shadow: 0 0 0 2px #FF6B00, 0 0 22px rgba(255, 107, 0, 0.9), inset 0 0 15px rgba(255, 215, 0, 0.6);
-            transform: scale(1.03);
-          }
-          60% {
-            box-shadow: 0 0 0 4px #FF9E00, 0 0 38px rgba(255, 158, 0, 1), inset 0 0 24px rgba(255, 215, 0, 0.8);
-            transform: scale(1.06);
-          }
-          80% {
-            box-shadow: 0 0 0 2px #FF6B00, 0 0 25px rgba(255, 107, 0, 0.8);
-            transform: scale(1.03);
-            opacity: 1;
-          }
-          100% {
-            box-shadow: none;
             transform: scale(1);
-            opacity: 1;
+            box-shadow: none;
+            filter: none;
           }
         }
-        @keyframes orange-glossy-sweep {
-          0% { transform: translateX(-120%) rotate(15deg); opacity: 0; }
-          15% { opacity: 1; }
-          85% { opacity: 1; }
-          100% { transform: translateX(250%) rotate(15deg); opacity: 0; }
-        }
+        .booking-magnify-drop,
         .voice-booking-highlight {
-          animation: orange-tile-agency-pulse 4s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+          position: relative;
+          animation: booking-magnify-and-drop 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
           z-index: 50 !important;
-        }
-        .laser-perimeter-beam {
-          stroke-dasharray: 400;
-          stroke-dashoffset: 400;
-          animation: orange-laser-perimeter-trace 4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-        }
-        .voice-booking-scan {
-          position: absolute;
-          inset: -10px;
-          pointer-events: none;
-          background: linear-gradient(115deg, transparent 20%, rgba(255, 215, 0, 0.4) 40%, rgba(255, 255, 255, 0.95) 50%, rgba(255, 107, 0, 0.5) 60%, transparent 80%);
-          filter: blur(2px);
-          animation: orange-glossy-sweep 4s ease-out forwards;
+          transform-origin: center center;
+          will-change: transform, box-shadow;
         }
         @media (prefers-reduced-motion: reduce) {
-          .voice-booking-highlight { animation: none; border-color: rgba(255, 107, 0, 0.95); }
-          .laser-perimeter-beam { display: none; }
-          .voice-booking-scan { display: none; }
+          .booking-magnify-drop,
+          .voice-booking-highlight {
+            animation: none;
+          }
         }
       `}</style>
     </div>
