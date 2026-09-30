@@ -40,6 +40,19 @@ const sports: { id: SportType; label: string }[] = [
 
 const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 const formatTime = (value: string) => new Intl.DateTimeFormat("sk-SK", { timeZone: "Europe/Bratislava", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+const formatCompactInterval = (startVal: string, endVal: string) => {
+  const s = new Date(startVal);
+  const e = new Date(endVal);
+  const sParts = new Intl.DateTimeFormat("sk-SK", { timeZone: "Europe/Bratislava", hour: "numeric", minute: "numeric" }).formatToParts(s);
+  const eParts = new Intl.DateTimeFormat("sk-SK", { timeZone: "Europe/Bratislava", hour: "numeric", minute: "numeric" }).formatToParts(e);
+  const sHour = sParts.find(p => p.type === "hour")?.value || "";
+  const sMin = sParts.find(p => p.type === "minute")?.value || "00";
+  const eHour = eParts.find(p => p.type === "hour")?.value || "";
+  const eMin = eParts.find(p => p.type === "minute")?.value || "00";
+  const sText = sMin === "00" || sMin === "0" ? sHour : `${sHour}:${sMin}`;
+  const eText = eMin === "00" || eMin === "0" ? eHour : `${eHour}:${eMin}`;
+  return `${sText}–${eText}`;
+};
 
 function DatePicker({ value, min, max, horizonDays, onSelect, onClose }: { value: Date; min: Date; max: Date; horizonDays: number; onSelect: (date: Date) => void; onClose: () => void }) {
   const [month, setMonth] = useState(() => new Date(value.getFullYear(), value.getMonth(), 1));
@@ -1096,11 +1109,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               </span>
             </div>
           </div>
-          <div ref={calendarScrollRef} className="overflow-auto border-t-2 border-slate-200 bg-white">
+          <div ref={calendarScrollRef} className="overflow-auto border-t-2 border-slate-200 bg-white max-h-[calc(100dvh-130px)] sm:max-h-[calc(100vh-170px)] overscroll-contain">
             <div className="w-full" style={{ minWidth: `${calendarMinWidth}px` }}>
-              <div className="grid border-b border-slate-200 bg-slate-50/80" style={{ gridTemplateColumns: calendarColumns }}>
-                <b className="sticky left-0 z-30 flex items-center justify-center text-center border-r border-slate-200 bg-slate-50 px-1.5 py-3 text-[10px] sm:text-[11px] font-extrabold tracking-wide text-slate-600 uppercase">KURT</b>
-                <div ref={timeGridRef} className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
+              <div className="sticky top-0 z-30 grid border-b border-slate-200 bg-slate-50 shadow-xs" style={{ gridTemplateColumns: calendarColumns }}>
+                <b className="sticky left-0 top-0 z-40 flex items-center justify-center text-center border-r border-slate-200 bg-slate-100 px-1.5 py-3 text-[10px] sm:text-[11px] font-extrabold tracking-wide text-slate-700 uppercase shadow-[2px_0_6px_rgba(15,23,42,0.04)]">KURT</b>
+                <div ref={timeGridRef} className="relative grid bg-slate-50" style={{ gridTemplateColumns: timeColumns }}>
                   {hours.map((hour) => (
                     <div key={hour} className="py-3.5 text-center text-xs font-bold text-slate-500 tracking-wide">{hour}:00</div>
                   ))}
@@ -1108,7 +1121,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
                   )}
                 </div>
-                <div className="bg-slate-50/50" aria-hidden="true" />
+                <div className="bg-slate-50" aria-hidden="true" />
               </div>
               {visibleCourts.map((court) => {
                 const courtHasHighlight = bookings.some(
@@ -1273,14 +1286,16 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                                 ) : (
                                   <div className={`relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center font-sans select-none pointer-events-none ${own ? "text-emerald-950" : (isAnyAdminOrBlock ? "text-white" : "text-slate-800")
                                     }`}>
-                                    <div className="text-[clamp(8px,0.65vw,11px)] font-bold leading-tight tracking-tight whitespace-nowrap">
-                                      <span className="block">{formatTime(booking.start)}</span>
-                                      <span className="block leading-[0.55] opacity-70" aria-hidden="true">–</span>
-                                      <span className="block">{formatTime(booking.end)}</span>
-                                    </div>
-                                    <span className="mt-0.5 block text-[clamp(7.5px,0.6vw,10px)] font-bold tracking-tight leading-tight whitespace-nowrap">
-                                      {labelText}
+                                    <span className="block text-[clamp(8.5px,0.65vw,11px)] font-bold leading-tight tracking-tight whitespace-nowrap">
+                                      {formatCompactInterval(booking.start, booking.end)}
                                     </span>
+                                    <div className="mt-0.5 flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(8px,0.6vw,10.5px)] font-bold leading-[1.1] tracking-tight">
+                                      {labelText.split(" ").filter(Boolean).map((part, idx) => (
+                                        <span key={idx} className="block whitespace-nowrap max-w-full">
+                                          {part}
+                                        </span>
+                                      ))}
+                                    </div>
                                   </div>
                                 )}
                               </button>
