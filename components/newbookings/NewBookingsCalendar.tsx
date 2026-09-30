@@ -1097,11 +1097,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               </span>
             </div>
           </div>
-          <div ref={calendarScrollRef} className="overflow-auto border-t-2 border-slate-200 bg-white">
+          <div ref={calendarScrollRef} className="overflow-auto border-t-2 border-slate-200 bg-white max-h-[calc(100dvh-130px)] sm:max-h-[calc(100vh-170px)] overscroll-contain">
             <div className="w-full" style={{ minWidth: `${calendarMinWidth}px` }}>
-              <div className="grid border-b border-slate-200 bg-slate-50/80" style={{ gridTemplateColumns: calendarColumns }}>
-                <b className="sticky left-0 z-30 flex items-center justify-center text-center border-r border-slate-200 bg-slate-50 px-1.5 py-3 text-[10px] sm:text-[11px] font-extrabold tracking-wide text-slate-600 uppercase">KURT</b>
-                <div ref={timeGridRef} className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
+              <div className="sticky top-0 z-30 grid border-b border-slate-200 bg-slate-50 shadow-xs" style={{ gridTemplateColumns: calendarColumns }}>
+                <b className="sticky left-0 top-0 z-40 flex items-center justify-center text-center border-r border-slate-200 bg-slate-100 px-1.5 py-3 text-[10px] sm:text-[11px] font-extrabold tracking-wide text-slate-700 uppercase shadow-[2px_0_6px_rgba(15,23,42,0.04)]">KURT</b>
+                <div ref={timeGridRef} className="relative grid bg-slate-50" style={{ gridTemplateColumns: timeColumns }}>
                   {hours.map((hour) => (
                     <div key={hour} className="py-3.5 text-center text-xs font-bold text-slate-500 tracking-wide">{hour}:00</div>
                   ))}
@@ -1109,7 +1109,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
                   )}
                 </div>
-                <div className="bg-slate-50/50" aria-hidden="true" />
+                <div className="bg-slate-50" aria-hidden="true" />
               </div>
               {visibleCourts.map((court) => {
                 const courtHasHighlight = bookings.some(
