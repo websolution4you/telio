@@ -344,9 +344,10 @@ type DetailProps = {
   onClose: () => void;
   onDelete: () => void;
   onStartReschedule?: () => void;
+  isAdmin?: boolean;
 };
 
-export function BookingDetailDialog({ booking, court, canManage, canCancel, cancellationDeadlineHours, onClose, onDelete, onStartReschedule }: DetailProps) {
+export function BookingDetailDialog({ booking, court, canManage, canCancel, cancellationDeadlineHours, onClose, onDelete, onStartReschedule, isAdmin = false }: DetailProps) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -388,7 +389,11 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, canc
         {isRescheduled && (
           <div className="mb-4 flex items-center gap-2.5 rounded-2xl border border-blue-200 bg-blue-50/80 p-3 text-xs text-blue-900">
             <CalendarSync className="h-4 w-4 shrink-0 text-blue-600" />
-            <span>Tento termín bol <b>presunutý</b>. Rezerváciu už nie je možné stornovať, máte však možnosť ju opätovne presunúť.</span>
+            <span>
+              {isAdmin
+                ? "Tento termín bol presunutý. Ako administrátor máte oprávnenie rezerváciu zrušiť a vrátiť klientovi kredit v plnej výške."
+                : "Tento termín bol presunutý. Rezerváciu už nie je možné stornovať, máte však možnosť ju opätovne presunúť."}
+            </span>
           </div>
         )}
 
@@ -418,17 +423,17 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, canc
           </button>
         )}
 
-        {canManage && !isRescheduled && canCancel && (
-          <button onClick={onDelete} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700 transition hover:bg-red-100 sm:px-5 sm:text-sm">
-            <Trash2 className="h-4 w-4" /> {isMaintenanceOrAdmin ? "Odblokovať kurt" : "Zrušiť rezerváciu"}
+        {canManage && (isAdmin || !isRescheduled) && canCancel && (
+          <button onClick={onDelete} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700 transition hover:bg-red-100 sm:px-5 sm:text-sm cursor-pointer">
+            <Trash2 className="h-4 w-4" /> {isMaintenanceOrAdmin ? "Odblokovať kurt" : (isAdmin && isRescheduled ? "Zrušiť rezerváciu a vrátiť kredit (Admin)" : "Zrušiť rezerváciu")}
           </button>
         )}
-        {canManage && !isRescheduled && !canCancel && (
+        {!isAdmin && canManage && !isRescheduled && !canCancel && (
           <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-center text-xs font-semibold text-amber-800 sm:px-4 sm:text-sm">
             Rezerváciu už nie je možné zrušiť. Zrušenie je povolené iba viac ako {cancellationDeadlineHours} hodín pred začiatkom.
           </p>
         )}
-        {canManage && isRescheduled && (
+        {!isAdmin && canManage && isRescheduled && (
           <p className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-center text-xs text-slate-600">
             Presunutú rezerváciu nie je možné zrušiť za refundáciu kreditu. Môžete ju kedykoľvek presunúť na iný termín.
           </p>

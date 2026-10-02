@@ -1773,6 +1773,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             setDetail(null);
             setNotice("Vyberte nový voľný termín v kalendári s rovnakou cenou a dĺžkou.");
           }}
+          isAdmin={currentUser?.role === "admin"}
         />
       )}
       {rescheduleSlot && reschedulingBooking && (
