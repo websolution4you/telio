@@ -1030,12 +1030,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       prev.map((b) =>
         b.id === reschedulingBooking.id
           ? {
-              ...b,
-              courtId: rescheduleSlot.courtId,
-              start: start.toISOString(),
-              end: end.toISOString(),
-              isRescheduled: true,
-            }
+            ...b,
+            courtId: rescheduleSlot.courtId,
+            start: start.toISOString(),
+            end: end.toISOString(),
+            isRescheduled: true,
+          }
           : b
       )
     );
@@ -1226,11 +1226,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
         {/* Plávajúca prichytená hlavička s hodinami pri vertikálnom scrollovaní nadol */}
         <div
-          className={`fixed top-0 left-0 right-0 z-40 transition-all duration-150 ${
-            showFloatingHeader
+          className={`fixed top-0 left-0 right-0 z-40 transition-all duration-150 ${showFloatingHeader
               ? "opacity-100 translate-y-0 pointer-events-auto"
               : "opacity-0 -translate-y-full pointer-events-none"
-          }`}
+            }`}
           style={{
             boxShadow: "0 4px 16px -2px rgba(15, 23, 42, 0.12)",
           }}
@@ -1318,13 +1317,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     disabled={isSportLocked}
                     onClick={() => setSport(item.id)}
                     title={isSportLocked ? "Počas presunu rezervácie je možné vybrať iba rovnaký šport" : undefined}
-                    className={`cursor-pointer rounded-lg sm:rounded-xl border py-1.5 px-2 sm:p-3 text-xs sm:text-sm font-semibold sm:font-bold transition duration-200 ${
-                      sport === item.id
+                    className={`cursor-pointer rounded-lg sm:rounded-xl border py-1.5 px-2 sm:p-3 text-xs sm:text-sm font-semibold sm:font-bold transition duration-200 ${sport === item.id
                         ? "border-slate-950 bg-slate-950 text-white shadow-xs sm:shadow-sm"
                         : isSportLocked
                           ? "border-slate-200 bg-slate-100 text-slate-400 opacity-40 cursor-not-allowed"
                           : "border-slate-200 bg-white text-slate-600 shadow-2xs hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 hover:shadow-xs"
-                    }`}
+                      }`}
                   >
                     {item.label}
                   </button>
@@ -1773,7 +1771,6 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             setDetail(null);
             setNotice("Vyberte nový voľný termín v kalendári s rovnakou cenou a dĺžkou.");
           }}
-          isAdmin={currentUser?.role === "admin"}
         />
       )}
       {rescheduleSlot && reschedulingBooking && (

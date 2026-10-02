@@ -106,7 +106,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
           subtitle={props.isAdmin ? "Výber dôvodu blokovania kurtu a voliteľná poznámka." : "Skontrolujte vybraný termín a potvrďte rezerváciu."}
           onClose={props.onClose}
         />
-        
+
         <div className="mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs sm:mb-5 sm:p-3.5 sm:text-sm">
           <Info label="Športovisko" value={formatCourtDisplayName(props.court)} />
           <Info label="Dátum" value={new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(props.date)} />
@@ -220,11 +220,10 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                         props.onAdminBlockType?.(opt.value);
                         setAdminBlockTypeOpen(false);
                       }}
-                      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold transition text-left cursor-pointer ${
-                        currentBlockType === opt.value
+                      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold transition text-left cursor-pointer ${currentBlockType === opt.value
                           ? "bg-slate-100 text-slate-950"
                           : "hover:bg-slate-50 text-slate-700"
-                      }`}
+                        }`}
                     >
                       <span
                         className="h-4 w-4 rounded-md border shadow-2xs shrink-0"
@@ -242,7 +241,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
           ) : (
             <Field icon={Phone} label="Telefón" value={props.phone} onChange={props.onPhone} type="tel" />
           )}
-          
+
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-slate-700 sm:mb-2 sm:text-sm">Dĺžka rezervácie</span>
             <select
@@ -258,11 +257,10 @@ export function CreateBookingDialog(props: CreateDialogProps) {
           {!props.isAdmin && (
             <div className="grid grid-cols-2 gap-2.5">
               {/* Karta č. 1 */}
-              <label className={`flex items-center gap-2.5 rounded-2xl border p-3 cursor-pointer transition select-none ${
-                props.multisportCardsCount >= 1 
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold shadow-2xs" 
+              <label className={`flex items-center gap-2.5 rounded-2xl border p-3 cursor-pointer transition select-none ${props.multisportCardsCount >= 1
+                  ? "border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold shadow-2xs"
                   : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100/70"
-              }`}>
+                }`}>
                 <input
                   type="checkbox"
                   checked={props.multisportCardsCount >= 1}
@@ -279,11 +277,10 @@ export function CreateBookingDialog(props: CreateDialogProps) {
               </label>
 
               {/* Karta č. 2 - 100% zľava iba ak sú zaškrtnuté obe karty */}
-              <label className={`flex items-center gap-2.5 rounded-2xl border p-3 cursor-pointer transition select-none ${
-                props.multisportCardsCount === 2 
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold shadow-2xs" 
+              <label className={`flex items-center gap-2.5 rounded-2xl border p-3 cursor-pointer transition select-none ${props.multisportCardsCount === 2
+                  ? "border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold shadow-2xs"
                   : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100/70"
-              }`}>
+                }`}>
                 <input
                   type="checkbox"
                   checked={props.multisportCardsCount === 2}
@@ -313,21 +310,20 @@ export function CreateBookingDialog(props: CreateDialogProps) {
           <button
             type="submit"
             disabled={props.loading || isInsufficientCredit}
-            className={`mt-2 w-full rounded-xl px-4 py-3 text-xs font-bold text-white transition sm:px-5 sm:py-3.5 sm:text-sm shadow-xs ${
-              isInsufficientCredit
+            className={`mt-2 w-full rounded-xl px-4 py-3 text-xs font-bold text-white transition sm:px-5 sm:py-3.5 sm:text-sm shadow-xs ${isInsufficientCredit
                 ? "bg-slate-400 cursor-not-allowed opacity-80"
                 : props.isAdmin
-                ? "bg-slate-950 hover:bg-slate-800 disabled:opacity-50 cursor-pointer"
-                : "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
-            }`}
+                  ? "bg-slate-950 hover:bg-slate-800 disabled:opacity-50 cursor-pointer"
+                  : "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
+              }`}
           >
             {props.loading
               ? "Ukladanie..."
               : isInsufficientCredit
-              ? `Najprv dobite kredit (${(props.walletBalance ?? 0).toFixed(2)} € / ${pricing.formattedPrice})`
-              : props.isAdmin
-              ? `Zablokovať kurt (${selectedOption.value})`
-              : "Vytvoriť rezerváciu"}
+                ? `Najprv dobite kredit (${(props.walletBalance ?? 0).toFixed(2)} € / ${pricing.formattedPrice})`
+                : props.isAdmin
+                  ? `Zablokovať kurt (${selectedOption.value})`
+                  : "Vytvoriť rezerváciu"}
           </button>
         </form>
       </div>
@@ -344,10 +340,9 @@ type DetailProps = {
   onClose: () => void;
   onDelete: () => void;
   onStartReschedule?: () => void;
-  isAdmin?: boolean;
 };
 
-export function BookingDetailDialog({ booking, court, canManage, canCancel, cancellationDeadlineHours, onClose, onDelete, onStartReschedule, isAdmin = false }: DetailProps) {
+export function BookingDetailDialog({ booking, court, canManage, canCancel, cancellationDeadlineHours, onClose, onDelete, onStartReschedule }: DetailProps) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -375,7 +370,7 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, canc
 
   const isFuture = new Date(booking.start).getTime() > Date.now();
   const isRescheduled = Boolean(booking.isRescheduled);
-  
+
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4">
       <button aria-label="Zavrieť" className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={onClose} />
@@ -389,11 +384,7 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, canc
         {isRescheduled && (
           <div className="mb-4 flex items-center gap-2.5 rounded-2xl border border-blue-200 bg-blue-50/80 p-3 text-xs text-blue-900">
             <CalendarSync className="h-4 w-4 shrink-0 text-blue-600" />
-            <span>
-              {isAdmin
-                ? "Tento termín bol presunutý. Ako administrátor máte oprávnenie rezerváciu zrušiť a vrátiť klientovi kredit v plnej výške."
-                : "Tento termín bol presunutý. Rezerváciu už nie je možné stornovať, máte však možnosť ju opätovne presunúť."}
-            </span>
+            <span>Tento termín bol <b>presunutý</b>. Rezerváciu už nie je možné stornovať, máte však možnosť ju opätovne presunúť.</span>
           </div>
         )}
 
@@ -423,17 +414,17 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, canc
           </button>
         )}
 
-        {canManage && (isAdmin || !isRescheduled) && canCancel && (
-          <button onClick={onDelete} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700 transition hover:bg-red-100 sm:px-5 sm:text-sm cursor-pointer">
-            <Trash2 className="h-4 w-4" /> {isMaintenanceOrAdmin ? "Odblokovať kurt" : (isAdmin && isRescheduled ? "Zrušiť rezerváciu a vrátiť kredit (Admin)" : "Zrušiť rezerváciu")}
+        {canManage && !isRescheduled && canCancel && (
+          <button onClick={onDelete} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700 transition hover:bg-red-100 sm:px-5 sm:text-sm">
+            <Trash2 className="h-4 w-4" /> {isMaintenanceOrAdmin ? "Odblokovať kurt" : "Zrušiť rezerváciu"}
           </button>
         )}
-        {!isAdmin && canManage && !isRescheduled && !canCancel && (
+        {canManage && !isRescheduled && !canCancel && (
           <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-center text-xs font-semibold text-amber-800 sm:px-4 sm:text-sm">
             Rezerváciu už nie je možné zrušiť. Zrušenie je povolené iba viac ako {cancellationDeadlineHours} hodín pred začiatkom.
           </p>
         )}
-        {!isAdmin && canManage && isRescheduled && (
+        {canManage && isRescheduled && (
           <p className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-center text-xs text-slate-600">
             Presunutú rezerváciu nie je možné zrušiť za refundáciu kreditu. Môžete ju kedykoľvek presunúť na iný termín.
           </p>
