@@ -4,10 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpRight, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Plus, Receipt, Settings, ShieldCheck, Sparkles, UserPlus, Users, X } from "lucide-react";
+import { ArrowUpRight, CalendarDays, CalendarSync, ChevronDown, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Plus, Receipt, Settings, ShieldCheck, Sparkles, UserPlus, Users, X } from "lucide-react";
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { ThreeDChartIcon, ThreeDSettingsIcon, ThreeDUserAvatarIcon } from "@/components/icons/ThreeDNavIcons";
-import { createBookingAction, deleteBookingAction, fetchBookingsAction } from "@/app/actions/bookings";
+import { createBookingAction, deleteBookingAction, fetchBookingsAction, rescheduleBookingAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
 import { createWalletCardPayAction, createWalletCheckoutAction, getWalletAction, reconcileWalletCardPayAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
 
@@ -15,12 +15,13 @@ import { supabase } from "@/lib/supabase";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 import type { Booking, Court, SportType } from "@/lib/bookings/mockBookings";
 import { openingHours } from "@/lib/bookings/mockBookings";
+import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import { getCourtOperatingLimitMinutes, getDurationOptions, type RoleBookingPolicy } from "@/lib/bookings/rolePolicy";
 
 import HolographicTennisCourt from "./HolographicTennisCourt";
 import NewBookingsHeader from "./NewBookingsHeader";
 import NewBookingAuth from "./NewBookingAuth";
-import { BookingDetailDialog, CreateBookingDialog, DeleteDialog } from "./NewBookingDialogs";
+import { BookingDetailDialog, CreateBookingDialog, DeleteDialog, RescheduleConfirmDialog } from "./NewBookingDialogs";
 
 type Props = {
   courts: Court[];
@@ -273,6 +274,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [slot, setSlot] = useState<Slot | null>(null);
   const [detail, setDetail] = useState<Booking | null>(null);
   const [deleting, setDeleting] = useState<Booking | null>(null);
+  const [reschedulingBooking, setReschedulingBooking] = useState<Booking | null>(null);
+  const [rescheduleSlot, setRescheduleSlot] = useState<{ courtId: string; date: Date; hour: number } | null>(null);
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
+  const [rescheduleError, setRescheduleError] = useState("");
   const [notice, setNotice] = useState("");
   const [title, setTitle] = useState("");
   const [phone, setPhone] = useState("");
@@ -282,6 +287,28 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [walletBalance, setWalletBalance] = useState<number | null>(initialWalletBalance ?? null);
   const [walletHighlight, setWalletHighlight] = useState(false);
   const [topUpLoading, setTopUpLoading] = useState<number | null>(null);
+
+  const reschedDurationMin = useMemo(() => {
+    if (!reschedulingBooking) return 60;
+    const s = new Date(reschedulingBooking.start).getTime();
+    const e = new Date(reschedulingBooking.end).getTime();
+    return Math.max(30, Math.round((e - s) / 60000));
+  }, [reschedulingBooking]);
+
+  const reschedOriginalPrice = useMemo(() => {
+    if (!reschedulingBooking) return 0;
+    if (reschedulingBooking.priceEur != null) return Number(reschedulingBooking.priceEur);
+    const hasCard = Boolean(currentUser?.cardNumber && currentUser.cardNumber.trim().length > 0);
+    const roleDiscount = rolePolicy?.discountEurPerHour ?? 0;
+    return calculateNtcBookingPrice(
+      reschedulingBooking.courtId,
+      reschedulingBooking.start,
+      reschedDurationMin,
+      hasCard,
+      roleDiscount,
+      reschedulingBooking.multisportCardsCount || 0
+    ).totalPriceEur;
+  }, [reschedulingBooking, reschedDurationMin, currentUser, rolePolicy]);
   const [now, setNow] = useState(() => new Date());
   const [highlightedVoiceBookings, setHighlightedVoiceBookings] = useState<string[]>([]);
   const today = useMemo(() => { const value = new Date(); value.setHours(0, 0, 0, 0); return value; }, []);
@@ -869,6 +896,26 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   };
 
   const openSlot = (courtId: string, hour: number) => {
+    if (reschedulingBooking) {
+      const status = getRescheduleSlotStatus(courtId, hour);
+      if (!status || !status.eligible) {
+        if (status?.reason === "price_mismatch") {
+          setNotice(`Tento termín má inú cenu (${status.targetPrice?.toFixed(2)} €). Vyberte termín s rovnakou cenou ${reschedOriginalPrice.toFixed(2)} €.`);
+        } else if (status?.reason === "occupied") {
+          setNotice("Tento termín je už obsadený.");
+        } else if (status?.reason === "past") {
+          setNotice("Termín v minulosti nie je možné vybrať.");
+        } else if (status?.reason === "current") {
+          setNotice("Toto je váš pôvodný termín rezervácie.");
+        } else {
+          setNotice("Tento termín nie je k dispozícii pre presun.");
+        }
+        return;
+      }
+      setRescheduleSlot({ courtId, date: new Date(date), hour });
+      setRescheduleError("");
+      return;
+    }
     if (!currentUser) {
       const pending = { courtId, date: new Date(date), hour };
       setPendingSlot(pending);
@@ -908,6 +955,108 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     }
   };
   const hasConflict = (courtId: string, start: Date, end: Date) => bookings.some((booking) => booking.courtId === courtId && start < new Date(booking.end) && end > new Date(booking.start));
+
+  const getRescheduleSlotStatus = useCallback((courtId: string, hour: number) => {
+    if (!reschedulingBooking) return null;
+    const isPast = isToday ? hour <= now.getHours() : dateKey(date) < dateKey(now);
+    if (isPast) return { eligible: false, reason: "past" as const };
+
+    const start = new Date(date);
+    start.setHours(hour, 0, 0, 0);
+    const end = new Date(start.getTime() + reschedDurationMin * 60000);
+
+    // Check if it's the current slot of the booking itself
+    if (courtId === reschedulingBooking.courtId && start.getTime() === new Date(reschedulingBooking.start).getTime()) {
+      return { eligible: false, reason: "current" as const };
+    }
+
+    // Check operating limit / blocked label
+    const label = blockedLabel(courtId, sport, hour);
+    if (label) return { eligible: false, reason: "blocked" as const };
+
+    // Check conflicts (ignoring the booking being rescheduled itself)
+    const conflict = bookings.some(
+      (b) => b.id !== reschedulingBooking.id && b.courtId === courtId && start < new Date(b.end) && end > new Date(b.start)
+    );
+    if (conflict) return { eligible: false, reason: "occupied" as const };
+
+    // Check operating limits of court
+    const courtLimit = getCourtOperatingLimitMinutes(courtId, start);
+    if (courtLimit < reschedDurationMin) return { eligible: false, reason: "closed" as const };
+
+    // Check price matching (if not admin)
+    if (currentUser?.role !== "admin") {
+      const hasCard = Boolean(currentUser?.cardNumber && currentUser.cardNumber.trim().length > 0);
+      const roleDiscount = rolePolicy?.discountEurPerHour ?? 0;
+      const calc = calculateNtcBookingPrice(
+        courtId,
+        start.toISOString(),
+        reschedDurationMin,
+        hasCard,
+        roleDiscount,
+        reschedulingBooking.multisportCardsCount || 0
+      );
+      if (Math.abs(calc.totalPriceEur - reschedOriginalPrice) > 0.05) {
+        return { eligible: false, reason: "price_mismatch" as const, targetPrice: calc.totalPriceEur };
+      }
+    }
+
+    return { eligible: true };
+  }, [reschedulingBooking, isToday, now, date, reschedDurationMin, blockedLabel, sport, bookings, currentUser, rolePolicy, reschedOriginalPrice]);
+
+  const handleConfirmReschedule = async () => {
+    if (!reschedulingBooking || !rescheduleSlot) return;
+    setRescheduleLoading(true);
+    setRescheduleError("");
+
+    const start = new Date(rescheduleSlot.date);
+    start.setHours(rescheduleSlot.hour, 0, 0, 0);
+    const end = new Date(start.getTime() + reschedDurationMin * 60000);
+
+    const res = await rescheduleBookingAction({
+      bookingId: reschedulingBooking.id,
+      newCourtId: rescheduleSlot.courtId,
+      newStart: start.toISOString(),
+      newEnd: end.toISOString(),
+    });
+
+    setRescheduleLoading(false);
+    if (!res.success) {
+      setRescheduleError(res.error || "Presun rezervácie sa nepodaril.");
+      return;
+    }
+
+    setItems((prev) =>
+      prev.map((b) =>
+        b.id === reschedulingBooking.id
+          ? {
+              ...b,
+              courtId: rescheduleSlot.courtId,
+              start: start.toISOString(),
+              end: end.toISOString(),
+              isRescheduled: true,
+            }
+          : b
+      )
+    );
+
+    playTennisHitSound();
+    const reschedId = reschedulingBooking.id;
+    const timers = voiceHighlightTimers.current;
+    setHighlightedVoiceBookings((curr) => curr.includes(reschedId) ? curr : [...curr, reschedId]);
+    const existingTimer = timers.get(reschedId);
+    if (existingTimer) window.clearTimeout(existingTimer);
+    const highlightTimer = window.setTimeout(() => {
+      setHighlightedVoiceBookings((curr) => curr.filter((id) => id !== reschedId));
+      timers.delete(reschedId);
+    }, 3500);
+    timers.set(reschedId, highlightTimer);
+
+    setNotice("Rezervácia bola úspešne presunutá na nový termín.");
+    setRescheduleSlot(null);
+    setReschedulingBooking(null);
+    setRescheduleError("");
+  };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault(); if (!slot || !currentUser) return;
     const validation = clayError(slot.courtId, sport, slot.hour, duration); if (validation) return setNotice(validation);
@@ -1124,19 +1273,63 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
         <section className="overflow-hidden rounded-xl sm:rounded-3xl border sm:border-2 border-slate-300 bg-white shadow-sm sm:shadow-[0_20px_55px_rgba(15,23,42,0.10)]">
           <div className="border-b border-slate-200 p-2 sm:p-6">
+            {reschedulingBooking && (
+              <div className="mb-3 sm:mb-4 rounded-xl sm:rounded-2xl border-2 border-emerald-500 bg-emerald-50/90 p-3 sm:p-4 shadow-sm">
+                <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
+                      <CalendarSync className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-md bg-emerald-600 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white">
+                          Režim presunu rezervácie
+                        </span>
+                        <span className="text-xs font-bold text-emerald-950">
+                          {reschedDurationMin} min. | {reschedOriginalPrice.toFixed(2)} €
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-xs text-slate-700">
+                        Vyberte zelené okienko <b>Presunúť sem</b>. Ostatné okienka s inou cenou alebo obsadené termíny sú vyblokované.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReschedulingBooking(null);
+                      setRescheduleSlot(null);
+                      setRescheduleError("");
+                    }}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition shrink-0 cursor-pointer self-start sm:self-auto"
+                  >
+                    <X className="h-4 w-4 text-slate-500" /> Zrušiť presun
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-1.5 lg:grid-cols-4 sm:gap-2">
-              {sports.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setSport(item.id)}
-                  className={`cursor-pointer rounded-lg sm:rounded-xl border py-1.5 px-2 sm:p-3 text-xs sm:text-sm font-semibold sm:font-bold transition duration-200 ${sport === item.id
-                      ? "border-slate-950 bg-slate-950 text-white shadow-xs sm:shadow-sm"
-                      : "border-slate-200 bg-white text-slate-600 shadow-2xs hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 hover:shadow-xs"
+              {sports.map((item) => {
+                const origCourt = courts.find((c) => c.id === reschedulingBooking?.courtId);
+                const isSportLocked = Boolean(reschedulingBooking && origCourt && item.id !== origCourt.sport);
+                return (
+                  <button
+                    key={item.id}
+                    disabled={isSportLocked}
+                    onClick={() => setSport(item.id)}
+                    title={isSportLocked ? "Počas presunu rezervácie je možné vybrať iba rovnaký šport" : undefined}
+                    className={`cursor-pointer rounded-lg sm:rounded-xl border py-1.5 px-2 sm:p-3 text-xs sm:text-sm font-semibold sm:font-bold transition duration-200 ${
+                      sport === item.id
+                        ? "border-slate-950 bg-slate-950 text-white shadow-xs sm:shadow-sm"
+                        : isSportLocked
+                          ? "border-slate-200 bg-slate-100 text-slate-400 opacity-40 cursor-not-allowed"
+                          : "border-slate-200 bg-white text-slate-600 shadow-2xs hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 hover:shadow-xs"
                     }`}
-                >
-                  {item.label}
-                </button>
-              ))}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
             </div>
             <div className="mt-2 flex items-center justify-between gap-1.5 border-t border-slate-100 pt-2 sm:mt-5 sm:gap-4 sm:pt-5">
               <button
@@ -1230,12 +1423,44 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                           ["tennis-clay-10", "tennis-clay-11"].includes(court.id) &&
                           hour === 16;
 
+                        const reschedStatus = reschedulingBooking ? getRescheduleSlotStatus(court.id, hour) : null;
+
                         return (
                           <div key={hour} className="p-1 h-full">
                             {label ? (
                               <div className="grid h-full min-h-[72px] cursor-not-allowed place-items-center rounded-2xl bg-amber-50/80 border border-amber-200/70 px-1 text-center text-[10px] font-bold text-amber-700 shadow-xs">
                                 {label}
                               </div>
+                            ) : isPast ? (
+                              <div className="h-full min-h-[72px] cursor-not-allowed rounded-2xl bg-slate-100/40 border border-slate-200/40" />
+                            ) : reschedulingBooking ? (
+                              reschedStatus?.reason === "current" ? (
+                                <div className="flex flex-col items-center justify-center h-full min-h-[72px] rounded-2xl border-2 border-slate-300 bg-slate-100/80 text-slate-500 p-1 text-center shadow-xs">
+                                  <span className="text-[10px] font-bold leading-tight">Pôvodný termín</span>
+                                </div>
+                              ) : reschedStatus?.reason === "price_mismatch" ? (
+                                <div
+                                  className="flex flex-col items-center justify-center h-full min-h-[72px] rounded-2xl border border-slate-200/60 bg-slate-100/70 text-slate-400 p-1 text-center shadow-2xs cursor-not-allowed select-none"
+                                  title={`Iná cena: ${reschedStatus.targetPrice?.toFixed(2)} € (pôvodná: ${reschedOriginalPrice.toFixed(2)} €)`}
+                                >
+                                  <span className="text-[10px] font-semibold text-slate-400">Iná cena</span>
+                                  <span className="text-[9.5px] font-bold text-slate-400/80">{reschedStatus.targetPrice?.toFixed(0)} €</span>
+                                </div>
+                              ) : reschedStatus?.eligible ? (
+                                <button
+                                  type="button"
+                                  onClick={() => openSlot(court.id, hour)}
+                                  className="group flex flex-col items-center justify-center h-full min-h-[72px] w-full cursor-pointer rounded-2xl border-2 border-emerald-500 bg-emerald-50/90 hover:bg-emerald-100 hover:border-emerald-600 transition-all duration-150 hover:scale-[1.02] shadow-sm p-1"
+                                  title={`Presunúť sem (${hour}:00, ${reschedOriginalPrice.toFixed(2)} €)`}
+                                >
+                                  <CalendarSync className="h-4 w-4 text-emerald-600 group-hover:scale-110 transition-transform" />
+                                  <span className="mt-1 text-[10px] sm:text-[10.5px] font-extrabold text-emerald-800 leading-tight text-center">
+                                    Presunúť sem
+                                  </span>
+                                </button>
+                              ) : (
+                                <div className="h-full min-h-[72px] cursor-not-allowed rounded-2xl bg-slate-100/40 border border-slate-200/40" />
+                              )
                             ) : isClayPartial16 ? (
                               <div className="flex h-full min-h-[72px] w-full overflow-hidden rounded-2xl border border-slate-200/70 shadow-xs">
                                 {/* 16:00 - 16:30 (Otvorené na rezerváciu) */}
@@ -1257,8 +1482,6 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                                   title="Od 16:30 mimo prevádzky"
                                 />
                               </div>
-                            ) : isPast ? (
-                              <div className="h-full min-h-[72px] cursor-not-allowed rounded-2xl bg-slate-100/40 border border-slate-200/40" />
                             ) : (
                               <button
                                 type="button"
@@ -1346,6 +1569,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                               bookingClasses = "border-slate-300 bg-[#CBD5E1] text-slate-800 font-semibold shadow-xs";
                             }
                           }
+                          const isBeingRescheduled = reschedulingBooking?.id === booking.id;
+                          if (isBeingRescheduled) {
+                            labelText = "Presúva sa...";
+                            bookingClasses = "border-2 border-dashed border-emerald-500 bg-emerald-100/90 text-emerald-950 font-bold ring-2 ring-emerald-400";
+                          }
 
                           return (
                             <div
@@ -1355,7 +1583,17 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                             >
                               <button
                                 type="button"
-                                onClick={() => canManage && setDetail(booking)}
+                                onClick={() => {
+                                  if (reschedulingBooking) {
+                                    if (booking.id === reschedulingBooking.id) {
+                                      setNotice("Túto rezerváciu práve presúvate. Vyberte zelené okienko [Presunúť sem] pre nový termín.");
+                                    } else {
+                                      setNotice("Tento termín je už obsadený inou rezerváciou.");
+                                    }
+                                    return;
+                                  }
+                                  if (canManage) setDetail(booking);
+                                }}
                                 className={`pointer-events-auto h-full w-full overflow-hidden rounded-2xl border px-1.5 py-1 text-center transition duration-150 hover:scale-[1.01] flex flex-col items-center justify-center ${voiceHighlight ? "booking-magnify-drop" : ""
                                   } ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${bookingClasses}`}
                                 title={canManage ? `Detail: ${labelText}` : (isAnyAdminOrBlock ? "Údržba" : "Obsadené")}
@@ -1517,7 +1755,43 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           onSubmit={submit}
         />
       )}
-      {detail && <BookingDetailDialog booking={detail} court={courts.find((court) => court.id === detail.courtId)} canManage={!!currentUser && (currentUser.role === "admin" || currentUser.id === detail.user_id)} canCancel={currentUser?.role === "admin" || new Date(detail.start).getTime() - now.getTime() > (rolePolicy?.cancellationDeadlineHours ?? 24) * 60 * 60 * 1000} cancellationDeadlineHours={rolePolicy?.cancellationDeadlineHours ?? 24} onClose={() => setDetail(null)} onDelete={() => setDeleting(detail)} />}
+      {detail && (
+        <BookingDetailDialog
+          booking={detail}
+          court={courts.find((court) => court.id === detail.courtId)}
+          canManage={!!currentUser && (currentUser.role === "admin" || currentUser.id === detail.user_id)}
+          canCancel={currentUser?.role === "admin" || new Date(detail.start).getTime() - now.getTime() > (rolePolicy?.cancellationDeadlineHours ?? 24) * 60 * 60 * 1000}
+          cancellationDeadlineHours={rolePolicy?.cancellationDeadlineHours ?? 24}
+          onClose={() => setDetail(null)}
+          onDelete={() => setDeleting(detail)}
+          onStartReschedule={() => {
+            const origCourt = courts.find((court) => court.id === detail.courtId);
+            if (origCourt && origCourt.sport !== sport) {
+              setSport(origCourt.sport);
+            }
+            setReschedulingBooking(detail);
+            setDetail(null);
+            setNotice("Vyberte nový voľný termín v kalendári s rovnakou cenou a dĺžkou.");
+          }}
+        />
+      )}
+      {rescheduleSlot && reschedulingBooking && (
+        <RescheduleConfirmDialog
+          booking={reschedulingBooking}
+          court={courts.find((court) => court.id === reschedulingBooking.courtId)}
+          targetCourt={courts.find((court) => court.id === rescheduleSlot.courtId)}
+          targetDate={rescheduleSlot.date}
+          targetHour={rescheduleSlot.hour}
+          durationMinutes={reschedDurationMin}
+          loading={rescheduleLoading}
+          error={rescheduleError}
+          onCancel={() => {
+            setRescheduleSlot(null);
+            setRescheduleError("");
+          }}
+          onConfirm={handleConfirmReschedule}
+        />
+      )}
       {deleting && <DeleteDialog loading={loading} error={notice || undefined} onCancel={() => { setDeleting(null); setNotice(""); }} onConfirm={remove} />}
       <style jsx global>{`
         @keyframes booking-magnify-and-drop {

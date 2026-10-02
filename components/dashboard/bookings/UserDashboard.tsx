@@ -106,13 +106,18 @@ export default function UserDashboard({ session }: { session: any }) {
                     ) : (
                         <div className="flex flex-col gap-3">
                             {futureBookings.map((b, i) => {
-                                const canCancel = new Date(b.start).getTime() > Date.now() + 24 * 60 * 60 * 1000 && b.status !== "cancelled";
+                                const canCancel = !b.isRescheduled && new Date(b.start).getTime() > Date.now() + 24 * 60 * 60 * 1000 && b.status !== "cancelled";
                                 return (
                                     <div key={i} className="flex justify-between items-center p-3 rounded-2xl bg-white/5 border border-white/5 group relative overflow-hidden transition-all hover:bg-white/10">
                                         <div>
                                             <div className="font-semibold text-cyan-300">{new Date(b.start).toLocaleDateString("sk-SK")}</div>
                                             <div className="text-xs text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                                 {b.courtId.replace("-", " ")}
+                                                {b.isRescheduled && (
+                                                    <span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-[10px] font-bold">
+                                                        PRESUNUTÉ
+                                                    </span>
+                                                )}
                                                 {b.status === "cancelled" && (
                                                     <span className="bg-red-500/20 text-red-400 px-2 py-0.5 rounded text-[10px] font-bold">
                                                         {lang === 'en' ? "CANCELLED" : "ZRUŠENÉ"}

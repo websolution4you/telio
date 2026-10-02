@@ -25,6 +25,7 @@ export interface Booking {
   userCardNumber?: string;
   multisportCardsCount?: number;
   priceEur?: number;
+  isRescheduled?: boolean;
 }
 
 export const courts: Court[] = [

@@ -138,11 +138,12 @@ export async function fetchBookingsAction(startDateIso: string, endDateIso: stri
 
         // Map database events to booking objects
         const bookings = (data || []).map(row => {
-            let notesObj: { courtId?: string; source?: string; notes?: string; multisportCardsCount?: number } = {
+            let notesObj: { courtId?: string; source?: string; notes?: string; multisportCardsCount?: number; rescheduled?: boolean } = {
                 courtId: "",
                 source: "web",
                 notes: "",
-                multisportCardsCount: 0
+                multisportCardsCount: 0,
+                rescheduled: false,
             };
             try {
                 notesObj = { ...notesObj, ...JSON.parse(row.notes || "{}") };
@@ -179,7 +180,8 @@ export async function fetchBookingsAction(startDateIso: string, endDateIso: stri
                 userRole: isRowAdminOrBlock ? "admin" : (userMeta?.role || "user"),
                 userCardNumber: userMeta?.cardNumber,
                 multisportCardsCount: Number(notesObj.multisportCardsCount || 0),
-                priceEur: row.price_eur != null ? Number(row.price_eur) : undefined
+                priceEur: row.price_eur != null ? Number(row.price_eur) : undefined,
+                isRescheduled: Boolean(notesObj.rescheduled)
             };
         });
 
@@ -664,7 +666,7 @@ export async function deleteBookingAction(id: string) {
 
         const db = getCoreDb();
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-        let query = db.from("bookings").select("id, user_id, start_at, tenant_id");
+        let query = db.from("bookings").select("id, user_id, start_at, tenant_id, notes");
         query = isUuid ? query.eq("id", id) : query.eq("calendar_event_id", id);
         const { data: booking, error: selectError } = await query.maybeSingle();
 
@@ -675,7 +677,17 @@ export async function deleteBookingAction(id: string) {
         if (session.role !== "admin" && booking.user_id !== session.userId) {
             return { success: false, error: "Nemáte oprávnenie zrušiť túto rezerváciu." };
         }
-                if (session.role !== "admin") {
+        if (session.role !== "admin") {
+            let notesObj: any = {};
+            try {
+                notesObj = typeof booking.notes === "string" ? JSON.parse(booking.notes) : (booking.notes || {});
+            } catch (e) {
+                notesObj = {};
+            }
+            if (notesObj.rescheduled) {
+                return { success: false, error: "Presunutú rezerváciu už nie je možné zrušiť. Máte však možnosť ju opätovne presunúť na iný termín." };
+            }
+
             const policyDb = getCoreServiceDb();
             const { data: userPolicy, error: policyError } = await policyDb
                 .from("booking_users")
@@ -727,6 +739,209 @@ export async function deleteBookingAction(id: string) {
     }
 }
 
+export async function rescheduleBookingAction(payload: {
+    bookingId: string;
+    newCourtId: string;
+    newStart: string;
+    newEnd: string;
+}) {
+    try {
+        const session = await getSession();
+        if (!session) return { success: false, error: "Nedostatočné oprávnenia. Prihláste sa prosím." };
+
+        const db = getCoreDb();
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload.bookingId);
+        let query = db.from("bookings").select("*");
+        query = isUuid ? query.eq("id", payload.bookingId) : query.eq("calendar_event_id", payload.bookingId);
+        const { data: booking, error: selectError } = await query.maybeSingle();
+
+        if (selectError) throw new Error(`Database lookup error: ${selectError.message}`);
+        if (!booking || booking.tenant_id !== TENANT_ID) {
+            return { success: false, error: "Rezervácia sa nenašla." };
+        }
+
+        const isAdmin = session.role === "admin";
+        if (!isAdmin && booking.user_id !== session.userId) {
+            return { success: false, error: "Nemáte oprávnenie presunúť túto rezerváciu." };
+        }
+
+        const now = new Date();
+        const newStartMs = new Date(payload.newStart).getTime();
+        const newEndMs = new Date(payload.newEnd).getTime();
+
+        if (newStartMs <= now.getTime()) {
+            return { success: false, error: "Rezerváciu nie je možné presunúť do minulosti." };
+        }
+
+        const oldStartMs = new Date(booking.start_at).getTime();
+        const oldEndMs = new Date(booking.end_at).getTime();
+        const oldDurationMin = Math.round((oldEndMs - oldStartMs) / 60000);
+        const newDurationMin = Math.round((newEndMs - newStartMs) / 60000);
+
+        if (newDurationMin !== oldDurationMin) {
+            return { success: false, error: `Dĺžka nového termínu (${newDurationMin} min.) sa musí zhodovať s pôvodnou dĺžkou (${oldDurationMin} min.).` };
+        }
+
+        let notesObj: any = {};
+        try {
+            notesObj = typeof booking.notes === "string" ? JSON.parse(booking.notes) : (booking.notes || {});
+        } catch (e) {
+            notesObj = {};
+        }
+
+        const oldCourtId = booking.court_id || notesObj.courtId || "";
+        const oldSport = oldCourtId.replace(/-\d+$/, "");
+        const newSport = payload.newCourtId.replace(/-\d+$/, "");
+
+        if (!isAdmin && oldSport && newSport && oldSport !== newSport) {
+            return { success: false, error: "Rezerváciu je možné presunúť iba na rovnaký šport." };
+        }
+
+        if (!isAdmin) {
+            const policyDb = getCoreServiceDb();
+            const { data: policyData } = await policyDb
+                .from("booking_users")
+                .select("role, card_number, role_booking_policies(booking_horizon_days, discount_eur_per_hour)")
+                .eq("id", session.userId)
+                .maybeSingle();
+
+            const joinedPolicy = Array.isArray(policyData?.role_booking_policies)
+                ? policyData.role_booking_policies[0]
+                : policyData?.role_booking_policies;
+            const horizonDays = Number(joinedPolicy?.booking_horizon_days ?? 14);
+
+            const todayKey = getBratislavaDateKey(now);
+            const maxDate = new Date(`${todayKey}T12:00:00`);
+            maxDate.setDate(maxDate.getDate() + horizonDays);
+
+            if (getBratislavaDateKey(new Date(newStartMs)) > getBratislavaDateKey(maxDate)) {
+                return { success: false, error: `Rezerváciu je možné presunúť maximálne ${horizonDays} dní vopred.` };
+            }
+
+            const hasCard = Boolean(policyData?.card_number && String(policyData.card_number).trim());
+            const roleDiscount = Number(joinedPolicy?.discount_eur_per_hour ?? 0);
+            const multisportCount = Number(notesObj.multisportCardsCount || 0);
+
+            const originalPrice = booking.price_eur != null
+                ? Number(booking.price_eur)
+                : calculateNtcBookingPrice(
+                    booking.court_id || notesObj.courtId,
+                    booking.start_at,
+                    oldDurationMin,
+                    hasCard,
+                    roleDiscount,
+                    multisportCount
+                ).totalPriceEur;
+
+            const newPriceResult = calculateNtcBookingPrice(
+                payload.newCourtId,
+                payload.newStart,
+                newDurationMin,
+                hasCard,
+                roleDiscount,
+                multisportCount
+            );
+
+            if (Math.abs(newPriceResult.totalPriceEur - originalPrice) > 0.05) {
+                return {
+                    success: false,
+                    error: `Termín je možné presunúť iba na čas s rovnakou cenou (${originalPrice.toFixed(2)} €). Nový termín má cenu ${newPriceResult.totalPriceEur.toFixed(2)} €.`
+                };
+            }
+        }
+
+        // Conflict checking on target court
+        const searchRangeStart = new Date(newStartMs - 24 * 60 * 60 * 1000).toISOString();
+        const searchRangeEnd = new Date(newEndMs + 24 * 60 * 60 * 1000).toISOString();
+
+        const { data: existingBookings, error: checkError } = await db
+            .from("bookings")
+            .select("id, notes, start_at, end_at, status")
+            .eq("tenant_id", TENANT_ID)
+            .neq("id", booking.id)
+            .neq("status", "cancelled")
+            .gte("end_at", searchRangeStart)
+            .lte("start_at", searchRangeEnd);
+
+        if (checkError) {
+            throw new Error(`Database check error: ${checkError.message}`);
+        }
+
+        const hasConflict = (existingBookings || []).some(row => {
+            let rowCourtId = "";
+            try {
+                const parsed = typeof row.notes === "string" ? JSON.parse(row.notes) : (row.notes || {});
+                rowCourtId = parsed.courtId || "";
+            } catch (e) {}
+            if (rowCourtId !== payload.newCourtId) return false;
+
+            const exStartMs = new Date(row.start_at).getTime();
+            const exEndMs = new Date(row.end_at).getTime();
+            return (exStartMs < newEndMs && exEndMs > newStartMs);
+        });
+
+        if (hasConflict) {
+            return { success: false, error: "Vybraný kurt je v tomto novom termíne už obsadený." };
+        }
+
+        const updatedNotes = {
+            ...notesObj,
+            courtId: payload.newCourtId,
+            rescheduled: true,
+            rescheduledAt: now.toISOString(),
+            rescheduledBy: isAdmin ? "admin" : "user",
+            originalStartAt: notesObj.originalStartAt || booking.start_at,
+            originalEndAt: notesObj.originalEndAt || booking.end_at,
+            originalCourtId: notesObj.originalCourtId || booking.court_id,
+        };
+
+        const targetSport = payload.newCourtId.replace(/-\d+$/, "");
+
+        const { data: updatedBooking, error: updateError } = await db
+            .from("bookings")
+            .update({
+                court_id: payload.newCourtId,
+                sport: targetSport,
+                start_at: payload.newStart,
+                end_at: payload.newEnd,
+                notes: JSON.stringify(updatedNotes),
+            })
+            .eq("id", booking.id)
+            .select()
+            .single();
+
+        if (updateError) {
+            throw new Error(`Database update error: ${updateError.message}`);
+        }
+
+        revalidatePath("/bookings");
+        revalidatePath("/newbookings");
+        revalidatePath("/dashboard/newbookings");
+
+        return {
+            success: true,
+            booking: {
+                id: updatedBooking.id,
+                courtId: payload.newCourtId,
+                title: updatedNotes.notes || updatedBooking.customer_name || "Rezervácia",
+                customerName: updatedBooking.customer_name,
+                phone: updatedBooking.customer_phone || undefined,
+                start: updatedBooking.start_at,
+                end: updatedBooking.end_at,
+                status: updatedBooking.status,
+                source: updatedNotes.source || "web",
+                user_id: updatedBooking.user_id,
+                priceEur: updatedBooking.price_eur != null ? Number(updatedBooking.price_eur) : undefined,
+                multisportCardsCount: updatedNotes.multisportCardsCount || 0,
+                isRescheduled: true,
+            }
+        };
+    } catch (error: any) {
+        console.error("rescheduleBookingAction failed:", error);
+        return { success: false, error: error.message || "Nepodarilo sa presunúť rezerváciu." };
+    }
+}
+
 
 
 export async function fetchUserDashboardDataAction() {
@@ -757,7 +972,8 @@ export async function fetchUserDashboardDataAction() {
                 end: row.end_at,
                 status: row.status as "confirmed" | "blocked" | "cancelled",
                 source: (notesObj.source || "web") as any,
-                user_id: row.user_id
+                user_id: row.user_id,
+                isRescheduled: Boolean(notesObj.rescheduled)
             };
         });
 

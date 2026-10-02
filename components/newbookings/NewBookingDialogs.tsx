@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, Clock3, Coins, CreditCard, Loader2, MessageSquare, Phone, Sparkles, Trash2, User, X } from "lucide-react";
+import { ArrowRight, CalendarSync, ChevronDown, Clock3, Coins, CreditCard, Loader2, MessageSquare, Phone, Sparkles, Trash2, User, X } from "lucide-react";
 import type { Booking, Court } from "@/lib/bookings/mockBookings";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import { formatDuration } from "@/lib/bookings/rolePolicy";
@@ -343,9 +343,10 @@ type DetailProps = {
   cancellationDeadlineHours: number;
   onClose: () => void;
   onDelete: () => void;
+  onStartReschedule?: () => void;
 };
 
-export function BookingDetailDialog({ booking, court, canManage, canCancel, cancellationDeadlineHours, onClose, onDelete }: DetailProps) {
+export function BookingDetailDialog({ booking, court, canManage, canCancel, cancellationDeadlineHours, onClose, onDelete, onStartReschedule }: DetailProps) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -370,6 +371,9 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, canc
       booking.title.toLowerCase().includes("admin") ||
       booking.title.toLowerCase().includes("tréning")
     ));
+
+  const isFuture = new Date(booking.start).getTime() > Date.now();
+  const isRescheduled = Boolean(booking.isRescheduled);
   
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4">
@@ -380,6 +384,13 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, canc
           subtitle={formatCourtDisplayName(court) || "Rezervované športovisko"}
           onClose={onClose}
         />
+
+        {isRescheduled && (
+          <div className="mb-4 flex items-center gap-2.5 rounded-2xl border border-blue-200 bg-blue-50/80 p-3 text-xs text-blue-900">
+            <CalendarSync className="h-4 w-4 shrink-0 text-blue-600" />
+            <span>Tento termín bol <b>presunutý</b>. Rezerváciu už nie je možné stornovať, máte však možnosť ju opätovne presunúť.</span>
+          </div>
+        )}
 
         <div className="space-y-2.5 sm:space-y-3">
           <Detail icon={Clock3} label="Termín" value={`${formatDate(booking.start)}, ${formatTime(booking.start)} – ${formatTime(booking.end)}`} />
@@ -396,16 +407,165 @@ export function BookingDetailDialog({ booking, court, canManage, canCancel, canc
             <Detail icon={MessageSquare} label="Poznámka" value={booking.title} />
           )}
         </div>
-        {canManage && canCancel && (
-          <button onClick={onDelete} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700 transition hover:bg-red-100 sm:mt-7 sm:px-5 sm:text-sm">
+
+        {canManage && isFuture && onStartReschedule && (
+          <button
+            type="button"
+            onClick={onStartReschedule}
+            className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500 bg-emerald-600 px-4 py-3 text-xs font-bold text-white shadow-md shadow-emerald-700/20 transition hover:bg-emerald-700 sm:mt-6 sm:px-5 sm:text-sm cursor-pointer"
+          >
+            <CalendarSync className="h-4 w-4" /> Presunúť termín rezervácie
+          </button>
+        )}
+
+        {canManage && !isRescheduled && canCancel && (
+          <button onClick={onDelete} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700 transition hover:bg-red-100 sm:px-5 sm:text-sm">
             <Trash2 className="h-4 w-4" /> {isMaintenanceOrAdmin ? "Odblokovať kurt" : "Zrušiť rezerváciu"}
           </button>
         )}
-        {canManage && !canCancel && (
-          <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-center text-xs font-semibold text-amber-800 sm:mt-7 sm:px-4 sm:text-sm">
+        {canManage && !isRescheduled && !canCancel && (
+          <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-center text-xs font-semibold text-amber-800 sm:px-4 sm:text-sm">
             Rezerváciu už nie je možné zrušiť. Zrušenie je povolené iba viac ako {cancellationDeadlineHours} hodín pred začiatkom.
           </p>
         )}
+        {canManage && isRescheduled && (
+          <p className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-center text-xs text-slate-600">
+            Presunutú rezerváciu nie je možné zrušiť za refundáciu kreditu. Môžete ju kedykoľvek presunúť na iný termín.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function RescheduleConfirmDialog({
+  booking,
+  court,
+  targetCourt,
+  targetDate,
+  targetHour,
+  durationMinutes,
+  loading,
+  error,
+  onCancel,
+  onConfirm,
+}: {
+  booking: Booking;
+  court?: Court;
+  targetCourt?: Court;
+  targetDate: Date;
+  targetHour: number;
+  durationMinutes: number;
+  loading: boolean;
+  error?: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  const formatDate = (value: string | Date) => new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(new Date(value));
+  const formatTime = (value: string | Date) => new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bratislava" }).format(new Date(value));
+
+  const targetStart = new Date(targetDate);
+  targetStart.setHours(targetHour, 0, 0, 0);
+  const targetEnd = new Date(targetStart.getTime() + durationMinutes * 60000);
+
+  return (
+    <div className="fixed inset-0 z-[130] flex items-center justify-center p-3 sm:p-4">
+      <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={loading ? undefined : onCancel} />
+      <div className="relative max-h-[90vh] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl bg-white p-5 shadow-2xl sm:p-7 border border-slate-200">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 sm:h-12 sm:w-12">
+              <CalendarSync className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-950 sm:text-xl">Presun rezervácie</h3>
+              <p className="text-xs text-slate-500">Potvrďte presun na nový voľný termín</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={loading ? undefined : onCancel}
+            disabled={loading}
+            className="shrink-0 rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+            {error}
+          </div>
+        )}
+
+        {/* Comparison card */}
+        <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+          <div>
+            <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Pôvodný termín</span>
+            <div className="mt-1 flex items-center justify-between text-xs sm:text-sm">
+              <span className="font-semibold text-slate-700">{formatCourtDisplayName(court)}</span>
+              <span className="font-bold text-slate-900 line-through decoration-slate-400">
+                {formatDate(booking.start)}, {formatTime(booking.start)} – {formatTime(booking.end)}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center py-1 text-emerald-600">
+            <ArrowRight className="h-5 w-5" />
+          </div>
+
+          <div>
+            <span className="block text-[11px] font-bold uppercase tracking-wider text-emerald-700">Nový termín</span>
+            <div className="mt-1 flex items-center justify-between text-xs sm:text-sm">
+              <span className="font-bold text-emerald-950">{formatCourtDisplayName(targetCourt)}</span>
+              <span className="font-extrabold text-emerald-800">
+                {formatDate(targetStart)}, {formatTime(targetStart)} – {formatTime(targetEnd)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Pricing notice */}
+        <div className="mt-3 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-xs sm:text-sm">
+          <span className="font-medium text-emerald-900">Doplatok za zmenu:</span>
+          <b className="text-base font-extrabold text-emerald-700">0,00 €</b>
+        </div>
+
+        {/* Important cancellation policy reminder */}
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-900">
+          <p className="font-semibold">Dôležité upozornenie:</p>
+          <p className="mt-1 text-[11.5px] leading-relaxed">
+            Presunutá rezervácia stráca možnosť byť zrušená (stornovaná za refundáciu kreditu). V prípade zmeny plánov ju však budete môcť kedykoľvek opätovne presunúť na iný termín.
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={loading}
+            className="flex-1 rounded-xl border border-slate-200 py-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 sm:text-sm"
+          >
+            Späť do kalendára
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-xs font-bold text-white shadow-md shadow-emerald-700/20 transition hover:bg-emerald-700 disabled:opacity-50 sm:text-sm cursor-pointer"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarSync className="h-4 w-4" />}
+            {loading ? "Presúvam..." : "Potvrdiť presun"}
+          </button>
+        </div>
       </div>
     </div>
   );
