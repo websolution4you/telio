@@ -1,0 +1,44 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import { getSession } from "@/lib/auth/bookingAuth";
+import AdminPricelistManager from "@/components/newbookings/AdminPricelistManager";
+import NewBookingsHeader from "@/components/newbookings/NewBookingsHeader";
+
+export const metadata = {
+  title: "Cenník športovísk | Telio NTC",
+};
+
+export default async function PricingPage() {
+  const session = await getSession();
+  if (!session) redirect("/newbookings");
+  if (session.role !== "admin") redirect("/newbookings");
+
+  return (
+    <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+      <NewBookingsHeader currentUser={session} activeTab="pricing" />
+      <main className="px-4 py-6 text-slate-900 sm:px-6 lg:py-8">
+        <div className="hidden" aria-hidden="true" />
+        <div className="mx-auto max-w-[1500px]">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Cenník športovísk</h1>
+              <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
+                Správa sezónnych cenníkov, časových pásiem a sadzieb pre jednotlivé športy v NTC.
+              </p>
+            </div>
+            <Link
+              href="/newbookings"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 self-start sm:self-auto"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Späť na kalendár
+            </Link>
+          </div>
+
+          <AdminPricelistManager />
+        </div>
+      </main>
+    </div>
+  );
+}

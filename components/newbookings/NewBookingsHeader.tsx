@@ -27,7 +27,7 @@ import { logoutAction } from "@/app/actions/auth";
 import { createWalletCardPayAction, getWalletAction } from "@/app/actions/wallet";
 import type { BookingUser, SessionPayload } from "@/lib/auth/bookingAuth";
 
-export type ActiveTab = "calendar" | "users" | "stats" | "settings" | "transactions";
+export type ActiveTab = "calendar" | "users" | "stats" | "pricing" | "settings" | "transactions";
 
 export type HeaderUser = BookingUser | SessionPayload | {
   id?: string;
@@ -269,7 +269,25 @@ export default function NewBookingsHeader({
                     </span>
                   </Link>
 
-                  {/* 3. Nastavenia */}
+                  {/* 3. Cenník */}
+                  <Link
+                    href="/dashboard/pricing"
+                    className={`group relative flex h-[58px] w-[80px] shrink-0 flex-col items-center justify-center rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 ${
+                      activeTab === "pricing"
+                        ? "border-white/25 bg-white/15 text-white shadow-inner"
+                        : "border-transparent bg-transparent text-slate-300 hover:border-white/10 hover:bg-white/10 hover:text-white"
+                    }`}
+                    title="Správa cenníkov športovísk"
+                  >
+                    <div className="transition-transform duration-200 group-hover:scale-105">
+                      <Coins className="h-4.5 w-4.5 transition-colors duration-200" strokeWidth={1.8} />
+                    </div>
+                    <span className="mt-1 text-[11px] font-medium tracking-normal transition-colors duration-200">
+                      Cenník
+                    </span>
+                  </Link>
+
+                  {/* 4. Nastavenia */}
                   <Link
                     href="/dashboard/users-roles"
                     className={`group relative flex h-[58px] w-[80px] shrink-0 flex-col items-center justify-center rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 ${
@@ -744,6 +762,20 @@ export default function NewBookingsHeader({
                       <div className="flex flex-col text-left">
                         <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Transakcie</span>
                         <span className="text-[10px] font-normal text-slate-400">Prehľad platieb a kreditov</span>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/dashboard/pricing"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2 text-xs font-medium text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
+                    >
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                        <Coins className="h-4 w-4" />
+                      </span>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Cenník</span>
+                        <span className="text-[10px] font-normal text-slate-400">Sezóny a sadzby športov</span>
                       </div>
                     </Link>
 

@@ -1,4 +1,5 @@
 import { SportType } from "./mockBookings";
+import { DEFAULT_NTC_WINTER_PRICELIST, NtcPricelist } from "./pricingTypes";
 
 export type NtcPricingResult = {
   totalPriceEur: number;
@@ -29,19 +30,58 @@ export function normalizeSport(sportOrCourtId: string): SportType {
 export function getNtcHourlyRate(
   sport: SportType,
   hour: number,
-  isWeekend: boolean,
-  _hasCard: boolean = false
+  day: number | boolean, // 0=Ne, 1=Po, ..., 6=So or boolean isWeekend
+  _hasCard: boolean = false,
+  pricelist?: NtcPricelist
 ): number {
+  const isWeekend = typeof day === "boolean" ? day : (day === 0 || day === 6);
+  const activeList = pricelist || DEFAULT_NTC_WINTER_PRICELIST;
+  if (activeList && activeList.intervals) {
+    const matchingCandidates = activeList.intervals.filter((inv) => {
+      const matchDay = typeof day === "number"
+        ? inv.days.includes(day)
+        : (isWeekend ? (inv.days.includes(6) || inv.days.includes(0)) : (!inv.days.includes(6) && !inv.days.includes(0)));
+      return matchDay && hour >= inv.startHour && hour < inv.endHour;
+    });
+
+    if (matchingCandidates.length > 0) {
+      // Prioritize more specific day rules (e.g. single day [1] overrides [1, 2, 3, 4, 5])
+      matchingCandidates.sort((a, b) => a.days.length - b.days.length);
+      const matching = matchingCandidates[0];
+      if (matching && matching.prices && typeof (matching.prices as any)[sport] === "number") {
+        return (matching.prices as any)[sport];
+      }
+    }
+
+    // Safety fallback for accidental gaps: find closest interval for the same day type
+    const sameDayIntervals = activeList.intervals.filter((inv) =>
+      typeof day === "number"
+        ? inv.days.includes(day)
+        : (isWeekend ? (inv.days.includes(6) || inv.days.includes(0)) : (!inv.days.includes(6) && !inv.days.includes(0)))
+    );
+    if (sameDayIntervals.length > 0) {
+      const closest = sameDayIntervals.reduce((prev, curr) => {
+        const distPrev = Math.min(Math.abs(hour - prev.startHour), Math.abs(hour - prev.endHour));
+        const distCurr = Math.min(Math.abs(hour - curr.startHour), Math.abs(hour - curr.endHour));
+        return distCurr < distPrev ? curr : prev;
+      });
+      if (closest.prices && typeof (closest.prices as any)[sport] === "number") {
+        return (closest.prices as any)[sport];
+      }
+    }
+  }
+
+  // Official NTC Winter Season 2026/2027 defaults
   if (isWeekend) {
     switch (sport) {
       case "badminton":
-        return 15;
+        return 14;
       case "tennis-clay":
-        return 15;
+        return 20;
       case "tennis":
-        return 19;
+        return 28;
       case "squash":
-        return 13;
+        return 11;
     }
   }
 
@@ -50,13 +90,13 @@ export function getNtcHourlyRate(
 
   switch (sport) {
     case "badminton":
-      return isPeak ? 21 : 15;
+      return isPeak ? 20 : 14;
     case "tennis-clay":
-      return isPeak ? 17 : 15;
+      return isPeak ? 25 : 20;
     case "tennis":
-      return isPeak ? 21 : 19;
+      return isPeak ? 39 : 29;
     case "squash":
-      return isPeak ? 17 : 13;
+      return isPeak ? 15 : 11;
   }
 }
 
@@ -71,7 +111,8 @@ export function calculateNtcBookingPrice(
   durationMinutes: number,
   hasCard: boolean = false,
   discountEurPerHour: number = 0,
-  multisportCardsCount: number = 0
+  multisportCardsCount: number = 0,
+  pricelist?: NtcPricelist
 ): NtcPricingResult {
   const normalizedSport = normalizeSport(sportOrCourtId);
   const start = typeof startDate === "string" ? new Date(startDate) : new Date(startDate);
@@ -91,9 +132,23 @@ export function calculateNtcBookingPrice(
     }).formatToParts(sliceTime);
     const weekday = localParts.find((part) => part.type === "weekday")?.value;
     const isWeekend = weekday === "Sat" || weekday === "Sun";
+    const dayIndex =
+      weekday === "Sun"
+        ? 0
+        : weekday === "Mon"
+        ? 1
+        : weekday === "Tue"
+        ? 2
+        : weekday === "Wed"
+        ? 3
+        : weekday === "Thu"
+        ? 4
+        : weekday === "Fri"
+        ? 5
+        : 6;
     const hour = Number(localParts.find((part) => part.type === "hour")?.value || 0);
 
-    const hourlyRate = getNtcHourlyRate(normalizedSport, hour, isWeekend);
+    const hourlyRate = getNtcHourlyRate(normalizedSport, hour, dayIndex, hasCard, pricelist);
     if (i === 0) {
       firstHourlyRate = hourlyRate;
     }
@@ -102,8 +157,8 @@ export function calculateNtcBookingPrice(
     totalPrice += hourlyRate / 4;
   }
 
-  // Member card discount: 2 € per reservation (e.g. 13 € - 2 € = 11 € for 1h, 26 € - 2 € = 24 € for 2h)
-  const cardDiscountEur = hasCard ? 2.00 : 0.00;
+  // Member card discount: e.g. 2 € per reservation (from pricelist or default 2 €)
+  const cardDiscountEur = hasCard ? (pricelist?.nonMemberSurchargeEur ?? 2.00) : 0.00;
   const roleDiscount = Math.max(0, discountEurPerHour);
   const totalDiscount = Math.min(totalPrice, cardDiscountEur + roleDiscount);
   const roleDiscountEur = Math.round(totalDiscount * 100) / 100;
