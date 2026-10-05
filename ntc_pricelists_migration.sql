@@ -12,9 +12,13 @@ create table if not exists public.ntc_pricelists (
     is_active boolean not null default false,
     non_member_surcharge_eur numeric(10, 2) not null default 2.00,
     intervals jsonb not null default '[]'::jsonb,
+    discount_tiers jsonb not null default '[]'::jsonb,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
+
+-- Ensure discount_tiers column exists if table already created
+alter table public.ntc_pricelists add column if not exists discount_tiers jsonb not null default '[]'::jsonb;
 
 -- Seed official Winter Season 2026/2027 if table is empty
 insert into public.ntc_pricelists (
@@ -25,6 +29,7 @@ insert into public.ntc_pricelists (
     valid_to,
     is_active,
     non_member_surcharge_eur,
+    discount_tiers,
     intervals
 )
 values (
@@ -35,6 +40,14 @@ values (
     '2027-04-30',
     true,
     2.00,
+    '[
+        {"id": "tier-base", "name": "Základná cena", "isPercentual": true, "percentageOfBase": 100, "discountPercent": 0, "isDefault": true, "price60": 10, "price120": 0},
+        {"id": "tier-10", "name": "10 % zľava", "isPercentual": true, "percentageOfBase": 90, "discountPercent": 10, "price60": 9, "price120": 0},
+        {"id": "tier-20", "name": "20 % zľava", "isPercentual": true, "percentageOfBase": 80, "discountPercent": 20, "price60": 8, "price120": 0},
+        {"id": "tier-50", "name": "50 % zľava", "isPercentual": true, "percentageOfBase": 50, "discountPercent": 50, "price60": 5, "price120": 0},
+        {"id": "tier-regular", "name": "Bežná cena", "isPercentual": true, "percentageOfBase": 100, "discountPercent": 0, "price60": 10, "price120": 0},
+        {"id": "tier-cash", "name": "Hotovosť", "isPercentual": true, "percentageOfBase": 100, "discountPercent": 0, "price60": 10, "price120": 0}
+    ]'::jsonb,
     '[
         {
             "id": "weekday-morning",

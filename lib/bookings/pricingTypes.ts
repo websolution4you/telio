@@ -16,6 +16,75 @@ export type PriceInterval = {
   };
 };
 
+export type DiscountTier = {
+  id: string;
+  name: string;
+  isPercentual: boolean; // Či sa cena počíta percentuálne zo základu
+  percentageOfBase: number; // napr. 100 (základ), 90 (pre 10% zľavu), 80 (20%), 50 (50%), 100 (bežná/hotovosť)
+  discountPercent: number; // 0, 10, 20, 50 (100 - percentageOfBase)
+  price60?: number; // manuálna fixná cena na 60 min, ak nie je percentuálna
+  price120?: number; // manuálna fixná cena na 120 min, ak nie je percentuálna
+  isDefault?: boolean;
+};
+
+export const DEFAULT_DISCOUNT_TIERS: DiscountTier[] = [
+  {
+    id: "tier-base",
+    name: "Základná cena",
+    isPercentual: true,
+    percentageOfBase: 100,
+    discountPercent: 0,
+    price60: 10,
+    price120: 0,
+    isDefault: true,
+  },
+  {
+    id: "tier-10",
+    name: "10 % zľava",
+    isPercentual: true,
+    percentageOfBase: 90,
+    discountPercent: 10,
+    price60: 9,
+    price120: 0,
+  },
+  {
+    id: "tier-20",
+    name: "20 % zľava",
+    isPercentual: true,
+    percentageOfBase: 80,
+    discountPercent: 20,
+    price60: 8,
+    price120: 0,
+  },
+  {
+    id: "tier-50",
+    name: "50 % zľava",
+    isPercentual: true,
+    percentageOfBase: 50,
+    discountPercent: 50,
+    price60: 5,
+    price120: 0,
+  },
+  {
+    id: "tier-regular",
+    name: "Bežná cena",
+    isPercentual: true,
+    percentageOfBase: 100,
+    discountPercent: 0,
+    price60: 10,
+    price120: 0,
+  },
+  {
+    id: "tier-cash",
+    name: "Hotovosť",
+    isPercentual: true,
+    percentageOfBase: 100,
+    discountPercent: 0,
+    price60: 10,
+    price120: 0,
+  },
+];
+
 export type NtcPricelist = {
   id: string;
   name: string;
@@ -24,6 +93,7 @@ export type NtcPricelist = {
   isActive: boolean;
   nonMemberSurchargeEur: number; // default 2.00
   intervals: PriceInterval[];
+  discountTiers?: DiscountTier[];
 };
 
 /**
@@ -37,6 +107,7 @@ export const DEFAULT_NTC_WINTER_PRICELIST: NtcPricelist = {
   validTo: "2027-04-30",
   isActive: true,
   nonMemberSurchargeEur: 2.00,
+  discountTiers: DEFAULT_DISCOUNT_TIERS,
   intervals: [
     {
       id: "weekday-morning",
@@ -93,6 +164,7 @@ export const DEFAULT_NTC_SUMMER_PRICELIST: NtcPricelist = {
   validTo: "2027-09-30",
   isActive: false,
   nonMemberSurchargeEur: 2.00,
+  discountTiers: DEFAULT_DISCOUNT_TIERS,
   intervals: [
     {
       id: "summer-weekday-morning",

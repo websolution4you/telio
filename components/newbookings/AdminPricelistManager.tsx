@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowUpDown,
+  Calculator,
   Calendar,
   Check,
   ChevronDown,
@@ -15,6 +16,7 @@ import {
   Flame,
   Info,
   Loader2,
+  Percent,
   Plus,
   Save,
   Sparkles,
@@ -23,7 +25,9 @@ import {
 import {
   NtcPricelist,
   PriceInterval,
+  DiscountTier,
   DEFAULT_NTC_WINTER_PRICELIST,
+  DEFAULT_DISCOUNT_TIERS,
 } from "@/lib/bookings/pricingTypes";
 import {
   fetchPricelistsAction,
@@ -38,6 +42,9 @@ export default function AdminPricelistManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [previewTierId, setPreviewTierId] = useState<string>("tier-10");
+  const [basePrice60, setBasePrice60] = useState<number>(10);
+  const [basePrice120, setBasePrice120] = useState<number>(0);
 
   useEffect(() => {
     let active = true;
@@ -511,6 +518,7 @@ export default function AdminPricelistManager() {
       isActive: false,
       nonMemberSurchargeEur: 2.00,
       intervals: JSON.parse(JSON.stringify(current.intervals)),
+      discountTiers: JSON.parse(JSON.stringify(current.discountTiers || DEFAULT_DISCOUNT_TIERS)),
     };
     setPricelists((prev) => [newPricelist, ...prev]);
     setSelectedId(newId);
@@ -518,6 +526,62 @@ export default function AdminPricelistManager() {
     setFeedback({
       type: "success",
       message: "Vytvorený nový cenník. Upravte si názov, platnosť a sumy a kliknite Uložiť.",
+    });
+  };
+
+  const handleUpdateTier = (tierId: string, updates: Partial<DiscountTier>) => {
+    setCurrent((prev) => {
+      const tiers = prev.discountTiers || DEFAULT_DISCOUNT_TIERS;
+      return {
+        ...prev,
+        discountTiers: tiers.map((t) => {
+          if (t.id !== tierId) return t;
+          const merged = { ...t, ...updates };
+          if ("percentageOfBase" in updates && updates.percentageOfBase !== undefined) {
+            merged.discountPercent = Math.max(0, 100 - updates.percentageOfBase);
+          }
+          return merged;
+        }),
+      };
+    });
+  };
+
+  const handleAddTier = () => {
+    const newTier: DiscountTier = {
+      id: `tier-${Date.now()}`,
+      name: "Nová zľava",
+      isPercentual: true,
+      percentageOfBase: 85,
+      discountPercent: 15,
+      price60: 0,
+      price120: 0,
+    };
+    setCurrent((prev) => ({
+      ...prev,
+      discountTiers: [...(prev.discountTiers || DEFAULT_DISCOUNT_TIERS), newTier],
+    }));
+    setPreviewTierId(newTier.id);
+  };
+
+  const handleRemoveTier = (tierId: string) => {
+    setCurrent((prev) => {
+      const tiers = prev.discountTiers || DEFAULT_DISCOUNT_TIERS;
+      if (tiers.length <= 1) return prev;
+      return {
+        ...prev,
+        discountTiers: tiers.filter((t) => t.id !== tierId),
+      };
+    });
+  };
+
+  const handleResetToDefaultTiers = () => {
+    setCurrent((prev) => ({
+      ...prev,
+      discountTiers: JSON.parse(JSON.stringify(DEFAULT_DISCOUNT_TIERS)),
+    }));
+    setFeedback({
+      type: "success",
+      message: "Zľavové hladiny boli obnovené na pôvodné hodnoty zo systému NTC.",
     });
   };
 
@@ -1150,6 +1214,463 @@ export default function AdminPricelistManager() {
           </ul>
         </div>
       </div>
+
+      {/* Discount Tiers Section & Automatic Live Price Calculator matching legacy screen */}
+      {(() => {
+        const tiers = current.discountTiers && current.discountTiers.length > 0
+          ? current.discountTiers
+          : DEFAULT_DISCOUNT_TIERS;
+        const selectedTier = tiers.find((t) => t.id === previewTierId) || tiers[1] || tiers[0];
+
+        const round1Dec = (val: number): number => Math.round(val * 10) / 10;
+        const formatEur = (val: number): string => `${round1Dec(val).toFixed(1).replace(".", ",")} €`;
+
+        return (
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <Percent className="h-4 w-4 text-emerald-600" />
+                    Zľavové hladiny a automatický prepočet (Ceny a zľavy)
+                  </h2>
+                  <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                    Zaokrúhľovanie na 1 des. miesto
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Presné zľavové hladiny podľa pôvodného systému NTC (Základná cena, 10 % zľava, 20 % zľava, 50 % zľava, Bežná cena, Hotovosť).
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleResetToDefaultTiers}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                  title="Obnoviť presné hladiny zo snímky obrazovky"
+                >
+                  Obnoviť predvolené
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddTier}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Pridať hladinu
+                </button>
+              </div>
+            </div>
+
+            {/* Reference Base Price Selector */}
+            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Calculator className="h-4 w-4 text-slate-600" />
+                  <span className="text-xs font-bold text-slate-800">
+                    Vzorový základ pre prepočet stĺpcov 60 / 120 min:
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                  <span className="text-slate-500 text-[11px] mr-1">Rýchle predvoľby:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBasePrice60(10);
+                      setBasePrice120(0);
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      basePrice60 === 10 && basePrice120 === 0
+                        ? "bg-emerald-600 text-white shadow-2xs"
+                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    10,00 € (zo screenu)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBasePrice60(29);
+                      setBasePrice120(58);
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      basePrice60 === 29
+                        ? "bg-emerald-600 text-white shadow-2xs"
+                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    Tenis hala (29 €)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBasePrice60(20);
+                      setBasePrice120(40);
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      basePrice60 === 20
+                        ? "bg-emerald-600 text-white shadow-2xs"
+                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    Tenis antuka (20 €)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBasePrice60(14);
+                      setBasePrice120(28);
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      basePrice60 === 14
+                        ? "bg-emerald-600 text-white shadow-2xs"
+                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    Bedminton (14 €)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBasePrice60(11);
+                      setBasePrice120(22);
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      basePrice60 === 11
+                        ? "bg-emerald-600 text-white shadow-2xs"
+                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    Squash (11 €)
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4 text-xs pt-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-slate-600">Základná sadzba 60 min:</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={basePrice60}
+                      onChange={(e) => setBasePrice60(Math.max(0, parseFloat(e.target.value) || 0))}
+                      className="w-18 rounded-lg border border-slate-200 bg-white px-2 py-1 text-center font-bold text-slate-900 outline-none focus:border-emerald-500"
+                    />
+                    <span className="font-bold text-slate-500">€</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-slate-600">Základná sadzba 120 min:</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={basePrice120}
+                      onChange={(e) => setBasePrice120(Math.max(0, parseFloat(e.target.value) || 0))}
+                      className="w-18 rounded-lg border border-slate-200 bg-white px-2 py-1 text-center font-bold text-slate-900 outline-none focus:border-emerald-500"
+                    />
+                    <span className="font-bold text-slate-500">€</span>
+                  </div>
+                </div>
+
+                <span className="text-[11px] text-slate-400 italic">
+                  (Prepočet sa zaokrúhľuje na 1 desatinné miesto podľa požiadavky)
+                </span>
+              </div>
+            </div>
+
+            {/* Table matching legacy "Úprava cenníku - Ceny" */}
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-100 text-slate-700 font-extrabold uppercase tracking-wider text-[11px] border-b border-slate-200">
+                  <tr>
+                    <th className="py-3 px-4 min-w-[200px]">Hladina / Názov</th>
+                    <th className="py-3 px-4 text-center min-w-[110px]">60 (min)</th>
+                    <th className="py-3 px-4 text-center min-w-[110px]">120 (min)</th>
+                    <th className="py-3 px-4 text-left min-w-[180px]">Percentuálne</th>
+                    <th className="py-3 px-4 text-center min-w-[100px]">Náhľad / Akcia</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-semibold">
+                  {tiers.map((tier) => {
+                    const isBase = tier.id === "tier-base" || tier.isDefault;
+                    const isPercentual = tier.isPercentual ?? true;
+                    const pctOfBase = tier.percentageOfBase ?? (100 - (tier.discountPercent || 0));
+
+                    // Calculated values:
+                    const calc60 = isPercentual
+                      ? round1Dec(basePrice60 * (pctOfBase / 100))
+                      : tier.price60 ?? 0;
+
+                    const calc120 = isPercentual
+                      ? round1Dec((basePrice120 > 0 ? basePrice120 : basePrice60 * 2) * (pctOfBase / 100))
+                      : tier.price120 ?? 0;
+
+                    return (
+                      <tr
+                        key={tier.id}
+                        className={`transition ${
+                          previewTierId === tier.id ? "bg-emerald-50/50" : "hover:bg-slate-50/70"
+                        }`}
+                      >
+                        {/* Name */}
+                        <td className="py-3 px-4">
+                          <input
+                            type="text"
+                            value={tier.name}
+                            onChange={(e) => handleUpdateTier(tier.id, { name: e.target.value })}
+                            className="w-full rounded-md border border-transparent bg-transparent px-2 py-1 font-bold text-slate-800 outline-none hover:border-slate-300 focus:border-emerald-500 focus:bg-white text-xs"
+                            placeholder="Názov hladiny"
+                          />
+                        </td>
+
+                        {/* 60 min */}
+                        <td className="py-3 px-4 text-center">
+                          {isPercentual ? (
+                            <div className="inline-flex items-center justify-center rounded-lg bg-emerald-50 border border-emerald-200/80 px-3 py-1 font-extrabold text-emerald-800 text-xs min-w-[75px]">
+                              {formatEur(calc60)}
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center justify-center gap-1">
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.5"
+                                value={tier.price60 ?? 0}
+                                onChange={(e) =>
+                                  handleUpdateTier(tier.id, {
+                                    price60: Math.max(0, parseFloat(e.target.value) || 0),
+                                  })
+                                }
+                                className="w-16 rounded-md border border-slate-200 bg-white px-2 py-1 text-center font-bold text-slate-800 outline-none focus:border-emerald-500 text-xs"
+                              />
+                              <span className="text-slate-400 font-bold">€</span>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 120 min */}
+                        <td className="py-3 px-4 text-center">
+                          {isPercentual ? (
+                            <div className="inline-flex items-center justify-center rounded-lg bg-slate-100 border border-slate-200 px-3 py-1 font-bold text-slate-700 text-xs min-w-[75px]">
+                              {formatEur(calc120)}
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center justify-center gap-1">
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.5"
+                                value={tier.price120 ?? 0}
+                                onChange={(e) =>
+                                  handleUpdateTier(tier.id, {
+                                    price120: Math.max(0, parseFloat(e.target.value) || 0),
+                                  })
+                                }
+                                className="w-16 rounded-md border border-slate-200 bg-white px-2 py-1 text-center font-bold text-slate-800 outline-none focus:border-emerald-500 text-xs"
+                              />
+                              <span className="text-slate-400 font-bold">€</span>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Percentuálne */}
+                        <td className="py-3 px-4">
+                          {isBase ? (
+                            <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold">
+                              <input type="checkbox" checked disabled className="h-4 w-4 rounded text-emerald-600" />
+                              <span className="font-extrabold text-slate-700">100 %</span>
+                              <span className="text-[11px] text-slate-400">(Základný cenník)</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <label className="flex items-center gap-2 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={isPercentual}
+                                  onChange={(e) =>
+                                    handleUpdateTier(tier.id, { isPercentual: e.target.checked })
+                                  }
+                                  className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                />
+                                <span className="text-[11px] text-slate-500">Platí %:</span>
+                              </label>
+
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="200"
+                                  step="5"
+                                  disabled={!isPercentual}
+                                  value={pctOfBase}
+                                  onChange={(e) => {
+                                    const val = Math.max(0, Math.min(200, parseInt(e.target.value) || 0));
+                                    handleUpdateTier(tier.id, {
+                                      percentageOfBase: val,
+                                      discountPercent: Math.max(0, 100 - val),
+                                    });
+                                  }}
+                                  className={`w-14 rounded-lg border px-2 py-1 text-center font-extrabold text-xs outline-none ${
+                                    isPercentual
+                                      ? "border-slate-200 bg-white text-slate-900 focus:border-emerald-500"
+                                      : "border-slate-100 bg-slate-50 text-slate-400"
+                                  }`}
+                                />
+                                <span className="text-slate-400 font-bold text-xs">%</span>
+                              </div>
+
+                              {pctOfBase < 100 && (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                                  –{100 - pctOfBase} % zľava
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Actions / Preview selector */}
+                        <td className="py-3 px-4 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewTierId(tier.id)}
+                              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                                previewTierId === tier.id
+                                  ? "bg-emerald-600 text-white shadow-2xs"
+                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              }`}
+                            >
+                              {previewTierId === tier.id ? "Vybrané" : "Náhľad"}
+                            </button>
+
+                            {!isBase && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveTier(tier.id)}
+                                className="text-slate-300 hover:text-red-500 p-1 transition cursor-pointer rounded"
+                                title="Zmazať hladinu"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Live Sports Breakdown Preview for Selected Tier */}
+            {selectedTier && (
+              <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+                <div className="bg-slate-100/80 px-4 py-2.5 flex items-center justify-between text-xs font-bold text-slate-700 border-b border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <Calculator className="h-4 w-4 text-emerald-600" />
+                    <span>
+                      Živý náhľad sadzieb pre cenník pri hladine:{" "}
+                      <span className="text-emerald-700 font-extrabold">{selectedTier.name}</span>
+                      {selectedTier.isPercentual !== false && selectedTier.percentageOfBase !== undefined ? (
+                        <span className="text-slate-500 font-normal ml-1">
+                          ({selectedTier.percentageOfBase} % zo základu
+                          {selectedTier.percentageOfBase < 100
+                            ? `, zľava –${100 - selectedTier.percentageOfBase} %`
+                            : ""})
+                        </span>
+                      ) : null}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    Zaokrúhlené na 1 des. miesto
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                      <tr>
+                        <th className="py-2.5 px-4 min-w-[200px]">Pásmo</th>
+                        <th className="py-2.5 px-4 text-center min-w-[120px]">Bedminton</th>
+                        <th className="py-2.5 px-4 text-center min-w-[120px]">Tenis (Hala)</th>
+                        <th className="py-2.5 px-4 text-center min-w-[120px]">Tenis (Antuka)</th>
+                        <th className="py-2.5 px-4 text-center min-w-[120px]">Squash</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-semibold">
+                      {current.intervals.map((inv) => {
+                        const pct = selectedTier.percentageOfBase ?? (100 - (selectedTier.discountPercent || 0));
+                        const calcDiscount = (basePrice: number) => {
+                          const val = selectedTier.isPercentual !== false
+                            ? round1Dec(basePrice * (pct / 100))
+                            : round1Dec(basePrice * (1 - (selectedTier.discountPercent || 0) / 100));
+                          return val.toFixed(1).replace(".", ",");
+                        };
+
+                        const hasDiscount = (selectedTier.discountPercent || 0) > 0 || pct < 100;
+
+                        return (
+                          <tr key={inv.id} className="hover:bg-slate-50/50">
+                            <td className="py-2.5 px-4 font-bold text-slate-800">
+                              {inv.name} ({inv.startHour}:00 – {inv.endHour}:00)
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className="font-extrabold text-emerald-700">
+                                {calcDiscount(inv.prices.badminton ?? 14)} €
+                              </span>
+                              {hasDiscount && (
+                                <span className="text-[10px] text-slate-400 line-through ml-1.5 font-normal">
+                                  {inv.prices.badminton} €
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className="font-extrabold text-emerald-700">
+                                {calcDiscount(inv.prices.tennis ?? 29)} €
+                              </span>
+                              {hasDiscount && (
+                                <span className="text-[10px] text-slate-400 line-through ml-1.5 font-normal">
+                                  {inv.prices.tennis} €
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className="font-extrabold text-emerald-700">
+                                {calcDiscount(inv.prices["tennis-clay"] ?? 20)} €
+                              </span>
+                              {hasDiscount && (
+                                <span className="text-[10px] text-slate-400 line-through ml-1.5 font-normal">
+                                  {inv.prices["tennis-clay"]} €
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className="font-extrabold text-emerald-700">
+                                {calcDiscount(inv.prices.squash ?? 11)} €
+                              </span>
+                              {hasDiscount && (
+                                <span className="text-[10px] text-slate-400 line-through ml-1.5 font-normal">
+                                  {inv.prices.squash} €
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

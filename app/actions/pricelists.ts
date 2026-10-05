@@ -3,6 +3,7 @@
 import { getCoreDb, getCoreServiceDb } from "@/lib/server/supabase";
 import { getSession } from "@/lib/auth/bookingAuth";
 import {
+  DEFAULT_DISCOUNT_TIERS,
   DEFAULT_NTC_SUMMER_PRICELIST,
   DEFAULT_NTC_WINTER_PRICELIST,
   NtcPricelist,
@@ -24,7 +25,7 @@ export async function fetchPricelistsAction(): Promise<{
     const db = getCoreDb();
     const { data, error } = await db
       .from("ntc_pricelists")
-      .select("id, name, valid_from, valid_to, is_active, non_member_surcharge_eur, intervals")
+      .select("id, name, valid_from, valid_to, is_active, non_member_surcharge_eur, intervals, discount_tiers")
       .or(`tenant_id.eq.${TENANT_ID},tenant_id.eq.default`)
       .order("valid_from", { ascending: false });
 
@@ -41,6 +42,7 @@ export async function fetchPricelistsAction(): Promise<{
       isActive: Boolean(row.is_active),
       nonMemberSurchargeEur: Number(row.non_member_surcharge_eur) || 2.00,
       intervals: typeof row.intervals === "string" ? JSON.parse(row.intervals) : (row.intervals || []),
+      discountTiers: typeof row.discount_tiers === "string" ? JSON.parse(row.discount_tiers) : (row.discount_tiers || DEFAULT_DISCOUNT_TIERS),
     }));
 
     inMemoryPricelists = mapped;
@@ -96,6 +98,7 @@ export async function savePricelistAction(pricelist: NtcPricelist): Promise<{
           is_active: pricelist.isActive,
           non_member_surcharge_eur: pricelist.nonMemberSurchargeEur,
           intervals: pricelist.intervals,
+          discount_tiers: pricelist.discountTiers || DEFAULT_DISCOUNT_TIERS,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "id" }
