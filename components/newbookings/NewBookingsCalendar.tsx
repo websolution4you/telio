@@ -290,6 +290,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [isRecurring, setIsRecurring] = useState(false);
   const [repeatWeeks, setRepeatWeeks] = useState(4);
   const [frequencyWeeks, setFrequencyWeeks] = useState(1);
+  const [repeatFrequency, setRepeatFrequency] = useState<"daily" | "weekly" | "monthly" | "yearly">("weekly");
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>([1]);
   const [untilDate, setUntilDate] = useState("");
   const [seriesOverviewGroupId, setSeriesOverviewGroupId] = useState<string | null>(null);
@@ -1136,6 +1137,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         phone: phone || undefined,
         start: start.toISOString(),
         end: end.toISOString(),
+        repeatFrequency,
         frequencyWeeks,
         daysOfWeek,
         untilDate: untilDate || undefined,
@@ -1153,6 +1155,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       setItems((current) => [...current, ...newBookings]);
       setSlot(null);
       setIsRecurring(false);
+      setRepeatFrequency("weekly");
       setClientPlayerName("");
 
       const createdGroupId = newBookings[0]?.recurringGroupId;
@@ -1882,6 +1885,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           canMakeRecurring={canUserMakeRecurring}
           isRecurring={isRecurring}
           onIsRecurring={setIsRecurring}
+          repeatFrequency={repeatFrequency}
+          onRepeatFrequency={setRepeatFrequency}
           frequencyWeeks={frequencyWeeks}
           onFrequencyWeeks={setFrequencyWeeks}
           daysOfWeek={daysOfWeek}
@@ -1905,6 +1910,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           onClose={() => {
             setSlot(null);
             setIsRecurring(false);
+            setRepeatFrequency("weekly");
             setClientPlayerName("");
             if (typeof window !== "undefined") {
               sessionStorage.removeItem("ntc_pending_auth_slot");

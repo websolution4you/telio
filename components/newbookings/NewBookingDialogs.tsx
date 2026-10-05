@@ -27,13 +27,45 @@ export function countRecurringOccurrences(
   startDate: Date,
   untilDateStr: string,
   frequencyWeeks: number,
-  selectedDays: number[]
+  selectedDays: number[],
+  repeatFrequency: "daily" | "weekly" | "monthly" | "yearly" = "weekly"
 ): number {
-  if (!untilDateStr || selectedDays.length === 0) return 0;
+  if (!untilDateStr) return 0;
   const endDate = new Date(untilDateStr + "T23:59:59");
   if (isNaN(endDate.getTime()) || endDate < startDate) return 0;
 
   let count = 0;
+
+  if (repeatFrequency === "daily") {
+    let current = new Date(startDate);
+    while (current <= endDate && count < 1500) {
+      count++;
+      current.setDate(current.getDate() + 1);
+    }
+    return count;
+  }
+
+  if (repeatFrequency === "monthly") {
+    let current = new Date(startDate);
+    const origDay = startDate.getDate();
+    while (current <= endDate && count < 1500) {
+      count++;
+      current = new Date(current.getFullYear(), current.getMonth() + 1, origDay, startDate.getHours(), startDate.getMinutes(), 0, 0);
+    }
+    return count;
+  }
+
+  if (repeatFrequency === "yearly") {
+    let current = new Date(startDate);
+    while (current <= endDate && count < 1500) {
+      count++;
+      current = new Date(current.getFullYear() + 1, current.getMonth(), current.getDate(), startDate.getHours(), startDate.getMinutes(), 0, 0);
+    }
+    return count;
+  }
+
+  // "weekly"
+  if (selectedDays.length === 0) return 0;
   let currentWeekBase = new Date(startDate);
   const dayOfWeekIndex = (currentWeekBase.getDay() + 6) % 7;
   currentWeekBase.setDate(currentWeekBase.getDate() - dayOfWeekIndex);
@@ -72,6 +104,8 @@ type CreateDialogProps = {
   canMakeRecurring?: boolean;
   isRecurring?: boolean;
   onIsRecurring?: (value: boolean) => void;
+  repeatFrequency?: "daily" | "weekly" | "monthly" | "yearly";
+  onRepeatFrequency?: (freq: "daily" | "weekly" | "monthly" | "yearly") => void;
   frequencyWeeks?: number;
   onFrequencyWeeks?: (value: number) => void;
   daysOfWeek?: number[];
@@ -140,8 +174,9 @@ export function CreateBookingDialog(props: CreateDialogProps) {
 
   const selectedDays = props.daysOfWeek && props.daysOfWeek.length > 0 ? props.daysOfWeek : [bookingDate.getDay()];
   const frequencyWeeks = props.frequencyWeeks === 2 ? 2 : 1;
+  const repeatFrequency = props.repeatFrequency || "weekly";
   const occurrencesCount = props.isRecurring
-    ? countRecurringOccurrences(bookingDate, props.untilDate || "", frequencyWeeks, selectedDays)
+    ? countRecurringOccurrences(bookingDate, props.untilDate || "", frequencyWeeks, selectedDays, repeatFrequency)
     : 1;
 
   const pricing = calculateNtcBookingPrice(
@@ -409,66 +444,90 @@ export function CreateBookingDialog(props: CreateDialogProps) {
 
               {props.isRecurring && (
                 <div className="pt-2 border-t border-indigo-200/80 space-y-3 animate-in fade-in zoom-in-95 duration-100">
-                  {/* Opakovať frekvencia (podľa pôvodného systému) */}
+                  {/* Opakovať frekvencia (podľa systému NTC) */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <label className="block">
                       <span className="block text-xs font-semibold text-slate-700 mb-1">
                         Opakovať
                       </span>
                       <select
-                        value={frequencyWeeks}
-                        onChange={(e) => props.onFrequencyWeeks?.(Number(e.target.value))}
+                        value={repeatFrequency}
+                        onChange={(e) => props.onRepeatFrequency?.(e.target.value as any)}
                         className="w-full rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-slate-950 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 cursor-pointer shadow-2xs"
                       >
-                        <option value={1}>Každý týždeň</option>
-                        <option value={2}>Každý 2. týždeň</option>
+                        <option value="daily">Každý deň</option>
+                        <option value="weekly">Každý týždeň</option>
+                        <option value="monthly">Každý mesiac</option>
+                        <option value="yearly">Každý rok</option>
                       </select>
                     </label>
 
-                    <div className="flex flex-col justify-end">
-                      <span className="text-[11px] text-slate-500 mb-1">Frekvencia cyklu</span>
-                      <div className="rounded-xl bg-indigo-100/60 px-3 py-2 text-xs font-bold text-indigo-900 border border-indigo-200/60 flex items-center justify-between">
-                        <span>{frequencyWeeks === 1 ? "1. týždeň (každých 7 dní)" : "2. týždeň (každých 14 dní)"}</span>
-                        <Repeat className="h-3.5 w-3.5 text-indigo-600" />
+                    {repeatFrequency === "weekly" ? (
+                      <label className="block">
+                        <span className="block text-xs font-semibold text-slate-700 mb-1">
+                          Frekvencia cyklu
+                        </span>
+                        <select
+                          value={frequencyWeeks}
+                          onChange={(e) => props.onFrequencyWeeks?.(Number(e.target.value))}
+                          className="w-full rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-slate-950 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 cursor-pointer shadow-2xs"
+                        >
+                          <option value={1}>1. týždeň (každých 7 dní)</option>
+                          <option value={2}>2. týždeň (každých 14 dní)</option>
+                        </select>
+                      </label>
+                    ) : (
+                      <div className="flex flex-col justify-end">
+                        <span className="text-[11px] text-slate-500 mb-1">Popis cyklu</span>
+                        <div className="rounded-xl bg-indigo-100/60 px-3 py-2 text-xs font-bold text-indigo-900 border border-indigo-200/60 flex items-center justify-between">
+                          <span className="truncate">
+                            {repeatFrequency === "daily" && "Každý deň v týždni"}
+                            {repeatFrequency === "monthly" && `Mesačne (${bookingDate.getDate()}. v mesiaci)`}
+                            {repeatFrequency === "yearly" && `Ročne (${bookingDate.getDate()}.${bookingDate.getMonth() + 1}.)`}
+                          </span>
+                          <Repeat className="h-3.5 w-3.5 shrink-0 text-indigo-600" />
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Dni v týždni */}
-                  <div>
-                    <span className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Dni v týždni
-                    </span>
-                    <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
-                      {DAYS_OF_WEEK.map((d) => {
-                        const isSelected = selectedDays.includes(d.id);
-                        return (
-                          <button
-                            key={d.id}
-                            type="button"
-                            onClick={() => {
-                              let next: number[];
-                              if (isSelected) {
-                                if (selectedDays.length === 1) return;
-                                next = selectedDays.filter((id) => id !== d.id);
-                              } else {
-                                next = [...selectedDays, d.id];
-                              }
-                              props.onDaysOfWeek?.(next);
-                            }}
-                            className={`flex flex-col items-center justify-center py-2 rounded-xl text-xs font-bold transition cursor-pointer border select-none ${
-                              isSelected
-                                ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs scale-[1.02]"
-                                : "bg-white text-slate-700 border-slate-200 hover:bg-indigo-50 hover:border-indigo-300"
-                            }`}
-                            title={d.full}
-                          >
-                            <span>{d.label}</span>
-                          </button>
-                        );
-                      })}
+                  {/* Dni v týždni (iba ak repeatFrequency === "weekly") */}
+                  {repeatFrequency === "weekly" && (
+                    <div>
+                      <span className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Dni v týždni
+                      </span>
+                      <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+                        {DAYS_OF_WEEK.map((d) => {
+                          const isSelected = selectedDays.includes(d.id);
+                          return (
+                            <button
+                              key={d.id}
+                              type="button"
+                              onClick={() => {
+                                let next: number[];
+                                if (isSelected) {
+                                  if (selectedDays.length === 1) return;
+                                  next = selectedDays.filter((id) => id !== d.id);
+                                } else {
+                                  next = [...selectedDays, d.id];
+                                }
+                                props.onDaysOfWeek?.(next);
+                              }}
+                              className={`flex flex-col items-center justify-center py-2 rounded-xl text-xs font-bold transition cursor-pointer border select-none ${
+                                isSelected
+                                  ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs scale-[1.02]"
+                                  : "bg-white text-slate-700 border-slate-200 hover:bg-indigo-50 hover:border-indigo-300"
+                              }`}
+                              title={d.full}
+                            >
+                              <span>{d.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Až do */}
                   <div>

@@ -676,6 +676,7 @@ export type CreateRecurringBookingPayload = {
     phone?: string;
     start: string;
     end: string;
+    repeatFrequency?: "daily" | "weekly" | "monthly" | "yearly";
     frequencyWeeks?: number; // 1 = každý týždeň, 2 = každý 2. týždeň
     daysOfWeek?: number[];   // [1, 2, 3, 4, 5, 6, 0] (1=Po .. 0=Ne)
     untilDate?: string;      // "YYYY-MM-DD"
@@ -727,10 +728,7 @@ export async function createRecurringBookingAction(payload: CreateRecurringBooki
             return { success: false, error: "Neplatný čas rezervácie." };
         }
 
-        const frequencyWeeks = payload.frequencyWeeks === 2 ? 2 : 1;
-        const selectedDays = (payload.daysOfWeek && payload.daysOfWeek.length > 0)
-            ? payload.daysOfWeek
-            : [firstStart.getDay()];
+        const repeatFrequency = payload.repeatFrequency || "weekly";
 
         let endDate: Date;
         if (payload.untilDate) {
@@ -752,32 +750,73 @@ export async function createRecurringBookingAction(payload: CreateRecurringBooki
         type SlotOccur = { start: Date; end: Date; dateStr: string };
         const candidateSlots: SlotOccur[] = [];
 
-        // Loop week by week starting from Monday of firstStart's week
-        let currentWeekBase = new Date(firstStart);
-        const dayOfWeekIndex = (currentWeekBase.getDay() + 6) % 7; // 0 for Mon, 6 for Sun
-        currentWeekBase.setDate(currentWeekBase.getDate() - dayOfWeekIndex);
-        currentWeekBase.setHours(0, 0, 0, 0);
-
-        while (currentWeekBase <= endDate && candidateSlots.length < 1500) {
-            for (const dow of selectedDays) {
-                const dayOffset = (dow === 0 ? 7 : dow) - 1; // 0 for Mon, 6 for Sun
-                const slotDate = new Date(currentWeekBase);
-                slotDate.setDate(slotDate.getDate() + dayOffset);
-                slotDate.setHours(firstStart.getHours(), firstStart.getMinutes(), 0, 0);
-
-                const slotEnd = new Date(slotDate.getTime() + durationMs);
-
-                if (slotDate.getTime() >= firstStart.getTime() && slotDate.getTime() <= endDate.getTime()) {
-                    const dateStr = new Intl.DateTimeFormat("sk-SK", {
-                        day: "numeric",
-                        month: "numeric",
-                        year: "numeric"
-                    }).format(slotDate);
-                    candidateSlots.push({ start: slotDate, end: slotEnd, dateStr });
-                }
+        if (repeatFrequency === "daily") {
+            let current = new Date(firstStart);
+            while (current <= endDate && candidateSlots.length < 1500) {
+                const slotEnd = new Date(current.getTime() + durationMs);
+                const dateStr = new Intl.DateTimeFormat("sk-SK", {
+                    day: "numeric", month: "numeric", year: "numeric"
+                }).format(current);
+                candidateSlots.push({ start: new Date(current), end: slotEnd, dateStr });
+                current.setDate(current.getDate() + 1);
             }
+        } else if (repeatFrequency === "monthly") {
+            let current = new Date(firstStart);
+            const originalDay = firstStart.getDate();
+            while (current <= endDate && candidateSlots.length < 1500) {
+                const slotEnd = new Date(current.getTime() + durationMs);
+                const dateStr = new Intl.DateTimeFormat("sk-SK", {
+                    day: "numeric", month: "numeric", year: "numeric"
+                }).format(current);
+                candidateSlots.push({ start: new Date(current), end: slotEnd, dateStr });
 
-            currentWeekBase.setDate(currentWeekBase.getDate() + 7 * frequencyWeeks);
+                current = new Date(current.getFullYear(), current.getMonth() + 1, originalDay, firstStart.getHours(), firstStart.getMinutes(), 0, 0);
+            }
+        } else if (repeatFrequency === "yearly") {
+            let current = new Date(firstStart);
+            while (current <= endDate && candidateSlots.length < 1500) {
+                const slotEnd = new Date(current.getTime() + durationMs);
+                const dateStr = new Intl.DateTimeFormat("sk-SK", {
+                    day: "numeric", month: "numeric", year: "numeric"
+                }).format(current);
+                candidateSlots.push({ start: new Date(current), end: slotEnd, dateStr });
+
+                current = new Date(current.getFullYear() + 1, current.getMonth(), current.getDate(), firstStart.getHours(), firstStart.getMinutes(), 0, 0);
+            }
+        } else {
+            // "weekly"
+            const frequencyWeeks = payload.frequencyWeeks === 2 ? 2 : 1;
+            const selectedDays = (payload.daysOfWeek && payload.daysOfWeek.length > 0)
+                ? payload.daysOfWeek
+                : [firstStart.getDay()];
+
+            // Loop week by week starting from Monday of firstStart's week
+            let currentWeekBase = new Date(firstStart);
+            const dayOfWeekIndex = (currentWeekBase.getDay() + 6) % 7; // 0 for Mon, 6 for Sun
+            currentWeekBase.setDate(currentWeekBase.getDate() - dayOfWeekIndex);
+            currentWeekBase.setHours(0, 0, 0, 0);
+
+            while (currentWeekBase <= endDate && candidateSlots.length < 1500) {
+                for (const dow of selectedDays) {
+                    const dayOffset = (dow === 0 ? 7 : dow) - 1; // 0 for Mon, 6 for Sun
+                    const slotDate = new Date(currentWeekBase);
+                    slotDate.setDate(slotDate.getDate() + dayOffset);
+                    slotDate.setHours(firstStart.getHours(), firstStart.getMinutes(), 0, 0);
+
+                    const slotEnd = new Date(slotDate.getTime() + durationMs);
+
+                    if (slotDate.getTime() >= firstStart.getTime() && slotDate.getTime() <= endDate.getTime()) {
+                        const dateStr = new Intl.DateTimeFormat("sk-SK", {
+                            day: "numeric",
+                            month: "numeric",
+                            year: "numeric"
+                        }).format(slotDate);
+                        candidateSlots.push({ start: slotDate, end: slotEnd, dateStr });
+                    }
+                }
+
+                currentWeekBase.setDate(currentWeekBase.getDate() + 7 * frequencyWeeks);
+            }
         }
 
         candidateSlots.sort((a, b) => a.start.getTime() - b.start.getTime());
