@@ -4,10 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpRight, CalendarDays, CalendarSync, ChevronDown, ChevronLeft, ChevronRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Plus, Receipt, Settings, ShieldCheck, Sparkles, UserPlus, Users, X } from "lucide-react";
+import { ArrowUpRight, CalendarDays, CalendarSync, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Plus, Receipt, Repeat, Settings, ShieldCheck, Sparkles, UserPlus, Users, X } from "lucide-react";
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { ThreeDChartIcon, ThreeDSettingsIcon, ThreeDUserAvatarIcon } from "@/components/icons/ThreeDNavIcons";
-import { createBookingAction, deleteBookingAction, fetchBookingsAction, rescheduleBookingAction } from "@/app/actions/bookings";
+import { createBookingAction, createRecurringBookingAction, deleteBookingAction, fetchBookingsAction, rescheduleBookingAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
 import { createWalletCardPayAction, createWalletCheckoutAction, getWalletAction, reconcileWalletCardPayAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
 
@@ -21,7 +21,7 @@ import { getCourtOperatingLimitMinutes, getDurationOptions, type RoleBookingPoli
 import HolographicTennisCourt from "./HolographicTennisCourt";
 import NewBookingsHeader from "./NewBookingsHeader";
 import NewBookingAuth from "./NewBookingAuth";
-import { BookingDetailDialog, CreateBookingDialog, DeleteDialog, RescheduleConfirmDialog } from "./NewBookingDialogs";
+import { BookingDetailDialog, CreateBookingDialog, DeleteDialog, RescheduleConfirmDialog, SeriesOverviewDialog, formatCourtDisplayName } from "./NewBookingDialogs";
 
 type Props = {
   courts: Court[];
@@ -120,8 +120,12 @@ function clayError(courtId: string, sport: SportType, hour: number, duration: nu
   return null;
 }
 
+let lastSoundPlayTime = 0;
 function playTennisHitSound() {
   if (typeof window === "undefined") return;
+  const nowMs = Date.now();
+  if (nowMs - lastSoundPlayTime < 3000) return; // Throttle to max once per 3s
+  lastSoundPlayTime = nowMs;
   try {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioCtx) return;
@@ -283,10 +287,23 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [phone, setPhone] = useState("");
   const [adminBlockType, setAdminBlockType] = useState<string>("Údržba kurtov");
   const [duration, setDuration] = useState(60);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [repeatWeeks, setRepeatWeeks] = useState(4);
+  const [frequencyWeeks, setFrequencyWeeks] = useState(1);
+  const [daysOfWeek, setDaysOfWeek] = useState<number[]>([1]);
+  const [untilDate, setUntilDate] = useState("");
+  const [seriesOverviewGroupId, setSeriesOverviewGroupId] = useState<string | null>(null);
+  const [clientPlayerName, setClientPlayerName] = useState("");
   const [multisportCardsCount, setMultisportCardsCount] = useState<0 | 1 | 2>(0);
   const [walletBalance, setWalletBalance] = useState<number | null>(initialWalletBalance ?? null);
   const [walletHighlight, setWalletHighlight] = useState(false);
   const [topUpLoading, setTopUpLoading] = useState<number | null>(null);
+
+  const canUserMakeRecurring = useMemo(() => {
+    if (!currentUser) return false;
+    if (currentUser.role === "admin" || currentUser.role === "ntc_team") return true;
+    return Boolean(rolePolicy?.canMakeRecurring);
+  }, [currentUser, rolePolicy]);
 
   const reschedDurationMin = useMemo(() => {
     if (!reschedulingBooking) return 60;
@@ -311,9 +328,20 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   }, [reschedulingBooking, reschedDurationMin, currentUser, rolePolicy]);
   const [now, setNow] = useState(() => new Date());
   const [highlightedVoiceBookings, setHighlightedVoiceBookings] = useState<string[]>([]);
+  const handledRecurringSoundGroups = useRef(new Set<string>());
   const today = useMemo(() => { const value = new Date(); value.setHours(0, 0, 0, 0); return value; }, []);
   const bookingHorizonDays = rolePolicy?.bookingHorizonDays ?? 14;
-  const maxDate = useMemo(() => { const value = new Date(today); value.setDate(value.getDate() + bookingHorizonDays); value.setHours(23, 59, 59, 999); return value; }, [today, bookingHorizonDays]);
+  const maxDate = useMemo(() => {
+    if (currentUser?.role === "admin" || currentUser?.role === "ntc_team" || rolePolicy?.canMakeRecurring) {
+      const value = new Date(today);
+      value.setFullYear(value.getFullYear() + 3); // Admin & recurring roles can navigate up to 3 years ahead
+      return value;
+    }
+    const value = new Date(today);
+    value.setDate(value.getDate() + bookingHorizonDays);
+    value.setHours(23, 59, 59, 999);
+    return value;
+  }, [today, bookingHorizonDays, currentUser, rolePolicy]);
   const hours = useMemo(() => Array.from({ length: openingHours.endHour - openingHours.startHour }, (_, index) => openingHours.startHour + index), []);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -541,19 +569,23 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   useEffect(() => {
     let active = true;
     async function load() {
-      setLoading(true);
-      const start = new Date(date); start.setHours(0, 0, 0, 0);
-      const end = new Date(date); end.setHours(23, 59, 59, 999);
+      // Prefetch a window around `date` (-14 to +28 days) so navigating days/weeks is INSTANT!
+      const start = new Date(date);
+      start.setDate(start.getDate() - 14);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(date);
+      end.setDate(end.getDate() + 28);
+      end.setHours(23, 59, 59, 999);
+
       const result = await fetchBookingsAction(start.toISOString(), end.toISOString());
       if (active && result.success && result.bookings) {
         const fetched = result.bookings as Booking[];
         setItems((prev) => {
-          const freshMap = new Map(fetched.map((b) => [b.id, b]));
-          // Keep any newly highlighted bookings if DB query hasn't returned them yet
-          const retainedHighlights = prev.filter(
-            (b) => highlightedVoiceBookings.includes(b.id) && !freshMap.has(b.id)
-          );
-          return [...freshMap.values(), ...retainedHighlights];
+          const freshMap = new Map(prev.map((b) => [b.id, b]));
+          for (const b of fetched) {
+            freshMap.set(b.id, b);
+          }
+          return Array.from(freshMap.values());
         });
       }
       if (active) setLoading(false);
@@ -579,12 +611,20 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         const raw = payload.new as any;
         if (!raw?.id) return;
 
-        playTennisHitSound();
-
         let notesObj: any = {};
         try {
           notesObj = typeof raw.notes === "string" ? JSON.parse(raw.notes) : (raw.notes || {});
         } catch { }
+
+        const recurringId = notesObj.recurringGroupId;
+        if (recurringId) {
+          if (!handledRecurringSoundGroups.current.has(recurringId)) {
+            handledRecurringSoundGroups.current.add(recurringId);
+            playTennisHitSound();
+          }
+        } else {
+          playTennisHitSound();
+        }
 
         const resolvedCourtId = notesObj.courtId || raw.court_id || raw.courtId || "badminton-1";
         const mappedBooking: Booking = {
@@ -659,7 +699,16 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         );
 
         if (newArrivals.length > 0) {
-          playTennisHitSound();
+          const unplayedArrivals = newArrivals.filter((b) => {
+            if (b.recurringGroupId) {
+              if (handledRecurringSoundGroups.current.has(b.recurringGroupId)) return false;
+              handledRecurringSoundGroups.current.add(b.recurringGroupId);
+            }
+            return true;
+          });
+          if (unplayedArrivals.length > 0) {
+            playTennisHitSound();
+          }
           for (const nb of newArrivals) {
             const bookingId = nb.id;
             setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
@@ -672,7 +721,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             timers.set(bookingId, timer);
           }
         }
-        return freshBookings;
+        const freshMap = new Map(prevItems.map((b) => [b.id, b]));
+        for (const fb of freshBookings) {
+          freshMap.set(fb.id, fb);
+        }
+        return Array.from(freshMap.values());
       });
 
       if (currentUser && currentUser.role !== "admin") {
@@ -798,7 +851,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
   const moveDate = (days: number) => {
     const next = new Date(date); next.setDate(next.getDate() + days); next.setHours(0, 0, 0, 0);
-    if (next < today) return;
+    if (next < today && currentUser?.role !== "admin") return;
     if (next > maxDate) return setNotice(`Rezervácie sú pre vašu rolu možné maximálne ${bookingHorizonDays} dní vopred.`);
     setDate(next);
   };
@@ -936,6 +989,14 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       return setAuth("register");
     }
     const start = new Date(date); start.setHours(hour, 0, 0, 0);
+    setIsRecurring(false);
+    setRepeatWeeks(4);
+    setFrequencyWeeks(1);
+    setDaysOfWeek([start.getDay()]);
+    const defaultUntil = new Date(start);
+    defaultUntil.setMonth(defaultUntil.getMonth() + 3);
+    setUntilDate(defaultUntil.toISOString().slice(0, 10));
+    setClientPlayerName("");
     if (currentUser.role !== "admin") {
       if (rolePolicy && !rolePolicy.isActive) return setNotice("Rezervácie sú pre vašu rolu momentálne deaktivované.");
       if (start < now) return setNotice("Rezerváciu v minulosti nie je možné vytvoriť.");
@@ -1062,15 +1123,59 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     const validation = clayError(slot.courtId, sport, slot.hour, duration); if (validation) return setNotice(validation);
     const start = new Date(slot.date); start.setHours(slot.hour, 0, 0, 0); const end = new Date(start.getTime() + duration * 60000);
     if (hasConflict(slot.courtId, start, end)) return setNotice("Vybraný kurt je v tomto čase obsadený.");
+
     setLoading(true);
     const effectiveBlockType = adminBlockType || "Údržba kurtov";
     const customNote = title.trim();
+
+    if (isRecurring && canUserMakeRecurring) {
+      const result = await createRecurringBookingAction({
+        courtId: slot.courtId,
+        title: customNote || (currentUser.role === "admin" ? effectiveBlockType : (sports.find((item) => item.id === sport)?.label || "Rezervácia")),
+        customerName: clientPlayerName.trim() || (currentUser.role === "admin" ? effectiveBlockType : currentUser.name),
+        phone: phone || undefined,
+        start: start.toISOString(),
+        end: end.toISOString(),
+        frequencyWeeks,
+        daysOfWeek,
+        untilDate: untilDate || undefined,
+        repeatWeeks,
+        adminBlockType: currentUser.role === "admin" ? effectiveBlockType : undefined,
+        clientPlayerName: clientPlayerName.trim() || undefined,
+      });
+
+      setLoading(false);
+      if (!result.success || !result.bookings?.length) {
+        return setNotice(result.error || "Opakovanú rezerváciu sa nepodarilo vytvoriť.");
+      }
+
+      const newBookings = result.bookings as Booking[];
+      setItems((current) => [...current, ...newBookings]);
+      setSlot(null);
+      setIsRecurring(false);
+      setClientPlayerName("");
+
+      const createdGroupId = newBookings[0]?.recurringGroupId;
+      if (createdGroupId) {
+        setSeriesOverviewGroupId(createdGroupId);
+      }
+
+      if (result.skippedDates && result.skippedDates.length > 0) {
+        setNotice(
+          `Vytvorených ${result.createdCount} z ${result.totalRequested} rezervácií. Preskočené termíny kvôli obsadenosti: ${result.skippedDates.join(", ")}.`
+        );
+      } else {
+        setNotice(`Úspešne vytvorená opakovaná séria (${result.createdCount} termínov).`);
+      }
+      return;
+    }
+
     const result = await createBookingAction({
       courtId: slot.courtId,
       title: currentUser.role === "admin"
         ? (customNote || effectiveBlockType)
         : (customNote || (sports.find((item) => item.id === sport)?.label || "Rezervácia")),
-      customerName: currentUser.role === "admin" ? effectiveBlockType : currentUser.name,
+      customerName: clientPlayerName.trim() || (currentUser.role === "admin" ? effectiveBlockType : currentUser.name),
       phone: phone || undefined,
       start: start.toISOString(),
       end: end.toISOString(),
@@ -1096,6 +1201,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     }, 3000);
     timers.set(newId, highlightTimer);
     setSlot(null);
+    setIsRecurring(false);
+    setClientPlayerName("");
     setNotice(
       result.wallet && result.wallet.chargedEur > 0
         ? `Rezervácia bola vytvorená. Odpočítané: ${result.wallet.chargedEur.toFixed(2)} €.`
@@ -1104,10 +1211,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           : (currentUser.role === "admin" ? `Kurt bol úspešne zablokovaný (${effectiveBlockType}).` : "Rezervácia bola úspešne vytvorená."))
     );
   };
-  const remove = async () => {
+
+  const remove = async (deleteEntireSeries = false) => {
     if (!deleting) return;
     setLoading(true);
-    const result = await deleteBookingAction(deleting.id);
+    const result = await deleteBookingAction(deleting.id, deleteEntireSeries);
     setLoading(false);
     if (!result.success) {
       setDeleting(null);
@@ -1116,10 +1224,19 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     if (result.wallet && currentUser?.id === deleting.user_id) {
       setWalletBalance(result.wallet.balanceEur);
     }
-    setItems((current) => current.filter((booking) => booking.id !== deleting.id));
+    if (deleteEntireSeries && deleting.recurringGroupId) {
+      const fromMs = new Date(deleting.start).getTime();
+      setItems((current) =>
+        current.filter((b) => !(b.recurringGroupId === deleting.recurringGroupId && new Date(b.start).getTime() >= fromMs))
+      );
+    } else {
+      setItems((current) => current.filter((booking) => booking.id !== deleting.id));
+    }
     setDeleting(null);
     setDetail(null);
-    if (result.wallet && result.wallet.refunded) {
+    if (deleteEntireSeries) {
+      setNotice(`Celá séria (${result.deletedCount || 1} termínov) bola úspešne zrušená.`);
+    } else if (result.wallet && result.wallet.refunded) {
       const isSelf = currentUser?.id === deleting.user_id;
       setNotice(
         isSelf
@@ -1339,13 +1456,24 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               >
                 Dnes
               </button>
-              <div className="flex flex-1 items-center justify-center gap-1 sm:flex-initial sm:gap-2">
+              <div className="flex flex-1 items-center justify-center gap-1 sm:flex-initial sm:gap-1.5">
                 <button
-                  onClick={() => moveDate(-1)}
-                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 p-1 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:p-3 sm:shadow-xs"
-                  aria-label="Predchádzajúci deň"
+                  type="button"
+                  onClick={() => moveDate(-7)}
+                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 p-1 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:p-3 sm:shadow-xs text-slate-700"
+                  aria-label="Predchádzajúci týždeň (-7 dní)"
+                  title="Predchádzajúci týždeň (-7 dní)"
                 >
-                  <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-700" />
+                  <ChevronsLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveDate(-1)}
+                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 p-1 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:p-3 sm:shadow-xs text-slate-700"
+                  aria-label="Predchádzajúci deň"
+                  title="Predchádzajúci deň"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
                 <button
                   type="button"
@@ -1364,11 +1492,22 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                   </span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => moveDate(1)}
-                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 p-1 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:p-3 sm:shadow-xs"
+                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 p-1 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:p-3 sm:shadow-xs text-slate-700"
                   aria-label="Nasledujúci deň"
+                  title="Nasledujúci deň"
                 >
-                  <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-700" />
+                  <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveDate(7)}
+                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 p-1 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:p-3 sm:shadow-xs text-slate-700"
+                  aria-label="Nasledujúci týždeň (+7 dní)"
+                  title="Nasledujúci týždeň (+7 dní)"
+                >
+                  <ChevronsRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
               </div>
               <span className="hidden md:flex items-center gap-1.5 text-xs font-medium text-slate-500 shrink-0">
@@ -1599,6 +1738,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
                                 {isAdmin ? (
                                   <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(8px,0.65vw,11px)] font-bold leading-tight select-none pointer-events-none tracking-tight">
+                                    {booking.recurringGroupId && (
+                                      <Repeat className="h-2.5 w-2.5 mb-0.5 opacity-75 shrink-0" />
+                                    )}
                                     {labelText.split(" ").filter(Boolean).map((part, idx) => (
                                       <span key={idx} className="block leading-[1.15] whitespace-nowrap max-w-full">
                                         {part}
@@ -1608,7 +1750,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                                 ) : (
                                   <div className={`relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center font-sans select-none pointer-events-none ${own ? "text-emerald-950" : (isAnyAdminOrBlock ? "text-white" : "text-slate-800")
                                     }`}>
-                                    <span className="block text-[clamp(8.5px,0.65vw,11px)] font-bold leading-tight tracking-tight whitespace-nowrap">
+                                    <span className="block text-[clamp(8.5px,0.65vw,11px)] font-bold leading-tight tracking-tight whitespace-nowrap inline-flex items-center gap-1 justify-center">
+                                      {booking.recurringGroupId && (
+                                        <Repeat className="h-2.5 w-2.5 opacity-75 shrink-0" />
+                                      )}
                                       {formatCompactInterval(booking.start, booking.end)}
                                     </span>
                                     <div className="mt-0.5 flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(8px,0.6vw,10.5px)] font-bold leading-[1.1] tracking-tight">
@@ -1734,6 +1879,19 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           adminBlockType={adminBlockType}
           onAdminBlockType={setAdminBlockType}
           isAdmin={currentUser?.role === "admin"}
+          canMakeRecurring={canUserMakeRecurring}
+          isRecurring={isRecurring}
+          onIsRecurring={setIsRecurring}
+          frequencyWeeks={frequencyWeeks}
+          onFrequencyWeeks={setFrequencyWeeks}
+          daysOfWeek={daysOfWeek}
+          onDaysOfWeek={setDaysOfWeek}
+          untilDate={untilDate}
+          onUntilDate={setUntilDate}
+          repeatWeeks={repeatWeeks}
+          onRepeatWeeks={setRepeatWeeks}
+          clientPlayerName={clientPlayerName}
+          onClientPlayerName={setClientPlayerName}
           hasCard={Boolean(currentUser?.cardNumber && currentUser.cardNumber.trim().length > 0)}
           hasMultisport={Boolean(currentUser?.hasMultisport)}
           error={notice || undefined}
@@ -1746,6 +1904,8 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           onPhone={setPhone}
           onClose={() => {
             setSlot(null);
+            setIsRecurring(false);
+            setClientPlayerName("");
             if (typeof window !== "undefined") {
               sessionStorage.removeItem("ntc_pending_auth_slot");
             }
@@ -1761,13 +1921,20 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           canCancel={currentUser?.role === "admin" || new Date(detail.start).getTime() - now.getTime() > (rolePolicy?.cancellationDeadlineHours ?? 24) * 60 * 60 * 1000}
           cancellationDeadlineHours={rolePolicy?.cancellationDeadlineHours ?? 24}
           onClose={() => setDetail(null)}
-          onDelete={() => setDeleting(detail)}
-          onStartReschedule={() => {
-            const origCourt = courts.find((court) => court.id === detail.courtId);
+          onDelete={(target) => setDeleting(target || detail)}
+          onOpenSeriesOverview={(groupId) => setSeriesOverviewGroupId(groupId)}
+          onNavigateToDate={(targetDate) => {
+            setDate(targetDate);
+            setDetail(null);
+            setTimeout(() => scrollToCurrentTime(true), 100);
+          }}
+          onStartReschedule={(target) => {
+            const targetBooking = target || detail;
+            const origCourt = courts.find((court) => court.id === targetBooking.courtId);
             if (origCourt && origCourt.sport !== sport) {
               setSport(origCourt.sport);
             }
-            setReschedulingBooking(detail);
+            setReschedulingBooking(targetBooking);
             setDetail(null);
             setNotice("Vyberte nový voľný termín v kalendári s rovnakou cenou a dĺžkou.");
           }}
@@ -1790,7 +1957,45 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           onConfirm={handleConfirmReschedule}
         />
       )}
-      {deleting && <DeleteDialog loading={loading} error={notice || undefined} onCancel={() => { setDeleting(null); setNotice(""); }} onConfirm={remove} />}
+      {deleting && (
+        <DeleteDialog
+          loading={loading}
+          error={notice || undefined}
+          isSeries={Boolean(deleting.recurringGroupId)}
+          onCancel={() => { setDeleting(null); setNotice(""); }}
+          onConfirm={(deleteSeries) => remove(deleteSeries)}
+        />
+      )}
+      {seriesOverviewGroupId && (
+        <SeriesOverviewDialog
+          recurringGroupId={seriesOverviewGroupId}
+          courtName={detail ? formatCourtDisplayName(courts.find((c) => c.id === detail.courtId)) : undefined}
+          courts={courts}
+          onClose={() => setSeriesOverviewGroupId(null)}
+          onSelectDate={(targetDate) => {
+            setDate(targetDate);
+            setDetail(null);
+            setTimeout(() => scrollToCurrentTime(true), 100);
+          }}
+          onCancelSingleBooking={async (bookingId) => {
+            const res = await deleteBookingAction(bookingId, false);
+            if (res.success) {
+              setItems((prev) => prev.filter((b) => b.id !== bookingId));
+              setNotice("Termín bol úspešne uvoľnený pre verejnosť.");
+            } else {
+              setNotice(res.error || "Termín sa nepodarilo uvoľniť.");
+            }
+          }}
+          onCancelEntireSeries={async (groupId) => {
+            const targetBooking = detail || items.find((b) => b.recurringGroupId === groupId);
+            if (targetBooking) {
+              setDeleting(targetBooking);
+              await remove(true);
+            }
+            setSeriesOverviewGroupId(null);
+          }}
+        />
+      )}
       <style jsx global>{`
         @keyframes booking-magnify-and-drop {
           0% {

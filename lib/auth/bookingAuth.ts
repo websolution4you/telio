@@ -7,7 +7,7 @@ const JWT_SECRET = new TextEncoder().encode(
 
 const SESSION_COOKIE_NAME = "booking_session";
 
-export type BookingRole = "admin" | "user" | "trainer";
+export type BookingRole = "admin" | "user" | "trainer" | "ntc_team";
 
 export interface BookingUser {
     id: string;

@@ -41,8 +41,12 @@ function getLocalDateString(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+let lastOldSoundPlayTime = 0;
 function playTennisHitSound() {
   if (typeof window === "undefined") return;
+  const nowMs = Date.now();
+  if (nowMs - lastOldSoundPlayTime < 3000) return;
+  lastOldSoundPlayTime = nowMs;
   try {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioCtx) return;

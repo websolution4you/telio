@@ -6,7 +6,7 @@ import { getCoreServiceDb } from "@/lib/server/supabase";
 import { isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
 
 
-const ALLOWED_ROLES: BookingRole[] = ["admin", "user", "trainer"];
+const ALLOWED_ROLES: BookingRole[] = ["admin", "user", "trainer", "ntc_team"];
 const USERS_PAGE_SIZE = 7;
 const TENANT_ID = "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
 
@@ -17,6 +17,7 @@ export type RoleBookingPolicyInput = {
   discountEurPerHour: number;
   cancellationDeadlineHours: number;
   isActive: boolean;
+  canMakeRecurring?: boolean;
 };
 
 async function requireCurrentAdmin() {
@@ -65,6 +66,28 @@ export async function fetchAdminUsersAction(page = 1, query = "") {
     return { success: false as const, error: "Používateľov sa nepodarilo načítať." };
   }
 
+  const mappedPolicies: RoleBookingPolicyInput[] = (policies || []).map((policy: any) => ({
+    role: policy.role as BookingRole,
+    maxBookingDurationMinutes: Number(policy.max_booking_duration_minutes),
+    bookingHorizonDays: Number(policy.booking_horizon_days),
+    discountEurPerHour: Number(policy.discount_eur_per_hour),
+    cancellationDeadlineHours: Number(policy.cancellation_deadline_hours),
+    isActive: Boolean(policy.is_active),
+    canMakeRecurring: policy.can_make_recurring != null ? Boolean(policy.can_make_recurring) : (policy.role === "admin" || policy.role === "ntc_team"),
+  }));
+
+  if (!mappedPolicies.some(p => p.role === "ntc_team")) {
+    mappedPolicies.push({
+      role: "ntc_team",
+      maxBookingDurationMinutes: 480,
+      bookingHorizonDays: 180,
+      discountEurPerHour: 0,
+      cancellationDeadlineHours: 0,
+      isActive: true,
+      canMakeRecurring: true,
+    });
+  }
+
   return {
     success: true as const,
     currentUserId: context.session.userId,
@@ -76,14 +99,7 @@ export async function fetchAdminUsersAction(page = 1, query = "") {
       ...user,
       role: ALLOWED_ROLES.includes(user.role as BookingRole) ? user.role as BookingRole : "user" as const,
     })),
-    policies: (policies || []).map((policy) => ({
-      role: policy.role as BookingRole,
-      maxBookingDurationMinutes: Number(policy.max_booking_duration_minutes),
-      bookingHorizonDays: Number(policy.booking_horizon_days),
-      discountEurPerHour: Number(policy.discount_eur_per_hour),
-      cancellationDeadlineHours: Number(policy.cancellation_deadline_hours),
-      isActive: Boolean(policy.is_active),
-    })),
+    policies: mappedPolicies,
   };
 }
 
@@ -134,19 +150,38 @@ export async function updateRoleBookingPolicyAction(input: RoleBookingPolicyInpu
     return { success: false as const, error: "Storno lehota musí byť od 0 do 8760 hodín." };
   }
 
-  const { data: policy, error } = await context.db
+  const updatePayload: Record<string, any> = {
+    role: input.role,
+    max_booking_duration_minutes: input.maxBookingDurationMinutes,
+    booking_horizon_days: input.bookingHorizonDays,
+    discount_eur_per_hour: input.discountEurPerHour,
+    cancellation_deadline_hours: input.cancellationDeadlineHours,
+    is_active: input.isActive,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (typeof input.canMakeRecurring === "boolean") {
+    updatePayload.can_make_recurring = input.canMakeRecurring;
+  }
+
+  // Attempt upsert with can_make_recurring
+  let { data: policy, error } = await context.db
     .from("role_booking_policies")
-    .update({
-      max_booking_duration_minutes: input.maxBookingDurationMinutes,
-      booking_horizon_days: input.bookingHorizonDays,
-      discount_eur_per_hour: input.discountEurPerHour,
-      cancellation_deadline_hours: input.cancellationDeadlineHours,
-      is_active: input.isActive,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("role", input.role)
+    .upsert(updatePayload, { onConflict: "role" })
     .select("role")
     .maybeSingle();
+
+  // If column can_make_recurring doesn't exist yet in the database, retry without it
+  if (error && error.message?.includes("can_make_recurring")) {
+    delete updatePayload.can_make_recurring;
+    const retry = await context.db
+      .from("role_booking_policies")
+      .upsert(updatePayload, { onConflict: "role" })
+      .select("role")
+      .maybeSingle();
+    policy = retry.data;
+    error = retry.error;
+  }
 
   if (error || !policy) {
     console.error("updateRoleBookingPolicyAction failed:", error);

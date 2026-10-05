@@ -26,8 +26,9 @@ const roleLabels: Record<BookingRole, string> = {
   admin: "Administrátor",
   user: "Používateľ",
   trainer: "Tréner",
+  ntc_team: "NTC Team",
 };
-const roles: BookingRole[] = ["admin", "user", "trainer"];
+const roles: BookingRole[] = ["admin", "user", "trainer", "ntc_team"];
 const durationLimits = [30, 60, 90, 120, ...Array.from({ length: 22 }, (_, index) => (index + 3) * 60)];
 const formatDate = (value: string) => new Intl.DateTimeFormat("sk-SK").format(new Date(value));
 
@@ -420,7 +421,7 @@ export default function AdminUsersAndRoles() {
               <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
                 Tieto nastavenia definujú pravidlá rezervácií a cien pre jednotlivé roly v systéme.
               </p>
-              <div className="mt-5 grid gap-4 xl:grid-cols-3">
+              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {roles.map((role) => {
                   const policy = policies.find((item) => item.role === role);
                   if (!policy) return null;
@@ -490,6 +491,15 @@ export default function AdminUsersAndRoles() {
                             onChange={(event) => changePolicy(role, "cancellationDeadlineHours", Number(event.target.value))}
                             className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm font-medium text-slate-900 shadow-2xs focus:border-emerald-500 focus:outline-hidden"
                           />
+                        </label>
+                        <label className="flex items-center gap-2 pt-1 text-xs font-bold text-slate-800 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(policy.canMakeRecurring)}
+                            onChange={(event) => changePolicy(role, "canMakeRecurring", event.target.checked)}
+                            className="h-4 w-4 rounded-md border-slate-300 text-slate-950 focus:ring-slate-950 cursor-pointer"
+                          />
+                          <span>Povoliť opakované rezervácie</span>
                         </label>
                       </div>
                       <button

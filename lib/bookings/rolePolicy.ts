@@ -7,6 +7,7 @@ export type RoleBookingPolicy = {
   discountEurPerHour: number;
   cancellationDeadlineHours: number;
   isActive: boolean;
+  canMakeRecurring?: boolean;
 };
 
 export function getDurationOptions(maxMinutes: number): number[] {

@@ -99,6 +99,10 @@ const roleLabels: Record<BookingRole, { label: string; badge: string }> = {
     label: "Používateľ",
     badge: "bg-[#FFF3B0] text-slate-950 border-[#EAD77B] font-bold",
   },
+  ntc_team: {
+    label: "NTC Team",
+    badge: "bg-blue-100 text-blue-950 border-blue-300 font-bold",
+  },
 };
 
 const txLabels: Record<string, string> = {
@@ -1320,6 +1324,7 @@ export default function AdminUsersDirectory() {
                   >
                     <option value="user">Používateľ (Klient)</option>
                     <option value="trainer">Tréner</option>
+                    <option value="ntc_team">NTC Team</option>
                     <option value="admin">Administrátor</option>
                   </select>
                 </div>
@@ -1452,6 +1457,7 @@ export default function AdminUsersDirectory() {
                 >
                   <option value="user">Používateľ (Klient)</option>
                   <option value="trainer">Tréner</option>
+                  <option value="ntc_team">NTC Team</option>
                   <option value="admin">Administrátor</option>
                 </select>
               </div>

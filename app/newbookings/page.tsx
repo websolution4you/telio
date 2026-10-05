@@ -86,15 +86,19 @@ export default async function NewBookingsPage() {
       discountEurPerHour: Number(policy.discount_eur_per_hour),
       cancellationDeadlineHours: Number(policy.cancellation_deadline_hours),
       isActive: Boolean(policy.is_active),
+      canMakeRecurring: (policy as any).can_make_recurring != null
+        ? Boolean((policy as any).can_make_recurring)
+        : (policy.role === "admin" || policy.role === "ntc_team"),
     };
   } else {
     rolePolicy = {
       role: role as any,
-      maxBookingDurationMinutes: 120,
-      bookingHorizonDays: 14,
+      maxBookingDurationMinutes: role === "admin" ? 900 : role === "ntc_team" ? 480 : 120,
+      bookingHorizonDays: role === "admin" ? 365 : role === "ntc_team" ? 180 : 14,
       discountEurPerHour: 0,
-      cancellationDeadlineHours: 24,
+      cancellationDeadlineHours: role === "admin" || role === "ntc_team" ? 0 : 24,
       isActive: true,
+      canMakeRecurring: role === "admin" || role === "ntc_team",
     };
   }
 
