@@ -316,13 +316,13 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const reschedOriginalPrice = useMemo(() => {
     if (!reschedulingBooking) return 0;
     if (reschedulingBooking.priceEur != null) return Number(reschedulingBooking.priceEur);
-    const hasCard = Boolean(currentUser?.cardNumber && currentUser.cardNumber.trim().length > 0);
+    const isRegistered = Boolean(currentUser);
     const roleDiscount = rolePolicy?.discountEurPerHour ?? 0;
     return calculateNtcBookingPrice(
       reschedulingBooking.courtId,
       reschedulingBooking.start,
       reschedDurationMin,
-      hasCard,
+      isRegistered,
       roleDiscount,
       reschedulingBooking.multisportCardsCount || 0
     ).totalPriceEur;
@@ -1046,15 +1046,14 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     const courtLimit = getCourtOperatingLimitMinutes(courtId, start);
     if (courtLimit < reschedDurationMin) return { eligible: false, reason: "closed" as const };
 
-    // Check price matching (if not admin)
     if (currentUser?.role !== "admin") {
-      const hasCard = Boolean(currentUser?.cardNumber && currentUser.cardNumber.trim().length > 0);
+      const isRegistered = Boolean(currentUser);
       const roleDiscount = rolePolicy?.discountEurPerHour ?? 0;
       const calc = calculateNtcBookingPrice(
         courtId,
         start.toISOString(),
         reschedDurationMin,
-        hasCard,
+        isRegistered,
         roleDiscount,
         reschedulingBooking.multisportCardsCount || 0
       );
@@ -1897,7 +1896,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           onRepeatWeeks={setRepeatWeeks}
           clientPlayerName={clientPlayerName}
           onClientPlayerName={setClientPlayerName}
-          hasCard={Boolean(currentUser?.cardNumber && currentUser.cardNumber.trim().length > 0)}
+          hasCard={Boolean(currentUser)}
           hasMultisport={Boolean(currentUser?.hasMultisport)}
           error={notice || undefined}
           loading={loading}

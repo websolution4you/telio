@@ -7,6 +7,7 @@ export type NtcPricingResult = {
   isMemberRate: boolean;
   baseHourlyRate: number;
   roleDiscountEur: number;
+  nonMemberSurchargeEur?: number;
   multisportDiscountEur: number;
   multisportCardsCount: number;
   formattedPrice: string;
@@ -157,13 +158,18 @@ export function calculateNtcBookingPrice(
     totalPrice += hourlyRate / 4;
   }
 
-  // Member card discount: e.g. 2 € per reservation (from pricelist or default 2 €)
-  const cardDiscountEur = hasCard ? (pricelist?.nonMemberSurchargeEur ?? 2.00) : 0.00;
+  // Cenník platí pre všetkých (registrovaných).
+  // Len neregistrovaní hráči majú príplatok +2 € na rezerváciu (nie naopak).
+  const isRegistered = hasCard;
+  const nonMemberSurchargeEur = !isRegistered ? (pricelist?.nonMemberSurchargeEur ?? 2.00) : 0.00;
+  const basePriceWithSurcharge = totalPrice + nonMemberSurchargeEur;
+
+  // Role discount (ak má zľavu podľa roly, napr. tréner)
   const roleDiscount = Math.max(0, discountEurPerHour);
-  const totalDiscount = Math.min(totalPrice, cardDiscountEur + roleDiscount);
+  const totalDiscount = Math.min(basePriceWithSurcharge, roleDiscount);
   const roleDiscountEur = Math.round(totalDiscount * 100) / 100;
 
-  const beforeMultisport = Math.max(0, totalPrice - roleDiscountEur);
+  const beforeMultisport = Math.max(0, basePriceWithSurcharge - roleDiscountEur);
   const roundedBeforeMultisport = Math.round(beforeMultisport * 100) / 100;
 
   let multisportDiscountEur = 0;
@@ -186,9 +192,10 @@ export function calculateNtcBookingPrice(
   return {
     totalPriceEur: roundedTotal,
     originalPriceEur: roundedBeforeMultisport,
-    isMemberRate: hasCard,
+    isMemberRate: isRegistered,
     baseHourlyRate: firstHourlyRate,
     roleDiscountEur,
+    nonMemberSurchargeEur,
     multisportDiscountEur,
     multisportCardsCount: validCards,
     formattedPrice: `${roundedTotal.toFixed(2)} €`,

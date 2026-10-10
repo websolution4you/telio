@@ -340,8 +340,8 @@ export async function createWalletCheckoutAction(amountEur: number, operationId:
   if (!walletEnabledForUser(session.userId)) {
     return { success: false as const, error: "Dobíjanie kreditu nie je pre tento účet povolené." };
   }
-  if (typeof amountEur !== "number" || isNaN(amountEur) || amountEur < 5 || amountEur > 1000) {
-    return { success: false as const, error: "Nepovolená suma dobitia (min. 5 €)." };
+  if (typeof amountEur !== "number" || isNaN(amountEur) || amountEur < 0.50 || amountEur > 1000) {
+    return { success: false as const, error: "Nepovolená suma dobitia (min. 0.50 €)." };
   }
   if (!operationId || operationId.length > 100) {
     return { success: false as const, error: "Neplatný identifikátor operácie." };
@@ -406,8 +406,8 @@ export async function createWalletCardPayAction(amountEur: number, operationId: 
   if (!walletEnabledForUser(session.userId)) {
     return { success: false as const, error: "Dobíjanie kreditu nie je pre tento účet povolené." };
   }
-  if (typeof amountEur !== "number" || isNaN(amountEur) || amountEur < 5 || amountEur > 1000) {
-    return { success: false as const, error: "Nepovolená suma dobitia (min. 5 €)." };
+  if (typeof amountEur !== "number" || isNaN(amountEur) || amountEur < 0.50 || amountEur > 1000) {
+    return { success: false as const, error: "Nepovolená suma dobitia (min. 0.50 €)." };
   }
   if (!operationId || operationId.length > 100) {
     return { success: false as const, error: "Neplatný identifikátor operácie." };

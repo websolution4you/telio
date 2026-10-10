@@ -188,14 +188,17 @@ export function CreateBookingDialog(props: CreateDialogProps) {
     props.multisportCardsCount
   );
 
+  const userBalanceCents = typeof props.walletBalance === "number" ? Math.round(props.walletBalance * 100) : null;
+  const totalPriceCents = Math.round(pricing.totalPriceEur * 100);
+
+  // Používateľ má nedostatočný kredit LEN vtedy, ak má na účte skutočne menej centov ako je cena
   const isInsufficientCredit =
     !props.isAdmin &&
     pricing.totalPriceEur > 0 &&
-    (Boolean(props.error?.toLowerCase().includes("zostatok")) ||
-      (typeof props.walletBalance === "number" && props.walletBalance < pricing.totalPriceEur));
+    userBalanceCents !== null &&
+    userBalanceCents < totalPriceCents;
 
-  const missingEur = Math.max(0, pricing.totalPriceEur - (props.walletBalance ?? 0));
-  const neededTopUp = Math.max(10, Math.ceil(missingEur));
+  const missingEur = Math.max(0, Math.round(totalPriceCents - (userBalanceCents ?? 0)) / 100);
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4">
@@ -229,6 +232,11 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                   <span className="text-base font-black text-slate-950 sm:text-lg">
                     {pricing.formattedPrice}
                   </span>
+                  {Boolean(pricing.nonMemberSurchargeEur && pricing.nonMemberSurchargeEur > 0) && (
+                    <span className="rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-850 shadow-2xs">
+                      +{(pricing.nonMemberSurchargeEur || 2).toFixed(2)} € bez registrácie
+                    </span>
+                  )}
                   {pricing.multisportCardsCount === 1 && (
                     <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shadow-2xs">
                       MultiSport 1x
@@ -260,24 +268,46 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                 </div>
               </div>
 
-              <button
-                type="button"
-                disabled={props.topUpLoading !== null}
-                onClick={() => props.onTopUp!(neededTopUp, "cardpay")}
-                className="flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-sky-700 active:scale-95 disabled:opacity-50 cursor-pointer w-full sm:w-auto shrink-0"
-              >
-                {props.topUpLoading === neededTopUp ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    <span>Presmerovávam...</span>
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="h-3.5 w-3.5" />
-                    <span>Dobiť {neededTopUp} € cez CardPay</span>
-                  </>
-                )}
-              </button>
+              <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
+                <button
+                  type="button"
+                  disabled={props.topUpLoading !== null}
+                  onClick={() => props.onTopUp!(missingEur, "cardpay")}
+                  className="flex items-center justify-center gap-1.5 rounded-xl bg-sky-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-sky-700 active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
+                  title={`Dobiť presne ${missingEur.toFixed(2)} € na pokrytie tejto rezervácie`}
+                >
+                  {props.topUpLoading === missingEur ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Presmerovávam...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-3.5 w-3.5" />
+                      <span>Dobiť {missingEur.toFixed(2)} €</span>
+                    </>
+                  )}
+                </button>
+
+                {[10, 20, 50]
+                  .filter((amount) => Math.abs(amount - missingEur) > 0.01)
+                  .map((amount) => (
+                    <button
+                      key={amount}
+                      type="button"
+                      disabled={props.topUpLoading !== null}
+                      onClick={() => props.onTopUp!(amount, "cardpay")}
+                      className="flex items-center justify-center rounded-xl border border-sky-300 bg-white/95 px-2.5 py-2 text-xs font-bold text-sky-800 shadow-2xs transition hover:bg-sky-50 active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
+                      title={`Dobiť ${amount} € cez CardPay`}
+                    >
+                      {props.topUpLoading === amount ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mx-1" />
+                      ) : (
+                        `+${amount} €`
+                      )}
+                    </button>
+                  ))}
+              </div>
             </div>
           </div>
         ) : props.error ? (

@@ -765,7 +765,7 @@ export default function AdminPricelistManager() {
 
           <label className="block">
             <span className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Príplatok bez členskej karty (€ / hod.)
+              Príplatok pre neregistrovaných (€ / rezervácia)
             </span>
             <div className="relative">
               <input
