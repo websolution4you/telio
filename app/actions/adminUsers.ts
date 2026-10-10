@@ -160,6 +160,12 @@ export async function updateBookingUserDiscountTierAction(userId: string, discou
 
   if (error || !user) {
     console.error("updateBookingUserDiscountTierAction failed:", error);
+    if (error?.message?.includes("discount_tier_id") || (error as any)?.code === "42703") {
+      return {
+        success: false as const,
+        error: "V databáze Supabase chýba stĺpec discount_tier_id. Spustite prosím skript user_discount_tier_migration.sql v Supabase SQL Editore.",
+      };
+    }
     return { success: false as const, error: "Zľavovú hladinu používateľa sa nepodarilo uložiť." };
   }
 
