@@ -23,17 +23,17 @@ export default async function NewBookingsPage() {
     const db = getCoreDb();
     let dbUser: any = null;
     const { data, error } = await (db.from("booking_users") as any)
-      .select("id, name, email, card_number, phone, role, has_multisport")
+      .select("id, name, email, card_number, phone, role, has_multisport, discount_tier_id")
       .eq("id", session.userId)
       .maybeSingle();
 
-    if (error && error.message?.includes("has_multisport")) {
+    if (error && (error.message?.includes("has_multisport") || error.message?.includes("discount_tier_id") || (error as any).code === "PGRST204")) {
       const fallback = await db
         .from("booking_users")
         .select("id, name, email, card_number, phone, role")
         .eq("id", session.userId)
         .maybeSingle();
-      dbUser = fallback.data ? { ...fallback.data, has_multisport: false } : null;
+      dbUser = fallback.data ? { ...fallback.data, has_multisport: false, discount_tier_id: "tier-base" } : null;
     } else {
       dbUser = data;
     }
@@ -46,12 +46,14 @@ export default async function NewBookingsPage() {
       phone: dbUser.phone,
       role: dbUser.role,
       hasMultisport: Boolean(dbUser.has_multisport ?? session.hasMultisport),
+      discountTierId: dbUser.discount_tier_id || session.discountTierId || "tier-base",
     } : {
       id: session.userId,
       name: session.name,
       email: session.email,
       role: session.role,
       hasMultisport: Boolean(session.hasMultisport),
+      discountTierId: session.discountTierId || "tier-base",
     };
 
     if (session) {

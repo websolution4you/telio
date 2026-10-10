@@ -324,7 +324,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       reschedDurationMin,
       isRegistered,
       roleDiscount,
-      reschedulingBooking.multisportCardsCount || 0
+      reschedulingBooking.multisportCardsCount || 0,
+      undefined,
+      currentUser?.discountTierId
     ).totalPriceEur;
   }, [reschedulingBooking, reschedDurationMin, currentUser, rolePolicy]);
   const [now, setNow] = useState(() => new Date());
@@ -1055,7 +1057,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         reschedDurationMin,
         isRegistered,
         roleDiscount,
-        reschedulingBooking.multisportCardsCount || 0
+        reschedulingBooking.multisportCardsCount || 0,
+        undefined,
+        currentUser?.discountTierId
       );
       if (Math.abs(calc.totalPriceEur - reschedOriginalPrice) > 0.05) {
         return { eligible: false, reason: "price_mismatch" as const, targetPrice: calc.totalPriceEur };
@@ -1874,6 +1878,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           duration={duration}
           durationOptions={getAvailableDurationOptions(slot.courtId, new Date(new Date(slot.date).setHours(slot.hour, 0, 0, 0)))}
           discountEurPerHour={rolePolicy?.discountEurPerHour ?? 0}
+          userDiscountTierId={currentUser?.discountTierId}
           multisportCardsCount={multisportCardsCount}
           onMultisportCardsCount={setMultisportCardsCount}
           title={title}

@@ -151,20 +151,20 @@ export async function loginAction(email: string, password: string) {
 
         const db = getCoreDb();
 
-        // Find user by email (safely handle has_multisport column)
+        // Find user by email (safely handle has_multisport and discount_tier_id columns)
         let { data: user, error: dbError } = await db
             .from("booking_users")
-            .select("id, name, email, password_hash, card_number, phone, role, has_multisport")
+            .select("id, name, email, password_hash, card_number, phone, role, has_multisport, discount_tier_id")
             .eq("email", normalizedEmail)
             .maybeSingle();
 
-        if (dbError && dbError.message?.includes("has_multisport")) {
+        if (dbError && (dbError.message?.includes("has_multisport") || dbError.message?.includes("discount_tier_id") || (dbError as any).code === "PGRST204")) {
             const fallback = await db
                 .from("booking_users")
                 .select("id, name, email, password_hash, card_number, phone, role")
                 .eq("email", normalizedEmail)
                 .maybeSingle();
-            user = fallback.data ? { ...fallback.data, has_multisport: false } : null;
+            user = fallback.data ? { ...fallback.data, has_multisport: false, discount_tier_id: "tier-base" } : null;
             dbError = fallback.error;
         }
 
@@ -239,6 +239,7 @@ export async function loginAction(email: string, password: string) {
             phone: user.phone,
             role: user.role,
             hasMultisport: Boolean((user as any).has_multisport),
+            discountTierId: (user as any).discount_tier_id || "tier-base",
         };
 
         const token = await createSession(bookingUser);
@@ -412,17 +413,17 @@ export async function getCurrentUserAction() {
 
         let { data: user, error: dbError } = await db
             .from("booking_users")
-            .select("id, name, email, card_number, phone, role, has_multisport")
+            .select("id, name, email, card_number, phone, role, has_multisport, discount_tier_id")
             .eq("id", session.userId)
             .single();
 
-        if (dbError && dbError.message?.includes("has_multisport")) {
+        if (dbError && (dbError.message?.includes("has_multisport") || dbError.message?.includes("discount_tier_id") || (dbError as any).code === "PGRST204")) {
             const fallback = await db
                 .from("booking_users")
                 .select("id, name, email, card_number, phone, role")
                 .eq("id", session.userId)
                 .single();
-            user = fallback.data ? { ...fallback.data, has_multisport: false } : null;
+            user = fallback.data ? { ...fallback.data, has_multisport: false, discount_tier_id: "tier-base" } : null;
             dbError = fallback.error;
         }
 
@@ -439,6 +440,7 @@ export async function getCurrentUserAction() {
             phone: user.phone,
             role: user.role,
             hasMultisport: Boolean((user as any).has_multisport),
+            discountTierId: (user as any).discount_tier_id || "tier-base",
         };
 
         return { success: true, user: bookingUser };
@@ -497,7 +499,7 @@ export async function updateProfileDetailsAction(name: string, phone?: string) {
         // Fetch fresh user data to recreate session cookie
         let { data: updatedUser } = await db
             .from("booking_users")
-            .select("id, name, email, card_number, phone, role, has_multisport")
+            .select("id, name, email, card_number, phone, role, has_multisport, discount_tier_id")
             .eq("id", session.userId)
             .single();
 
@@ -509,6 +511,7 @@ export async function updateProfileDetailsAction(name: string, phone?: string) {
             phone: cleanPhone || undefined,
             role: session.role,
             hasMultisport: Boolean((updatedUser as any)?.has_multisport),
+            discountTierId: (updatedUser as any)?.discount_tier_id || (session as any).discountTierId || "tier-base",
         };
 
         const token = await createSession(bookingUser);

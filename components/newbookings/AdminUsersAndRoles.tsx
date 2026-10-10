@@ -5,9 +5,12 @@ import { ChevronLeft, ChevronRight, CreditCard, Loader2, Search, X } from "lucid
 import {
   fetchAdminUsersAction,
   updateBookingUserRoleAction,
+  updateBookingUserDiscountTierAction,
   updateRoleBookingPolicyAction,
   type RoleBookingPolicyInput,
 } from "@/app/actions/adminUsers";
+import { fetchPricelistsAction } from "@/app/actions/pricelists";
+import { DEFAULT_DISCOUNT_TIERS, DiscountTier } from "@/lib/bookings/pricingTypes";
 import type { BookingRole } from "@/lib/auth/bookingAuth";
 
 type AdminUser = {
@@ -18,6 +21,7 @@ type AdminUser = {
   card_number: string | null;
   role: BookingRole;
   created_at: string;
+  discountTierId?: string;
 };
 
 type RolePolicy = RoleBookingPolicyInput;
@@ -35,6 +39,7 @@ const formatDate = (value: string) => new Intl.DateTimeFormat("sk-SK").format(ne
 export default function AdminUsersAndRoles() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [policies, setPolicies] = useState<RolePolicy[]>([]);
+  const [discountTiers, setDiscountTiers] = useState<DiscountTier[]>(DEFAULT_DISCOUNT_TIERS);
   const [currentUserId, setCurrentUserId] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -42,10 +47,23 @@ export default function AdminUsersAndRoles() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [pendingRoles, setPendingRoles] = useState<Record<string, BookingRole>>({});
+  const [pendingTiers, setPendingTiers] = useState<Record<string, string>>({});
   const [savingUserId, setSavingUserId] = useState("");
+  const [savingTierUserId, setSavingTierUserId] = useState("");
   const [savingRole, setSavingRole] = useState<BookingRole | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetchPricelistsAction().then((res) => {
+      if (res.success && res.pricelists.length > 0) {
+        const active = res.pricelists.find((p) => p.isActive) || res.pricelists[0];
+        if (active.discountTiers && active.discountTiers.length > 0) {
+          setDiscountTiers(active.discountTiers);
+        }
+      }
+    });
+  }, []);
 
   const executeSearch = useCallback((targetPage = 1, targetQuery = query) => {
     setLoading(true);
@@ -57,6 +75,7 @@ export default function AdminUsersAndRoles() {
         setTotalUsers(result.totalUsers);
         setTotalPages(result.totalPages);
         setPendingRoles({});
+        setPendingTiers({});
       } else {
         setError(result.error || "Chyba načítania používateľov");
       }
@@ -77,6 +96,7 @@ export default function AdminUsersAndRoles() {
           setTotalUsers(result.totalUsers);
           setTotalPages(result.totalPages);
           setPendingRoles({});
+          setPendingTiers({});
         } else {
           setError(result.error || "Chyba načítania používateľov");
         }
@@ -95,6 +115,16 @@ export default function AdminUsersAndRoles() {
       const next = { ...current };
       if (!currentRole || currentRole === role) delete next[userId];
       else next[userId] = role;
+      return next;
+    });
+  };
+
+  const selectTier = (userId: string, tierId: string) => {
+    const currentTier = users.find((user) => user.id === userId)?.discountTierId || "tier-base";
+    setPendingTiers((current) => {
+      const next = { ...current };
+      if (currentTier === tierId) delete next[userId];
+      else next[userId] = tierId;
       return next;
     });
   };
@@ -120,6 +150,28 @@ export default function AdminUsersAndRoles() {
       setMessage(`Rola používateľa ${user.name} bola zmenená na ${roleLabels[newRole]}.`);
     }
     setSavingUserId("");
+  };
+
+  const saveUserTier = async (user: AdminUser) => {
+    const newTier = pendingTiers[user.id];
+    if (!newTier || newTier === user.discountTierId) return;
+
+    setSavingTierUserId(user.id);
+    setError("");
+    setMessage("");
+    const result = await updateBookingUserDiscountTierAction(user.id, newTier);
+    if (!result.success) setError(result.error);
+    else {
+      setUsers((current) => current.map((item) => item.id === user.id ? { ...item, discountTierId: newTier } : item));
+      setPendingTiers((current) => {
+        const next = { ...current };
+        delete next[user.id];
+        return next;
+      });
+      const tierName = discountTiers.find((t) => t.id === newTier)?.name || newTier;
+      setMessage(`Zľavová hladina používateľa ${user.name} bola nastavená na „${tierName}“.`);
+    }
+    setSavingTierUserId("");
   };
 
   const changePolicy = (role: BookingRole, field: keyof Omit<RolePolicy, "role">, value: number | boolean) => {
@@ -230,13 +282,14 @@ export default function AdminUsersAndRoles() {
           <>
             {/* Desktop Table View (od md: vyššie) */}
             <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200/90">
-              <table className="w-full min-w-[760px] text-left text-sm">
+              <table className="w-full min-w-[920px] text-left text-sm">
                 <thead className="border-b border-slate-200/90 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   <tr>
                     <th className="px-5 py-3.5">Používateľ</th>
                     <th className="px-5 py-3.5">Login / Kontakt</th>
                     <th className="px-5 py-3.5">Číslo karty</th>
                     <th className="px-5 py-3.5">Rola</th>
+                    <th className="px-5 py-3.5">Zľava (cenník)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -281,6 +334,33 @@ export default function AdminUsersAndRoles() {
                             >
                               {savingUserId === user.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                               Uložiť zmenu
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={pendingTiers[user.id] || user.discountTierId || "tier-base"}
+                            disabled={savingTierUserId === user.id}
+                            onChange={(event) => selectTier(user.id, event.target.value)}
+                            className="min-w-44 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-slate-300 focus:border-emerald-500 focus:outline-hidden disabled:cursor-not-allowed disabled:bg-slate-100 cursor-pointer"
+                          >
+                            {discountTiers.map((tier) => (
+                              <option key={tier.id} value={tier.id}>
+                                {tier.name} {tier.isPercentual ? (tier.discountPercent > 0 ? `(-${tier.discountPercent} %)` : "(0 %)") : (tier.price60 ? `(${tier.price60} €/h)` : "")}
+                              </option>
+                            ))}
+                          </select>
+                          {pendingTiers[user.id] && (
+                            <button
+                              type="button"
+                              disabled={savingTierUserId === user.id}
+                              onClick={() => void saveUserTier(user)}
+                              className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-50 cursor-pointer active:scale-[0.98]"
+                            >
+                              {savingTierUserId === user.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                              Uložiť
                             </button>
                           )}
                         </div>
@@ -373,6 +453,39 @@ export default function AdminUsersAndRoles() {
                           >
                             {savingUserId === user.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                             Uložiť zmenu
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Nastavenie zľavy na mobile */}
+                    <div className="mt-3.5 border-t border-slate-100 pt-3">
+                      <label className="block text-[10.5px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                        Pridelená zľava (cenník)
+                      </label>
+                      <div className="flex flex-col gap-2">
+                        <select
+                          value={pendingTiers[user.id] || user.discountTierId || "tier-base"}
+                          disabled={savingTierUserId === user.id}
+                          onChange={(event) => selectTier(user.id, event.target.value)}
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs focus:border-emerald-500 focus:bg-white focus:outline-hidden disabled:cursor-not-allowed disabled:bg-slate-100 cursor-pointer"
+                        >
+                          {discountTiers.map((tier) => (
+                            <option key={tier.id} value={tier.id}>
+                              {tier.name} {tier.isPercentual ? (tier.discountPercent > 0 ? `(-${tier.discountPercent} %)` : "(0 %)") : (tier.price60 ? `(${tier.price60} €/h)` : "")}
+                            </option>
+                          ))}
+                        </select>
+
+                        {pendingTiers[user.id] && (
+                          <button
+                            type="button"
+                            disabled={savingTierUserId === user.id}
+                            onClick={() => void saveUserTier(user)}
+                            className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-50 cursor-pointer active:scale-[0.98] w-full"
+                          >
+                            {savingTierUserId === user.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                            Uložiť zľavu
                           </button>
                         )}
                       </div>

@@ -117,6 +117,7 @@ type CreateDialogProps = {
   clientPlayerName?: string;
   onClientPlayerName?: (value: string) => void;
   hasMultisport?: boolean;
+  userDiscountTierId?: string;
   durationOptions: number[];
   discountEurPerHour: number;
   multisportCardsCount: 0 | 1 | 2;
@@ -185,7 +186,9 @@ export function CreateBookingDialog(props: CreateDialogProps) {
     props.duration,
     Boolean(props.hasCard),
     props.discountEurPerHour,
-    props.multisportCardsCount
+    props.multisportCardsCount,
+    undefined,
+    props.userDiscountTierId
   );
 
   const userBalanceCents = typeof props.walletBalance === "number" ? Math.round(props.walletBalance * 100) : null;
@@ -224,7 +227,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                 </span>
               ) : (
                 <>
-                  {pricing.multisportCardsCount > 0 && pricing.originalPriceEur > pricing.totalPriceEur && (
+                  {pricing.originalPriceEur > pricing.totalPriceEur && (
                     <span className="text-xs sm:text-sm text-slate-400 line-through mr-1 font-semibold">
                       {pricing.originalPriceEur.toFixed(2)} €
                     </span>
@@ -232,6 +235,11 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                   <span className="text-base font-black text-slate-950 sm:text-lg">
                     {pricing.formattedPrice}
                   </span>
+                  {Boolean(pricing.userDiscountEur && pricing.userDiscountEur > 0) && (
+                    <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shadow-2xs">
+                      {pricing.userDiscountTierName || "Zľava"}: -{(pricing.userDiscountEur || 0).toFixed(2)} €
+                    </span>
+                  )}
                   {Boolean(pricing.nonMemberSurchargeEur && pricing.nonMemberSurchargeEur > 0) && (
                     <span className="rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-850 shadow-2xs">
                       +{(pricing.nonMemberSurchargeEur || 2).toFixed(2)} € bez registrácie

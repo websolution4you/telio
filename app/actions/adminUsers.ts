@@ -43,23 +43,39 @@ export async function fetchAdminUsersAction(page = 1, query = "") {
   const safeQuery = query.trim().slice(0, 100).replace(/[,%()]/g, " ");
   const from = (safePage - 1) * USERS_PAGE_SIZE;
   const to = from + USERS_PAGE_SIZE - 1;
-  let usersQuery = context.db
-    .from("booking_users")
-    .select("id, name, email, phone, card_number, role, created_at", { count: "exact" })
-    .not("email", "ilike", "deleted_%@deleted.local")
-    .neq("name", "[Zmazaný používateľ]");
-  if (safeQuery) {
-    const term = `%${safeQuery}%`;
-    usersQuery = usersQuery.or(`name.ilike.${term},email.ilike.${term},phone.ilike.${term},card_number.ilike.${term},role.ilike.${term}`);
-  }
+  const buildUsersQuery = (withTier: boolean) => {
+    const selectCols = withTier
+      ? "id, name, email, phone, card_number, role, created_at, discount_tier_id"
+      : "id, name, email, phone, card_number, role, created_at";
+    let q = (context.db.from("booking_users") as any)
+      .select(selectCols, { count: "exact" })
+      .not("email", "ilike", "deleted_%@deleted.local")
+      .neq("name", "[Zmazaný používateľ]");
+    if (safeQuery) {
+      const term = `%${safeQuery}%`;
+      q = q.or(`name.ilike.${term},email.ilike.${term},phone.ilike.${term},card_number.ilike.${term},role.ilike.${term}`);
+    }
+    return q.order("name", { ascending: true }).range(from, to) as Promise<{
+      data: any[] | null;
+      error: any;
+      count: number | null;
+    }>;
+  };
 
-  const [{ data, error, count }, { data: policies, error: policiesError }] = await Promise.all([
-    usersQuery.order("name", { ascending: true }).range(from, to),
+  let [{ data, error, count }, { data: policies, error: policiesError }] = await Promise.all([
+    buildUsersQuery(true),
     context.db
       .from("role_booking_policies")
       .select("role, max_booking_duration_minutes, booking_horizon_days, discount_eur_per_hour, cancellation_deadline_hours, is_active")
       .order("role", { ascending: true }),
   ]);
+
+  if (error && (error.message?.includes("discount_tier_id") || (error as any).code === "PGRST204")) {
+    const retry = await buildUsersQuery(false);
+    data = retry.data;
+    error = retry.error;
+    count = retry.count;
+  }
 
   if (error || policiesError) {
     console.error("fetchAdminUsersAction failed:", error || policiesError);
@@ -95,9 +111,10 @@ export async function fetchAdminUsersAction(page = 1, query = "") {
     pageSize: USERS_PAGE_SIZE,
     totalUsers: count || 0,
     totalPages: Math.max(1, Math.ceil((count || 0) / USERS_PAGE_SIZE)),
-    users: (data || []).map((user) => ({
+    users: ((data as any[]) || []).map((user: any) => ({
       ...user,
       role: ALLOWED_ROLES.includes(user.role as BookingRole) ? user.role as BookingRole : "user" as const,
+      discountTierId: (user.discount_tier_id as string) || "tier-base",
     })),
     policies: mappedPolicies,
   };
@@ -126,6 +143,31 @@ export async function updateBookingUserRoleAction(userId: string, role: BookingR
   revalidatePath("/dashboard/newbookings");
   revalidatePath("/dashboard/users-roles");
   return { success: true as const, userId: user.id, role: user.role as BookingRole };
+}
+
+export async function updateBookingUserDiscountTierAction(userId: string, discountTierId: string) {
+  const context = await requireCurrentAdmin();
+  if (!context) return { success: false as const, error: "Nemáte oprávnenie meniť zľavovú hladinu." };
+  
+  const cleanTierId = (discountTierId || "tier-base").trim();
+
+  const { data: user, error } = await context.db
+    .from("booking_users")
+    .update({ discount_tier_id: cleanTierId })
+    .eq("id", userId)
+    .select("id, discount_tier_id")
+    .maybeSingle();
+
+  if (error || !user) {
+    console.error("updateBookingUserDiscountTierAction failed:", error);
+    return { success: false as const, error: "Zľavovú hladinu používateľa sa nepodarilo uložiť." };
+  }
+
+  revalidatePath("/dashboard/users-roles");
+  revalidatePath("/dashboard/users");
+  revalidatePath("/dashboard/newbookings");
+  revalidatePath("/newbookings");
+  return { success: true as const, userId: user.id, discountTierId: user.discount_tier_id };
 }
 
 export async function updateRoleBookingPolicyAction(input: RoleBookingPolicyInput) {
@@ -204,6 +246,7 @@ export type AdminUserDirectoryItem = {
   walletBalanceEur: number;
   bookingsCount: number;
   hasMultisport: boolean;
+  discountTierId: string;
 };
 
 export async function fetchAdminUsersDirectoryAction(
@@ -229,12 +272,13 @@ export async function fetchAdminUsersDirectoryAction(
     role: string;
     created_at: string;
     has_multisport?: boolean | null;
+    discount_tier_id?: string | null;
   };
 
-  const buildQuery = (withMultisport: boolean) => {
-    const selectCols = withMultisport
-      ? "id, name, email, phone, card_number, role, created_at, has_multisport"
-      : "id, name, email, phone, card_number, role, created_at";
+  const buildQuery = (withTier: boolean, withMultisport: boolean) => {
+    let selectCols = "id, name, email, phone, card_number, role, created_at";
+    if (withMultisport) selectCols += ", has_multisport";
+    if (withTier) selectCols += ", discount_tier_id";
 
     let q = (context.db.from("booking_users") as any)
       .select(selectCols, { count: "exact" })
@@ -257,9 +301,15 @@ export async function fetchAdminUsersDirectoryAction(
     }>;
   };
 
-  let { data: users, error, count } = await buildQuery(true);
+  let { data: users, error, count } = await buildQuery(true, true);
+  if (error && (error.message?.includes("discount_tier_id") || (error as any).code === "PGRST204")) {
+    const retry = await buildQuery(false, true);
+    users = retry.data;
+    error = retry.error;
+    count = retry.count;
+  }
   if (error && error.message?.includes("has_multisport")) {
-    const retry = await buildQuery(false);
+    const retry = await buildQuery(false, false);
     users = retry.data;
     error = retry.error;
     count = retry.count;
@@ -314,6 +364,7 @@ export async function fetchAdminUsersDirectoryAction(
     walletBalanceEur: walletMap.get(u.id) ?? 0,
     bookingsCount: bookingCountMap.get(u.id) ?? 0,
     hasMultisport: Boolean((u as any).has_multisport),
+    discountTierId: ((u as any).discount_tier_id as string) || "tier-base",
   }));
 
   return {
@@ -338,6 +389,7 @@ export type AdminUserDetailData = {
     createdAt: string;
     walletBalanceEur: number;
     hasMultisport: boolean;
+    discountTierId: string;
   };
   bookings: Array<{
     id: string;
@@ -365,9 +417,19 @@ export async function fetchAdminUserDetailAction(userId: string) {
 
   let { data: user, error: userError } = await context.db
     .from("booking_users")
-    .select("id, name, email, phone, card_number, role, created_at, has_multisport")
+    .select("id, name, email, phone, card_number, role, created_at, has_multisport, discount_tier_id")
     .eq("id", userId)
     .maybeSingle();
+
+  if (userError && (userError.message?.includes("discount_tier_id") || (userError as any).code === "PGRST204")) {
+    const fallback = await context.db
+      .from("booking_users")
+      .select("id, name, email, phone, card_number, role, created_at, has_multisport")
+      .eq("id", userId)
+      .maybeSingle();
+    user = fallback.data ? { ...fallback.data, discount_tier_id: "tier-base" } : null;
+    userError = fallback.error;
+  }
 
   if (userError && userError.message?.includes("has_multisport")) {
     const fallback = await context.db
@@ -375,7 +437,7 @@ export async function fetchAdminUserDetailAction(userId: string) {
       .select("id, name, email, phone, card_number, role, created_at")
       .eq("id", userId)
       .maybeSingle();
-    user = fallback.data ? { ...fallback.data, has_multisport: false } : null;
+    user = fallback.data ? { ...fallback.data, has_multisport: false, discount_tier_id: "tier-base" } : null;
     userError = fallback.error;
   }
 
@@ -418,6 +480,7 @@ export async function fetchAdminUserDetailAction(userId: string) {
       createdAt: user.created_at,
       walletBalanceEur: wallet ? Number(wallet.balance_eur || 0) : 0,
       hasMultisport: Boolean((user as any).has_multisport),
+      discountTierId: ((user as any).discount_tier_id as string) || "tier-base",
     },
     bookings: (bookings || []).map((b) => ({
       id: b.id,
@@ -451,6 +514,7 @@ export type CreateAdminUserInput = {
   password?: string;
   initialCreditEur?: number;
   hasMultisport?: boolean;
+  discountTierId?: string;
 };
 
 export async function createBookingUserByAdminAction(input: CreateAdminUserInput) {
@@ -499,7 +563,7 @@ export async function createBookingUserByAdminAction(input: CreateAdminUserInput
   let user: any = null;
   let insertError: any = null;
 
-  const insertPayloadWithMultisport = {
+  const insertPayload = {
     name: input.name.trim(),
     email: cleanEmail,
     phone: cleanPhone,
@@ -507,16 +571,37 @@ export async function createBookingUserByAdminAction(input: CreateAdminUserInput
     role,
     password_hash: passwordHash,
     has_multisport: Boolean(input.hasMultisport),
+    discount_tier_id: (input.discountTierId || "tier-base").trim(),
   };
 
   const firstAttempt = await context.db
     .from("booking_users")
-    .insert(insertPayloadWithMultisport)
+    .insert(insertPayload)
     .select("id, name, email, phone, card_number, role, created_at")
     .single();
 
-  if (firstAttempt.error && firstAttempt.error.message?.includes("has_multisport")) {
-    const { has_multisport, ...insertPayloadWithoutMultisport } = insertPayloadWithMultisport;
+  if (firstAttempt.error && (firstAttempt.error.message?.includes("discount_tier_id") || (firstAttempt.error as any).code === "PGRST204")) {
+    const { discount_tier_id, ...insertPayloadWithoutTier } = insertPayload;
+    const retryAttempt = await context.db
+      .from("booking_users")
+      .insert(insertPayloadWithoutTier)
+      .select("id, name, email, phone, card_number, role, created_at")
+      .single();
+    if (retryAttempt.error && retryAttempt.error.message?.includes("has_multisport")) {
+      const { has_multisport, ...insertPayloadMinimal } = insertPayloadWithoutTier;
+      const minimalAttempt = await context.db
+        .from("booking_users")
+        .insert(insertPayloadMinimal)
+        .select("id, name, email, phone, card_number, role, created_at")
+        .single();
+      user = minimalAttempt.data;
+      insertError = minimalAttempt.error;
+    } else {
+      user = retryAttempt.data;
+      insertError = retryAttempt.error;
+    }
+  } else if (firstAttempt.error && firstAttempt.error.message?.includes("has_multisport")) {
+    const { has_multisport, ...insertPayloadWithoutMultisport } = insertPayload;
     const retryAttempt = await context.db
       .from("booking_users")
       .insert(insertPayloadWithoutMultisport)
@@ -602,6 +687,7 @@ export type UpdateAdminUserProfileInput = {
   role?: BookingRole;
   cardNumber?: string | null;
   hasMultisport?: boolean;
+  discountTierId?: string;
 };
 
 export async function updateBookingUserProfileByAdminAction(userId: string, data: UpdateAdminUserProfileInput) {
@@ -634,7 +720,7 @@ export async function updateBookingUserProfileByAdminAction(userId: string, data
     role = "admin";
   }
 
-  const updateDataWithMultisport: any = {
+  const updateData: any = {
     name: data.name.trim(),
     email: cleanEmail,
     phone: cleanPhone,
@@ -642,19 +728,39 @@ export async function updateBookingUserProfileByAdminAction(userId: string, data
     updated_at: new Date().toISOString(),
     has_multisport: Boolean(data.hasMultisport),
   };
+  if (data.discountTierId) {
+    updateData.discount_tier_id = data.discountTierId.trim();
+  }
   if (role && ALLOWED_ROLES.includes(role)) {
-    updateDataWithMultisport.role = role;
+    updateData.role = role;
   }
 
   let updateResult = await context.db
     .from("booking_users")
-    .update(updateDataWithMultisport)
+    .update(updateData)
     .eq("id", userId)
     .select("id, name, email, phone, card_number, role")
     .maybeSingle();
 
-  if (updateResult.error && updateResult.error.message?.includes("has_multisport")) {
-    const { has_multisport, ...updateWithoutMultisport } = updateDataWithMultisport;
+  if (updateResult.error && (updateResult.error.message?.includes("discount_tier_id") || (updateResult.error as any).code === "PGRST204")) {
+    const { discount_tier_id, ...updateWithoutTier } = updateData;
+    updateResult = await context.db
+      .from("booking_users")
+      .update(updateWithoutTier)
+      .eq("id", userId)
+      .select("id, name, email, phone, card_number, role")
+      .maybeSingle();
+    if (updateResult.error && updateResult.error.message?.includes("has_multisport")) {
+      const { has_multisport, ...updateMinimal } = updateWithoutTier;
+      updateResult = await context.db
+        .from("booking_users")
+        .update(updateMinimal)
+        .eq("id", userId)
+        .select("id, name, email, phone, card_number, role")
+        .maybeSingle();
+    }
+  } else if (updateResult.error && updateResult.error.message?.includes("has_multisport")) {
+    const { has_multisport, ...updateWithoutMultisport } = updateData;
     updateResult = await context.db
       .from("booking_users")
       .update(updateWithoutMultisport)

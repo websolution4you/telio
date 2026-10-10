@@ -1,5 +1,5 @@
 import { SportType } from "./mockBookings";
-import { DEFAULT_NTC_WINTER_PRICELIST, NtcPricelist } from "./pricingTypes";
+import { DEFAULT_DISCOUNT_TIERS, DEFAULT_NTC_WINTER_PRICELIST, DiscountTier, NtcPricelist } from "./pricingTypes";
 
 export type NtcPricingResult = {
   totalPriceEur: number;
@@ -7,6 +7,10 @@ export type NtcPricingResult = {
   isMemberRate: boolean;
   baseHourlyRate: number;
   roleDiscountEur: number;
+  userDiscountEur?: number;
+  userDiscountTierId?: string;
+  userDiscountTierName?: string;
+  userDiscountPercent?: number;
   nonMemberSurchargeEur?: number;
   multisportDiscountEur: number;
   multisportCardsCount: number;
@@ -113,7 +117,8 @@ export function calculateNtcBookingPrice(
   hasCard: boolean = false,
   discountEurPerHour: number = 0,
   multisportCardsCount: number = 0,
-  pricelist?: NtcPricelist
+  pricelist?: NtcPricelist,
+  userDiscountTierId?: string | null
 ): NtcPricingResult {
   const normalizedSport = normalizeSport(sportOrCourtId);
   const start = typeof startDate === "string" ? new Date(startDate) : new Date(startDate);
@@ -164,12 +169,41 @@ export function calculateNtcBookingPrice(
   const nonMemberSurchargeEur = !isRegistered ? (pricelist?.nonMemberSurchargeEur ?? 2.00) : 0.00;
   const basePriceWithSurcharge = totalPrice + nonMemberSurchargeEur;
 
+  // Pridelená zľava na používateľa (zľavová hladina z cenníka)
+  const discountTiers = (pricelist?.discountTiers && pricelist.discountTiers.length > 0)
+    ? pricelist.discountTiers
+    : DEFAULT_DISCOUNT_TIERS;
+  const activeTier = userDiscountTierId
+    ? discountTiers.find((t) => t.id === userDiscountTierId)
+    : discountTiers.find((t) => t.isDefault) || discountTiers[0];
+
+  let userDiscountEur = 0;
+  let userDiscountPercent = 0;
+  let userDiscountTierName: string | undefined = undefined;
+
+  if (activeTier) {
+    userDiscountTierName = activeTier.name;
+    if (activeTier.isPercentual) {
+      userDiscountPercent = typeof activeTier.discountPercent === "number"
+        ? activeTier.discountPercent
+        : Math.max(0, 100 - (activeTier.percentageOfBase ?? 100));
+      if (userDiscountPercent > 0) {
+        userDiscountEur = Math.round((basePriceWithSurcharge * (userDiscountPercent / 100)) * 100) / 100;
+      }
+    } else if (typeof activeTier.price60 === "number" && activeTier.price60 > 0) {
+      const fixedPriceForDuration = (activeTier.price60 * duration) / 60;
+      userDiscountEur = Math.max(0, Math.round((basePriceWithSurcharge - fixedPriceForDuration) * 100) / 100);
+    }
+  }
+
+  const afterUserDiscount = Math.max(0, basePriceWithSurcharge - userDiscountEur);
+
   // Role discount (ak má zľavu podľa roly, napr. tréner)
   const roleDiscount = Math.max(0, discountEurPerHour);
-  const totalDiscount = Math.min(basePriceWithSurcharge, roleDiscount);
+  const totalDiscount = Math.min(afterUserDiscount, roleDiscount);
   const roleDiscountEur = Math.round(totalDiscount * 100) / 100;
 
-  const beforeMultisport = Math.max(0, basePriceWithSurcharge - roleDiscountEur);
+  const beforeMultisport = Math.max(0, afterUserDiscount - roleDiscountEur);
   const roundedBeforeMultisport = Math.round(beforeMultisport * 100) / 100;
 
   let multisportDiscountEur = 0;
@@ -188,13 +222,18 @@ export function calculateNtcBookingPrice(
   }
 
   const roundedTotal = Math.round(finalTotal * 100) / 100;
+  const roundedOriginal = Math.round(basePriceWithSurcharge * 100) / 100;
 
   return {
     totalPriceEur: roundedTotal,
-    originalPriceEur: roundedBeforeMultisport,
+    originalPriceEur: roundedOriginal,
     isMemberRate: isRegistered,
     baseHourlyRate: firstHourlyRate,
     roleDiscountEur,
+    userDiscountEur,
+    userDiscountTierId: activeTier?.id,
+    userDiscountTierName,
+    userDiscountPercent,
     nonMemberSurchargeEur,
     multisportDiscountEur,
     multisportCardsCount: validCards,

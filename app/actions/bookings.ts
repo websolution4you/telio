@@ -222,11 +222,20 @@ export async function createBookingAction(payload: {
 
         const db = getCoreDb();
         const serviceDb = getCoreServiceDb();
-        const { data: bookingUser, error: userError } = await serviceDb
+        let { data: bookingUser, error: userError } = await serviceDb
             .from("booking_users")
-            .select("role, card_number")
+            .select("role, card_number, discount_tier_id")
             .eq("id", session.userId)
             .maybeSingle();
+        if (userError && (userError.message?.includes("discount_tier_id") || (userError as any).code === "PGRST204")) {
+            const fallback = await serviceDb
+                .from("booking_users")
+                .select("role, card_number")
+                .eq("id", session.userId)
+                .maybeSingle();
+            bookingUser = fallback.data ? { ...fallback.data, discount_tier_id: "tier-base" } : null;
+            userError = fallback.error;
+        }
         if (userError || !bookingUser) return { success: false, error: "Používateľský účet sa nepodarilo overiť." };
         if (payload.source === "admin" && bookingUser.role !== "admin") {
             return { success: false, error: "Nemáte oprávnenie blokovať kurt." };
@@ -319,7 +328,9 @@ export async function createBookingAction(payload: {
             durationMin,
             isRegistered,
             roleDiscountEurPerHour,
-            multisportCount
+            multisportCount,
+            undefined,
+            (bookingUser as any)?.discount_tier_id
         );
         const calculatedPrice = session.role === "admin" ? 0.00 : pricingResult.totalPriceEur;
 
@@ -1080,11 +1091,20 @@ export async function rescheduleBookingAction(payload: {
 
         if (!isAdmin) {
             const policyDb = getCoreServiceDb();
-            const { data: policyData } = await policyDb
+            let { data: policyData, error: policyDataError } = await policyDb
                 .from("booking_users")
-                .select("role, card_number, role_booking_policies(booking_horizon_days, discount_eur_per_hour)")
+                .select("role, card_number, discount_tier_id, role_booking_policies(booking_horizon_days, discount_eur_per_hour)")
                 .eq("id", session.userId)
                 .maybeSingle();
+
+            if (policyDataError && (policyDataError.message?.includes("discount_tier_id") || (policyDataError as any).code === "PGRST204")) {
+                const fallback = await policyDb
+                    .from("booking_users")
+                    .select("role, card_number, role_booking_policies(booking_horizon_days, discount_eur_per_hour)")
+                    .eq("id", session.userId)
+                    .maybeSingle();
+                policyData = fallback.data ? { ...fallback.data, discount_tier_id: "tier-base" } as any : null;
+            }
 
             const joinedPolicy = Array.isArray(policyData?.role_booking_policies)
                 ? policyData.role_booking_policies[0]
@@ -1102,6 +1122,7 @@ export async function rescheduleBookingAction(payload: {
             const isRegistered = Boolean(policyData);
             const roleDiscount = Number(joinedPolicy?.discount_eur_per_hour ?? 0);
             const multisportCount = Number(notesObj.multisportCardsCount || 0);
+            const userDiscountTierId = (policyData as any)?.discount_tier_id;
 
             const originalPrice = booking.price_eur != null
                 ? Number(booking.price_eur)
@@ -1111,7 +1132,9 @@ export async function rescheduleBookingAction(payload: {
                     oldDurationMin,
                     isRegistered,
                     roleDiscount,
-                    multisportCount
+                    multisportCount,
+                    undefined,
+                    userDiscountTierId
                 ).totalPriceEur;
 
             const newPriceResult = calculateNtcBookingPrice(
@@ -1120,7 +1143,9 @@ export async function rescheduleBookingAction(payload: {
                 newDurationMin,
                 isRegistered,
                 roleDiscount,
-                multisportCount
+                multisportCount,
+                undefined,
+                userDiscountTierId
             );
 
             if (Math.abs(newPriceResult.totalPriceEur - originalPrice) > 0.05) {
