@@ -160,6 +160,9 @@ export function formatCourtDisplayName(court?: Court): string {
 
 export function CreateBookingDialog(props: CreateDialogProps) {
   const [adminBlockTypeOpen, setAdminBlockTypeOpen] = useState(false);
+  const [showCustomTopUp, setShowCustomTopUp] = useState(false);
+  const [customTopUpInput, setCustomTopUpInput] = useState("");
+  const [customTopUpError, setCustomTopUpError] = useState<string | null>(null);
   const currentBlockType = props.adminBlockType || "Údržba kurtov";
   const selectedOption = ADMIN_BLOCK_OPTIONS.find((opt) => opt.value === currentBlockType) || ADMIN_BLOCK_OPTIONS[0];
 
@@ -315,8 +318,76 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                       )}
                     </button>
                   ))}
+
+                <button
+                  type="button"
+                  onClick={() => setShowCustomTopUp((v) => !v)}
+                  className="flex items-center justify-center rounded-xl border border-sky-300 bg-white/95 px-2.5 py-2 text-xs font-semibold text-sky-800 shadow-2xs transition hover:bg-sky-50 active:scale-95 cursor-pointer shrink-0"
+                  title="Zadať vlastnú sumu na dobitie"
+                >
+                  Iná suma...
+                </button>
               </div>
             </div>
+
+            {showCustomTopUp && (
+              <div className="mt-2.5 pt-2.5 border-t border-amber-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <span className="text-[11px] font-semibold text-slate-700">
+                  Vlastná suma na dobitie (min. 0,50 €):
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <div className="relative w-28">
+                    <input
+                      type="number"
+                      min="0.5"
+                      max="1000"
+                      step="0.5"
+                      placeholder="Suma"
+                      value={customTopUpInput}
+                      onChange={(e) => {
+                        setCustomTopUpInput(e.target.value);
+                        setCustomTopUpError(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const parsed = parseFloat(customTopUpInput.trim().replace(",", "."));
+                          if (isNaN(parsed) || parsed < 0.5) {
+                            setCustomTopUpError("Min. 0,50 €");
+                            return;
+                          }
+                          props.onTopUp!(Math.round(parsed * 100) / 100, "cardpay");
+                        }
+                      }}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 pr-6 text-xs font-bold text-slate-900 outline-none focus:border-sky-500"
+                    />
+                    <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-400">
+                      €
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={props.topUpLoading !== null || !customTopUpInput.trim()}
+                    onClick={() => {
+                      const parsed = parseFloat(customTopUpInput.trim().replace(",", "."));
+                      if (isNaN(parsed) || parsed < 0.5) {
+                        setCustomTopUpError("Min. 0,50 €");
+                        return;
+                      }
+                      props.onTopUp!(Math.round(parsed * 100) / 100, "cardpay");
+                    }}
+                    className="rounded-xl bg-sky-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-sky-700 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    Dobiť
+                  </button>
+                </div>
+              </div>
+            )}
+            {customTopUpError && (
+              <p className="mt-1 text-[11px] font-semibold text-red-600">
+                {customTopUpError}
+              </p>
+            )}
           </div>
         ) : props.error ? (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700 sm:text-sm">

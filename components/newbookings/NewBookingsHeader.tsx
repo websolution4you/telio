@@ -13,6 +13,7 @@ import {
   Coins,
   CreditCard,
   LayoutDashboard,
+  Loader2,
   LogIn,
   LogOut,
   ReceiptText,
@@ -76,6 +77,7 @@ export default function NewBookingsHeader({
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
   const [mobileWalletMenuOpen, setMobileWalletMenuOpen] = useState(false);
   const [internalLoadingAmount, setInternalLoadingAmount] = useState<number | null>(null);
+  const [customAmount, setCustomAmount] = useState<string>("");
   const [topUpError, setTopUpError] = useState<string | null>(null);
 
   const adminMenuRef = useRef<HTMLDivElement>(null);
@@ -150,9 +152,31 @@ export default function NewBookingsHeader({
     }
   };
 
+  const handleCustomTopUp = async () => {
+    setTopUpError(null);
+    const cleaned = customAmount.trim().replace(",", ".");
+    const parsed = parseFloat(cleaned);
+    if (isNaN(parsed) || !cleaned) {
+      setTopUpError("Zadajte platnú sumu.");
+      return;
+    }
+    if (parsed < 0.5) {
+      setTopUpError("Minimálna suma na dobitie je 0,50 €.");
+      return;
+    }
+    if (parsed > 1000) {
+      setTopUpError("Maximálna suma na jedno dobitie je 1 000 €.");
+      return;
+    }
+    const normalized = Math.round(parsed * 100) / 100;
+    await handleTopUp(normalized);
+  };
+
   const renderTopUpPopover = () => {
     const isAnyLoading = topUpLoading !== null || internalLoadingAmount !== null;
     const isLoading = (amount: number) => topUpLoading === amount || internalLoadingAmount === amount;
+    const activeAmount = internalLoadingAmount ?? topUpLoading;
+    const isCustomLoading = isAnyLoading && activeAmount !== null && ![10, 20, 50].includes(activeAmount);
 
     return (
       <div className="text-slate-900 font-sans">
@@ -177,10 +201,67 @@ export default function NewBookingsHeader({
               onClick={() => handleTopUp(amount)}
               className="cursor-pointer rounded-xl border border-sky-200 bg-white py-2.5 text-center text-xs font-extrabold text-sky-700 shadow-xs transition hover:border-sky-400 hover:bg-sky-50 active:scale-95 disabled:cursor-wait disabled:opacity-50"
             >
-              {isLoading(amount) ? "Otváram..." : `${amount} €`}
+              {isLoading(amount) ? (
+                <span className="inline-flex items-center justify-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>Otváram...</span>
+                </span>
+              ) : (
+                `${amount} €`
+              )}
             </button>
           ))}
         </div>
+
+        <div className="mt-3 pt-3 border-t border-slate-100">
+          <div className="text-[11px] font-semibold text-slate-600 mb-1.5 flex items-center justify-between">
+            <span>Alebo vlastná suma</span>
+            <span className="text-[10px] text-slate-400 font-normal">min. 0,50 €</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                type="number"
+                min="0.5"
+                max="1000"
+                step="0.5"
+                placeholder="Zadajte sumu"
+                value={customAmount}
+                onChange={(e) => {
+                  setCustomAmount(e.target.value);
+                  setTopUpError(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleCustomTopUp();
+                  }
+                }}
+                disabled={isAnyLoading}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 py-2 pl-3 pr-7 text-xs font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-normal outline-none transition focus:border-sky-500 focus:bg-white focus:ring-2 focus:ring-sky-100 disabled:opacity-50"
+              />
+              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-400">
+                €
+              </span>
+            </div>
+            <button
+              type="button"
+              disabled={isAnyLoading || !customAmount.trim()}
+              onClick={handleCustomTopUp}
+              className="cursor-pointer inline-flex items-center justify-center gap-1.5 rounded-xl bg-sky-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-sky-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 shrink-0"
+            >
+              {isCustomLoading ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Otváram...</span>
+                </>
+              ) : (
+                "Dobiť"
+              )}
+            </button>
+          </div>
+        </div>
+
         {topUpError && (
           <p className="mt-2 text-xs font-semibold text-red-600">
             {topUpError}
