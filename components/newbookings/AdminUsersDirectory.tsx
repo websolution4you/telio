@@ -45,6 +45,7 @@ import {
   updateBookingUserCardAction,
   updateBookingUserProfileByAdminAction,
   deleteBookingUserByAdminAction,
+  updateBookingUserDiscountTierAction,
   type AdminUserDirectoryItem,
   type AdminUserDetailData,
   type CreateAdminUserInput,
@@ -118,6 +119,8 @@ const txLabels: Record<string, string> = {
 export default function AdminUsersDirectory() {
   const [users, setUsers] = useState<AdminUserDirectoryItem[]>([]);
   const [discountTiers, setDiscountTiers] = useState<DiscountTier[]>(DEFAULT_DISCOUNT_TIERS);
+  const [pendingTiers, setPendingTiers] = useState<Record<string, string>>({});
+  const [savingTierUserId, setSavingTierUserId] = useState<string>("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -144,6 +147,46 @@ export default function AdminUsersDirectory() {
       return `${t.name} (-${t.discountPercent} %)`;
     }
     return t.name;
+  };
+
+  const selectTier = (userId: string, tierId: string) => {
+    const currentTier = users.find((user) => user.id === userId)?.discountTierId || "tier-base";
+    setPendingTiers((current) => {
+      const next = { ...current };
+      if (currentTier === tierId) delete next[userId];
+      else next[userId] = tierId;
+      return next;
+    });
+  };
+
+  const saveUserTier = async (user: AdminUserDirectoryItem) => {
+    const newTier = pendingTiers[user.id];
+    if (!newTier || newTier === user.discountTierId) return;
+
+    setSavingTierUserId(user.id);
+    const result = await updateBookingUserDiscountTierAction(user.id, newTier);
+    if (!result.success) {
+      alert(result.error || "Nepodarilo sa uložiť zľavu.");
+    } else {
+      setUsers((current) =>
+        current.map((item) => (item.id === user.id ? { ...item, discountTierId: newTier } : item))
+      );
+      setPendingTiers((current) => {
+        const next = { ...current };
+        delete next[user.id];
+        return next;
+      });
+      if (detailData && detailData.user.id === user.id) {
+        setDetailData({
+          ...detailData,
+          user: {
+            ...detailData.user,
+            discountTierId: newTier,
+          },
+        });
+      }
+    }
+    setSavingTierUserId("");
   };
 
   // User Detail modal state
@@ -628,7 +671,7 @@ export default function AdminUsersDirectory() {
               <th className="px-6 py-4">Kontakt</th>
               <th className="px-6 py-4">Číslo karty</th>
               <th className="px-6 py-4">Rola</th>
-              <th className="px-6 py-4">Zľava</th>
+              <th className="px-6 py-4">Zľava (cenník)</th>
               <th className="px-6 py-4">Kredit</th>
               <th className="px-6 py-4">Rezervácie</th>
               <th className="px-6 py-4 text-right">Detail</th>
@@ -683,10 +726,32 @@ export default function AdminUsersDirectory() {
                     {roleLabels[user.role]?.label || user.role}
                   </span>
                 </td>
-                <td className="px-6 py-4">
-                  <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700 shadow-2xs">
-                    {getTierLabel(user.discountTierId)}
-                  </span>
+                <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={pendingTiers[user.id] || user.discountTierId || "tier-base"}
+                      disabled={savingTierUserId === user.id}
+                      onChange={(event) => selectTier(user.id, event.target.value)}
+                      className="min-w-44 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-slate-300 focus:border-emerald-500 focus:outline-hidden disabled:cursor-not-allowed disabled:bg-slate-100 cursor-pointer"
+                    >
+                      {discountTiers.map((tier) => (
+                        <option key={tier.id} value={tier.id}>
+                          {tier.name} {tier.isPercentual ? (tier.discountPercent > 0 ? `(-${tier.discountPercent} %)` : "(0 %)") : (tier.price60 ? `(${tier.price60} €/h)` : "")}
+                        </option>
+                      ))}
+                    </select>
+                    {pendingTiers[user.id] && (
+                      <button
+                        type="button"
+                        disabled={savingTierUserId === user.id}
+                        onClick={() => void saveUserTier(user)}
+                        className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-50 cursor-pointer active:scale-[0.98] shrink-0"
+                      >
+                        {savingTierUserId === user.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                        Uložiť
+                      </button>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4">
                   <strong
@@ -796,11 +861,32 @@ export default function AdminUsersDirectory() {
                   {user.cardNumber || "—"}
                 </span>
               </div>
-              <div>
-                <span className="block text-[10px] text-slate-400">Zľava</span>
-                <span className="font-bold text-slate-700 truncate block">
-                  {getTierLabel(user.discountTierId)}
-                </span>
+              <div onClick={(e) => e.stopPropagation()}>
+                <span className="block text-[10px] text-slate-400 mb-1">Zľava (cenník)</span>
+                <div className="flex items-center gap-1.5">
+                  <select
+                    value={pendingTiers[user.id] || user.discountTierId || "tier-base"}
+                    disabled={savingTierUserId === user.id}
+                    onChange={(event) => selectTier(user.id, event.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-xs font-bold text-slate-700 shadow-2xs focus:border-emerald-500 focus:bg-white focus:outline-hidden disabled:cursor-not-allowed disabled:bg-slate-100 cursor-pointer"
+                  >
+                    {discountTiers.map((tier) => (
+                      <option key={tier.id} value={tier.id}>
+                        {tier.name} {tier.isPercentual ? (tier.discountPercent > 0 ? `(-${tier.discountPercent} %)` : "(0 %)") : (tier.price60 ? `(${tier.price60} €/h)` : "")}
+                      </option>
+                    ))}
+                  </select>
+                  {pendingTiers[user.id] && (
+                    <button
+                      type="button"
+                      disabled={savingTierUserId === user.id}
+                      onClick={() => void saveUserTier(user)}
+                      className="rounded-xl bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 shrink-0 cursor-pointer"
+                    >
+                      {savingTierUserId === user.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Uložiť"}
+                    </button>
+                  )}
+                </div>
               </div>
               <div>
                 <span className="block text-[10px] text-slate-400">Zostatok</span>
