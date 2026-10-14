@@ -216,53 +216,6 @@ export function CreateBookingDialog(props: CreateDialogProps) {
           onClose={props.onClose}
         />
 
-        <div className="mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs sm:mb-5 sm:p-3.5 sm:text-sm">
-          <Info label="Športovisko" value={formatCourtDisplayName(props.court)} />
-          <Info label="Dátum" value={new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(props.date)} />
-          <Info label="Začiatok" value={`${String(props.hour).padStart(2, "0")}:00`} />
-          <Info label="Trvanie" value={`${props.duration} min.`} />
-          <div className="col-span-2 flex items-baseline gap-2 flex-wrap pt-0.5">
-            <span className="font-semibold text-slate-600">{props.isAdmin ? "Platba / Kredit:" : "Cena rezervácie:"}</span>
-            <div className="flex items-baseline gap-1.5 flex-wrap">
-              {props.isAdmin ? (
-                <span className="rounded-md border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-bold text-violet-700">
-                  Admin blokovanie (bez kreditu)
-                </span>
-              ) : (
-                <>
-                  {pricing.originalPriceEur > pricing.totalPriceEur && (
-                    <span className="text-xs sm:text-sm text-slate-400 line-through mr-1 font-semibold">
-                      {pricing.originalPriceEur.toFixed(2)} €
-                    </span>
-                  )}
-                  <span className="text-base font-black text-slate-950 sm:text-lg">
-                    {pricing.formattedPrice}
-                  </span>
-                  {Boolean(pricing.userDiscountEur && pricing.userDiscountEur > 0) && (
-                    <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shadow-2xs">
-                      {pricing.userDiscountTierName || "Zľava"}: -{(pricing.userDiscountEur || 0).toFixed(2)} €
-                    </span>
-                  )}
-                  {Boolean(pricing.nonMemberSurchargeEur && pricing.nonMemberSurchargeEur > 0) && (
-                    <span className="rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-850 shadow-2xs">
-                      +{(pricing.nonMemberSurchargeEur || 2).toFixed(2)} € bez registrácie
-                    </span>
-                  )}
-                  {pricing.multisportCardsCount === 1 && (
-                    <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shadow-2xs">
-                      MultiSport 1x
-                    </span>
-                  )}
-                  {pricing.multisportCardsCount === 2 && (
-                    <span className="rounded-md border border-emerald-500 bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-2xs">
-                      MultiSport 2x (Zdarma)
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
 
         {isInsufficientCredit && props.onTopUp ? (
           <div className="mb-4 rounded-2xl border border-amber-300 bg-amber-50/80 p-3 sm:p-3.5 shadow-2xs animate-in fade-in zoom-in-95 duration-150">
@@ -396,6 +349,36 @@ export function CreateBookingDialog(props: CreateDialogProps) {
         ) : null}
 
         <form onSubmit={props.onSubmit} className="space-y-3.5 sm:space-y-4">
+          {/* 1. Dĺžka rezervácie (celkom hore, olemovaná svetlou zelenou) */}
+          <div className="rounded-2xl border-2 border-emerald-400/90 bg-emerald-50/50 p-3 sm:p-3.5 shadow-xs ring-4 ring-emerald-500/10 transition">
+            <label className="block">
+              <div className="mb-1.5 flex items-center justify-between text-xs font-bold text-emerald-950 sm:mb-2 sm:text-sm">
+                <span className="flex items-center gap-1.5">
+                  <Clock3 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Dĺžka rezervácie</span>
+                </span>
+                <span className="rounded-md border border-emerald-300 bg-emerald-100/90 px-2 py-0.5 text-[11px] font-bold text-emerald-900">
+                  {formatDuration(props.duration)}
+                </span>
+              </div>
+              <div className="relative">
+                <select
+                  value={props.duration}
+                  onChange={(event) => props.onDuration(Number(event.target.value))}
+                  className="w-full cursor-pointer appearance-none rounded-xl border border-emerald-300 bg-white py-2.5 pl-3.5 pr-10 text-xs font-bold text-slate-950 outline-none transition hover:border-emerald-400 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-200 sm:py-3 sm:pl-4 sm:text-sm shadow-2xs"
+                >
+                  {props.durationOptions.map((minutes) => (
+                    <option key={minutes} value={minutes}>
+                      {formatDuration(minutes)}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-700" />
+              </div>
+            </label>
+          </div>
+
+          {/* 2. Dôvod rezervácie / blokácie */}
           {props.isAdmin ? (
             <div className="relative">
               <span className="mb-1.5 block text-xs font-semibold text-slate-700 sm:mb-2 sm:text-sm">
@@ -450,17 +433,6 @@ export function CreateBookingDialog(props: CreateDialogProps) {
           ) : (
             <Field icon={Phone} label="Telefón" value={props.phone} onChange={props.onPhone} type="tel" />
           )}
-
-          <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-slate-700 sm:mb-2 sm:text-sm">Dĺžka rezervácie</span>
-            <select
-              value={props.duration}
-              onChange={(event) => props.onDuration(Number(event.target.value))}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-950 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 sm:px-4 sm:py-3 sm:text-sm"
-            >
-              {props.durationOptions.map((minutes) => <option key={minutes} value={minutes}>{formatDuration(minutes)}</option>)}
-            </select>
-          </label>
 
           {/* MultiSport karty (len pre klientov/ne-adminov) */}
           {!props.isAdmin && (
@@ -699,6 +671,55 @@ export function CreateBookingDialog(props: CreateDialogProps) {
               )}
             </div>
           )}
+
+          {/* Informácia o športovisku (umiestnená pod opakovanou rezerváciou) */}
+          <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs sm:p-3.5 sm:text-sm">
+            <Info label="Športovisko" value={formatCourtDisplayName(props.court)} />
+            <Info label="Dátum" value={new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(props.date)} />
+            <Info label="Začiatok" value={`${String(props.hour).padStart(2, "0")}:00`} />
+            <Info label="Trvanie" value={`${props.duration} min.`} />
+            <div className="col-span-2 flex items-baseline gap-2 flex-wrap pt-0.5">
+              <span className="font-semibold text-slate-600">{props.isAdmin ? "Platba / Kredit:" : "Cena rezervácie:"}</span>
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                {props.isAdmin ? (
+                  <span className="rounded-md border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-bold text-violet-700">
+                    Admin blokovanie (bez kreditu)
+                  </span>
+                ) : (
+                  <>
+                    {pricing.originalPriceEur > pricing.totalPriceEur && (
+                      <span className="text-xs sm:text-sm text-slate-400 line-through mr-1 font-semibold">
+                        {pricing.originalPriceEur.toFixed(2)} €
+                      </span>
+                    )}
+                    <span className="text-base font-black text-slate-950 sm:text-lg">
+                      {pricing.formattedPrice}
+                    </span>
+                    {Boolean(pricing.userDiscountEur && pricing.userDiscountEur > 0) && (
+                      <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shadow-2xs">
+                        {pricing.userDiscountTierName || "Zľava"}: -{(pricing.userDiscountEur || 0).toFixed(2)} €
+                      </span>
+                    )}
+                    {Boolean(pricing.nonMemberSurchargeEur && pricing.nonMemberSurchargeEur > 0) && (
+                      <span className="rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-850 shadow-2xs">
+                        +{(pricing.nonMemberSurchargeEur || 2).toFixed(2)} € bez registrácie
+                      </span>
+                    )}
+                    {pricing.multisportCardsCount === 1 && (
+                      <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shadow-2xs">
+                        MultiSport 1x
+                      </span>
+                    )}
+                    {pricing.multisportCardsCount === 2 && (
+                      <span className="rounded-md border border-emerald-500 bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-2xs">
+                        MultiSport 2x (Zdarma)
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
 
           <button
             type="submit"
