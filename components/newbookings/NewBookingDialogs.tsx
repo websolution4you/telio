@@ -206,6 +206,20 @@ export function CreateBookingDialog(props: CreateDialogProps) {
 
   const missingEur = Math.max(0, Math.round(totalPriceCents - (userBalanceCents ?? 0)) / 100);
 
+  const formatTimeSlot = (durationMinutes: number) => {
+    const startH = Math.floor(props.hour);
+    const startM = Math.round((props.hour - startH) * 60);
+
+    const totalEndMinutes = startH * 60 + startM + durationMinutes;
+    const endH = Math.floor(totalEndMinutes / 60);
+    const endM = totalEndMinutes % 60;
+
+    const startStr = `${String(startH).padStart(2, "0")}:${String(startM).padStart(2, "0")}`;
+    const endStr = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+
+    return `${startStr} - ${endStr}`;
+  };
+
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4">
       <button aria-label="Zavrieť" className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={props.onClose} />
@@ -215,7 +229,6 @@ export function CreateBookingDialog(props: CreateDialogProps) {
           subtitle={props.isAdmin ? "Výber dôvodu blokovania kurtu a voliteľná poznámka." : "Skontrolujte vybraný termín a potvrďte rezerváciu."}
           onClose={props.onClose}
         />
-
 
         {isInsufficientCredit && props.onTopUp ? (
           <div className="mb-4 rounded-2xl border border-amber-300 bg-amber-50/80 p-3 sm:p-3.5 shadow-2xs animate-in fade-in zoom-in-95 duration-150">
@@ -358,7 +371,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                   <span>Dĺžka rezervácie</span>
                 </span>
                 <span className="rounded-md border border-emerald-300 bg-emerald-100/90 px-2 py-0.5 text-[11px] font-bold text-emerald-900">
-                  {formatDuration(props.duration)}
+                  {formatDuration(props.duration)} ({formatTimeSlot(props.duration)})
                 </span>
               </div>
               <div className="relative">
@@ -369,7 +382,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                 >
                   {props.durationOptions.map((minutes) => (
                     <option key={minutes} value={minutes}>
-                      {formatDuration(minutes)}
+                      {formatDuration(minutes)} ({formatTimeSlot(minutes)})
                     </option>
                   ))}
                 </select>
