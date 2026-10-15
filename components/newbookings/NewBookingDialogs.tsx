@@ -753,7 +753,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                 : props.isRecurring
                   ? `Vytvoriť opakovanú sériu (${occurrencesCount} ${occurrencesCount === 1 ? "termín" : occurrencesCount < 5 ? "termíny" : "termínov"})`
                   : props.isAdmin
-                    ? `Zablokovať kurt (${selectedOption.value})`
+                    ? `Rezervovať (${selectedOption.value})`
                     : "Vytvoriť rezerváciu"}
           </button>
         </form>
