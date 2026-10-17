@@ -1355,33 +1355,47 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     return (
       <div key={dateKey(dayDate)} className="w-full">
         {showDayHeader && (
-          <div className="sticky left-0 z-30 flex items-center justify-between border-y-2 border-slate-300 bg-gradient-to-r from-slate-800 via-slate-850 to-slate-900 px-3 sm:px-4 py-2.5 text-white shadow-xs">
-            <div className="flex items-center gap-2 sm:gap-2.5">
-              <CalendarDays className="h-4 w-4 text-emerald-400 shrink-0" />
-              <span className="text-xs sm:text-sm font-bold capitalize tracking-wide">
-                {new Intl.DateTimeFormat("sk-SK", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                }).format(dayDate)}
-              </span>
-              {dayIsToday && (
-                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-extrabold uppercase text-emerald-300 border border-emerald-500/40">
-                  Dnes
+          <div className="border-y-2 border-slate-300 bg-gradient-to-r from-slate-800 via-slate-850 to-slate-900 shadow-xs">
+            <div className="sticky left-0 z-30 flex items-center justify-between px-3 sm:px-4 py-2 text-white w-fit min-w-[280px] max-w-full">
+              <div className="flex items-center gap-2 sm:gap-2.5">
+                <CalendarDays className="h-4 w-4 text-emerald-400 shrink-0" />
+                <span className="text-xs sm:text-sm font-bold capitalize tracking-wide whitespace-nowrap">
+                  {new Intl.DateTimeFormat("sk-SK", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  }).format(dayDate)}
                 </span>
-              )}
+                {dayIsToday && (
+                  <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-extrabold uppercase text-emerald-300 border border-emerald-500/40 whitespace-nowrap">
+                    Dnes
+                  </span>
+                )}
+              </div>
+              <span className="ml-4 text-[11px] font-semibold text-slate-300 whitespace-nowrap">
+                {dayBookings.length} {dayBookings.length === 1 ? "rezervácia" : (dayBookings.length >= 2 && dayBookings.length <= 4 ? "rezervácie" : "rezervácií")}
+              </span>
             </div>
-            <span className="text-[11px] font-semibold text-slate-300">
-              {dayBookings.length} {dayBookings.length === 1 ? "rezervácia" : (dayBookings.length >= 2 && dayBookings.length <= 4 ? "rezervácie" : "rezervácií")}
-            </span>
           </div>
         )}
 
         <div className="grid border-b border-slate-200 bg-slate-50/80" style={{ gridTemplateColumns: calendarColumns }}>
-          <b className="sticky left-0 z-20 flex items-center justify-center text-center border-r border-slate-200 bg-slate-50 px-1.5 py-3 text-[10px] sm:text-[11px] font-extrabold tracking-wide text-slate-600 uppercase">
-            KURT
-          </b>
+          <div className="sticky left-0 z-20 flex flex-col items-center justify-center text-center border-r border-slate-200 bg-slate-50 px-1 py-1.5 shadow-[2px_0_6px_rgba(15,23,42,0.03)] select-none">
+            <b className="text-[10px] sm:text-[11px] font-extrabold tracking-wide text-slate-600 uppercase leading-tight">
+              KURT
+            </b>
+            <span className="mt-0.5 rounded px-1.5 py-0.5 text-[9px] sm:text-[10px] font-extrabold text-emerald-800 bg-emerald-100/90 border border-emerald-300/70 leading-tight whitespace-nowrap shadow-2xs">
+              {(() => {
+                const parts = new Intl.DateTimeFormat("sk-SK", { weekday: "short", day: "numeric", month: "numeric" }).formatToParts(dayDate);
+                const wdRaw = parts.find((p) => p.type === "weekday")?.value || "";
+                const wd = wdRaw.charAt(0).toUpperCase() + wdRaw.slice(1);
+                const d = parts.find((p) => p.type === "day")?.value || "";
+                const m = parts.find((p) => p.type === "month")?.value || "";
+                return `${wd} ${d}.${m}.`;
+              })()}
+            </span>
+          </div>
           <div ref={isFirstDay ? timeGridRef : undefined} className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
             {hours.map((hour) => (
               <div key={hour} className="py-3.5 text-center text-xs font-bold text-slate-500 tracking-wide">
@@ -1711,9 +1725,23 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               >
                 <div className="w-full" style={{ minWidth: `${calendarMinWidth}px` }}>
                   <div className="grid border-b border-slate-200 bg-slate-50" style={{ gridTemplateColumns: calendarColumns }}>
-                    <b className="sticky left-0 z-30 flex items-center justify-center text-center border-r border-slate-200 bg-slate-100 px-1.5 py-2.5 text-[10px] sm:text-[11px] font-extrabold tracking-wide text-slate-700 uppercase shadow-[2px_0_6px_rgba(15,23,42,0.04)]">
-                      KURT
-                    </b>
+                    <div className="sticky left-0 z-30 flex flex-col items-center justify-center text-center border-r border-slate-200 bg-slate-100 px-1 py-1.5 text-slate-700 shadow-[2px_0_6px_rgba(15,23,42,0.04)] select-none">
+                      <b className="text-[10px] sm:text-[11px] font-extrabold tracking-wide uppercase leading-tight">
+                        KURT
+                      </b>
+                      {viewMode === "day" && (
+                        <span className="mt-0.5 rounded px-1.5 py-0.5 text-[9px] sm:text-[10px] font-extrabold text-emerald-800 bg-emerald-100/90 border border-emerald-300/70 leading-tight whitespace-nowrap shadow-2xs">
+                          {(() => {
+                            const parts = new Intl.DateTimeFormat("sk-SK", { weekday: "short", day: "numeric", month: "numeric" }).formatToParts(date);
+                            const wdRaw = parts.find((p) => p.type === "weekday")?.value || "";
+                            const wd = wdRaw.charAt(0).toUpperCase() + wdRaw.slice(1);
+                            const d = parts.find((p) => p.type === "day")?.value || "";
+                            const m = parts.find((p) => p.type === "month")?.value || "";
+                            return `${wd} ${d}.${m}.`;
+                          })()}
+                        </span>
+                      )}
+                    </div>
                     <div className="relative grid bg-slate-50" style={{ gridTemplateColumns: timeColumns }}>
                       {hours.map((hour) => (
                         <div key={hour} className="py-2.5 text-center text-xs font-bold text-slate-600 tracking-wide">
