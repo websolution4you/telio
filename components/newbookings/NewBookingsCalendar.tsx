@@ -262,7 +262,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [loading, setLoading] = useState(false);
 
   const weekDays = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => {
+    return Array.from({ length: 8 }, (_, i) => {
       const d = new Date(date);
       d.setDate(d.getDate() + i);
       d.setHours(0, 0, 0, 0);
@@ -272,7 +272,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
   const weekEndDate = useMemo(() => {
     const end = new Date(date);
-    end.setDate(end.getDate() + 6);
+    end.setDate(end.getDate() + 7);
     return end;
   }, [date]);
   const [auth, setAuth] = useState<"login" | "register" | "forgot" | "reset" | null>(null);
@@ -708,7 +708,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       const start = new Date(date); start.setHours(0, 0, 0, 0);
       const end = new Date(date);
       if (viewMode === "week") {
-        end.setDate(end.getDate() + 6);
+        end.setDate(end.getDate() + 7);
       }
       end.setHours(23, 59, 59, 999);
       const result = await fetchBookingsAction(start.toISOString(), end.toISOString());
