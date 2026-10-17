@@ -255,10 +255,26 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
   const [sport, setSport] = useState<SportType>("badminton");
   const [date, setDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState<"day" | "week">("day");
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [items, setItems] = useState(initialBookings);
   const [reload, setReload] = useState(0);
   const [loading, setLoading] = useState(false);
+
+  const weekDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(date);
+      d.setDate(d.getDate() + i);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    });
+  }, [date]);
+
+  const weekEndDate = useMemo(() => {
+    const end = new Date(date);
+    end.setDate(end.getDate() + 6);
+    return end;
+  }, [date]);
   const [auth, setAuth] = useState<"login" | "register" | "forgot" | "reset" | null>(null);
   const [resetToken, setResetToken] = useState<string | undefined>(undefined);
 
@@ -690,7 +706,11 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     // Ensures real-time updates even when database writes bypass Supabase websockets
     const pollInterval = window.setInterval(async () => {
       const start = new Date(date); start.setHours(0, 0, 0, 0);
-      const end = new Date(date); end.setHours(23, 59, 59, 999);
+      const end = new Date(date);
+      if (viewMode === "week") {
+        end.setDate(end.getDate() + 6);
+      }
+      end.setHours(23, 59, 59, 999);
       const result = await fetchBookingsAction(start.toISOString(), end.toISOString());
       if (!result.success || !result.bookings) return;
 
@@ -747,7 +767,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       timers.forEach((timer) => window.clearTimeout(timer));
       timers.clear();
     };
-  }, [currentUser, date]);
+  }, [currentUser, date, viewMode]);
 
 
   useEffect(() => {
@@ -755,12 +775,30 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     return () => window.clearInterval(timer);
   }, []);
 
-  const visibleCourts = useMemo(() => {
+  const getVisibleCourtsForDay = useCallback((dayDate: Date) => {
     let result = courts.filter((court) => court.sport === sport);
-    if (sport === "tennis-clay" && [0, 6].includes(date.getDay())) result = result.filter((court) => ["tennis-clay-1", "tennis-clay-2"].includes(court.id));
+    if (sport === "tennis-clay" && [0, 6].includes(dayDate.getDay())) {
+      result = result.filter((court) => ["tennis-clay-1", "tennis-clay-2"].includes(court.id));
+    }
     return result;
-  }, [courts, sport, date]);
-  const bookings = useMemo(() => items.filter((booking) => booking.status !== "cancelled" && dateKey(new Date(booking.start)) === dateKey(date) && courts.find((court) => court.id === booking.courtId)?.sport === sport), [items, date, courts, sport]);
+  }, [courts, sport]);
+
+  const visibleCourts = useMemo(() => getVisibleCourtsForDay(date), [getVisibleCourtsForDay, date]);
+
+  const getBookingsForDay = useCallback(
+    (targetDate: Date) => {
+      const targetKey = dateKey(targetDate);
+      return items.filter(
+        (booking) =>
+          booking.status !== "cancelled" &&
+          dateKey(new Date(booking.start)) === targetKey &&
+          courts.find((court) => court.id === booking.courtId)?.sport === sport
+      );
+    },
+    [items, courts, sport]
+  );
+
+  const bookings = useMemo(() => getBookingsForDay(date), [getBookingsForDay, date]);
   const isToday = dateKey(date) === dateKey(now);
   const currentTimePercent = useMemo(() => {
     const elapsedMinutes = (now.getHours() - openingHours.startHour) * 60 + now.getMinutes();
@@ -868,7 +906,14 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
   const getAvailableDurationOptions = (courtId: string, start: Date) => {
     if (currentUser?.role !== "admin" && rolePolicy && !rolePolicy.isActive) return [];
-    const courtBookings = bookings.filter((booking) => booking.courtId === courtId);
+    const startDayKey = dateKey(start);
+    const dayBookings = items.filter(
+      (booking) =>
+        booking.status !== "cancelled" &&
+        dateKey(new Date(booking.start)) === startDayKey &&
+        courts.find((court) => court.id === booking.courtId)?.sport === sport
+    );
+    const courtBookings = dayBookings.filter((booking) => booking.courtId === courtId);
     if (courtBookings.some((booking) => new Date(booking.start) <= start && new Date(booking.end) > start)) return [];
     const nextBooking = courtBookings
       .filter((booking) => new Date(booking.start) >= start)
@@ -951,9 +996,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     }
   };
 
-  const openSlot = (courtId: string, hour: number) => {
+  const openSlot = (courtId: string, hour: number, targetDate: Date = date) => {
     if (reschedulingBooking) {
-      const status = getRescheduleSlotStatus(courtId, hour);
+      const status = getRescheduleSlotStatus(courtId, hour, targetDate);
       if (!status || !status.eligible) {
         if (status?.reason === "price_mismatch") {
           setNotice(`Tento termín má inú cenu (${status.targetPrice?.toFixed(2)} €). Vyberte termín s rovnakou cenou ${reschedOriginalPrice.toFixed(2)} €.`);
@@ -968,12 +1013,12 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         }
         return;
       }
-      setRescheduleSlot({ courtId, date: new Date(date), hour });
+      setRescheduleSlot({ courtId, date: new Date(targetDate), hour });
       setRescheduleError("");
       return;
     }
     if (!currentUser) {
-      const pending = { courtId, date: new Date(date), hour };
+      const pending = { courtId, date: new Date(targetDate), hour };
       setPendingSlot(pending);
       if (typeof window !== "undefined") {
         try {
@@ -981,7 +1026,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             "ntc_pending_auth_slot",
             JSON.stringify({
               courtId,
-              date: date instanceof Date ? date.toISOString() : new Date(date).toISOString(),
+              date: targetDate instanceof Date ? targetDate.toISOString() : new Date(targetDate).toISOString(),
               hour,
             })
           );
@@ -991,7 +1036,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       }
       return setAuth("register");
     }
-    const start = new Date(date); start.setHours(hour, 0, 0, 0);
+    const start = new Date(targetDate); start.setHours(hour, 0, 0, 0);
     setIsRecurring(false);
     setRepeatWeeks(4);
     setFrequencyWeeks(1);
@@ -1005,7 +1050,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       if (start < now) return setNotice("Rezerváciu v minulosti nie je možné vytvoriť.");
       const options = getAvailableDurationOptions(courtId, start);
       if (!options.length) return setNotice("Do najbližšej rezervácie alebo konca prevádzky nie je voľných aspoň 30 minút.");
-      setTitle(""); setPhone(currentUser.phone || ""); setDuration(options.includes(60) ? 60 : options[0]); setMultisportCardsCount(0); setNotice(""); setSlot({ courtId, date: new Date(date), hour });
+      setTitle(""); setPhone(currentUser.phone || ""); setDuration(options.includes(60) ? 60 : options[0]); setMultisportCardsCount(0); setNotice(""); setSlot({ courtId, date: new Date(targetDate), hour });
     } else {
       const options = getAvailableDurationOptions(courtId, start);
       const defaultDuration = options.length > 0 ? (options.includes(60) ? 60 : options[0]) : 60;
@@ -1015,17 +1060,18 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       setDuration(defaultDuration);
       setMultisportCardsCount(0);
       setNotice("");
-      setSlot({ courtId, date: new Date(date), hour });
+      setSlot({ courtId, date: new Date(targetDate), hour });
     }
   };
-  const hasConflict = (courtId: string, start: Date, end: Date) => bookings.some((booking) => booking.courtId === courtId && start < new Date(booking.end) && end > new Date(booking.start));
+  const hasConflict = (courtId: string, start: Date, end: Date) => items.some((booking) => booking.status !== "cancelled" && booking.courtId === courtId && start < new Date(booking.end) && end > new Date(booking.start));
 
-  const getRescheduleSlotStatus = useCallback((courtId: string, hour: number) => {
+  const getRescheduleSlotStatus = useCallback((courtId: string, hour: number, targetDate: Date = date) => {
     if (!reschedulingBooking) return null;
-    const isPast = isToday ? hour <= now.getHours() : dateKey(date) < dateKey(now);
+    const targetIsToday = dateKey(targetDate) === dateKey(now);
+    const isPast = targetIsToday ? hour <= now.getHours() : dateKey(targetDate) < dateKey(now);
     if (isPast) return { eligible: false, reason: "past" as const };
 
-    const start = new Date(date);
+    const start = new Date(targetDate);
     start.setHours(hour, 0, 0, 0);
     const end = new Date(start.getTime() + reschedDurationMin * 60000);
 
@@ -1039,8 +1085,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     if (label) return { eligible: false, reason: "blocked" as const };
 
     // Check conflicts (ignoring the booking being rescheduled itself)
-    const conflict = bookings.some(
-      (b) => b.id !== reschedulingBooking.id && b.courtId === courtId && start < new Date(b.end) && end > new Date(b.start)
+    const targetDayKey = dateKey(targetDate);
+    const conflict = items.some(
+      (b) => b.status !== "cancelled" && b.id !== reschedulingBooking.id && b.courtId === courtId && dateKey(new Date(b.start)) === targetDayKey && start < new Date(b.end) && end > new Date(b.start)
     );
     if (conflict) return { eligible: false, reason: "occupied" as const };
 
@@ -1067,7 +1114,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     }
 
     return { eligible: true };
-  }, [reschedulingBooking, isToday, now, date, reschedDurationMin, blockedLabel, sport, bookings, currentUser, rolePolicy, reschedOriginalPrice]);
+  }, [reschedulingBooking, now, date, reschedDurationMin, blockedLabel, sport, items, currentUser, rolePolicy, reschedOriginalPrice]);
 
   const handleConfirmReschedule = async () => {
     if (!reschedulingBooking || !rescheduleSlot) return;
@@ -1291,6 +1338,298 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     return { left: `${offset / total * 100}%`, width: `${(end.getTime() - start.getTime()) / 60000 / total * 100}%` };
   };
 
+  const renderDaySection = (dayDate: Date, isFirstDay: boolean, showDayHeader: boolean) => {
+    const dayIsToday = dateKey(dayDate) === dateKey(now);
+    const dayBookings = getBookingsForDay(dayDate);
+    const dayCourts = getVisibleCourtsForDay(dayDate);
+    const dayPastPercent = !dayIsToday
+      ? (dateKey(dayDate) < dateKey(now) ? 100 : 0)
+      : Math.max(
+          0,
+          Math.min(
+            100,
+            ((now.getHours() + 1 - openingHours.startHour) / (openingHours.endHour - openingHours.startHour)) * 100
+          )
+        );
+
+    return (
+      <div key={dateKey(dayDate)} className="w-full">
+        {showDayHeader && (
+          <div className="sticky left-0 z-30 flex items-center justify-between border-y-2 border-slate-300 bg-gradient-to-r from-slate-800 via-slate-850 to-slate-900 px-3 sm:px-4 py-2.5 text-white shadow-xs">
+            <div className="flex items-center gap-2 sm:gap-2.5">
+              <CalendarDays className="h-4 w-4 text-emerald-400 shrink-0" />
+              <span className="text-xs sm:text-sm font-bold capitalize tracking-wide">
+                {new Intl.DateTimeFormat("sk-SK", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                }).format(dayDate)}
+              </span>
+              {dayIsToday && (
+                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-extrabold uppercase text-emerald-300 border border-emerald-500/40">
+                  Dnes
+                </span>
+              )}
+            </div>
+            <span className="text-[11px] font-semibold text-slate-300">
+              {dayBookings.length} {dayBookings.length === 1 ? "rezervácia" : (dayBookings.length >= 2 && dayBookings.length <= 4 ? "rezervácie" : "rezervácií")}
+            </span>
+          </div>
+        )}
+
+        <div className="grid border-b border-slate-200 bg-slate-50/80" style={{ gridTemplateColumns: calendarColumns }}>
+          <b className="sticky left-0 z-20 flex items-center justify-center text-center border-r border-slate-200 bg-slate-50 px-1.5 py-3 text-[10px] sm:text-[11px] font-extrabold tracking-wide text-slate-600 uppercase">
+            KURT
+          </b>
+          <div ref={isFirstDay ? timeGridRef : undefined} className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
+            {hours.map((hour) => (
+              <div key={hour} className="py-3.5 text-center text-xs font-bold text-slate-500 tracking-wide">
+                {hour}:00
+              </div>
+            ))}
+            {dayIsToday && currentTimePercent > 0 && currentTimePercent < 100 && (
+              <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
+            )}
+          </div>
+          <div className="bg-slate-50/50" aria-hidden="true" />
+        </div>
+
+        {dayCourts.map((court) => {
+          const courtHasHighlight = dayBookings.some(
+            (b) => b.courtId === court.id && highlightedVoiceBookings.includes(b.id)
+          );
+          return (
+            <div key={court.id} className={`grid border-b border-slate-100 py-1 ${courtHasHighlight ? "relative z-30" : ""}`} style={{ gridTemplateColumns: calendarColumns }}>
+              <div className="sticky left-0 z-20 flex min-h-20 flex-col items-center justify-center text-center border-r border-slate-200 bg-white/95 px-1.5 shadow-[3px_0_10px_rgba(15,23,42,0.03)] backdrop-blur-xs">
+                <b className="w-full text-center text-slate-900 font-bold text-[11px] sm:text-[11.5px] leading-tight tracking-tight whitespace-nowrap">{court.name}</b>
+                <small className="mt-0.5 w-full text-center text-[9.5px] sm:text-[10px] text-slate-500 font-medium leading-tight tracking-tight whitespace-nowrap">{court.surface.replace(" Court", "")}</small>
+              </div>
+              <div className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
+                {hours.map((hour) => {
+                  const label = blockedLabel(court.id, sport, hour);
+                  const isPast = dayIsToday
+                    ? hour <= now.getHours()
+                    : dateKey(dayDate) < dateKey(now);
+                  const isClayPartial16 =
+                    sport === "tennis-clay" &&
+                    ["tennis-clay-10", "tennis-clay-11"].includes(court.id) &&
+                    hour === 16;
+
+                  const reschedStatus = reschedulingBooking ? getRescheduleSlotStatus(court.id, hour, dayDate) : null;
+
+                  return (
+                    <div key={hour} className="p-1 h-full">
+                      {label ? (
+                        <div className="grid h-full min-h-[72px] cursor-not-allowed place-items-center rounded-2xl bg-amber-50/80 border border-amber-200/70 px-1 text-center text-[10px] font-bold text-amber-700 shadow-xs">
+                          {label}
+                        </div>
+                      ) : isPast ? (
+                        <div className="h-full min-h-[72px] cursor-not-allowed rounded-2xl bg-slate-100/40 border border-slate-200/40" />
+                      ) : reschedulingBooking ? (
+                        reschedStatus?.reason === "current" ? (
+                          <div className="flex flex-col items-center justify-center h-full min-h-[72px] rounded-2xl border-2 border-slate-300 bg-slate-100/80 text-slate-500 p-1 text-center shadow-xs">
+                            <span className="text-[10px] font-bold leading-tight">Pôvodný termín</span>
+                          </div>
+                        ) : reschedStatus?.reason === "price_mismatch" ? (
+                          <div
+                            className="flex flex-col items-center justify-center h-full min-h-[72px] rounded-2xl border border-slate-200/60 bg-slate-100/70 text-slate-400 p-1 text-center shadow-2xs cursor-not-allowed select-none"
+                            title={`Iná cena: ${reschedStatus.targetPrice?.toFixed(2)} € (pôvodná: ${reschedOriginalPrice.toFixed(2)} €)`}
+                          >
+                            <span className="text-[10px] font-semibold text-slate-400">Iná cena</span>
+                            <span className="text-[9.5px] font-bold text-slate-400/80">{reschedStatus.targetPrice?.toFixed(0)} €</span>
+                          </div>
+                        ) : reschedStatus?.eligible ? (
+                          <button
+                            type="button"
+                            onClick={() => openSlot(court.id, hour, dayDate)}
+                            className="group flex flex-col items-center justify-center h-full min-h-[72px] w-full cursor-pointer rounded-2xl border-2 border-emerald-500 bg-emerald-50/90 hover:bg-emerald-100 hover:border-emerald-600 transition-all duration-150 hover:scale-[1.02] shadow-sm p-1"
+                            title={`Presunúť sem (${hour}:00, ${reschedOriginalPrice.toFixed(2)} €)`}
+                          >
+                            <CalendarSync className="h-4 w-4 text-emerald-600 group-hover:scale-110 transition-transform" />
+                            <span className="mt-1 text-[10px] sm:text-[10.5px] font-extrabold text-emerald-800 leading-tight text-center">
+                              Presunúť sem
+                            </span>
+                          </button>
+                        ) : (
+                          <div className="h-full min-h-[72px] cursor-not-allowed rounded-2xl bg-slate-100/40 border border-slate-200/40" />
+                        )
+                      ) : isClayPartial16 ? (
+                        <div className="flex h-full min-h-[72px] w-full overflow-hidden rounded-2xl border border-slate-200/70 shadow-xs">
+                          {isPast ? (
+                            <div className="h-full w-1/2 cursor-not-allowed bg-slate-100/40 border-r border-slate-200/50" />
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openSlot(court.id, hour, dayDate)}
+                              className="group grid h-full w-1/2 cursor-pointer place-items-center bg-[#F1F5F9] border-r border-slate-200 transition-all duration-150 hover:bg-slate-200/90"
+                              title="Rezervácia 16:00 – 16:30"
+                            >
+                              <Plus className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </button>
+                          )}
+                          <div
+                            className="h-full w-1/2 cursor-not-allowed bg-amber-50/80 border-l border-amber-200/60"
+                            title="Od 16:30 mimo prevádzky"
+                          />
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => openSlot(court.id, hour, dayDate)}
+                          className="group grid h-full min-h-[72px] w-full cursor-pointer place-items-center rounded-2xl bg-[#F1F5F9] border border-slate-200/70 transition-all duration-150 hover:scale-[1.02] hover:bg-slate-200/90 hover:border-slate-300 shadow-xs"
+                        >
+                          <Plus className="h-4 w-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+                {dayIsToday && dayPastPercent > 0 && (
+                  <div
+                    className="pointer-events-none absolute inset-y-0 left-0 z-[2]"
+                    style={{
+                      width: `${dayPastPercent}%`,
+                      background: "repeating-linear-gradient(135deg, rgba(148,163,184,0.18) 0px, rgba(148,163,184,0.18) 5px, rgba(241,245,249,0.3) 5px, rgba(241,245,249,0.3) 10px)",
+                    }}
+                  />
+                )}
+                <div className={`pointer-events-none absolute inset-0 ${courtHasHighlight ? "z-40" : "z-10"}`}>
+                  {dayBookings.filter((booking) => booking.courtId === court.id).map((booking) => {
+                    const isAdmin = currentUser?.role === "admin";
+                    const own = !!currentUser && currentUser.id === booking.user_id;
+                    const canManage = own || isAdmin;
+                    const voiceHighlight = highlightedVoiceBookings.includes(booking.id);
+                    const isTrainer = booking.userRole === "trainer";
+
+                    const nameLower = (booking.customerName || "").toLowerCase();
+                    const titleLower = (booking.title || "").toLowerCase();
+
+                    const isTraining =
+                      isTrainer ||
+                      nameLower.includes("tréning") ||
+                      titleLower.includes("tréning") ||
+                      nameLower.includes("trening") ||
+                      titleLower.includes("trening");
+
+                    const isAdminBlock =
+                      !isTraining &&
+                      (nameLower.includes("admin") || titleLower.includes("admin"));
+
+                    const isMaintenance =
+                      !isTraining &&
+                      !isAdminBlock &&
+                      (nameLower.includes("údržba") ||
+                        titleLower.includes("údržba") ||
+                        booking.status === "blocked" ||
+                        booking.source === "admin");
+
+                    const isAnyAdminOrBlock = isTraining || isAdminBlock || isMaintenance || booking.source === "admin" || booking.status === "blocked";
+
+                    let bookingClasses = "";
+                    let labelText = "";
+
+                    if (isAdmin) {
+                      if (isTraining) {
+                        labelText = "Tréningy";
+                        bookingClasses = "border-[#EAAECF] bg-[#F4CDE4] text-slate-950 font-bold shadow-xs hover:bg-[#EEBDDC]";
+                      } else if (isAdminBlock) {
+                        labelText = "Rezervácia Admin";
+                        bookingClasses = "border-[#C0A0E0] bg-[#DCC7F0] text-slate-950 font-bold shadow-xs hover:bg-[#D2B8EC]";
+                      } else if (isMaintenance) {
+                        labelText = "Údržba kurtov";
+                        bookingClasses = "border-[#F29E9E] bg-[#FFC9C9] text-slate-950 font-bold shadow-xs hover:bg-[#FFBABA]";
+                      } else {
+                        labelText = booking.customerName || booking.title || "Rezervácia";
+                        bookingClasses = "border-[#EAD77B] bg-[#FFF3B0] text-slate-950 font-bold shadow-xs hover:bg-[#FEECA0]";
+                      }
+                    } else {
+                      if (isAnyAdminOrBlock) {
+                        labelText = isMaintenance ? "Údržba" : "Obsadené";
+                        bookingClasses = "border-slate-400 bg-slate-500 text-white font-semibold shadow-xs";
+                      } else if (own) {
+                        labelText = "Vaša rezervácia";
+                        bookingClasses = "border-emerald-300 bg-[#DCFCE7] text-emerald-950 font-bold shadow-xs hover:bg-[#BBF7D0]";
+                      } else {
+                        labelText = "Obsadené";
+                        bookingClasses = "border-slate-300 bg-[#CBD5E1] text-slate-800 font-semibold shadow-xs";
+                      }
+                    }
+                    const isBeingRescheduled = reschedulingBooking?.id === booking.id;
+                    if (isBeingRescheduled) {
+                      labelText = "Presúva sa...";
+                      bookingClasses = "border-2 border-dashed border-emerald-500 bg-emerald-100/90 text-emerald-950 font-bold ring-2 ring-emerald-400";
+                    }
+
+                    return (
+                      <div
+                        key={booking.id}
+                        className={`absolute inset-y-0 p-1 ${voiceHighlight ? "z-50" : ""}`}
+                        style={position(booking)}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (reschedulingBooking) {
+                              if (booking.id === reschedulingBooking.id) {
+                                setNotice("Túto rezerváciu práve presúvate. Vyberte zelené okienko [Presunúť sem] pre nový termín.");
+                              } else {
+                                setNotice("Tento termín je už obsadený inou rezerváciou.");
+                              }
+                              return;
+                            }
+                            if (canManage) setDetail(booking);
+                          }}
+                          className={`pointer-events-auto h-full w-full overflow-hidden rounded-2xl border px-1.5 py-1 text-center transition duration-150 hover:scale-[1.01] flex flex-col items-center justify-center ${voiceHighlight ? "booking-magnify-drop" : ""
+                            } ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${bookingClasses}`}
+                          title={canManage ? `Detail: ${labelText}` : (isAnyAdminOrBlock ? "Údržba" : "Obsadené")}
+                        >
+                          {isAdmin ? (
+                            <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(8px,0.65vw,11px)] font-bold leading-tight select-none pointer-events-none tracking-tight">
+                              {booking.recurringGroupId && (
+                                <Repeat className="h-2.5 w-2.5 mb-0.5 opacity-75 shrink-0" />
+                              )}
+                              {labelText.split(" ").filter(Boolean).map((part, idx) => (
+                                <span key={idx} className="block leading-[1.15] whitespace-nowrap max-w-full">
+                                  {part}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className={`relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center font-sans select-none pointer-events-none ${own ? "text-emerald-950" : (isAnyAdminOrBlock ? "text-white" : "text-slate-800")
+                              }`}>
+                              <span className="block text-[clamp(8.5px,0.65vw,11px)] font-bold leading-tight tracking-tight whitespace-nowrap inline-flex items-center gap-1 justify-center">
+                                {booking.recurringGroupId && (
+                                  <Repeat className="h-2.5 w-2.5 opacity-75 shrink-0" />
+                                )}
+                                {formatCompactInterval(booking.start, booking.end)}
+                              </span>
+                              <div className="mt-0.5 flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(8px,0.6vw,10.5px)] font-bold leading-[1.1] tracking-tight">
+                                {labelText.split(" ").filter(Boolean).map((part, idx) => (
+                                  <span key={idx} className="block whitespace-nowrap max-w-full">
+                                    {part}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+                {dayIsToday && currentTimePercent > 0 && currentTimePercent < 100 && (
+                  <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
+                )}
+              </div>
+              <div className="bg-slate-50/20" aria-hidden="true" />
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
       <NewBookingsHeader
@@ -1452,21 +1791,52 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                 );
               })}
             </div>
-            <div className="mt-2 flex items-center justify-between gap-1.5 border-t border-slate-100 pt-2 sm:mt-5 sm:gap-4 sm:pt-5">
-              <button
-                onClick={() => {
-                  setDate(new Date());
-                  setTimeout(() => scrollToCurrentTime(true), 60);
-                }}
-                className="shrink-0 cursor-pointer rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm sm:font-bold sm:shadow-xs"
-              >
-                Dnes
-              </button>
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2 sm:mt-5 sm:gap-4 sm:pt-5">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <button
+                  onClick={() => {
+                    setDate(new Date());
+                    setTimeout(() => scrollToCurrentTime(true), 60);
+                  }}
+                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-sm sm:font-bold sm:shadow-xs"
+                >
+                  Dnes
+                </button>
+                <div className="inline-flex p-0.5 rounded-lg sm:rounded-xl bg-slate-100 border border-slate-200 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("day")}
+                    className={`cursor-pointer px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-bold rounded-md sm:rounded-lg transition ${
+                      viewMode === "day"
+                        ? "bg-white text-slate-900 shadow-2xs"
+                        : "text-slate-500 hover:text-slate-900"
+                    }`}
+                  >
+                    1 deň
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewMode("week");
+                      if (dateKey(date) < dateKey(today)) {
+                        setDate(new Date());
+                      }
+                    }}
+                    className={`cursor-pointer px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-bold rounded-md sm:rounded-lg transition ${
+                      viewMode === "week"
+                        ? "bg-white text-slate-900 shadow-2xs"
+                        : "text-slate-500 hover:text-slate-900"
+                    }`}
+                  >
+                    Dnes + 7 dní
+                  </button>
+                </div>
+              </div>
               <div className="flex flex-1 items-center justify-center gap-1 sm:flex-initial sm:gap-1.5">
                 <button
                   type="button"
                   onClick={() => moveDate(-7)}
-                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 p-1 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:p-3 sm:shadow-xs text-slate-700"
+                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 p-1 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:p-2.5 sm:shadow-xs text-slate-700"
                   aria-label="Predchádzajúci týždeň (-7 dní)"
                   title="Predchádzajúci týždeň (-7 dní)"
                 >
@@ -1475,7 +1845,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                 <button
                   type="button"
                   onClick={() => moveDate(-1)}
-                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 p-1 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:p-3 sm:shadow-xs text-slate-700"
+                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 p-1 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:p-2.5 sm:shadow-xs text-slate-700"
                   aria-label="Predchádzajúci deň"
                   title="Predchádzajúci deň"
                 >
@@ -1484,23 +1854,27 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                 <button
                   type="button"
                   onClick={() => setDatePickerOpen(true)}
-                  className="flex flex-1 sm:flex-initial min-w-0 sm:min-w-[280px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-center text-xs font-semibold text-slate-800 shadow-2xs transition hover:border-emerald-300 hover:bg-emerald-50/50 hover:text-emerald-700 sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm sm:font-bold sm:shadow-xs"
+                  className="flex flex-1 sm:flex-initial min-w-0 sm:min-w-[280px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-center text-xs font-semibold text-slate-800 shadow-2xs transition hover:border-emerald-300 hover:bg-emerald-50/50 hover:text-emerald-700 sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-sm sm:font-bold sm:shadow-xs"
                   aria-haspopup="dialog"
                 >
                   <CalendarDays className="h-3.5 w-3.5 shrink-0 text-emerald-600 sm:h-4.5 sm:w-4.5" />
                   <span className="truncate">
-                    {new Intl.DateTimeFormat("sk-SK", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    }).format(date)}
+                    {viewMode === "week" ? (
+                      `${new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "numeric" }).format(date)} – ${new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "numeric", year: "numeric" }).format(weekEndDate)}`
+                    ) : (
+                      new Intl.DateTimeFormat("sk-SK", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      }).format(date)
+                    )}
                   </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => moveDate(1)}
-                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 p-1 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:p-3 sm:shadow-xs text-slate-700"
+                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 p-1 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:p-2.5 sm:shadow-xs text-slate-700"
                   aria-label="Nasledujúci deň"
                   title="Nasledujúci deň"
                 >
@@ -1509,7 +1883,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                 <button
                   type="button"
                   onClick={() => moveDate(7)}
-                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 p-1 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:p-3 sm:shadow-xs text-slate-700"
+                  className="shrink-0 cursor-pointer rounded-lg border border-slate-200 p-1 shadow-2xs hover:border-slate-400 hover:bg-slate-50 transition sm:rounded-xl sm:p-2.5 sm:shadow-xs text-slate-700"
                   aria-label="Nasledujúci týždeň (+7 dní)"
                   title="Nasledujúci týždeň (+7 dní)"
                 >
@@ -1533,257 +1907,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
             }}
           >
             <div className="w-full" style={{ minWidth: `${calendarMinWidth}px` }}>
-              <div className="grid border-b border-slate-200 bg-slate-50/80" style={{ gridTemplateColumns: calendarColumns }}>
-                <b className="sticky left-0 z-20 flex items-center justify-center text-center border-r border-slate-200 bg-slate-50 px-1.5 py-3 text-[10px] sm:text-[11px] font-extrabold tracking-wide text-slate-600 uppercase">KURT</b>
-                <div ref={timeGridRef} className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
-                  {hours.map((hour) => (
-                    <div key={hour} className="py-3.5 text-center text-xs font-bold text-slate-500 tracking-wide">{hour}:00</div>
-                  ))}
-                  {isToday && currentTimePercent > 0 && currentTimePercent < 100 && (
-                    <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
-                  )}
-                </div>
-                <div className="bg-slate-50/50" aria-hidden="true" />
-              </div>
-              {visibleCourts.map((court) => {
-                const courtHasHighlight = bookings.some(
-                  (b) => b.courtId === court.id && highlightedVoiceBookings.includes(b.id)
-                );
-                return (
-                  <div key={court.id} className={`grid border-b border-slate-100 py-1 ${courtHasHighlight ? "relative z-30" : ""}`} style={{ gridTemplateColumns: calendarColumns }}>
-                    <div className="sticky left-0 z-20 flex min-h-20 flex-col items-center justify-center text-center border-r border-slate-200 bg-white/95 px-1.5 shadow-[3px_0_10px_rgba(15,23,42,0.03)] backdrop-blur-xs">
-                      <b className="w-full text-center text-slate-900 font-bold text-[11px] sm:text-[11.5px] leading-tight tracking-tight whitespace-nowrap">{court.name}</b>
-                      <small className="mt-0.5 w-full text-center text-[9.5px] sm:text-[10px] text-slate-500 font-medium leading-tight tracking-tight whitespace-nowrap">{court.surface.replace(" Court", "")}</small>
-                    </div>
-                    <div className="relative grid" style={{ gridTemplateColumns: timeColumns }}>
-                      {hours.map((hour) => {
-                        const label = blockedLabel(court.id, sport, hour);
-                        const isPast = isToday
-                          ? hour <= now.getHours()
-                          : dateKey(date) < dateKey(now);
-                        const isClayPartial16 =
-                          sport === "tennis-clay" &&
-                          ["tennis-clay-10", "tennis-clay-11"].includes(court.id) &&
-                          hour === 16;
-
-                        const reschedStatus = reschedulingBooking ? getRescheduleSlotStatus(court.id, hour) : null;
-
-                        return (
-                          <div key={hour} className="p-1 h-full">
-                            {label ? (
-                              <div className="grid h-full min-h-[72px] cursor-not-allowed place-items-center rounded-2xl bg-amber-50/80 border border-amber-200/70 px-1 text-center text-[10px] font-bold text-amber-700 shadow-xs">
-                                {label}
-                              </div>
-                            ) : isPast ? (
-                              <div className="h-full min-h-[72px] cursor-not-allowed rounded-2xl bg-slate-100/40 border border-slate-200/40" />
-                            ) : reschedulingBooking ? (
-                              reschedStatus?.reason === "current" ? (
-                                <div className="flex flex-col items-center justify-center h-full min-h-[72px] rounded-2xl border-2 border-slate-300 bg-slate-100/80 text-slate-500 p-1 text-center shadow-xs">
-                                  <span className="text-[10px] font-bold leading-tight">Pôvodný termín</span>
-                                </div>
-                              ) : reschedStatus?.reason === "price_mismatch" ? (
-                                <div
-                                  className="flex flex-col items-center justify-center h-full min-h-[72px] rounded-2xl border border-slate-200/60 bg-slate-100/70 text-slate-400 p-1 text-center shadow-2xs cursor-not-allowed select-none"
-                                  title={`Iná cena: ${reschedStatus.targetPrice?.toFixed(2)} € (pôvodná: ${reschedOriginalPrice.toFixed(2)} €)`}
-                                >
-                                  <span className="text-[10px] font-semibold text-slate-400">Iná cena</span>
-                                  <span className="text-[9.5px] font-bold text-slate-400/80">{reschedStatus.targetPrice?.toFixed(0)} €</span>
-                                </div>
-                              ) : reschedStatus?.eligible ? (
-                                <button
-                                  type="button"
-                                  onClick={() => openSlot(court.id, hour)}
-                                  className="group flex flex-col items-center justify-center h-full min-h-[72px] w-full cursor-pointer rounded-2xl border-2 border-emerald-500 bg-emerald-50/90 hover:bg-emerald-100 hover:border-emerald-600 transition-all duration-150 hover:scale-[1.02] shadow-sm p-1"
-                                  title={`Presunúť sem (${hour}:00, ${reschedOriginalPrice.toFixed(2)} €)`}
-                                >
-                                  <CalendarSync className="h-4 w-4 text-emerald-600 group-hover:scale-110 transition-transform" />
-                                  <span className="mt-1 text-[10px] sm:text-[10.5px] font-extrabold text-emerald-800 leading-tight text-center">
-                                    Presunúť sem
-                                  </span>
-                                </button>
-                              ) : (
-                                <div className="h-full min-h-[72px] cursor-not-allowed rounded-2xl bg-slate-100/40 border border-slate-200/40" />
-                              )
-                            ) : isClayPartial16 ? (
-                              <div className="flex h-full min-h-[72px] w-full overflow-hidden rounded-2xl border border-slate-200/70 shadow-xs">
-                                {/* 16:00 - 16:30 (Otvorené na rezerváciu) */}
-                                {isPast ? (
-                                  <div className="h-full w-1/2 cursor-not-allowed bg-slate-100/40 border-r border-slate-200/50" />
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => openSlot(court.id, hour)}
-                                    className="group grid h-full w-1/2 cursor-pointer place-items-center bg-[#F1F5F9] border-r border-slate-200 transition-all duration-150 hover:bg-slate-200/90"
-                                    title="Rezervácia 16:00 – 16:30"
-                                  >
-                                    <Plus className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                  </button>
-                                )}
-                                {/* 16:30 - 17:00 (Mimo prevádzky - bez textu) */}
-                                <div
-                                  className="h-full w-1/2 cursor-not-allowed bg-amber-50/80 border-l border-amber-200/60"
-                                  title="Od 16:30 mimo prevádzky"
-                                />
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => openSlot(court.id, hour)}
-                                className="group grid h-full min-h-[72px] w-full cursor-pointer place-items-center rounded-2xl bg-[#F1F5F9] border border-slate-200/70 transition-all duration-150 hover:scale-[1.02] hover:bg-slate-200/90 hover:border-slate-300 shadow-xs"
-                              >
-                                <Plus className="h-4 w-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                      {isToday && pastPercent > 0 && (
-                        <div
-                          className="pointer-events-none absolute inset-y-0 left-0 z-[2]"
-                          style={{
-                            width: `${pastPercent}%`,
-                            background: "repeating-linear-gradient(135deg, rgba(148,163,184,0.18) 0px, rgba(148,163,184,0.18) 5px, rgba(241,245,249,0.3) 5px, rgba(241,245,249,0.3) 10px)",
-                          }}
-                        />
-                      )}
-                      <div className={`pointer-events-none absolute inset-0 ${courtHasHighlight ? "z-40" : "z-10"}`}>
-                        {bookings.filter((booking) => booking.courtId === court.id).map((booking) => {
-                          const isAdmin = currentUser?.role === "admin";
-                          const own = !!currentUser && currentUser.id === booking.user_id;
-                          const canManage = own || isAdmin;
-                          const voiceHighlight = highlightedVoiceBookings.includes(booking.id);
-                          const isTrainer = booking.userRole === "trainer";
-
-                          const nameLower = (booking.customerName || "").toLowerCase();
-                          const titleLower = (booking.title || "").toLowerCase();
-
-                          const isTraining =
-                            isTrainer ||
-                            nameLower.includes("tréning") ||
-                            titleLower.includes("tréning") ||
-                            nameLower.includes("trening") ||
-                            titleLower.includes("trening");
-
-                          const isAdminBlock =
-                            !isTraining &&
-                            (nameLower.includes("admin") || titleLower.includes("admin"));
-
-                          const isMaintenance =
-                            !isTraining &&
-                            !isAdminBlock &&
-                            (nameLower.includes("údržba") ||
-                              titleLower.includes("údržba") ||
-                              booking.status === "blocked" ||
-                              booking.source === "admin");
-
-                          const isAnyAdminOrBlock = isTraining || isAdminBlock || isMaintenance || booking.source === "admin" || booking.status === "blocked";
-
-                          // Decide styling and text based on role
-                          let bookingClasses = "";
-                          let labelText = "";
-
-                          if (isAdmin) {
-                            if (isTraining) {
-                              // 4. screen: Tréningy (farba zo 4. screenu: ružová / rose pastel)
-                              labelText = "Tréningy";
-                              bookingClasses = "border-[#EAAECF] bg-[#F4CDE4] text-slate-950 font-bold shadow-xs hover:bg-[#EEBDDC]";
-                            } else if (isAdminBlock) {
-                              // 3. screen: Rezervácia Admin (farba z 3. screenu: orgovánová / fialková pastel)
-                              labelText = "Rezervácia Admin";
-                              bookingClasses = "border-[#C0A0E0] bg-[#DCC7F0] text-slate-950 font-bold shadow-xs hover:bg-[#D2B8EC]";
-                            } else if (isMaintenance) {
-                              // 2. screen: Údržba kurtov (farba z 2. screenu: koralová / lososová pastel)
-                              labelText = "Údržba kurtov";
-                              bookingClasses = "border-[#F29E9E] bg-[#FFC9C9] text-slate-950 font-bold shadow-xs hover:bg-[#FFBABA]";
-                            } else {
-                              // Svetložltá z pastelovej palety pre klienta s tmavým textom
-                              labelText = booking.customerName || booking.title || "Rezervácia";
-                              bookingClasses = "border-[#EAD77B] bg-[#FFF3B0] text-slate-950 font-bold shadow-xs hover:bg-[#FEECA0]";
-                            }
-                          } else {
-                            if (isAnyAdminOrBlock) {
-                              labelText = isMaintenance ? "Údržba" : "Obsadené";
-                              bookingClasses = "border-slate-400 bg-slate-500 text-white font-semibold shadow-xs";
-                            } else if (own) {
-                              labelText = "Vaša rezervácia";
-                              bookingClasses = "border-emerald-300 bg-[#DCFCE7] text-emerald-950 font-bold shadow-xs hover:bg-[#BBF7D0]";
-                            } else {
-                              labelText = "Obsadené";
-                              bookingClasses = "border-slate-300 bg-[#CBD5E1] text-slate-800 font-semibold shadow-xs";
-                            }
-                          }
-                          const isBeingRescheduled = reschedulingBooking?.id === booking.id;
-                          if (isBeingRescheduled) {
-                            labelText = "Presúva sa...";
-                            bookingClasses = "border-2 border-dashed border-emerald-500 bg-emerald-100/90 text-emerald-950 font-bold ring-2 ring-emerald-400";
-                          }
-
-                          return (
-                            <div
-                              key={booking.id}
-                              className={`absolute inset-y-0 p-1 ${voiceHighlight ? "z-50" : ""}`}
-                              style={position(booking)}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (reschedulingBooking) {
-                                    if (booking.id === reschedulingBooking.id) {
-                                      setNotice("Túto rezerváciu práve presúvate. Vyberte zelené okienko [Presunúť sem] pre nový termín.");
-                                    } else {
-                                      setNotice("Tento termín je už obsadený inou rezerváciou.");
-                                    }
-                                    return;
-                                  }
-                                  if (canManage) setDetail(booking);
-                                }}
-                                className={`pointer-events-auto h-full w-full overflow-hidden rounded-2xl border px-1.5 py-1 text-center transition duration-150 hover:scale-[1.01] flex flex-col items-center justify-center ${voiceHighlight ? "booking-magnify-drop" : ""
-                                  } ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${bookingClasses}`}
-                                title={canManage ? `Detail: ${labelText}` : (isAnyAdminOrBlock ? "Údržba" : "Obsadené")}
-                              >
-
-                                {isAdmin ? (
-                                  <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(8px,0.65vw,11px)] font-bold leading-tight select-none pointer-events-none tracking-tight">
-                                    {booking.recurringGroupId && (
-                                      <Repeat className="h-2.5 w-2.5 mb-0.5 opacity-75 shrink-0" />
-                                    )}
-                                    {labelText.split(" ").filter(Boolean).map((part, idx) => (
-                                      <span key={idx} className="block leading-[1.15] whitespace-nowrap max-w-full">
-                                        {part}
-                                      </span>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div className={`relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center font-sans select-none pointer-events-none ${own ? "text-emerald-950" : (isAnyAdminOrBlock ? "text-white" : "text-slate-800")
-                                    }`}>
-                                    <span className="block text-[clamp(8.5px,0.65vw,11px)] font-bold leading-tight tracking-tight whitespace-nowrap inline-flex items-center gap-1 justify-center">
-                                      {booking.recurringGroupId && (
-                                        <Repeat className="h-2.5 w-2.5 opacity-75 shrink-0" />
-                                      )}
-                                      {formatCompactInterval(booking.start, booking.end)}
-                                    </span>
-                                    <div className="mt-0.5 flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(8px,0.6vw,10.5px)] font-bold leading-[1.1] tracking-tight">
-                                      {labelText.split(" ").filter(Boolean).map((part, idx) => (
-                                        <span key={idx} className="block whitespace-nowrap max-w-full">
-                                          {part}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {isToday && currentTimePercent > 0 && currentTimePercent < 100 && (
-                        <div className="pointer-events-none absolute inset-y-0 z-20 border-l-2 border-dashed border-[#84CC16]" style={{ left: `${currentTimePercent}%` }} />
-                      )}
-                    </div>
-                    <div className="bg-slate-50/20" aria-hidden="true" />
-                  </div>
-                );
-              })}
+              {viewMode === "day"
+                ? renderDaySection(date, true, false)
+                : weekDays.map((day, idx) => renderDaySection(day, idx === 0, true))}
             </div>
           </div>
         </section>
