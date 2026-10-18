@@ -53,6 +53,37 @@ export async function fetchPricelistsAction(): Promise<{
   }
 }
 
+export async function getActivePricelist(): Promise<NtcPricelist> {
+  try {
+    const db = getCoreDb();
+    const { data, error } = await db
+      .from("ntc_pricelists")
+      .select("id, name, valid_from, valid_to, is_active, non_member_surcharge_eur, intervals, discount_tiers")
+      .or(`tenant_id.eq.${TENANT_ID},tenant_id.eq.default`)
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+
+    if (data) {
+      return {
+        id: data.id,
+        name: data.name,
+        validFrom: data.valid_from,
+        validTo: data.valid_to,
+        isActive: true,
+        nonMemberSurchargeEur: Number(data.non_member_surcharge_eur) || 2.00,
+        intervals: typeof data.intervals === "string" ? JSON.parse(data.intervals) : (data.intervals || []),
+        discountTiers: typeof data.discount_tiers === "string" ? JSON.parse(data.discount_tiers) : (data.discount_tiers || DEFAULT_DISCOUNT_TIERS),
+      };
+    }
+  } catch (err: any) {
+    console.error("getActivePricelist error, fallback to in-memory:", err);
+  }
+
+  const activeInMemory = inMemoryPricelists.find((p) => p.isActive);
+  return activeInMemory || DEFAULT_NTC_WINTER_PRICELIST;
+}
+
 export async function savePricelistAction(pricelist: NtcPricelist): Promise<{
   success: boolean;
   error?: string;

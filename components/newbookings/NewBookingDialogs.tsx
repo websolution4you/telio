@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Calendar, CalendarSync, ChevronDown, ChevronLeft, ChevronRight, Clock3, Coins, CreditCard, List, Loader2, MessageSquare, Phone, Repeat, Sparkles, Trash2, User, X } from "lucide-react";
 import type { Booking, Court } from "@/lib/bookings/mockBookings";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
+import type { NtcPricelist } from "@/lib/bookings/pricingTypes";
 import { formatDuration } from "@/lib/bookings/rolePolicy";
 import { fetchSeriesBookingsAction } from "@/app/actions/bookings";
 
@@ -122,6 +123,7 @@ type CreateDialogProps = {
   discountEurPerHour: number;
   multisportCardsCount: 0 | 1 | 2;
   onMultisportCardsCount: (count: 0 | 1 | 2) => void;
+  pricelist?: NtcPricelist;
   error?: string;
   loading: boolean;
   walletBalance?: number | null;
@@ -190,7 +192,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
     Boolean(props.hasCard),
     props.discountEurPerHour,
     props.multisportCardsCount,
-    undefined,
+    props.pricelist,
     props.userDiscountTierId
   );
 

@@ -16,6 +16,7 @@ import type { BookingUser } from "@/lib/auth/bookingAuth";
 import type { Booking, Court, SportType } from "@/lib/bookings/mockBookings";
 import { openingHours } from "@/lib/bookings/mockBookings";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
+import type { NtcPricelist } from "@/lib/bookings/pricingTypes";
 import { getCourtOperatingLimitMinutes, getDurationOptions, type RoleBookingPolicy } from "@/lib/bookings/rolePolicy";
 
 import HolographicTennisCourt from "./HolographicTennisCourt";
@@ -29,6 +30,7 @@ type Props = {
   currentUser: BookingUser | null;
   rolePolicy: RoleBookingPolicy | null;
   initialWalletBalance?: number | null;
+  activePricelist?: NtcPricelist;
 };
 type Slot = { courtId: string; date: Date; hour: number };
 
@@ -227,7 +229,7 @@ function playTennisHitSound() {
   }
 }
 
-export default function NewBookingsCalendar({ courts, initialBookings, currentUser: initialCurrentUser, rolePolicy: initialRolePolicy, initialWalletBalance }: Props) {
+export default function NewBookingsCalendar({ courts, initialBookings, currentUser: initialCurrentUser, rolePolicy: initialRolePolicy, initialWalletBalance, activePricelist }: Props) {
   const router = useRouter();
   const voiceHighlightTimers = useRef(new Map<string, number>());
   const [currentUser, setCurrentUser] = useState(initialCurrentUser);
@@ -341,10 +343,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       isRegistered,
       roleDiscount,
       reschedulingBooking.multisportCardsCount || 0,
-      undefined,
+      activePricelist,
       currentUser?.discountTierId
     ).totalPriceEur;
-  }, [reschedulingBooking, reschedDurationMin, currentUser, rolePolicy]);
+  }, [reschedulingBooking, reschedDurationMin, currentUser, rolePolicy, activePricelist]);
   const [now, setNow] = useState(() => new Date());
   const [highlightedVoiceBookings, setHighlightedVoiceBookings] = useState<string[]>([]);
   const handledRecurringSoundGroups = useRef(new Set<string>());
@@ -1135,7 +1137,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         isRegistered,
         roleDiscount,
         reschedulingBooking.multisportCardsCount || 0,
-        undefined,
+        activePricelist,
         currentUser?.discountTierId
       );
       if (Math.abs(calc.totalPriceEur - reschedOriginalPrice) > 0.05) {
@@ -1144,7 +1146,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     }
 
     return { eligible: true };
-  }, [reschedulingBooking, now, date, reschedDurationMin, blockedLabel, sport, items, currentUser, rolePolicy, reschedOriginalPrice]);
+  }, [reschedulingBooking, now, date, reschedDurationMin, blockedLabel, sport, items, currentUser, rolePolicy, reschedOriginalPrice, activePricelist]);
 
   const handleConfirmReschedule = async () => {
     if (!reschedulingBooking || !rescheduleSlot) return;
@@ -2090,6 +2092,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           date={slot.date}
           hour={slot.hour}
           duration={duration}
+          pricelist={activePricelist}
           durationOptions={getAvailableDurationOptions(slot.courtId, new Date(new Date(slot.date).setHours(slot.hour, 0, 0, 0)))}
           discountEurPerHour={rolePolicy?.discountEurPerHour ?? 0}
           userDiscountTierId={currentUser?.discountTierId}

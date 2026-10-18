@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache";
 import { getSession, type BookingRole } from "@/lib/auth/bookingAuth";
 import { walletEnabledForUser } from "@/lib/server/wallet";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
+import { getActivePricelist } from "@/app/actions/pricelists";
 import { getBratislavaDateKey, getCourtOperatingLimitMinutes, isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
 
 
@@ -322,6 +323,7 @@ export async function createBookingAction(payload: {
         const isRegistered = Boolean(bookingUser);
         const multisportCount = Math.min(2, Math.max(0, Math.floor(payload.multisportCardsCount || 0)));
 
+        const activePricelist = await getActivePricelist();
         const pricingResult = calculateNtcBookingPrice(
             payload.courtId,
             payload.start,
@@ -329,7 +331,7 @@ export async function createBookingAction(payload: {
             isRegistered,
             roleDiscountEurPerHour,
             multisportCount,
-            undefined,
+            activePricelist,
             (bookingUser as any)?.discount_tier_id
         );
         const calculatedPrice = session.role === "admin" ? 0.00 : pricingResult.totalPriceEur;
@@ -875,6 +877,7 @@ export async function fetchSeriesBookingsAction(recurringGroupId: string) {
             .from("bookings")
             .select("id, start_at, end_at, status, notes, customer_name, court_id")
             .eq("tenant_id", TENANT_ID)
+            .like("notes", `%${recurringGroupId}%`)
             .order("start_at", { ascending: true });
 
         if (error) throw error;
@@ -946,6 +949,7 @@ export async function deleteBookingAction(id: string, deleteEntireSeries = false
                 .from("bookings")
                 .select("id, notes, start_at")
                 .eq("tenant_id", TENANT_ID)
+                .like("notes", `%${recurringGroupId}%`)
                 .neq("status", "cancelled")
                 .gte("start_at", booking.start_at);
 
@@ -1124,6 +1128,8 @@ export async function rescheduleBookingAction(payload: {
             const multisportCount = Number(notesObj.multisportCardsCount || 0);
             const userDiscountTierId = (policyData as any)?.discount_tier_id;
 
+            const activePricelist = await getActivePricelist();
+
             const originalPrice = booking.price_eur != null
                 ? Number(booking.price_eur)
                 : calculateNtcBookingPrice(
@@ -1133,7 +1139,7 @@ export async function rescheduleBookingAction(payload: {
                     isRegistered,
                     roleDiscount,
                     multisportCount,
-                    undefined,
+                    activePricelist,
                     userDiscountTierId
                 ).totalPriceEur;
 
@@ -1144,7 +1150,7 @@ export async function rescheduleBookingAction(payload: {
                 isRegistered,
                 roleDiscount,
                 multisportCount,
-                undefined,
+                activePricelist,
                 userDiscountTierId
             );
 
