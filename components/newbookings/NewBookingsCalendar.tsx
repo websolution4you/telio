@@ -348,6 +348,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [now, setNow] = useState(() => new Date());
   const [highlightedVoiceBookings, setHighlightedVoiceBookings] = useState<string[]>([]);
   const handledRecurringSoundGroups = useRef(new Set<string>());
+  const knownBookingIds = useRef<Set<string>>(new Set(initialBookings.map((b) => b.id)));
   const today = useMemo(() => { const value = new Date(); value.setHours(0, 0, 0, 0); return value; }, []);
   const bookingHorizonDays = rolePolicy?.bookingHorizonDays ?? 14;
   const maxDate = useMemo(() => {
@@ -599,6 +600,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       const result = await fetchBookingsAction(start.toISOString(), end.toISOString());
       if (active && result.success && result.bookings) {
         const fetched = result.bookings as Booking[];
+        for (const b of fetched) {
+          knownBookingIds.current.add(b.id);
+        }
         setItems((prev) => {
           const freshMap = new Map(prev.map((b) => [b.id, b]));
           for (const b of fetched) {
@@ -630,20 +634,14 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         const raw = payload.new as any;
         if (!raw?.id) return;
 
+        const bookingId = raw.id;
+        const alreadyKnown = knownBookingIds.current.has(bookingId);
+        knownBookingIds.current.add(bookingId);
+
         let notesObj: any = {};
         try {
           notesObj = typeof raw.notes === "string" ? JSON.parse(raw.notes) : (raw.notes || {});
         } catch { }
-
-        const recurringId = notesObj.recurringGroupId;
-        if (recurringId) {
-          if (!handledRecurringSoundGroups.current.has(recurringId)) {
-            handledRecurringSoundGroups.current.add(recurringId);
-            playTennisHitSound();
-          }
-        } else {
-          playTennisHitSound();
-        }
 
         const resolvedCourtId = notesObj.courtId || raw.court_id || raw.courtId || "badminton-1";
         const mappedBooking: Booking = {
@@ -665,15 +663,36 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           return [...filtered, mappedBooking];
         });
 
-        const bookingId = raw.id;
-        setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
-        const existingTimer = timers.get(bookingId);
-        if (existingTimer) window.clearTimeout(existingTimer);
-        const timer = window.setTimeout(() => {
-          setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
-          timers.delete(bookingId);
-        }, 3000);
-        timers.set(bookingId, timer);
+        // If booking was already handled by our own submit action, skip sound and re-animation
+        if (alreadyKnown) return;
+
+        const recurringId = notesObj.recurringGroupId;
+        if (recurringId) {
+          if (!handledRecurringSoundGroups.current.has(recurringId)) {
+            handledRecurringSoundGroups.current.add(recurringId);
+            playTennisHitSound();
+          }
+        } else {
+          playTennisHitSound();
+        }
+
+        // Only animate if this booking falls on the currently viewed date / week
+        const bStart = new Date(raw.start_at);
+        const bKey = dateKey(bStart);
+        const isVisibleNow = viewMode === "week"
+          ? bKey >= dateKey(date) && bKey <= dateKey(weekEndDate)
+          : bKey === dateKey(date);
+
+        if (isVisibleNow) {
+          setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
+          const existingTimer = timers.get(bookingId);
+          if (existingTimer) window.clearTimeout(existingTimer);
+          const timer = window.setTimeout(() => {
+            setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
+            timers.delete(bookingId);
+          }, 3000);
+          timers.set(bookingId, timer);
+        }
       } else if (payload.eventType === "DELETE") {
         const oldId = (payload.old as any)?.id;
         if (oldId) {
@@ -716,10 +735,13 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
       const freshBookings = result.bookings as Booking[];
       setItems((prevItems) => {
-        const prevIds = new Set(prevItems.map((b) => b.id));
         const newArrivals = freshBookings.filter(
-          (fb) => !prevIds.has(fb.id) && fb.status !== "cancelled"
+          (fb) => !knownBookingIds.current.has(fb.id) && fb.status !== "cancelled"
         );
+
+        for (const fb of freshBookings) {
+          knownBookingIds.current.add(fb.id);
+        }
 
         if (newArrivals.length > 0) {
           const unplayedArrivals = newArrivals.filter((b) => {
@@ -734,14 +756,21 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           }
           for (const nb of newArrivals) {
             const bookingId = nb.id;
-            setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
-            const existingTimer = timers.get(bookingId);
-            if (existingTimer) window.clearTimeout(existingTimer);
-            const timer = window.setTimeout(() => {
-              setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
-              timers.delete(bookingId);
-            }, 3000);
-            timers.set(bookingId, timer);
+            const bKey = dateKey(new Date(nb.start));
+            const isVisibleNow = viewMode === "week"
+              ? bKey >= dateKey(date) && bKey <= dateKey(weekEndDate)
+              : bKey === dateKey(date);
+
+            if (isVisibleNow) {
+              setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
+              const existingTimer = timers.get(bookingId);
+              if (existingTimer) window.clearTimeout(existingTimer);
+              const timer = window.setTimeout(() => {
+                setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
+                timers.delete(bookingId);
+              }, 3000);
+              timers.set(bookingId, timer);
+            }
           }
         }
         const freshMap = new Map(prevItems.map((b) => [b.id, b]));
@@ -766,6 +795,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       window.clearInterval(pollInterval);
       timers.forEach((timer) => window.clearTimeout(timer));
       timers.clear();
+      setHighlightedVoiceBookings([]);
     };
   }, [currentUser, date, viewMode]);
 
@@ -1202,6 +1232,9 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       }
 
       const newBookings = result.bookings as Booking[];
+      for (const nb of newBookings) {
+        knownBookingIds.current.add(nb.id);
+      }
       setItems((current) => [...current, ...newBookings]);
       setSlot(null);
       setIsRecurring(false);
@@ -1210,7 +1243,32 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
       const createdGroupId = newBookings[0]?.recurringGroupId;
       if (createdGroupId) {
+        handledRecurringSoundGroups.current.add(createdGroupId);
         setSeriesOverviewGroupId(createdGroupId);
+      }
+
+      playTennisHitSound();
+
+      // Trigger magnify-drop animation ONLY on the booking visible on the current screen
+      const visibleBooking = newBookings.find((b) => {
+        const bKey = dateKey(new Date(b.start));
+        if (viewMode === "week") {
+          return bKey >= dateKey(date) && bKey <= dateKey(weekEndDate);
+        }
+        return bKey === dateKey(date);
+      }) || newBookings[0];
+
+      if (visibleBooking) {
+        const vId = visibleBooking.id;
+        const timers = voiceHighlightTimers.current;
+        setHighlightedVoiceBookings((current) => current.includes(vId) ? current : [...current, vId]);
+        const existingTimer = timers.get(vId);
+        if (existingTimer) window.clearTimeout(existingTimer);
+        const timer = window.setTimeout(() => {
+          setHighlightedVoiceBookings((current) => current.filter((id) => id !== vId));
+          timers.delete(vId);
+        }, 3000);
+        timers.set(vId, timer);
       }
 
       if (result.skippedDates && result.skippedDates.length > 0) {
@@ -1241,8 +1299,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     if (!result.success || !result.booking) return setNotice(result.error || "Rezerváciu sa nepodarilo vytvoriť.");
     if (result.wallet && currentUser.role !== "admin") setWalletBalance(result.wallet.balanceEur);
     const newBooking = result.booking as Booking;
+    knownBookingIds.current.add(newBooking.id);
+    playTennisHitSound();
     setItems((current) => [...current, newBooking]);
-    // Trigger highlight animation on the new booking box for 5 seconds
+    // Trigger highlight animation on the new booking box for 3 seconds
     const newId = newBooking.id;
     const timers = voiceHighlightTimers.current;
     setHighlightedVoiceBookings((current) => current.includes(newId) ? current : [...current, newId]);
