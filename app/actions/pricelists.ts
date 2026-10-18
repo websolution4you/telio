@@ -180,3 +180,63 @@ export async function setActivePricelistAction(id: string): Promise<{
     return { success: false, error: err.message || "Chyba pri aktivácii cenníka." };
   }
 }
+
+export async function deletePricelistAction(id: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const session = await getSession();
+    if (!session || session.role !== "admin") {
+      return { success: false, error: "Iba administrátor môže zmazať cenník." };
+    }
+
+    try {
+      const serviceDb = getCoreServiceDb();
+      const { data: dbRows, error: dbErr } = await serviceDb
+        .from("ntc_pricelists")
+        .select("id, name, is_active")
+        .or(`tenant_id.eq.${TENANT_ID},tenant_id.eq.default`);
+
+      if (!dbErr && dbRows && dbRows.length > 0) {
+        if (dbRows.length <= 1) {
+          return { success: false, error: "Nemôžete zmazať posledný zostávajúci cenník." };
+        }
+
+        const target = dbRows.find((p) => p.id === id);
+        if (target && target.is_active) {
+          return { success: false, error: "Nemôžete zmazať aktívny cenník. Najprv nastavte iný cenník ako aktívny." };
+        }
+
+        const { error: delErr } = await serviceDb
+          .from("ntc_pricelists")
+          .delete()
+          .eq("tenant_id", TENANT_ID)
+          .eq("id", id);
+
+        if (delErr) {
+          return { success: false, error: delErr.message || "Chyba pri mazaní cenníka z databázy." };
+        }
+
+        inMemoryPricelists = inMemoryPricelists.filter((p) => p.id !== id);
+        return { success: true };
+      }
+    } catch (e) {
+      console.warn("Database sync check failed, falling back to memory:", e);
+    }
+
+    if (inMemoryPricelists.length <= 1) {
+      return { success: false, error: "Nemôžete zmazať posledný zostávajúci cenník." };
+    }
+
+    const toDelete = inMemoryPricelists.find((p) => p.id === id);
+    if (toDelete?.isActive) {
+      return { success: false, error: "Nemôžete zmazať aktívny cenník. Najprv nastavte iný cenník ako aktívny." };
+    }
+
+    inMemoryPricelists = inMemoryPricelists.filter((p) => p.id !== id);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Chyba pri zmazaní cenníka." };
+  }
+}

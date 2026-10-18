@@ -46,6 +46,7 @@ export const DEFAULT_DISCOUNT_TIERS: DiscountTier[] = [
     discountPercent: 10,
     price60: 9,
     price120: 0,
+    isDefault: true,
   },
   {
     id: "tier-20",
@@ -55,6 +56,7 @@ export const DEFAULT_DISCOUNT_TIERS: DiscountTier[] = [
     discountPercent: 20,
     price60: 8,
     price120: 0,
+    isDefault: true,
   },
   {
     id: "tier-50",
@@ -64,24 +66,7 @@ export const DEFAULT_DISCOUNT_TIERS: DiscountTier[] = [
     discountPercent: 50,
     price60: 5,
     price120: 0,
-  },
-  {
-    id: "tier-regular",
-    name: "Bežná cena",
-    isPercentual: true,
-    percentageOfBase: 100,
-    discountPercent: 0,
-    price60: 10,
-    price120: 0,
-  },
-  {
-    id: "tier-cash",
-    name: "Hotovosť",
-    isPercentual: true,
-    percentageOfBase: 100,
-    discountPercent: 0,
-    price60: 10,
-    price120: 0,
+    isDefault: true,
   },
 ];
 

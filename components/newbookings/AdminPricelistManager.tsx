@@ -17,9 +17,11 @@ import {
   Info,
   Loader2,
   Percent,
+  Pencil,
   Plus,
   Save,
   Sparkles,
+  Sun,
   Trash2,
 } from "lucide-react";
 import {
@@ -33,7 +35,18 @@ import {
   fetchPricelistsAction,
   savePricelistAction,
   setActivePricelistAction,
+  deletePricelistAction,
 } from "@/app/actions/pricelists";
+import {
+  areDaysSame,
+  getIntervalRank,
+  getShortIntervalName,
+  realignAllIntervals,
+  sortIntervalsLogically,
+} from "@/lib/bookings/intervalUtils";
+import CreatePricelistModal from "./CreatePricelistModal";
+import EditIntervalModal from "./EditIntervalModal";
+import PriceStepper from "./PriceStepper";
 
 export default function AdminPricelistManager() {
   const [pricelists, setPricelists] = useState<NtcPricelist[]>([DEFAULT_NTC_WINTER_PRICELIST]);
@@ -41,20 +54,69 @@ export default function AdminPricelistManager() {
   const [current, setCurrent] = useState<NtcPricelist>(DEFAULT_NTC_WINTER_PRICELIST);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [intervalModalOpen, setIntervalModalOpen] = useState(false);
+  const [editingInterval, setEditingInterval] = useState<Partial<PriceInterval> | null>(null);
+  const [intervalModalTitle, setIntervalModalTitle] = useState("Pridať časové pásmo");
+  const [showDeletePricelistConfirm, setShowDeletePricelistConfirm] = useState(false);
+  const [deleteModalError, setDeleteModalError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [previewTierId, setPreviewTierId] = useState<string>("tier-10");
-  const [basePrice60, setBasePrice60] = useState<number>(10);
-  const [basePrice120, setBasePrice120] = useState<number>(0);
+  const [customTierDirty, setCustomTierDirty] = useState<Record<string, boolean>>({});
+
+  const sanitizeTiers = (tiers?: DiscountTier[]): DiscountTier[] => {
+    if (!tiers || tiers.length === 0) return DEFAULT_DISCOUNT_TIERS;
+    const filtered = tiers.filter((t) => t.id !== "tier-regular" && t.id !== "tier-cash");
+    return filtered.length > 0 ? filtered : DEFAULT_DISCOUNT_TIERS;
+  };
+
+  const sanitizeIntervalDays = (intervals: PriceInterval[]): PriceInterval[] => {
+    return intervals.map((inv) => {
+      const lower = (inv.name || "").toLowerCase();
+      // If it's a weekday band by name, ensure it's Po-Pi
+      if (
+        lower.includes("mimo") ||
+        lower.includes("happy") ||
+        lower.includes("špičk") ||
+        lower.includes("spick") ||
+        lower.includes("pondelok") ||
+        lower.includes("piatok")
+      ) {
+        if (!areDaysSame(inv.days, [1, 2, 3, 4, 5])) {
+          return { ...inv, days: [1, 2, 3, 4, 5] };
+        }
+      }
+      // If it's a weekend band by name, ensure it's So-Ne
+      if (
+        lower.includes("víkend") ||
+        lower.includes("vikend") ||
+        lower.includes("sobota") ||
+        lower.includes("nedeľa")
+      ) {
+        if (!areDaysSame(inv.days, [6, 0])) {
+          return { ...inv, days: [6, 0] };
+        }
+      }
+      return inv;
+    });
+  };
 
   useEffect(() => {
     let active = true;
     fetchPricelistsAction().then((res) => {
       if (!active) return;
       if (res.success && res.pricelists.length > 0) {
-        setPricelists(res.pricelists);
-        const activeOne = res.pricelists.find((p) => p.isActive) || res.pricelists[0];
+        const sanitizedList = res.pricelists.map((p) => ({
+          ...p,
+          intervals: sanitizeIntervalDays(p.intervals),
+        }));
+        setPricelists(sanitizedList);
+        const activeOne = sanitizedList.find((p) => p.isActive) || sanitizedList[0];
         setSelectedId(activeOne.id);
-        setCurrent(JSON.parse(JSON.stringify(activeOne)));
+        const cloned = JSON.parse(JSON.stringify(activeOne));
+        cloned.discountTiers = sanitizeTiers(cloned.discountTiers);
+        cloned.intervals = realignAllIntervals(cloned.intervals);
+        setCurrent(cloned);
       }
       setLoading(false);
     });
@@ -67,7 +129,10 @@ export default function AdminPricelistManager() {
     const found = pricelists.find((p) => p.id === id);
     if (found) {
       setSelectedId(id);
-      setCurrent(JSON.parse(JSON.stringify(found)));
+      const cloned = JSON.parse(JSON.stringify(found));
+      cloned.discountTiers = sanitizeTiers(cloned.discountTiers);
+      cloned.intervals = realignAllIntervals(sanitizeIntervalDays(cloned.intervals));
+      setCurrent(cloned);
       setFeedback(null);
     }
   };
@@ -92,29 +157,6 @@ export default function AdminPricelistManager() {
         };
       }),
     }));
-  };
-
-  const areDaysSame = (a: number[], b: number[]) =>
-    a.length === b.length && a.every((d) => b.includes(d));
-
-  const sortIntervalsLogically = (intervals: PriceInterval[]): PriceInterval[] => {
-    return [...intervals].sort((a, b) => {
-      // 1. Day group: weekdays (Po=1 .. Pi=5) come first, weekends (So=6, Ne=7) later
-      const minDayA = Math.min(...a.days.map((d) => (d === 0 ? 7 : d)));
-      const minDayB = Math.min(...b.days.map((d) => (d === 0 ? 7 : d)));
-
-      if (minDayA !== minDayB) {
-        return minDayA - minDayB;
-      }
-
-      // 2. Larger day groups come before smaller subsets
-      if (a.days.length !== b.days.length) {
-        return b.days.length - a.days.length;
-      }
-
-      // 3. Chronologically by start hour
-      return a.startHour - b.startHour;
-    });
   };
 
   const handleSortIntervals = () => {
@@ -147,103 +189,29 @@ export default function AdminPricelistManager() {
     changedField?: "startHour" | "endHour"
   ) => {
     setCurrent((prev) => {
-      const idx = prev.intervals.findIndex((i) => i.id === intervalId);
-      if (idx === -1) return prev;
-
-      const currentInv = prev.intervals[idx];
-
       const updated = prev.intervals.map((inv) =>
-        inv.id === intervalId ? { ...inv, startHour, endHour, name } : inv
+        inv.id === intervalId ? { ...inv, name } : inv
       );
-
-      // Auto-chain consecutive intervals for the same days
-      if (changedField === "endHour") {
-        for (let i = idx + 1; i < updated.length; i++) {
-          if (areDaysSame(updated[i].days, currentInv.days)) {
-            const nextOldEnd = updated[i].endHour;
-            updated[i] = {
-              ...updated[i],
-              startHour: endHour,
-              endHour: Math.max(endHour + 1, nextOldEnd),
-            };
-            break;
-          }
-        }
-      } else if (changedField === "startHour") {
-        for (let i = idx - 1; i >= 0; i--) {
-          if (areDaysSame(updated[i].days, currentInv.days)) {
-            const prevOldStart = updated[i].startHour;
-            updated[i] = {
-              ...updated[i],
-              endHour: startHour,
-              startHour: Math.min(startHour - 1, prevOldStart),
-            };
-            break;
-          }
-        }
-      }
-
-      return { ...prev, intervals: updated };
+      return {
+        ...prev,
+        intervals: realignAllIntervals(
+          updated,
+          intervalId,
+          changedField,
+          changedField === "startHour" ? startHour : endHour
+        ),
+      };
     });
   };
 
   const handleAutoAlignIntervals = () => {
-    setCurrent((prev) => {
-      const updated = [...prev.intervals];
-
-      // Find unique day groups
-      const uniqueDayGroups: number[][] = [];
-      for (const inv of updated) {
-        if (!uniqueDayGroups.some((d) => areDaysSame(d, inv.days))) {
-          uniqueDayGroups.push(inv.days);
-        }
-      }
-
-      for (const days of uniqueDayGroups) {
-        const groupIndices: number[] = [];
-        updated.forEach((inv, idx) => {
-          if (areDaysSame(inv.days, days)) {
-            groupIndices.push(idx);
-          }
-        });
-
-        groupIndices.sort((a, b) => updated[a].startHour - updated[b].startHour);
-        if (groupIndices.length === 0) continue;
-
-        // 1. Force first interval to start at 7:00 (opening time)
-        const firstIdx = groupIndices[0];
-        const firstOldEnd = updated[firstIdx].endHour;
-        updated[firstIdx] = {
-          ...updated[firstIdx],
-          startHour: 7,
-          endHour: Math.max(8, firstOldEnd),
-        };
-
-        // 2. Chain intermediate intervals
-        for (let k = 0; k < groupIndices.length - 1; k++) {
-          const currIdx = groupIndices[k];
-          const nextIdx = groupIndices[k + 1];
-          const currEnd = updated[currIdx].endHour;
-          const nextOldEnd = updated[nextIdx].endHour;
-
-          updated[nextIdx] = {
-            ...updated[nextIdx],
-            startHour: currEnd,
-            endHour: Math.max(currEnd + 1, nextOldEnd),
-          };
-        }
-
-        // 3. Ensure last interval ends at least at 21:00 (closing time)
-        const lastIdx = groupIndices[groupIndices.length - 1];
-        if (updated[lastIdx].endHour < 21) {
-          updated[lastIdx] = {
-            ...updated[lastIdx],
-            endHour: 21,
-          };
-        }
-      }
-
-      return { ...prev, intervals: sortIntervalsLogically(updated) };
+    setCurrent((prev) => ({
+      ...prev,
+      intervals: realignAllIntervals(prev.intervals),
+    }));
+    setFeedback({
+      type: "success",
+      message: "Časové pásma boli automaticky zosúladené.",
     });
   };
 
@@ -350,123 +318,199 @@ export default function AdminPricelistManager() {
     return alerts;
   }, [current.intervals]);
 
-  const handleAddInterval = (groupType: "weekday" | "weekend" | "custom" = "weekday") => {
-    const newId = `interval-${Date.now()}`;
-    const days =
-      groupType === "weekday"
-        ? [1, 2, 3, 4, 5]
-        : groupType === "weekend"
-        ? [6, 0]
-        : [1, 2, 3, 4, 5];
-
-    // Find existing intervals for this day group
-    const existing = current.intervals
-      .filter((i) => areDaysSame(i.days, days))
-      .sort((a, b) => a.startHour - b.startHour);
-
-    let startHour = 7;
-    let endHour = 21;
-    let name =
-      groupType === "weekday"
-        ? "Pracovné dni (Nové pásmo)"
-        : groupType === "weekend"
-        ? "Víkend (Nové pásmo)"
-        : "Vlastné časové pásmo";
-
-    if (existing.length === 1) {
-      // Split the single interval into two: e.g. 7-14 and 14-21
-      const first = existing[0];
-      const mid = Math.round((first.startHour + first.endHour) / 2);
-      const updatedIntervals = current.intervals.map((inv) =>
-        inv.id === first.id ? { ...inv, endHour: mid } : inv
+  const handleOpenAddIntervalModal = (type: "happy" | "weekday" | "weekend") => {
+    if (type === "happy") {
+      const hasHappyHour = current.intervals.some(
+        (i) =>
+          areDaysSame(i.days, [1, 2, 3, 4, 5]) &&
+          (i.name.toLowerCase().includes("happy") || (i.startHour === 12 && i.endHour === 16))
       );
-      startHour = mid;
-      endHour = first.endHour;
-      const newInv: PriceInterval = {
-        id: newId,
-        name,
-        days,
-        startHour,
-        endHour,
-        prices: { ...first.prices },
-      };
-      setCurrent((prev) => ({
-        ...prev,
-        intervals: sortIntervalsLogically([...updatedIntervals, newInv]),
-      }));
-      return;
-    } else if (existing.length >= 2) {
-      // Split the last interval into two
-      const last = existing[existing.length - 1];
-      const prevStart = last.startHour;
-      const prevEnd = last.endHour;
-      const mid = Math.max(prevStart + 1, Math.round((prevStart + prevEnd) / 2));
-      const updatedIntervals = current.intervals.map((inv) =>
-        inv.id === last.id ? { ...inv, endHour: mid } : inv
-      );
-      startHour = mid;
-      endHour = prevEnd;
-      const newInv: PriceInterval = {
-        id: newId,
-        name,
-        days,
-        startHour,
-        endHour,
-        prices: { ...last.prices },
-      };
-      setCurrent((prev) => ({
-        ...prev,
-        intervals: sortIntervalsLogically([...updatedIntervals, newInv]),
-      }));
+      if (hasHappyHour) {
+        setFeedback({
+          type: "error",
+          message: "Pásmo Happy Hour už v cenníku existuje.",
+        });
+        return;
+      }
+      setEditingInterval({
+        id: `hh-${Date.now()}`,
+        name: "Happy Hour",
+        days: [1, 2, 3, 4, 5],
+        startHour: 12,
+        endHour: 16,
+        prices: { badminton: 12, tennis: 24, "tennis-clay": 18, squash: 10 },
+      });
+      setIntervalModalTitle("Pridať pásmo Happy Hour");
+      setIntervalModalOpen(true);
       return;
     }
 
-    const newInv: PriceInterval = {
-      id: newId,
+    if (type === "weekend") {
+      const hasWeekend = current.intervals.some((i) => areDaysSame(i.days, [6, 0]));
+      if (hasWeekend) {
+        setFeedback({
+          type: "error",
+          message: "Víkendové pásmo (7:00 – 21:00) už v cenníku existuje.",
+        });
+        return;
+      }
+      setEditingInterval({
+        id: `interval-we-${Date.now()}`,
+        name: "Víkend",
+        days: [6, 0],
+        startHour: 7,
+        endHour: 21,
+        prices: { badminton: 14, tennis: 28, "tennis-clay": 20, squash: 11 },
+      });
+      setIntervalModalTitle("Pridať víkendové pásmo");
+      setIntervalModalOpen(true);
+      return;
+    }
+
+    // Weekday: max 3 bands
+    const weekdayIntervals = current.intervals
+      .filter((i) => areDaysSame(i.days, [1, 2, 3, 4, 5]))
+      .sort((a, b) => a.startHour - b.startHour);
+
+    if (weekdayIntervals.length >= 3) {
+      setFeedback({
+        type: "error",
+        message: "Pre pracovné dni už máte nastavené maximum 3 hladín (Mimo špičky, Happy Hour, Špička).",
+      });
+      return;
+    }
+
+    const hasMorning = weekdayIntervals.some(
+      (i) => i.name.toLowerCase().includes("mimo") || i.startHour === 7
+    );
+    const hasPeak = weekdayIntervals.some(
+      (i) => i.name.toLowerCase().includes("špičk") || i.name.toLowerCase().includes("spick") || i.endHour === 22
+    );
+
+    if (hasMorning && hasPeak) {
+      setFeedback({
+        type: "error",
+        message: "Základné pásma pre pracovné dni (Mimo špičky a Špička) už máte nastavené. Pre pridanie obedňajšieho pásma použite tlačidlo '+ Happy Hour'.",
+      });
+      return;
+    }
+
+    let startHour = 16;
+    let endHour = 22;
+    let name = "Špička";
+
+    if (!hasMorning) {
+      startHour = 7;
+      endHour = 16;
+      name = "Mimo špičky";
+    } else if (!hasPeak) {
+      startHour = 16;
+      endHour = 22;
+      name = "Špička";
+    }
+
+    setEditingInterval({
+      id: `interval-${Date.now()}`,
       name,
-      days,
+      days: [1, 2, 3, 4, 5],
       startHour,
       endHour,
       prices: {
-        badminton: 15,
-        tennis: 25,
+        badminton: 14,
+        tennis: 28,
         "tennis-clay": 20,
-        squash: 12,
+        squash: 11,
       },
-    };
-    setCurrent((prev) => ({
-      ...prev,
-      intervals: sortIntervalsLogically([...prev.intervals, newInv]),
-    }));
+    });
+    setIntervalModalTitle("Pridať pásmo pre pracovné dni (Po–Pi)");
+    setIntervalModalOpen(true);
   };
 
-  const handleToggleDay = (intervalId: string, day: number) => {
-    setCurrent((prev) => ({
-      ...prev,
-      intervals: prev.intervals.map((inv) => {
-        if (inv.id !== intervalId) return inv;
-        const exists = inv.days.includes(day);
-        const newDays = exists ? inv.days.filter((d) => d !== day) : [...inv.days, day].sort();
-        if (newDays.length === 0) return inv;
-        return { ...inv, days: newDays };
-      }),
-    }));
+  const handleOpenEditIntervalModal = (inv: PriceInterval) => {
+    setEditingInterval(JSON.parse(JSON.stringify(inv)));
+    setIntervalModalTitle(`Upraviť časové pásmo: ${inv.name}`);
+    setIntervalModalOpen(true);
   };
 
-  const handleSetDayPreset = (intervalId: string, preset: "weekday" | "weekend" | "allday") => {
-    const days =
-      preset === "weekday"
-        ? [1, 2, 3, 4, 5]
-        : preset === "weekend"
-        ? [6, 0]
-        : [1, 2, 3, 4, 5, 6, 0];
-    setCurrent((prev) => ({
-      ...prev,
-      intervals: prev.intervals.map((inv) =>
-        inv.id === intervalId ? { ...inv, days } : inv
-      ),
-    }));
+  const handleSaveIntervalFromModal = (interval: PriceInterval) => {
+    const existingIndex = current.intervals.findIndex((i) => i.id === interval.id);
+
+    if (existingIndex !== -1) {
+      setCurrent((prev) => {
+        const updated = prev.intervals.map((inv) =>
+          inv.id === interval.id ? interval : inv
+        );
+        return {
+          ...prev,
+          intervals: realignAllIntervals(updated, interval.id, "endHour", interval.endHour),
+        };
+      });
+      setFeedback({
+        type: "success",
+        message: `Pásmo "${interval.name}" bolo úspešne upravené.`,
+      });
+    } else {
+      // Prevent duplicate names in same day group
+      const duplicate = current.intervals.find(
+        (i) =>
+          areDaysSame(i.days, interval.days) &&
+          i.name.trim().toLowerCase() === interval.name.trim().toLowerCase()
+      );
+      if (duplicate) {
+        setFeedback({
+          type: "error",
+          message: `Pásmo s názvom "${interval.name}" už v týchto dňoch existuje. Zvoľte prosím iný názov (napr. Happy Hour).`,
+        });
+        return;
+      }
+
+      setCurrent((prev) => {
+        const updated = [...prev.intervals, interval];
+        return {
+          ...prev,
+          intervals: realignAllIntervals(updated),
+        };
+      });
+      setFeedback({
+        type: "success",
+        message: `Pridané časové pásmo "${interval.name}".`,
+      });
+    }
   };
+
+  const handleDeletePricelist = async () => {
+    if (current.isActive) {
+      setDeleteModalError("Nemôžete zmazať aktívny cenník. Najprv nastavte iný cenník ako aktívny.");
+      return;
+    }
+    if (pricelists.length <= 1) {
+      setDeleteModalError("Nemôžete zmazať jediný zostávajúci cenník.");
+      return;
+    }
+
+    setSaving(true);
+    setDeleteModalError(null);
+    const res = await deletePricelistAction(current.id);
+    if (res.success) {
+      const remaining = pricelists.filter((p) => p.id !== current.id);
+      setPricelists(remaining);
+      const nextOne = remaining[0];
+      setSelectedId(nextOne.id);
+      setCurrent(JSON.parse(JSON.stringify(nextOne)));
+      setShowDeletePricelistConfirm(false);
+      setDeleteModalError(null);
+      setFeedback({
+        type: "success",
+        message: `Cenník bol úspešne zmazaný.`,
+      });
+    } else {
+      setDeleteModalError(res.error || "Nepodarilo sa zmazať cenník.");
+    }
+    setSaving(false);
+  };
+
+
+
 
   const handleSetAllDay = (intervalId: string) => {
     setCurrent((prev) => ({
@@ -487,45 +531,28 @@ export default function AdminPricelistManager() {
 
     setCurrent((prev) => {
       const remaining = prev.intervals.filter((i) => i.id !== intervalId);
-      const sameDays = remaining.filter((i) => areDaysSame(i.days, invToRemove.days));
-      if (sameDays.length > 0) {
-        const sorted = [...sameDays].sort((a, b) => a.startHour - b.startHour);
-        if (invToRemove.startHour <= sorted[0].startHour) {
-          const nextId = sorted[0].id;
-          return {
-            ...prev,
-            intervals: remaining.map((i) => (i.id === nextId ? { ...i, startHour: 7 } : i)),
-          };
-        } else {
-          const lastId = sorted[sorted.length - 1].id;
-          return {
-            ...prev,
-            intervals: remaining.map((i) => (i.id === lastId ? { ...i, endHour: Math.max(21, i.endHour) } : i)),
-          };
-        }
-      }
-      return { ...prev, intervals: remaining };
+      return {
+        ...prev,
+        intervals: realignAllIntervals(remaining),
+      };
+    });
+    setFeedback({
+      type: "success",
+      message: `Pásmo "${invToRemove.name}" bolo odstránené a zostávajúce pásma boli automaticky prepojené.`,
     });
   };
 
   const handleCreateNewPricelist = () => {
-    const newId = `pricelist-${Date.now()}`;
-    const newPricelist: NtcPricelist = {
-      id: newId,
-      name: `Nový cenník ${new Date().getFullYear()}`,
-      validFrom: `${new Date().getFullYear()}-05-01`,
-      validTo: `${new Date().getFullYear()}-09-30`,
-      isActive: false,
-      nonMemberSurchargeEur: 2.00,
-      intervals: JSON.parse(JSON.stringify(current.intervals)),
-      discountTiers: JSON.parse(JSON.stringify(current.discountTiers || DEFAULT_DISCOUNT_TIERS)),
-    };
+    setIsCreateModalOpen(true);
+  };
+
+  const handleConfirmCreatePricelist = (newPricelist: NtcPricelist) => {
     setPricelists((prev) => [newPricelist, ...prev]);
-    setSelectedId(newId);
+    setSelectedId(newPricelist.id);
     setCurrent(newPricelist);
     setFeedback({
       type: "success",
-      message: "Vytvorený nový cenník. Upravte si názov, platnosť a sumy a kliknite Uložiť.",
+      message: `Vytvorený nový cenník „${newPricelist.name}“. Skontrolujte sadzby a kliknite Uložiť cenník.`,
     });
   };
 
@@ -537,7 +564,9 @@ export default function AdminPricelistManager() {
         discountTiers: tiers.map((t) => {
           if (t.id !== tierId) return t;
           const merged = { ...t, ...updates };
-          if ("percentageOfBase" in updates && updates.percentageOfBase !== undefined) {
+          if ("discountPercent" in updates && updates.discountPercent !== undefined) {
+            merged.percentageOfBase = Math.max(0, 100 - updates.discountPercent);
+          } else if ("percentageOfBase" in updates && updates.percentageOfBase !== undefined) {
             merged.discountPercent = Math.max(0, 100 - updates.percentageOfBase);
           }
           return merged;
@@ -548,29 +577,36 @@ export default function AdminPricelistManager() {
 
   const handleAddTier = () => {
     const newTier: DiscountTier = {
-      id: `tier-${Date.now()}`,
-      name: "Nová zľava",
+      id: `tier-custom-${Date.now()}`,
+      name: "Vlastná zľava",
       isPercentual: true,
       percentageOfBase: 85,
       discountPercent: 15,
       price60: 0,
       price120: 0,
+      isDefault: false,
     };
     setCurrent((prev) => ({
       ...prev,
-      discountTiers: [...(prev.discountTiers || DEFAULT_DISCOUNT_TIERS), newTier],
+      discountTiers: [...sanitizeTiers(prev.discountTiers), newTier],
     }));
     setPreviewTierId(newTier.id);
+    setCustomTierDirty((prev) => ({ ...prev, [newTier.id]: true }));
   };
 
   const handleRemoveTier = (tierId: string) => {
     setCurrent((prev) => {
-      const tiers = prev.discountTiers || DEFAULT_DISCOUNT_TIERS;
+      const tiers = sanitizeTiers(prev.discountTiers);
       if (tiers.length <= 1) return prev;
       return {
         ...prev,
         discountTiers: tiers.filter((t) => t.id !== tierId),
       };
+    });
+    setCustomTierDirty((prev) => {
+      const next = { ...prev };
+      delete next[tierId];
+      return next;
     });
   };
 
@@ -579,9 +615,10 @@ export default function AdminPricelistManager() {
       ...prev,
       discountTiers: JSON.parse(JSON.stringify(DEFAULT_DISCOUNT_TIERS)),
     }));
+    setPreviewTierId("tier-10");
     setFeedback({
       type: "success",
-      message: "Zľavové hladiny boli obnovené na pôvodné hodnoty zo systému NTC.",
+      message: "Zľavové hladiny boli obnovené na predvolené.",
     });
   };
 
@@ -697,6 +734,30 @@ export default function AdminPricelistManager() {
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             {saving ? "Ukladám..." : "Uložiť cenník"}
           </button>
+
+          <button
+            type="button"
+            disabled={saving || current.isActive || pricelists.length <= 1}
+            onClick={() => {
+              setDeleteModalError(null);
+              setShowDeletePricelistConfirm(true);
+            }}
+            title={
+              current.isActive
+                ? "Aktívny cenník nemožno zmazať (najprv aktivujte iný cenník)"
+                : pricelists.length <= 1
+                ? "Nemožno zmazať jediný existujúci cenník"
+                : "Zmazať tento cenník"
+            }
+            className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs font-bold transition shadow-2xs ${
+              current.isActive || pricelists.length <= 1
+                ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
+                : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800 cursor-pointer"
+            }`}
+          >
+            <Trash2 className="h-4 w-4" />
+            Zmazať cenník
+          </button>
         </div>
       </div>
 
@@ -725,7 +786,7 @@ export default function AdminPricelistManager() {
           Základné parametre sezóny
         </h2>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <label className="block">
             <span className="block text-xs font-semibold text-slate-700 mb-1.5">
               Názov cenníka
@@ -762,30 +823,13 @@ export default function AdminPricelistManager() {
               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 transition"
             />
           </label>
+        </div>
 
-          <label className="block">
-            <span className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Príplatok pre neregistrovaných (€ / rezervácia)
-            </span>
-            <div className="relative">
-              <input
-                type="number"
-                step="0.5"
-                min="0"
-                value={current.nonMemberSurchargeEur}
-                onChange={(e) =>
-                  setCurrent({
-                    ...current,
-                    nonMemberSurchargeEur: parseFloat(e.target.value) || 0,
-                  })
-                }
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 transition"
-              />
-              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
-                €
-              </span>
-            </div>
-          </label>
+        <div className="flex items-center gap-2 rounded-2xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs text-slate-600">
+          <Info className="h-4 w-4 text-emerald-600 shrink-0" />
+          <span>
+            <b>Platnosť je informatívna:</b> Dátumy platnosti slúžia len ako orientačné označenie sezóny. V rezervačnom systéme sa uplatňuje ten cenník, ktorý je nastavený ako <b>Aktívny</b>.
+          </span>
         </div>
       </div>
 
@@ -797,71 +841,96 @@ export default function AdminPricelistManager() {
               <Clock3 className="h-4 w-4 text-emerald-600" />
               Sadzby podľa časových pásiem a športov (za 1 hodinu)
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Základná pultová cena pre držiteľov karty. Pre hráčov bez karty sa automaticky pripočíta príplatok {current.nonMemberSurchargeEur.toFixed(2)} €/hod.
-            </p>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <p className="text-xs text-slate-500">
+                Základné pultové sadzby za jednotlivé športoviská podľa zvolených dní a hodín.
+              </p>
+              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                <span>Ceny v bunkách viete posúvať aj šípkami</span>
+                <kbd className="rounded bg-white px-1 py-0.2 shadow-2xs border border-emerald-300 font-mono text-[9px] font-extrabold text-emerald-900">↑</kbd>
+                <kbd className="rounded bg-white px-1 py-0.2 shadow-2xs border border-emerald-300 font-mono text-[9px] font-extrabold text-emerald-900">↓</kbd>
+              </span>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={handleSortIntervals}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
-              title="Zoradiť pásma chronologicky podľa dní a hodín (Pondelok – Piatok najprv, potom Víkend)"
-            >
-              <ArrowUpDown className="h-3.5 w-3.5 text-slate-500" />
-              Zoradiť
-            </button>
-            <button
-              type="button"
-              onClick={() => handleAddInterval("weekday")}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition cursor-pointer"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Pridať pásmo (Po–Pi)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleAddInterval("weekend")}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800 hover:bg-blue-100 transition cursor-pointer"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Pridať pásmo (Víkend)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleAddInterval("custom")}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-              title="Vytvoriť pásmo s vlastným výberom dní"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Vlastné
-            </button>
+            {(() => {
+              const hasWeekend = current.intervals.some((i) => areDaysSame(i.days, [6, 0]));
+              const weekdayIntervals = current.intervals.filter((i) => areDaysSame(i.days, [1, 2, 3, 4, 5]));
+              const hasMorning = weekdayIntervals.some(
+                (i) => i.name.toLowerCase().includes("mimo") || i.startHour === 7
+              );
+              const hasPeak = weekdayIntervals.some(
+                (i) => i.name.toLowerCase().includes("špičk") || i.name.toLowerCase().includes("spick") || i.endHour === 22
+              );
+              const hasHappyHour = weekdayIntervals.some(
+                (i) => areDaysSame(i.days, [1, 2, 3, 4, 5]) && (i.name.toLowerCase().includes("happy") || (i.startHour === 12 && i.endHour === 16))
+              );
+              const canAddGeneralWeekday = !hasMorning || !hasPeak;
+
+              return (
+                <>
+                  <button
+                    type="button"
+                    disabled={hasHappyHour}
+                    onClick={() => handleOpenAddIntervalModal("happy")}
+                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${
+                      hasHappyHour
+                        ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
+                        : "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 cursor-pointer shadow-2xs"
+                    }`}
+                    title={
+                      hasHappyHour
+                        ? "Pásmo Happy Hour už v cenníku existuje"
+                        : "Pridať pásmo Happy Hour (napr. 12:00 – 16:00 pre Po–Pi)"
+                    }
+                  >
+                    <Sun className={`h-3.5 w-3.5 ${hasHappyHour ? "text-slate-400" : "text-amber-600"}`} />
+                    + Happy Hour (napr. 12–16h)
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!canAddGeneralWeekday}
+                    onClick={() => handleOpenAddIntervalModal("weekday")}
+                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${
+                      !canAddGeneralWeekday
+                        ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 cursor-pointer shadow-2xs"
+                    }`}
+                    title={
+                      !canAddGeneralWeekday
+                        ? "Základné pásma pre pracovné dni (Mimo špičky aj Špička) už máte nastavené. Môžete pridať už len Happy Hour."
+                        : "Pridať pásmo (Po–Pi)"
+                    }
+                  >
+                    <Plus className={`h-3.5 w-3.5 ${!canAddGeneralWeekday ? "text-slate-400" : "text-emerald-700"}`} />
+                    Pridať pásmo (Po–Pi)
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={hasWeekend}
+                    onClick={() => handleOpenAddIntervalModal("weekend")}
+                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${
+                      hasWeekend
+                        ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
+                        : "border-blue-200 bg-blue-50 text-blue-800 hover:bg-blue-100 cursor-pointer shadow-2xs"
+                    }`}
+                    title={
+                      hasWeekend
+                        ? "Víkendové pásmo (7:00 – 21:00) už v cenníku existuje"
+                        : "Pridať celodenné víkendové pásmo (7:00 – 21:00)"
+                    }
+                  >
+                    <Plus className={`h-3.5 w-3.5 ${hasWeekend ? "text-slate-400" : "text-blue-700"}`} />
+                    Pridať pásmo (Víkend)
+                  </button>
+                </>
+              );
+            })()}
           </div>
         </div>
-
-        {validationAlerts.length > 0 && (
-          <div className="rounded-2xl border border-amber-300 bg-amber-50/90 p-4 text-xs text-amber-950 space-y-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              <div className="flex items-center gap-2 font-bold text-amber-950">
-                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                <span>Upozornenie k prevádzkovým hodinám a nadväznosti (7:00 – 21:00):</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleAutoAlignIntervals}
-                className="rounded-xl bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-amber-700 transition cursor-pointer self-start sm:self-auto"
-              >
-                Automaticky zosúladiť nadväznosť (7:00 – 21:00)
-              </button>
-            </div>
-            <ul className="list-disc list-inside space-y-0.5 text-amber-900/90 pl-1 font-medium">
-              {validationAlerts.map((a, idx) => (
-                <li key={idx}>{a.message}</li>
-              ))}
-            </ul>
-          </div>
-        )}
 
         {/* The Matrix Table */}
         <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs">
@@ -888,19 +957,32 @@ export default function AdminPricelistManager() {
               {current.intervals.map((inv, idx) => {
                 const sameDayIntervals = current.intervals
                   .filter((i) => areDaysSame(i.days, inv.days))
-                  .sort((a, b) => a.startHour - b.startHour);
-                const isFirstInGroup = sameDayIntervals[0]?.id === inv.id;
-                const isLastInGroup =
-                  sameDayIntervals[sameDayIntervals.length - 1]?.id === inv.id;
+                  .sort((a, b) => getIntervalRank(a) - getIntervalRank(b));
+                const invIdxInGroup = sameDayIntervals.findIndex((i) => i.id === inv.id);
+                const isFirstInGroup = invIdxInGroup === 0;
+                const isLastInGroup = invIdxInGroup === sameDayIntervals.length - 1;
+                const isWeekend = areDaysSame(inv.days, [6, 0]);
+                const isWeekday = areDaysSame(inv.days, [1, 2, 3, 4, 5]);
+                const isAllWeek = areDaysSame(inv.days, [1, 2, 3, 4, 5, 6, 0]);
+
+                const maxEndHourForCurrent = isWeekday
+                  ? 22 - (sameDayIntervals.length - 1 - invIdxInGroup)
+                  : 21;
+                const minStartHourForCurrent = isWeekday
+                  ? 7 + invIdxInGroup
+                  : 7;
+
+                const startHourOptions: number[] = [];
+                for (let h = minStartHourForCurrent; h <= 21; h++) {
+                  startHourOptions.push(h);
+                }
+
+                const endHourOptions: number[] = [];
+                for (let h = inv.startHour + 1; h <= maxEndHourForCurrent; h++) {
+                  endHourOptions.push(h);
+                }
 
                 const isOverride = isIntervalOverride(inv, current.intervals);
-
-                const hasStartWarning =
-                  !isOverride &&
-                  ((isFirstInGroup && inv.startHour !== 7) || inv.startHour < 7);
-                const hasEndWarning =
-                  !isOverride &&
-                  ((isLastInGroup && inv.endHour < 21) || inv.endHour > 22);
 
                 return (
                   <tr key={inv.id} className="hover:bg-slate-50/60 transition">
@@ -930,236 +1012,121 @@ export default function AdminPricelistManager() {
                         )}
                       </div>
 
-                      {/* Clickable Days Selector */}
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                        {[
-                          { d: 1, label: "Po" },
-                          { d: 2, label: "Ut" },
-                          { d: 3, label: "St" },
-                          { d: 4, label: "Št" },
-                          { d: 5, label: "Pi" },
-                          { d: 6, label: "So" },
-                          { d: 0, label: "Ne" },
-                        ].map(({ d, label }) => {
-                          const active = inv.days.includes(d);
-                          return (
-                            <button
-                              key={d}
-                              type="button"
-                              onClick={() => handleToggleDay(inv.id, d)}
-                              className={`px-1.5 py-0.5 text-[10px] font-bold rounded cursor-pointer transition ${
-                                active
-                                  ? "bg-emerald-600 text-white shadow-2xs"
-                                  : "bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
-                              }`}
-                              title={`Prepnúť ${label}`}
-                            >
-                              {label}
-                            </button>
-                          );
-                        })}
-
-                        <span className="text-slate-300 text-[10px] mx-0.5">|</span>
-
-                        <button
-                          type="button"
-                          onClick={() => handleSetDayPreset(inv.id, "weekday")}
-                          className="text-[9px] font-semibold text-slate-500 hover:text-emerald-700 hover:underline cursor-pointer"
+                      {/* Non-clickable Days Indicator */}
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <span
+                          className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                            isWeekend
+                              ? "bg-blue-50 text-blue-800 border border-blue-200/60"
+                              : "bg-emerald-50 text-emerald-800 border border-emerald-200/60"
+                          }`}
                         >
-                          Po–Pi
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSetDayPreset(inv.id, "weekend")}
-                          className="text-[9px] font-semibold text-slate-500 hover:text-emerald-700 hover:underline cursor-pointer"
-                        >
-                          So–Ne
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSetDayPreset(inv.id, "allday")}
-                          className="text-[9px] font-semibold text-slate-500 hover:text-emerald-700 hover:underline cursor-pointer"
-                        >
-                          Celý týždeň
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSetAllDay(inv.id)}
-                          className="text-[9px] font-semibold text-amber-700 hover:text-amber-900 hover:underline cursor-pointer"
-                          title="Nastaviť hodiny od 7 do 21"
-                        >
-                          Celý deň (7–21h)
-                        </button>
+                          {isWeekend ? "So – Ne (Víkend)" : "Po – Pi (Pracovné dni)"}
+                        </span>
                       </div>
                     </td>
 
                     <td className="py-3.5 px-4">
                       <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5 text-xs">
-                          <input
-                            type="number"
-                            min="7"
-                            max="21"
-                            value={inv.startHour}
-                            onChange={(e) =>
-                              handleUpdateIntervalTimes(
-                                inv.id,
-                                parseInt(e.target.value) || 7,
-                                inv.endHour,
-                                inv.name,
-                                "startHour"
-                              )
-                            }
-                            title={
-                              hasStartWarning
-                                ? isFirstInGroup && inv.startHour !== 7
-                                  ? "Kurty otvárajú o 7:00, prvé pásmo musí začínať o 7:00"
-                                  : "Čas nemôže byť pred 7:00"
-                                : undefined
-                            }
-                            className={`w-12 rounded-lg border px-2 py-1 text-center font-bold outline-none transition ${
-                              hasStartWarning
-                                ? "border-rose-400 bg-rose-50 text-rose-950 focus:border-rose-500 focus:ring-2 focus:ring-rose-200"
-                                : "border-slate-200 bg-white text-slate-900 focus:border-emerald-500"
-                            }`}
-                          />
-                          <span className="text-slate-400">–</span>
-                          <input
-                            type="number"
-                            min="8"
-                            max="22"
-                            value={inv.endHour}
-                            onChange={(e) =>
-                              handleUpdateIntervalTimes(
-                                inv.id,
-                                inv.startHour,
-                                parseInt(e.target.value) || 21,
-                                inv.name,
-                                "endHour"
-                              )
-                            }
-                            title={
-                              hasEndWarning
-                                ? isLastInGroup && inv.endHour < 21
-                                  ? "Posledné pásmo musí pokrývať prevádzku do 21:00 (cez týždeň do 22:00)"
-                                  : "Čas nemôže byť po 22:00"
-                                : undefined
-                            }
-                            className={`w-12 rounded-lg border px-2 py-1 text-center font-bold outline-none transition ${
-                              hasEndWarning
-                                ? "border-rose-400 bg-rose-50 text-rose-950 focus:border-rose-500 focus:ring-2 focus:ring-rose-200"
-                                : "border-slate-200 bg-white text-slate-900 focus:border-emerald-500"
-                            }`}
-                          />
-                          <span className="text-slate-400 font-semibold">hod.</span>
-                        </div>
-
-                        {/* Quick-fix buttons */}
-                        <div className="flex items-center gap-2 text-[10px]">
-                          {isFirstInGroup && inv.startHour !== 7 && (
-                            <button
-                              type="button"
-                              onClick={() =>
+                        <div className="flex items-center gap-1 text-xs">
+                          {isFirstInGroup || isWeekend ? (
+                            <span
+                              title={isWeekend ? "Víkend začína o 7:00" : "Otváracia doba areálu (7:00)"}
+                              className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600 shadow-2xs select-none"
+                            >
+                              7:00
+                            </span>
+                          ) : (
+                            <select
+                              value={inv.startHour}
+                              onChange={(e) =>
                                 handleUpdateIntervalTimes(
                                   inv.id,
-                                  7,
+                                  parseInt(e.target.value) || 7,
                                   inv.endHour,
                                   inv.name,
                                   "startHour"
                                 )
                               }
-                              className="font-bold text-rose-600 hover:text-rose-800 underline decoration-rose-300 cursor-pointer"
+                              className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs"
                             >
-                              Nastaviť 7h
-                            </button>
+                              {startHourOptions.map((h) => (
+                                <option key={h} value={h}>
+                                  {h}:00
+                                </option>
+                              ))}
+                            </select>
                           )}
-                          {isLastInGroup && inv.endHour < 21 && (
-                            <button
-                              type="button"
-                              onClick={() =>
+                          <span className="text-slate-400 font-bold">–</span>
+                          {isLastInGroup || isWeekend ? (
+                            <span
+                              title={
+                                isWeekend
+                                  ? "Víkend končí o 21:00"
+                                  : "Záverečná doba areálu cez týždeň (22:00)"
+                              }
+                              className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600 shadow-2xs select-none"
+                            >
+                              {isWeekend ? "21:00" : "22:00"}
+                            </span>
+                          ) : (
+                            <select
+                              value={inv.endHour}
+                              onChange={(e) =>
                                 handleUpdateIntervalTimes(
                                   inv.id,
                                   inv.startHour,
-                                  21,
+                                  parseInt(e.target.value) || 21,
                                   inv.name,
                                   "endHour"
                                 )
                               }
-                              className="font-bold text-rose-600 hover:text-rose-800 underline decoration-rose-300 cursor-pointer"
+                              className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs"
                             >
-                              Doplniť do 21h
-                            </button>
+                              {endHourOptions.map((h) => (
+                                <option key={h} value={h}>
+                                  {h}:00
+                                </option>
+                              ))}
+                            </select>
                           )}
                         </div>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          Trvanie: {inv.endHour - inv.startHour} hod.
+                        </span>
                       </div>
                     </td>
 
                   {/* Bedminton */}
                   <td className="py-3.5 px-3 text-center">
-                    <div className="relative inline-block w-24">
-                      <input
-                        type="number"
-                        step="1"
-                        min="0"
-                        value={inv.prices.badminton ?? 14}
-                        onChange={(e) => handleUpdatePrice(inv.id, "badminton", e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-center font-extrabold text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition shadow-2xs"
-                      />
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
-                        €
-                      </span>
-                    </div>
+                    <PriceStepper
+                      value={inv.prices.badminton ?? 14}
+                      onChange={(val) => handleUpdatePrice(inv.id, "badminton", String(val))}
+                    />
                   </td>
 
                   {/* Tenis Hala */}
                   <td className="py-3.5 px-3 text-center">
-                    <div className="relative inline-block w-24">
-                      <input
-                        type="number"
-                        step="1"
-                        min="0"
-                        value={inv.prices.tennis ?? 29}
-                        onChange={(e) => handleUpdatePrice(inv.id, "tennis", e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-center font-extrabold text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition shadow-2xs"
-                      />
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
-                        €
-                      </span>
-                    </div>
+                    <PriceStepper
+                      value={inv.prices.tennis ?? 29}
+                      onChange={(val) => handleUpdatePrice(inv.id, "tennis", String(val))}
+                    />
                   </td>
 
                   {/* Tenis Antuka */}
                   <td className="py-3.5 px-3 text-center">
-                    <div className="relative inline-block w-24">
-                      <input
-                        type="number"
-                        step="1"
-                        min="0"
-                        value={inv.prices["tennis-clay"] ?? 20}
-                        onChange={(e) => handleUpdatePrice(inv.id, "tennis-clay", e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-center font-extrabold text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition shadow-2xs"
-                      />
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
-                        €
-                      </span>
-                    </div>
+                    <PriceStepper
+                      value={inv.prices["tennis-clay"] ?? 20}
+                      onChange={(val) => handleUpdatePrice(inv.id, "tennis-clay", String(val))}
+                    />
                   </td>
 
                   {/* Squash */}
                   <td className="py-3.5 px-3 text-center">
-                    <div className="relative inline-block w-24">
-                      <input
-                        type="number"
-                        step="1"
-                        min="0"
-                        value={inv.prices.squash ?? 11}
-                        onChange={(e) => handleUpdatePrice(inv.id, "squash", e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-center font-extrabold text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition shadow-2xs"
-                      />
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
-                        €
-                      </span>
-                    </div>
+                    <PriceStepper
+                      value={inv.prices.squash ?? 11}
+                      onChange={(val) => handleUpdatePrice(inv.id, "squash", String(val))}
+                    />
                   </td>
 
                   {/* Actions */}
@@ -1185,6 +1152,14 @@ export default function AdminPricelistManager() {
                       </button>
                       <button
                         type="button"
+                        onClick={() => handleOpenEditIntervalModal(inv)}
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-700 transition cursor-pointer"
+                        title="Upraviť časové pásmo v okne"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleRemoveInterval(inv.id)}
                         className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
                         title="Zmazať pásmo"
@@ -1199,48 +1174,23 @@ export default function AdminPricelistManager() {
             </tbody>
           </table>
         </div>
-
-        {/* Footer info box */}
-        <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 text-xs text-blue-950 space-y-1.5">
-          <div className="flex items-center gap-2 font-bold text-blue-900">
-            <Info className="h-4 w-4 shrink-0 text-blue-600" />
-            <span>Pravidlá zliav a členských výhod v NTC:</span>
-          </div>
-          <ul className="list-disc list-inside space-y-1 text-[11px] text-blue-900/90 pl-1">
-            <li><b>Držitelia NTC karty:</b> platia presne sadzby uvedené v tabuľke.</li>
-            <li><b>Hráči bez karty:</b> automatický príplatok <b>+{current.nonMemberSurchargeEur.toFixed(2)} €</b> na hodinu k uvedenej cene.</li>
-            <li><b>MultiSport karty:</b> 1 karta = zľava 10 % + 50 %, 2 karty = 100 % zľava (rezervácia zdarma).</li>
-            <li><b>Role (NTC Team, Tréneri):</b> zľavy a oprávnenia sa spravujú v sekcii <b>Nastavenia &gt; Pravidlá rolí</b>.</li>
-          </ul>
-        </div>
       </div>
 
-      {/* Discount Tiers Section & Automatic Live Price Calculator matching legacy screen */}
+      {/* Discount Tiers Section */}
       {(() => {
-        const tiers = current.discountTiers && current.discountTiers.length > 0
-          ? current.discountTiers
-          : DEFAULT_DISCOUNT_TIERS;
+        const tiers = sanitizeTiers(current.discountTiers);
         const selectedTier = tiers.find((t) => t.id === previewTierId) || tiers[1] || tiers[0];
 
         const round1Dec = (val: number): number => Math.round(val * 10) / 10;
-        const formatEur = (val: number): string => `${round1Dec(val).toFixed(1).replace(".", ",")} €`;
 
         return (
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <Percent className="h-4 w-4 text-emerald-600" />
-                    Zľavové hladiny a automatický prepočet (Ceny a zľavy)
-                  </h2>
-                  <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
-                    Zaokrúhľovanie na 1 des. miesto
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  Presné zľavové hladiny podľa pôvodného systému NTC (Základná cena, 10 % zľava, 20 % zľava, 50 % zľava, Bežná cena, Hotovosť).
-                </p>
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Percent className="h-4 w-4 text-emerald-600" />
+                  Zľavové hladiny a automatický prepočet
+                </h2>
               </div>
 
               <div className="flex items-center gap-2">
@@ -1248,7 +1198,7 @@ export default function AdminPricelistManager() {
                   type="button"
                   onClick={handleResetToDefaultTiers}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-                  title="Obnoviť presné hladiny zo snímky obrazovky"
+                  title="Obnoviť predvolené zľavové hladiny"
                 >
                   Obnoviť predvolené
                 </button>
@@ -1263,300 +1213,114 @@ export default function AdminPricelistManager() {
               </div>
             </div>
 
-            {/* Reference Base Price Selector */}
-            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Calculator className="h-4 w-4 text-slate-600" />
-                  <span className="text-xs font-bold text-slate-800">
-                    Vzorový základ pre prepočet stĺpcov 60 / 120 min:
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                  <span className="text-slate-500 text-[11px] mr-1">Rýchle predvoľby:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBasePrice60(10);
-                      setBasePrice120(0);
-                    }}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      basePrice60 === 10 && basePrice120 === 0
-                        ? "bg-emerald-600 text-white shadow-2xs"
-                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    10,00 € (zo screenu)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBasePrice60(29);
-                      setBasePrice120(58);
-                    }}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      basePrice60 === 29
-                        ? "bg-emerald-600 text-white shadow-2xs"
-                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    Tenis hala (29 €)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBasePrice60(20);
-                      setBasePrice120(40);
-                    }}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      basePrice60 === 20
-                        ? "bg-emerald-600 text-white shadow-2xs"
-                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    Tenis antuka (20 €)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBasePrice60(14);
-                      setBasePrice120(28);
-                    }}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      basePrice60 === 14
-                        ? "bg-emerald-600 text-white shadow-2xs"
-                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    Bedminton (14 €)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBasePrice60(11);
-                      setBasePrice120(22);
-                    }}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      basePrice60 === 11
-                        ? "bg-emerald-600 text-white shadow-2xs"
-                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    Squash (11 €)
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-4 text-xs pt-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-slate-600">Základná sadzba 60 min:</span>
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      value={basePrice60}
-                      onChange={(e) => setBasePrice60(Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="w-18 rounded-lg border border-slate-200 bg-white px-2 py-1 text-center font-bold text-slate-900 outline-none focus:border-emerald-500"
-                    />
-                    <span className="font-bold text-slate-500">€</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-slate-600">Základná sadzba 120 min:</span>
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      value={basePrice120}
-                      onChange={(e) => setBasePrice120(Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="w-18 rounded-lg border border-slate-200 bg-white px-2 py-1 text-center font-bold text-slate-900 outline-none focus:border-emerald-500"
-                    />
-                    <span className="font-bold text-slate-500">€</span>
-                  </div>
-                </div>
-
-                <span className="text-[11px] text-slate-400 italic">
-                  (Prepočet sa zaokrúhľuje na 1 desatinné miesto podľa požiadavky)
-                </span>
-              </div>
-            </div>
-
-            {/* Table matching legacy "Úprava cenníku - Ceny" */}
+            {/* Simplified Discount Tiers Table */}
             <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-100 text-slate-700 font-extrabold uppercase tracking-wider text-[11px] border-b border-slate-200">
                   <tr>
                     <th className="py-3 px-4 min-w-[200px]">Hladina / Názov</th>
-                    <th className="py-3 px-4 text-center min-w-[110px]">60 (min)</th>
-                    <th className="py-3 px-4 text-center min-w-[110px]">120 (min)</th>
-                    <th className="py-3 px-4 text-left min-w-[180px]">Percentuálne</th>
-                    <th className="py-3 px-4 text-center min-w-[100px]">Náhľad / Akcia</th>
+                    <th className="py-3 px-4 min-w-[220px]">Zľava</th>
+                    <th className="py-3 px-4 text-right min-w-[120px]">Akcia</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-semibold">
                   {tiers.map((tier) => {
-                    const isBase = tier.id === "tier-base" || tier.isDefault;
-                    const isPercentual = tier.isPercentual ?? true;
-                    const pctOfBase = tier.percentageOfBase ?? (100 - (tier.discountPercent || 0));
-
-                    // Calculated values:
-                    const calc60 = isPercentual
-                      ? round1Dec(basePrice60 * (pctOfBase / 100))
-                      : tier.price60 ?? 0;
-
-                    const calc120 = isPercentual
-                      ? round1Dec((basePrice120 > 0 ? basePrice120 : basePrice60 * 2) * (pctOfBase / 100))
-                      : tier.price120 ?? 0;
+                    const isBase = tier.id === "tier-base";
+                    const isDefault = Boolean(tier.isDefault || ["tier-base", "tier-10", "tier-20", "tier-50"].includes(tier.id));
+                    const discountPercent = tier.discountPercent ?? Math.max(0, 100 - (tier.percentageOfBase ?? 100));
+                    const isSelected = previewTierId === tier.id;
 
                     return (
                       <tr
                         key={tier.id}
-                        className={`transition ${
-                          previewTierId === tier.id ? "bg-emerald-50/50" : "hover:bg-slate-50/70"
+                        onClick={() => setPreviewTierId(tier.id)}
+                        className={`transition cursor-pointer border-b border-slate-100 ${
+                          isSelected
+                            ? "bg-emerald-50/70 border-emerald-200 ring-1 ring-inset ring-emerald-300/80"
+                            : "hover:bg-slate-50/80"
                         }`}
+                        title="Kliknutím na tento riadok zobrazíte živý náhľad cien"
                       >
-                        {/* Name */}
+                        {/* Name: editable only for custom tier */}
                         <td className="py-3 px-4">
-                          <input
-                            type="text"
-                            value={tier.name}
-                            onChange={(e) => handleUpdateTier(tier.id, { name: e.target.value })}
-                            className="w-full rounded-md border border-transparent bg-transparent px-2 py-1 font-bold text-slate-800 outline-none hover:border-slate-300 focus:border-emerald-500 focus:bg-white text-xs"
-                            placeholder="Názov hladiny"
-                          />
-                        </td>
-
-                        {/* 60 min */}
-                        <td className="py-3 px-4 text-center">
-                          {isPercentual ? (
-                            <div className="inline-flex items-center justify-center rounded-lg bg-emerald-50 border border-emerald-200/80 px-3 py-1 font-extrabold text-emerald-800 text-xs min-w-[75px]">
-                              {formatEur(calc60)}
-                            </div>
+                          {isDefault ? (
+                            <span className="font-bold text-slate-900 text-xs px-2 py-1 block">
+                              {tier.name}
+                            </span>
                           ) : (
-                            <div className="inline-flex items-center justify-center gap-1">
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                value={tier.price60 ?? 0}
-                                onChange={(e) =>
-                                  handleUpdateTier(tier.id, {
-                                    price60: Math.max(0, parseFloat(e.target.value) || 0),
-                                  })
-                                }
-                                className="w-16 rounded-md border border-slate-200 bg-white px-2 py-1 text-center font-bold text-slate-800 outline-none focus:border-emerald-500 text-xs"
-                              />
-                              <span className="text-slate-400 font-bold">€</span>
-                            </div>
+                            <input
+                              type="text"
+                              value={tier.name}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => {
+                                handleUpdateTier(tier.id, { name: e.target.value });
+                                setCustomTierDirty((prev) => ({ ...prev, [tier.id]: true }));
+                              }}
+                              className="w-full max-w-xs rounded-xl border border-slate-200 bg-white px-3 py-1.5 font-bold text-slate-900 outline-none focus:border-emerald-500 text-xs shadow-2xs"
+                              placeholder="Názov vlastnej hladiny"
+                            />
                           )}
                         </td>
 
-                        {/* 120 min */}
-                        <td className="py-3 px-4 text-center">
-                          {isPercentual ? (
-                            <div className="inline-flex items-center justify-center rounded-lg bg-slate-100 border border-slate-200 px-3 py-1 font-bold text-slate-700 text-xs min-w-[75px]">
-                              {formatEur(calc120)}
-                            </div>
-                          ) : (
-                            <div className="inline-flex items-center justify-center gap-1">
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                value={tier.price120 ?? 0}
-                                onChange={(e) =>
-                                  handleUpdateTier(tier.id, {
-                                    price120: Math.max(0, parseFloat(e.target.value) || 0),
-                                  })
-                                }
-                                className="w-16 rounded-md border border-slate-200 bg-white px-2 py-1 text-center font-bold text-slate-800 outline-none focus:border-emerald-500 text-xs"
-                              />
-                              <span className="text-slate-400 font-bold">€</span>
-                            </div>
-                          )}
-                        </td>
-
-                        {/* Percentuálne */}
+                        {/* Discount badge: editable for custom tier, fixed for default tiers */}
                         <td className="py-3 px-4">
                           {isBase ? (
-                            <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold">
-                              <input type="checkbox" checked disabled className="h-4 w-4 rounded text-emerald-600" />
-                              <span className="font-extrabold text-slate-700">100 %</span>
-                              <span className="text-[11px] text-slate-400">(Základný cenník)</span>
-                            </div>
+                            <span className="inline-flex items-center text-xs font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg shadow-2xs">
+                              Bez zľavy (Základná cena)
+                            </span>
+                          ) : isDefault ? (
+                            <span className="inline-flex items-center text-xs font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg shadow-2xs">
+                              –{discountPercent} % zľava
+                            </span>
                           ) : (
-                            <div className="flex items-center gap-2">
-                              <label className="flex items-center gap-2 cursor-pointer select-none">
-                                <input
-                                  type="checkbox"
-                                  checked={isPercentual}
-                                  onChange={(e) =>
-                                    handleUpdateTier(tier.id, { isPercentual: e.target.checked })
-                                  }
-                                  className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                                />
-                                <span className="text-[11px] text-slate-500">Platí %:</span>
-                              </label>
-
-                              <div className="flex items-center gap-1">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="200"
-                                  step="5"
-                                  disabled={!isPercentual}
-                                  value={pctOfBase}
-                                  onChange={(e) => {
-                                    const val = Math.max(0, Math.min(200, parseInt(e.target.value) || 0));
-                                    handleUpdateTier(tier.id, {
-                                      percentageOfBase: val,
-                                      discountPercent: Math.max(0, 100 - val),
-                                    });
-                                  }}
-                                  className={`w-14 rounded-lg border px-2 py-1 text-center font-extrabold text-xs outline-none ${
-                                    isPercentual
-                                      ? "border-slate-200 bg-white text-slate-900 focus:border-emerald-500"
-                                      : "border-slate-100 bg-slate-50 text-slate-400"
-                                  }`}
-                                />
-                                <span className="text-slate-400 font-bold text-xs">%</span>
-                              </div>
-
-                              {pctOfBase < 100 && (
-                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
-                                  –{100 - pctOfBase} % zľava
-                                </span>
-                              )}
+                            <div className="inline-flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              <span className="text-emerald-800 font-extrabold text-sm">–</span>
+                              <PriceStepper
+                                value={discountPercent}
+                                min={0}
+                                max={99}
+                                step={1}
+                                unit="%"
+                                onChange={(val) => {
+                                  handleUpdateTier(tier.id, {
+                                    discountPercent: val,
+                                    percentageOfBase: 100 - val,
+                                  });
+                                  setCustomTierDirty((prev) => ({ ...prev, [tier.id]: true }));
+                                }}
+                              />
+                              <span className="text-emerald-800 font-bold text-xs">zľava</span>
                             </div>
                           )}
                         </td>
 
-                        {/* Actions / Preview selector */}
-                        <td className="py-3 px-4 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setPreviewTierId(tier.id)}
-                              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition cursor-pointer ${
-                                previewTierId === tier.id
-                                  ? "bg-emerald-600 text-white shadow-2xs"
-                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                              }`}
-                            >
-                              {previewTierId === tier.id ? "Vybrané" : "Náhľad"}
-                            </button>
+                        {/* Actions */}
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            {!isDefault && customTierDirty[tier.id] && (
+                              <button
+                                type="button"
+                                disabled={saving}
+                                onClick={async () => {
+                                  await handleSave();
+                                  setCustomTierDirty((prev) => ({ ...prev, [tier.id]: false }));
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-emerald-700 transition cursor-pointer disabled:opacity-50"
+                                title="Uložiť zmeny tejto vlastnej zľavy"
+                              >
+                                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                                Uložiť
+                              </button>
+                            )}
 
-                            {!isBase && (
+                            {!isDefault && (
                               <button
                                 type="button"
                                 onClick={() => handleRemoveTier(tier.id)}
-                                className="text-slate-300 hover:text-red-500 p-1 transition cursor-pointer rounded"
-                                title="Zmazať hladinu"
+                                className="text-slate-400 hover:text-red-600 p-1.5 transition cursor-pointer rounded-lg hover:bg-red-50"
+                                title="Zmazať vlastnú hladinu"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-4 w-4" />
                               </button>
                             )}
                           </div>
@@ -1573,23 +1337,19 @@ export default function AdminPricelistManager() {
               <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
                 <div className="bg-slate-100/80 px-4 py-2.5 flex items-center justify-between text-xs font-bold text-slate-700 border-b border-slate-200">
                   <div className="flex items-center gap-2">
-                    <Calculator className="h-4 w-4 text-emerald-600" />
+                    <Percent className="h-4 w-4 text-emerald-600" />
                     <span>
                       Živý náhľad sadzieb pre cenník pri hladine:{" "}
                       <span className="text-emerald-700 font-extrabold">{selectedTier.name}</span>
-                      {selectedTier.isPercentual !== false && selectedTier.percentageOfBase !== undefined ? (
+                      {selectedTier.isPercentual !== false ? (
                         <span className="text-slate-500 font-normal ml-1">
-                          ({selectedTier.percentageOfBase} % zo základu
-                          {selectedTier.percentageOfBase < 100
-                            ? `, zľava –${100 - selectedTier.percentageOfBase} %`
-                            : ""})
+                          {selectedTier.id === "tier-base" || (selectedTier.discountPercent === 0 && selectedTier.percentageOfBase === 100)
+                            ? "(základná cena bez zľavy)"
+                            : `(zľava –${selectedTier.discountPercent ?? (100 - (selectedTier.percentageOfBase ?? 100))} %)`}
                         </span>
                       ) : null}
                     </span>
                   </div>
-                  <span className="text-[11px] text-slate-500 font-medium">
-                    Zaokrúhlené na 1 des. miesto
-                  </span>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -1671,6 +1431,76 @@ export default function AdminPricelistManager() {
           </div>
         );
       })()}
+      {/* Create Pricelist Modal */}
+      <CreatePricelistModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreate={handleConfirmCreatePricelist}
+        currentPricelist={current}
+      />
+
+      {/* Edit / Add Interval Modal */}
+      <EditIntervalModal
+        isOpen={intervalModalOpen}
+        onClose={() => {
+          setIntervalModalOpen(false);
+          setEditingInterval(null);
+        }}
+        initialInterval={editingInterval}
+        title={intervalModalTitle}
+        onSave={handleSaveIntervalFromModal}
+        onDelete={handleRemoveInterval}
+      />
+
+      {/* Delete Pricelist Confirmation Dialog */}
+      {showDeletePricelistConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+                <Trash2 className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Zmazať cenník</h3>
+                <p className="text-xs text-slate-500">Táto akcia je nevratná</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Naozaj si prajete natrvalo zmazať cenník <b>„{current.name}“</b>? Všetky jeho nastavené sadzby a časové pásma budú zmazané zo systému.
+            </p>
+
+            {deleteModalError && (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-semibold text-rose-800 flex items-start gap-2.5 animate-in fade-in">
+                <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+                <span className="leading-snug">{deleteModalError}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeletePricelistConfirm(false);
+                  setDeleteModalError(null);
+                }}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              >
+                Zrušiť
+              </button>
+              <button
+                type="button"
+                disabled={saving || current.isActive}
+                onClick={handleDeletePricelist}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-700 shadow-md shadow-rose-700/20 transition cursor-pointer disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Áno, zmazať cenník
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
