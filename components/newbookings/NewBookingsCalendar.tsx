@@ -690,7 +690,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           const timer = window.setTimeout(() => {
             setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
             timers.delete(bookingId);
-          }, 3000);
+          }, 4500);
           timers.set(bookingId, timer);
         }
       } else if (payload.eventType === "DELETE") {
@@ -768,7 +768,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
               const timer = window.setTimeout(() => {
                 setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
                 timers.delete(bookingId);
-              }, 3000);
+              }, 4500);
               timers.set(bookingId, timer);
             }
           }
@@ -1191,7 +1191,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     const highlightTimer = window.setTimeout(() => {
       setHighlightedVoiceBookings((curr) => curr.filter((id) => id !== reschedId));
       timers.delete(reschedId);
-    }, 3500);
+    }, 4500);
     timers.set(reschedId, highlightTimer);
 
     setNotice("Rezervácia bola úspešne presunutá na nový termín.");
@@ -1267,7 +1267,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         const timer = window.setTimeout(() => {
           setHighlightedVoiceBookings((current) => current.filter((id) => id !== vId));
           timers.delete(vId);
-        }, 3000);
+        }, 4500);
         timers.set(vId, timer);
       }
 
@@ -1311,7 +1311,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
     const highlightTimer = window.setTimeout(() => {
       setHighlightedVoiceBookings((current) => current.filter((id) => id !== newId));
       timers.delete(newId);
-    }, 3000);
+    }, 4500);
     timers.set(newId, highlightTimer);
     setSlot(null);
     setIsRecurring(false);
@@ -2223,40 +2223,69 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       <style jsx global>{`
         @keyframes booking-magnify-and-drop {
           0% {
-            transform: scale(0.92);
+            transform: scale(0.86) translateY(0);
             box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+            filter: brightness(1);
           }
-          14% {
-            transform: scale(1.30);
+          /* 1. Fast dynamic spring lift-off into the foreground */
+          9% {
+            transform: scale(1.38) translateY(-6px);
             box-shadow: 
-              0 22px 38px -6px rgba(15, 23, 42, 0.32),
+              0 28px 52px -6px rgba(15, 23, 42, 0.4),
+              0 0 0 3.5px rgba(255, 255, 255, 0.98),
+              0 0 36px rgba(16, 185, 129, 0.6),
+              0 0 68px rgba(56, 189, 248, 0.38);
+            filter: brightness(1.09) contrast(1.05);
+          }
+          /* 2. Floating showcase phase with gentle breathing hover (~2.8 seconds of clear visibility) */
+          25% {
+            transform: scale(1.33) translateY(-8px);
+            box-shadow: 
+              0 24px 44px -8px rgba(15, 23, 42, 0.34),
               0 0 0 3px rgba(255, 255, 255, 0.95),
-              0 0 24px rgba(56, 189, 248, 0.22);
-            filter: brightness(1.04) contrast(1.03);
+              0 0 30px rgba(16, 185, 129, 0.45),
+              0 0 55px rgba(56, 189, 248, 0.28);
+            filter: brightness(1.06) contrast(1.03);
           }
-          24% {
-            transform: scale(1.25);
+          48% {
+            transform: scale(1.36) translateY(-9px);
             box-shadow: 
-              0 18px 30px -6px rgba(15, 23, 42, 0.28),
-              0 0 0 2.5px rgba(255, 255, 255, 0.9),
-              0 0 18px rgba(56, 189, 248, 0.16);
+              0 26px 48px -8px rgba(15, 23, 42, 0.38),
+              0 0 0 3.5px rgba(255, 255, 255, 0.98),
+              0 0 42px rgba(16, 185, 129, 0.55),
+              0 0 72px rgba(56, 189, 248, 0.36);
+            filter: brightness(1.10) contrast(1.05);
           }
-          70% {
-            transform: scale(1.23);
+          68% {
+            transform: scale(1.33) translateY(-7px);
             box-shadow: 
-              0 16px 26px -6px rgba(15, 23, 42, 0.24),
-              0 0 0 2px rgba(255, 255, 255, 0.85);
+              0 22px 40px -8px rgba(15, 23, 42, 0.32),
+              0 0 0 3px rgba(255, 255, 255, 0.92),
+              0 0 30px rgba(16, 185, 129, 0.4);
+            filter: brightness(1.05);
           }
-          84% {
-            transform: scale(0.95);
-            box-shadow: 0 4px 8px rgba(15, 23, 42, 0.16);
+          /* 3. Rapid gravity drop back into the calendar day */
+          82% {
+            transform: scale(0.92) translateY(3px);
+            box-shadow: 
+              0 6px 14px rgba(15, 23, 42, 0.24),
+              0 0 0 1.5px rgba(255, 255, 255, 0.85),
+              0 0 18px rgba(16, 185, 129, 0.32);
+            filter: brightness(1.02);
           }
-          92% {
-            transform: scale(1.04);
-            box-shadow: 0 8px 14px rgba(15, 23, 42, 0.14);
+          /* 4. Elastic impact rebound & settle */
+          90% {
+            transform: scale(1.06) translateY(-2px);
+            box-shadow: 
+              0 10px 20px rgba(15, 23, 42, 0.16),
+              0 0 12px rgba(16, 185, 129, 0.22);
+          }
+          96% {
+            transform: scale(0.98) translateY(1px);
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
           }
           100% {
-            transform: scale(1);
+            transform: scale(1) translateY(0);
             box-shadow: none;
             filter: none;
           }
@@ -2264,10 +2293,10 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         .booking-magnify-drop,
         .voice-booking-highlight {
           position: relative;
-          animation: booking-magnify-and-drop 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
+          animation: booking-magnify-and-drop 4.5s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
           z-index: 50 !important;
           transform-origin: center center;
-          will-change: transform, box-shadow;
+          will-change: transform, box-shadow, filter;
         }
         @media (prefers-reduced-motion: reduce) {
           .booking-magnify-drop,
