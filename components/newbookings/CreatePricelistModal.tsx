@@ -122,16 +122,11 @@ export default function CreatePricelistModal({
   const hasWeekend = intervals.some((i) => areDaysSame(i.days, [6, 0]));
   const weekdayIntervals = intervals.filter((i) => areDaysSame(i.days, [1, 2, 3, 4, 5]));
   const weekdayCount = weekdayIntervals.length;
-  const hasMorning = weekdayIntervals.some(
-    (i) => i.name.toLowerCase().includes("mimo") || i.startHour === 7
-  );
-  const hasPeak = weekdayIntervals.some(
-    (i) => i.name.toLowerCase().includes("špičk") || i.name.toLowerCase().includes("spick") || i.endHour === 22
-  );
-  const hasHappyHour = weekdayIntervals.some(
-    (i) => i.name.toLowerCase().includes("happy") || (i.startHour === 12 && i.endHour === 16)
-  );
-  const canAddGeneralWeekday = !hasMorning || !hasPeak;
+  const isHappyHourInterval = (i: PriceInterval) =>
+    i.name.toLowerCase().includes("happy") || (i.startHour === 12 && i.endHour === 16);
+  const hasHappyHour = weekdayIntervals.some(isHappyHourInterval);
+  const regularWeekdayIntervals = weekdayIntervals.filter((i) => !isHappyHourInterval(i));
+  const canAddGeneralWeekday = regularWeekdayIntervals.length < 2;
 
   const handleUpdateIntervalTimes = (
     intervalId: string,
@@ -186,22 +181,38 @@ export default function CreatePricelistModal({
     }
 
     if (!canAddGeneralWeekday) return;
-    const sameDays = intervals
-      .filter((i) => areDaysSame(i.days, [1, 2, 3, 4, 5]))
-      .sort((a, b) => a.startHour - b.startHour);
+    const existingRegular = regularWeekdayIntervals[0];
 
     let startHour = 16;
     let endHour = 22;
     let name = "Špička";
 
-    if (!hasMorning) {
+    if (existingRegular) {
+      const isMorning =
+        existingRegular.name.toLowerCase().includes("mimo") ||
+        existingRegular.name.toLowerCase().includes("rann") ||
+        existingRegular.startHour === 7;
+      const isPeak =
+        existingRegular.name.toLowerCase().includes("špičk") ||
+        existingRegular.name.toLowerCase().includes("spick");
+
+      if (isMorning && !isPeak) {
+        startHour = 16;
+        endHour = 22;
+        name = "Špička";
+      } else if (isPeak && !isMorning) {
+        startHour = 7;
+        endHour = 16;
+        name = "Mimo špičky";
+      } else {
+        startHour = 16;
+        endHour = 22;
+        name = "Špička";
+      }
+    } else {
       startHour = 7;
       endHour = 16;
       name = "Mimo špičky";
-    } else if (!hasPeak) {
-      startHour = 16;
-      endHour = 22;
-      name = "Špička";
     }
 
     setEditingInterval({

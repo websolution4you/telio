@@ -367,46 +367,57 @@ export default function AdminPricelistManager() {
       return;
     }
 
-    // Weekday: max 3 bands
+    // Weekday: max 2 regular bands (Mimo špičky, Špička) + 1 Happy Hour = max 3 total
     const weekdayIntervals = current.intervals
       .filter((i) => areDaysSame(i.days, [1, 2, 3, 4, 5]))
       .sort((a, b) => a.startHour - b.startHour);
 
-    if (weekdayIntervals.length >= 3) {
+    const isHappyHourInterval = (i: PriceInterval) =>
+      i.name.toLowerCase().includes("happy") || (i.startHour === 12 && i.endHour === 16);
+    const regularWeekdayIntervals = weekdayIntervals.filter((i) => !isHappyHourInterval(i));
+
+    if (regularWeekdayIntervals.length >= 2) {
       setFeedback({
         type: "error",
-        message: "Pre pracovné dni už máte nastavené maximum 3 hladín (Mimo špičky, Happy Hour, Špička).",
+        message: "Pre pracovné dni už máte nastavené obe základné pásma (Mimo špičky a Špička). Ak chcete pridať tretie pásmo, použite '+ Happy Hour'.",
       });
       return;
     }
 
-    const hasMorning = weekdayIntervals.some(
-      (i) => i.name.toLowerCase().includes("mimo") || i.startHour === 7
-    );
-    const hasPeak = weekdayIntervals.some(
-      (i) => i.name.toLowerCase().includes("špičk") || i.name.toLowerCase().includes("spick") || i.endHour === 22
-    );
-
-    if (hasMorning && hasPeak) {
-      setFeedback({
-        type: "error",
-        message: "Základné pásma pre pracovné dni (Mimo špičky a Špička) už máte nastavené. Pre pridanie obedňajšieho pásma použite tlačidlo '+ Happy Hour'.",
-      });
-      return;
-    }
-
+    const existingRegular = regularWeekdayIntervals[0];
     let startHour = 16;
     let endHour = 22;
     let name = "Špička";
 
-    if (!hasMorning) {
+    if (existingRegular) {
+      const isMorning =
+        existingRegular.name.toLowerCase().includes("mimo") ||
+        existingRegular.name.toLowerCase().includes("rann") ||
+        existingRegular.startHour === 7;
+      const isPeak =
+        existingRegular.name.toLowerCase().includes("špičk") ||
+        existingRegular.name.toLowerCase().includes("spick");
+
+      if (isMorning && !isPeak) {
+        // Morning exists, suggest Peak
+        startHour = 16;
+        endHour = 22;
+        name = "Špička";
+      } else if (isPeak && !isMorning) {
+        // Peak exists, suggest Morning
+        startHour = 7;
+        endHour = 16;
+        name = "Mimo špičky";
+      } else {
+        // Default to Špička if existing covers full day
+        startHour = 16;
+        endHour = 22;
+        name = "Špička";
+      }
+    } else {
       startHour = 7;
       endHour = 16;
       name = "Mimo špičky";
-    } else if (!hasPeak) {
-      startHour = 16;
-      endHour = 22;
-      name = "Špička";
     }
 
     setEditingInterval({
@@ -857,16 +868,11 @@ export default function AdminPricelistManager() {
             {(() => {
               const hasWeekend = current.intervals.some((i) => areDaysSame(i.days, [6, 0]));
               const weekdayIntervals = current.intervals.filter((i) => areDaysSame(i.days, [1, 2, 3, 4, 5]));
-              const hasMorning = weekdayIntervals.some(
-                (i) => i.name.toLowerCase().includes("mimo") || i.startHour === 7
-              );
-              const hasPeak = weekdayIntervals.some(
-                (i) => i.name.toLowerCase().includes("špičk") || i.name.toLowerCase().includes("spick") || i.endHour === 22
-              );
-              const hasHappyHour = weekdayIntervals.some(
-                (i) => areDaysSame(i.days, [1, 2, 3, 4, 5]) && (i.name.toLowerCase().includes("happy") || (i.startHour === 12 && i.endHour === 16))
-              );
-              const canAddGeneralWeekday = !hasMorning || !hasPeak;
+              const isHappyHourInterval = (i: PriceInterval) =>
+                i.name.toLowerCase().includes("happy") || (i.startHour === 12 && i.endHour === 16);
+              const hasHappyHour = weekdayIntervals.some(isHappyHourInterval);
+              const regularWeekdayIntervals = weekdayIntervals.filter((i) => !isHappyHourInterval(i));
+              const canAddGeneralWeekday = regularWeekdayIntervals.length < 2;
 
               return (
                 <>
