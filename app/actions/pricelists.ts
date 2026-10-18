@@ -180,3 +180,75 @@ export async function setActivePricelistAction(id: string): Promise<{
     return { success: false, error: err.message || "Chyba pri aktivácii cenníka." };
   }
 }
+
+export async function deletePricelistAction(id: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const session = await getSession();
+    if (!session || session.role !== "admin") {
+      return { success: false, error: "Iba administrátor môže zmazať cenník." };
+    }
+
+    try {
+      const serviceDb = getCoreServiceDb();
+      const { data: dbRows, error: dbErr } = await serviceDb
+        .from("ntc_pricelists")
+        .select("id, name, is_active")
+        .or(`tenant_id.eq.${TENANT_ID},tenant_id.eq.default`);
+
+      if (!dbErr && dbRows) {
+        const target = dbRows.find((p) => p.id === id);
+
+        // If the pricelist to delete does not even exist in the database (e.g. client draft):
+        if (!target) {
+          inMemoryPricelists = inMemoryPricelists.filter((p) => p.id !== id);
+          return { success: true };
+        }
+
+        // Cannot delete an active pricelist
+        if (target.is_active) {
+          return { success: false, error: "Nemôžete zmazať aktívny cenník. Najprv nastavte iný cenník ako aktívny." };
+        }
+
+        // Cannot delete the only remaining pricelist in the DB
+        if (dbRows.length <= 1) {
+          return { success: false, error: "Nemôžete zmazať posledný zostávajúci cenník." };
+        }
+
+        const { error: delErr } = await serviceDb
+          .from("ntc_pricelists")
+          .delete()
+          .eq("id", id);
+
+        if (delErr) {
+          return { success: false, error: delErr.message || "Chyba pri mazaní cenníka z databázy." };
+        }
+
+        inMemoryPricelists = inMemoryPricelists.filter((p) => p.id !== id);
+        return { success: true };
+      }
+    } catch (e) {
+      console.warn("Database sync check failed, falling back to memory:", e);
+    }
+
+    const toDelete = inMemoryPricelists.find((p) => p.id === id);
+    if (!toDelete) {
+      return { success: true };
+    }
+
+    if (toDelete.isActive) {
+      return { success: false, error: "Nemôžete zmazať aktívny cenník. Najprv nastavte iný cenník ako aktívny." };
+    }
+
+    if (inMemoryPricelists.length <= 1) {
+      return { success: false, error: "Nemôžete zmazať posledný zostávajúci cenník." };
+    }
+
+    inMemoryPricelists = inMemoryPricelists.filter((p) => p.id !== id);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Chyba pri zmazaní cenníka." };
+  }
+}
