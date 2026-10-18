@@ -198,20 +198,28 @@ export async function deletePricelistAction(id: string): Promise<{
         .select("id, name, is_active")
         .or(`tenant_id.eq.${TENANT_ID},tenant_id.eq.default`);
 
-      if (!dbErr && dbRows && dbRows.length > 0) {
-        if (dbRows.length <= 1) {
-          return { success: false, error: "Nemôžete zmazať posledný zostávajúci cenník." };
+      if (!dbErr && dbRows) {
+        const target = dbRows.find((p) => p.id === id);
+
+        // If the pricelist to delete does not even exist in the database (e.g. client draft):
+        if (!target) {
+          inMemoryPricelists = inMemoryPricelists.filter((p) => p.id !== id);
+          return { success: true };
         }
 
-        const target = dbRows.find((p) => p.id === id);
-        if (target && target.is_active) {
+        // Cannot delete an active pricelist
+        if (target.is_active) {
           return { success: false, error: "Nemôžete zmazať aktívny cenník. Najprv nastavte iný cenník ako aktívny." };
+        }
+
+        // Cannot delete the only remaining pricelist in the DB
+        if (dbRows.length <= 1) {
+          return { success: false, error: "Nemôžete zmazať posledný zostávajúci cenník." };
         }
 
         const { error: delErr } = await serviceDb
           .from("ntc_pricelists")
           .delete()
-          .eq("tenant_id", TENANT_ID)
           .eq("id", id);
 
         if (delErr) {
@@ -225,13 +233,17 @@ export async function deletePricelistAction(id: string): Promise<{
       console.warn("Database sync check failed, falling back to memory:", e);
     }
 
-    if (inMemoryPricelists.length <= 1) {
-      return { success: false, error: "Nemôžete zmazať posledný zostávajúci cenník." };
+    const toDelete = inMemoryPricelists.find((p) => p.id === id);
+    if (!toDelete) {
+      return { success: true };
     }
 
-    const toDelete = inMemoryPricelists.find((p) => p.id === id);
-    if (toDelete?.isActive) {
+    if (toDelete.isActive) {
       return { success: false, error: "Nemôžete zmazať aktívny cenník. Najprv nastavte iný cenník ako aktívny." };
+    }
+
+    if (inMemoryPricelists.length <= 1) {
+      return { success: false, error: "Nemôžete zmazať posledný zostávajúci cenník." };
     }
 
     inMemoryPricelists = inMemoryPricelists.filter((p) => p.id !== id);

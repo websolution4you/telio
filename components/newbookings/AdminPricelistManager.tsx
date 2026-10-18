@@ -557,14 +557,27 @@ export default function AdminPricelistManager() {
     setIsCreateModalOpen(true);
   };
 
-  const handleConfirmCreatePricelist = (newPricelist: NtcPricelist) => {
+  const handleConfirmCreatePricelist = async (newPricelist: NtcPricelist) => {
     setPricelists((prev) => [newPricelist, ...prev]);
     setSelectedId(newPricelist.id);
     setCurrent(newPricelist);
-    setFeedback({
-      type: "success",
-      message: `Vytvorený nový cenník „${newPricelist.name}“. Skontrolujte sadzby a kliknite Uložiť cenník.`,
-    });
+    setIsCreateModalOpen(false);
+
+    setSaving(true);
+    const res = await savePricelistAction(newPricelist);
+    setSaving(false);
+
+    if (res.success) {
+      setFeedback({
+        type: "success",
+        message: `Vytvorený nový cenník „${newPricelist.name}“. Sadzby môžete ďalej upravovať a kedykoľvek uložiť.`,
+      });
+    } else {
+      setFeedback({
+        type: "error",
+        message: res.error || "Cenník bol pridaný lokálne, ale nepodarilo sa ho uložiť do databázy.",
+      });
+    }
   };
 
   const handleUpdateTier = (tierId: string, updates: Partial<DiscountTier>) => {
