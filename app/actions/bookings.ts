@@ -11,7 +11,8 @@ import { getSession, type BookingRole } from "@/lib/auth/bookingAuth";
 import { walletEnabledForUser } from "@/lib/server/wallet";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import { getActivePricelist } from "@/app/actions/pricelists";
-import { getBratislavaDateKey, getCourtOperatingLimitMinutes, isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
+import { getBratislavaDateKey, getBratislavaDateParts, getCourtOperatingLimitMinutes, isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
+import { courts as ntcCourts, type SportType } from "@/lib/bookings/mockBookings";
 
 
 
@@ -1582,5 +1583,244 @@ export async function restoreBookingAction(id: string) {
     } catch (error: any) {
         console.error("restoreBookingAction failed:", error);
         return { success: false, error: error.message || "Failed to restore booking" };
+    }
+}
+
+export type CourtHeatmapParams = {
+    sport?: "all" | SportType;
+    period?: "this_week" | "last_week" | "this_month" | "last_month";
+    courtId?: string;
+};
+
+export type HeatmapCell = {
+    dayIndex: number; // 0 = Pondelok, 6 = Nedeľa
+    dayName: string;  // "Po", "Ut", "St", "Št", "Pi", "So", "Ne"
+    hour: number;     // 7 .. 22
+    occupiedCount: number; // Priemer alebo počet obsadených kurtov
+    totalCourts: number;   // Celková kapacita
+    percentage: number;    // 0 .. 100
+};
+
+export type CourtStatSummary = {
+    courtId: string;
+    courtName: string;
+    sport: SportType;
+    surface: string;
+    occupiedHours: number;
+    totalPossibleHours: number;
+    utilizationPercent: number;
+    bookingsCount: number;
+};
+
+function getBratislavaUtcDate(year: number, month: number, day: number, hour: number, minute = 0, second = 0, millisecond = 0): Date {
+    const candidate = new Date(Date.UTC(year, month - 1, day, hour, minute, second, millisecond));
+    const parts = getBratislavaDateParts(candidate);
+    let diff = (parts.hour - candidate.getUTCHours() + 24) % 24;
+    if (diff > 12) diff -= 24;
+    return new Date(Date.UTC(year, month - 1, day, hour - diff, minute, second, millisecond));
+}
+
+function resolveCourtId(row: any): string {
+    let fromNotes = "";
+    try {
+        const obj = typeof row.notes === "string" ? JSON.parse(row.notes) : (row.notes || {});
+        fromNotes = obj.courtId || obj.court_id || "";
+    } catch {}
+    return fromNotes || row.court_id || row.courtId || "badminton-1";
+}
+
+export async function fetchCourtHeatmapAction(params?: CourtHeatmapParams) {
+    try {
+        const session = await getSession();
+        if (!session || session.role !== "admin") {
+            return { success: false, error: "Prístup zamietnutý. Iba administrátor môže zobraziť štatistiky." };
+        }
+
+        const now = new Date();
+        const nowParts = getBratislavaDateParts(now);
+        const period = params?.period || "this_week";
+
+        // Vypočítame presný zoznam dní pre zvolené obdobie
+        const dates: { dateKey: string; dayIndex: number; year: number; month: number; day: number }[] = [];
+
+        if (period === "this_week" || period === "last_week") {
+            const offsetFromMonday = nowParts.dayOfWeek; // 0 = Mon, 6 = Sun
+            const weekShift = period === "last_week" ? 7 : 0;
+            const monUtc = new Date(Date.UTC(nowParts.year, nowParts.month - 1, nowParts.day - offsetFromMonday - weekShift, 12, 0, 0));
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(Date.UTC(monUtc.getUTCFullYear(), monUtc.getUTCMonth(), monUtc.getUTCDate() + i, 12, 0, 0));
+                const y = d.getUTCFullYear();
+                const m = d.getUTCMonth() + 1;
+                const dayNum = d.getUTCDate();
+                const dateKey = `${y}-${String(m).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+                dates.push({ dateKey, dayIndex: i, year: y, month: m, day: dayNum });
+            }
+        } else {
+            // "this_month" | "last_month"
+            let targetYear = nowParts.year;
+            let targetMonth = nowParts.month;
+            if (period === "last_month") {
+                targetMonth -= 1;
+                if (targetMonth === 0) {
+                    targetMonth = 12;
+                    targetYear -= 1;
+                }
+            }
+            const daysInTargetMonth = new Date(Date.UTC(targetYear, targetMonth, 0)).getUTCDate();
+            for (let d = 1; d <= daysInTargetMonth; d++) {
+                const dObj = new Date(Date.UTC(targetYear, targetMonth - 1, d, 12, 0, 0));
+                const rawDay = dObj.getUTCDay();
+                const dayIndex = (rawDay + 6) % 7; // 0 = Mon, 6 = Sun
+                const dateKey = `${targetYear}-${String(targetMonth).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                dates.push({ dateKey, dayIndex, year: targetYear, month: targetMonth, day: d });
+            }
+        }
+
+        const firstDate = dates[0];
+        const lastDate = dates[dates.length - 1];
+        const startIso = getBratislavaUtcDate(firstDate.year, firstDate.month, firstDate.day, 0, 0, 0).toISOString();
+        const endIso = getBratislavaUtcDate(lastDate.year, lastDate.month, lastDate.day, 23, 59, 59, 999).toISOString();
+
+        // Výpočet koľkokrát sa ktorý deň v týždni vyskytuje v období
+        const dayOccurrences = [0, 0, 0, 0, 0, 0, 0];
+        const dateKeysByDayIndex: Record<number, string[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
+        for (const d of dates) {
+            dayOccurrences[d.dayIndex]++;
+            dateKeysByDayIndex[d.dayIndex].push(d.dateKey);
+        }
+
+        // Určenie cieľových kurtov podľa filtra
+        let targetCourts = ntcCourts;
+        if (params?.courtId) {
+            targetCourts = ntcCourts.filter((c) => c.id === params.courtId);
+        } else if (params?.sport && params.sport !== "all") {
+            targetCourts = ntcCourts.filter((c) => c.sport === params.sport);
+        }
+        if (!targetCourts.length) targetCourts = ntcCourts;
+        const targetCourtIds = new Set(targetCourts.map((c) => c.id));
+
+        // Získame rezervácie zo Supabase výhradne pre ohraničené obdobie
+        const db = getCoreServiceDb();
+        const { data: dbBookings, error: dbError } = await db
+            .from("bookings")
+            .select("id, court_id, notes, start_at, end_at, status")
+            .eq("tenant_id", TENANT_ID)
+            .neq("status", "cancelled")
+            .gte("end_at", startIso)
+            .lte("start_at", endIso);
+
+        if (dbError) {
+            throw new Error(`Database error: ${dbError.message}`);
+        }
+
+        // Inicializácia mapy obsadených kurtov pre každý deň a každú hodinu
+        const occupiedMap: Record<string, Record<number, Set<string>>> = {};
+        for (const d of dates) {
+            occupiedMap[d.dateKey] = {};
+            for (let h = 7; h <= 22; h++) {
+                occupiedMap[d.dateKey][h] = new Set<string>();
+            }
+        }
+
+        const courtHoursMap: Record<string, number> = {};
+        const courtBookingsCountMap: Record<string, number> = {};
+
+        const periodStartMs = new Date(startIso).getTime();
+        const periodEndMs = new Date(endIso).getTime();
+
+        for (const b of dbBookings || []) {
+            const cId = resolveCourtId(b);
+            if (!targetCourtIds.has(cId)) continue;
+
+            const bStart = new Date(b.start_at);
+            const bEnd = new Date(b.end_at);
+            const bStartMs = bStart.getTime();
+            const bEndMs = bEnd.getTime();
+            if (bEndMs <= bStartMs) continue;
+
+            // Spočítame skutočné odohrané hodiny na danom kurte v rámci zvoleného obdobia
+            const effectiveStartMs = Math.max(bStartMs, periodStartMs);
+            const effectiveEndMs = Math.min(bEndMs, periodEndMs);
+            if (effectiveEndMs > effectiveStartMs) {
+                const durHours = (effectiveEndMs - effectiveStartMs) / (1000 * 60 * 60);
+                courtHoursMap[cId] = (courtHoursMap[cId] || 0) + durHours;
+                courtBookingsCountMap[cId] = (courtBookingsCountMap[cId] || 0) + 1;
+            }
+
+            // Označíme každú obsadenú hodinu na kurte v príslušnom dátume
+            for (const d of dates) {
+                for (let h = 7; h <= 22; h++) {
+                    const slotStart = getBratislavaUtcDate(d.year, d.month, d.day, h, 0, 0).getTime();
+                    const slotEnd = getBratislavaUtcDate(d.year, d.month, d.day, h + 1, 0, 0).getTime();
+                    if (bStartMs < slotEnd && bEndMs > slotStart) {
+                        occupiedMap[d.dateKey][h].add(cId);
+                    }
+                }
+            }
+        }
+
+        // Zostavenie 7 × 16 matice heatmapy
+        const dayNames = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"];
+        const heatmap: HeatmapCell[] = [];
+
+        for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+            const occurrences = dayOccurrences[dayIndex] || 1;
+            const matchingDates = dateKeysByDayIndex[dayIndex] || [];
+
+            for (let hour = 7; hour <= 22; hour++) {
+                let sumOccupiedAcrossDates = 0;
+                for (const dKey of matchingDates) {
+                    sumOccupiedAcrossDates += occupiedMap[dKey]?.[hour]?.size || 0;
+                }
+
+                const averageOccupied = occurrences > 0 ? Math.round((sumOccupiedAcrossDates / occurrences) * 10) / 10 : 0;
+                const totalCapacity = targetCourts.length;
+                const maxPossibleSlots = totalCapacity * occurrences;
+                const percentage = maxPossibleSlots > 0 ? Math.min(100, Math.round((sumOccupiedAcrossDates / maxPossibleSlots) * 100)) : 0;
+
+                heatmap.push({
+                    dayIndex,
+                    dayName: dayNames[dayIndex],
+                    hour,
+                    occupiedCount: averageOccupied,
+                    totalCourts: totalCapacity,
+                    percentage,
+                });
+            }
+        }
+
+        // Zostavenie sumáru pre jednotlivé kurty
+        const totalDaysInPeriod = dates.length;
+        const totalPossibleCourtHours = totalDaysInPeriod * 16; // 16 hodín denne (7:00 - 23:00)
+
+        const courtStats: CourtStatSummary[] = targetCourts.map((c) => {
+            const occ = Math.round((courtHoursMap[c.id] || 0) * 10) / 10;
+            const pct = totalPossibleCourtHours > 0 ? Math.min(100, Math.round((occ / totalPossibleCourtHours) * 100)) : 0;
+            return {
+                courtId: c.id,
+                courtName: c.name,
+                sport: c.sport,
+                surface: c.surface,
+                occupiedHours: occ,
+                totalPossibleHours: totalPossibleCourtHours,
+                utilizationPercent: pct,
+                bookingsCount: courtBookingsCountMap[c.id] || 0,
+            };
+        }).sort((a, b) => b.occupiedHours - a.occupiedHours);
+
+        return {
+            success: true,
+            period,
+            sport: params?.sport || "all",
+            courtId: params?.courtId || null,
+            totalBookings: dbBookings?.length || 0,
+            startDate: firstDate.dateKey,
+            endDate: lastDate.dateKey,
+            heatmap,
+            courtStats,
+        };
+    } catch (e: any) {
+        console.error("fetchCourtHeatmapAction failed:", e);
+        return { success: false, error: e.message || "Nepodarilo sa načítať dáta vyťaženosti." };
     }
 }

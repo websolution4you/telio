@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CalendarDays, Check, Loader2, Users, Wrench, X } from "lucide-react";
-import { createBookingAction, fetchAdminDashboardDataAction } from "@/app/actions/bookings";
+import { ArrowLeft, BarChart3, CalendarDays, Check, Loader2, Users, Wrench, X } from "lucide-react";
+import { createBookingAction, fetchAdminDashboardDataAction, fetchCourtHeatmapAction, type HeatmapCell, type CourtStatSummary } from "@/app/actions/bookings";
+import { courts as ntcCourts, type SportType } from "@/lib/bookings/mockBookings";
 import AdminCallHistory from "./AdminCallHistory";
 
 type Booking = { id: string; courtId: string; customerName: string; start: string; end: string; status: "confirmed" | "blocked" | "cancelled"; price?: number };
@@ -22,6 +23,58 @@ export default function NewBookingsAdminDashboard() {
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({ courtId: "badminton-1", date: "", start: "07:00", end: "09:00" });
   const [now] = useState(() => Date.now());
+
+  // Dynamické filtre a dáta pre vyťaženosť kurtov (Blok 2)
+  const [selectedSport, setSelectedSport] = useState<"all" | SportType>("badminton");
+  const [selectedPeriod, setSelectedPeriod] = useState<"this_week" | "this_month" | "last_week" | "last_month">("this_week");
+  const [selectedCourtId, setSelectedCourtId] = useState<string>("");
+  const [heatmapData, setHeatmapData] = useState<HeatmapCell[]>([]);
+  const [courtStats, setCourtStats] = useState<CourtStatSummary[]>([]);
+  const [heatmapLoading, setHeatmapLoading] = useState(true);
+  const [hoveredCell, setHoveredCell] = useState<HeatmapCell | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setHeatmapLoading(true);
+    fetchCourtHeatmapAction({
+      sport: selectedSport,
+      period: selectedPeriod,
+      courtId: selectedCourtId || undefined,
+    }).then((res) => {
+      if (!active) return;
+      if (res.success && res.heatmap) {
+        setHeatmapData(res.heatmap);
+        setCourtStats(res.courtStats || []);
+      }
+      setHeatmapLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [selectedSport, selectedPeriod, selectedCourtId]);
+
+  const sportOptions: { id: "all" | SportType; label: string; count: number; icon: string }[] = [
+    { id: "badminton", label: "Bedminton", count: 10, icon: "🏸" },
+    { id: "tennis", label: "Tenis indoor", count: 6, icon: "🎾" },
+    { id: "tennis-clay", label: "Tenis antuka", count: 4, icon: "🧱" },
+    { id: "squash", label: "Squash", count: 4, icon: "⬛" },
+    { id: "all", label: "Všetky", count: 24, icon: "🌐" },
+  ];
+
+  const courtsForSport = useMemo(() => {
+    if (selectedSport === "all") return ntcCourts;
+    return ntcCourts.filter((c) => c.sport === selectedSport);
+  }, [selectedSport]);
+
+  const heatmapByDay = useMemo(() => {
+    const map: Record<number, Record<number, HeatmapCell>> = {};
+    for (let d = 0; d < 7; d++) map[d] = {};
+    for (const cell of heatmapData) {
+      if (!map[cell.dayIndex]) map[cell.dayIndex] = {};
+      map[cell.dayIndex][cell.hour] = cell;
+    }
+    return map;
+  }, [heatmapData]);
 
   const load = useCallback(async () => {
     const result = await fetchAdminDashboardDataAction();
@@ -135,26 +188,137 @@ export default function NewBookingsAdminDashboard() {
       {/* Vyťaženosť a VIP zákazníci */}
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr] xl:grid-cols-[1.7fr_1fr]">
         <section className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
-          <div className="mb-4 flex items-center justify-between gap-3">
+          {/* Hlavička sekcie a prepínač obdobia */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4 mb-4">
             <div>
               <div className="flex items-center gap-2">
                 <CalendarDays className="h-5 w-5 text-emerald-600" />
                 <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-950">Vyťaženosť kurtov</h2>
               </div>
-              <p className="mt-0.5 text-xs text-slate-500">Týždenný rozptyl rezervácií od 7:00 do 22:00</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Reálna obsadenosť podľa hodín z kalendára (07:00 – 22:00)
+              </p>
             </div>
-            {/* Legenda vyťaženosti */}
-            <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
-              <span>Menej</span>
-              <span className="h-3 w-3 rounded-xs bg-emerald-500/10 border border-emerald-500/20" />
-              <span className="h-3 w-3 rounded-xs bg-emerald-500/40" />
-              <span className="h-3 w-3 rounded-xs bg-emerald-500/70" />
-              <span className="h-3 w-3 rounded-xs bg-emerald-500" />
-              <span>Viac</span>
+
+            {/* Prepínač obdobia */}
+            <div className="flex items-center gap-1 rounded-2xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold text-slate-700">
+              {(
+                [
+                  { id: "this_week", label: "Tento týždeň" },
+                  { id: "this_month", label: "Tento mesiac" },
+                  { id: "last_week", label: "Minulý týždeň" },
+                  { id: "last_month", label: "Minulý mesiac" },
+                ] as const
+              ).map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setSelectedPeriod(p.id)}
+                  className={`cursor-pointer px-2.5 py-1.5 rounded-xl transition text-[11px] sm:text-xs ${
+                    selectedPeriod === p.id
+                      ? "bg-white text-slate-950 shadow-2xs font-extrabold"
+                      : "text-slate-500 hover:text-slate-900"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="overflow-x-auto pb-1">
+          {/* Prepínače športov a výber kurtu */}
+          <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {sportOptions.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedSport(s.id);
+                    setSelectedCourtId("");
+                  }}
+                  className={`cursor-pointer inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-bold border transition ${
+                    selectedSport === s.id
+                      ? "bg-emerald-600 border-emerald-600 text-white shadow-xs"
+                      : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                  }`}
+                >
+                  <span>{s.icon}</span>
+                  <span>{s.label}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-md ${
+                      selectedSport === s.id ? "bg-emerald-700 text-emerald-100" : "bg-slate-200/80 text-slate-600"
+                    }`}
+                  >
+                    {s.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Filter konkrétneho kurtu */}
+            {courtsForSport.length > 1 && (
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                <span>Kurt:</span>
+                <select
+                  value={selectedCourtId}
+                  onChange={(e) => setSelectedCourtId(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:border-emerald-500 focus:bg-white focus:outline-hidden cursor-pointer"
+                >
+                  <option value="">Všetky kurty ({courtsForSport.length})</option>
+                  {courtsForSport.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.surface})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Inšpekčný riadok s detailom po hoveri a legendou */}
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-xl bg-slate-50 text-slate-700 border border-slate-200/80 min-h-[32px]">
+              {hoveredCell ? (
+                <>
+                  <span className="font-bold text-slate-950">
+                    {hoveredCell.dayName} {hoveredCell.hour}:00 – {hoveredCell.hour + 1}:00:
+                  </span>
+                  <span className="font-extrabold text-emerald-700">
+                    {hoveredCell.percentage}% vyťaženosť
+                  </span>
+                  <span className="text-slate-500 text-[11px]">
+                    {selectedCourtId
+                      ? `(obsadený v ${hoveredCell.occupiedCount} zo ${hoveredCell.totalCourts} týždňov)`
+                      : `(obsadených priemerne ${hoveredCell.occupiedCount} z ${hoveredCell.totalCourts} kurtov)`}
+                  </span>
+                </>
+              ) : (
+                <span className="text-slate-400 text-[11px]">
+                  Prejdite kurzorom ponad okienko pre zobrazenie detailu hodiny
+                </span>
+              )}
+            </div>
+
+            {/* Legenda vyťaženosti */}
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+              <span>0%</span>
+              <span className="h-3 w-3 rounded-xs bg-slate-100 border border-slate-200" title="0% (voľno)" />
+              <span className="h-3 w-3 rounded-xs bg-emerald-100 border border-emerald-200" title="1-25%" />
+              <span className="h-3 w-3 rounded-xs bg-emerald-300 border border-emerald-400" title="26-50%" />
+              <span className="h-3 w-3 rounded-xs bg-emerald-500 border border-emerald-600" title="51-75%" />
+              <span className="h-3 w-3 rounded-xs bg-emerald-700 border border-emerald-800" title="76-100% (špička)" />
+              <span>100%</span>
+            </div>
+          </div>
+
+          {/* Mriežka heatmapy */}
+          <div className="relative overflow-x-auto pb-1">
+            {heatmapLoading && (
+              <div className="absolute inset-0 z-20 grid place-items-center bg-white/70 backdrop-blur-2xs rounded-2xl">
+                <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+              </div>
+            )}
             <div className="min-w-[620px] space-y-1.5">
               {/* Hodiny na vrchu kalendára */}
               <div className="grid items-center gap-1 text-[10px] font-bold text-slate-400" style={{ gridTemplateColumns: "32px repeat(16, 1fr)" }}>
@@ -171,13 +335,31 @@ export default function NewBookingsAdminDashboard() {
                 <div key={day} className="grid items-center gap-1" style={{ gridTemplateColumns: "32px repeat(16, 1fr)" }}>
                   <b className="text-center text-xs font-bold text-slate-600">{day}</b>
                   {Array.from({ length: 16 }, (_, offset) => {
-                    const count = stats.heatmap?.[dayIndex]?.[offset + 7] || 0;
+                    const hour = offset + 7;
+                    const cell = heatmapByDay[dayIndex]?.[hour];
+                    const pct = cell?.percentage || 0;
+                    const count = cell?.occupiedCount || 0;
+                    const total = cell?.totalCourts || (courtsForSport.length || 1);
+
                     return (
-                      <span
+                      <button
                         key={offset}
-                        className="h-7 rounded-md bg-emerald-500 transition-all hover:scale-105"
-                        style={{ opacity: count ? Math.max(0.2, count / maxHeat) : 0.07 }}
-                        title={`${day} ${offset + 7}:00 — ${count} rezervácií`}
+                        type="button"
+                        onMouseEnter={() => cell && setHoveredCell(cell)}
+                        onMouseLeave={() => setHoveredCell(null)}
+                        className={`h-7 rounded-md transition-all duration-150 hover:scale-110 hover:z-10 cursor-pointer ${
+                          pct === 0
+                            ? "bg-slate-100/80 border border-slate-200/60"
+                            : pct <= 25
+                            ? "bg-emerald-100/90 border border-emerald-200"
+                            : pct <= 50
+                            ? "bg-emerald-300 border border-emerald-400"
+                            : pct <= 75
+                            ? "bg-emerald-500 border border-emerald-600 shadow-2xs"
+                            : "bg-emerald-700 border border-emerald-800 shadow-xs"
+                        }`}
+                        title={`${day} ${hour}:00–${hour + 1}:00: ${pct}% vyťaženosť (${count} z ${total} kurtov)`}
+                        aria-label={`${day} ${hour}:00–${hour + 1}:00: ${pct}%`}
                       />
                     );
                   })}
@@ -186,15 +368,69 @@ export default function NewBookingsAdminDashboard() {
             </div>
           </div>
 
-          {/* Legenda na mobile */}
-          <div className="mt-3 flex sm:hidden items-center justify-end gap-1.5 text-[10px] font-medium text-slate-500">
-            <span>Menej</span>
-            <span className="h-2.5 w-2.5 rounded-xs bg-emerald-500/10 border border-emerald-500/20" />
-            <span className="h-2.5 w-2.5 rounded-xs bg-emerald-500/40" />
-            <span className="h-2.5 w-2.5 rounded-xs bg-emerald-500/70" />
-            <span className="h-2.5 w-2.5 rounded-xs bg-emerald-500" />
-            <span>Viac</span>
-          </div>
+          {/* Prehľad vyťaženosti jednotlivých kurtov (Zoznam s progress barmi) */}
+          {courtStats.length > 0 && !selectedCourtId && (
+            <div className="mt-5 border-t border-slate-100 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5">
+                  <BarChart3 className="h-4 w-4 text-emerald-600" />
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+                    Vyťaženosť jednotlivých kurtov ({courtStats.length})
+                  </h3>
+                </div>
+                <span className="text-[10px] sm:text-[11px] font-medium text-slate-400">
+                  Zoradené podľa odohraných hodín
+                </span>
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 max-h-[300px] overflow-y-auto pr-1">
+                {courtStats.map((item, idx) => (
+                  <div
+                    key={item.courtId}
+                    onClick={() => setSelectedCourtId(item.courtId)}
+                    className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5 transition hover:border-emerald-300 hover:bg-emerald-50/40 cursor-pointer"
+                    title={`Kliknite pre zobrazenie heatmapy iba pre ${item.courtName}`}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-white border border-slate-200 text-[9px] font-bold text-slate-600 shadow-2xs">
+                          {idx + 1}
+                        </span>
+                        <b className="truncate text-xs font-bold text-slate-900 group-hover:text-emerald-800">
+                          {item.courtName}
+                        </b>
+                        <span className="truncate text-[9.5px] text-slate-400">
+                          {item.surface.replace(" Court", "")}
+                        </span>
+                      </div>
+                      <span className="shrink-0 rounded-md bg-emerald-100/90 border border-emerald-200 px-1.5 py-0.2 text-[10px] font-extrabold text-emerald-800">
+                        {item.utilizationPercent}%
+                      </span>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200/80">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            item.utilizationPercent >= 70
+                              ? "bg-emerald-600"
+                              : item.utilizationPercent >= 40
+                              ? "bg-emerald-400"
+                              : "bg-amber-400"
+                          }`}
+                          style={{ width: `${item.utilizationPercent}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[9.5px] text-slate-500 font-medium">
+                        <span>{item.occupiedHours.toFixed(1)} h obsadené</span>
+                        <span>{item.bookingsCount} rezervácií</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">

@@ -23,7 +23,7 @@ export function isAllowedBookingDuration(durationMinutes: number, maxMinutes: nu
   return getDurationOptions(maxMinutes).includes(durationMinutes);
 }
 
-function getBratislavaDateParts(date: Date) {
+export function getBratislavaDateParts(date: Date) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Bratislava",
     year: "numeric",
@@ -34,7 +34,15 @@ function getBratislavaDateParts(date: Date) {
     hourCycle: "h23",
   }).formatToParts(date);
   const value = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((part) => part.type === type)?.value || 0);
-  return { year: value("year"), month: value("month"), day: value("day"), hour: value("hour"), minute: value("minute") };
+  const year = value("year");
+  const month = value("month");
+  const day = value("day");
+  const hour = value("hour");
+  const minute = value("minute");
+  const utcDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  const rawDay = utcDate.getUTCDay();
+  const dayOfWeek = (rawDay + 6) % 7; // 0 = Mon, ..., 6 = Sun
+  return { year, month, day, hour, minute, dayOfWeek };
 }
 
 export function getBratislavaDateKey(date: Date): string {
