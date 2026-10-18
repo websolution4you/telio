@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import NewBookingsCalendar from "@/components/newbookings/NewBookingsCalendar";
 import { fetchBookingsAction } from "@/app/actions/bookings";
+import { getActivePricelist } from "@/app/actions/pricelists";
 import { getSession } from "@/lib/auth/bookingAuth";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 import type { Booking } from "@/lib/bookings/mockBookings";
@@ -133,7 +134,10 @@ export default async function NewBookingsPage() {
   start.setHours(0, 0, 0, 0);
   const end = new Date();
   end.setHours(23, 59, 59, 999);
-  const result = await fetchBookingsAction(start.toISOString(), end.toISOString());
+  const [result, activePricelist] = await Promise.all([
+    fetchBookingsAction(start.toISOString(), end.toISOString()),
+    getActivePricelist(),
+  ]);
   const initialBookings = result.success && result.bookings ? result.bookings as Booking[] : [];
 
   return (
@@ -143,6 +147,7 @@ export default async function NewBookingsPage() {
       currentUser={currentUser}
       rolePolicy={rolePolicy}
       initialWalletBalance={initialWalletBalance}
+      activePricelist={activePricelist}
     />
   );
 }
