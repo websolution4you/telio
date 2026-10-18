@@ -15,6 +15,28 @@ const time = (value: string) => new Intl.DateTimeFormat("sk-SK", { hour: "2-digi
 const date = (value: string) => new Intl.DateTimeFormat("sk-SK").format(new Date(value));
 const court = (value: string) => value.replace("tennis-clay", "Antuka").replace("badminton", "Bedminton").replace("tennis", "Tenis").replace("squash", "Squash").replace("-", " ");
 
+function formatHeatmapDetail(cell: HeatmapCell | undefined, isSingleCourtView: boolean): string {
+  if (!cell) return "";
+  const isSingle = isSingleCourtView || cell.isSingleCourt;
+
+  if (isSingle) {
+    if (cell.occurrences <= 1) {
+      return cell.occupiedSlots > 0 ? "obsadený" : "voľný";
+    }
+    if (cell.occupiedSlots === 0) {
+      return `voľný vo všetkých ${cell.occurrences} týždňoch`;
+    }
+    const prep = cell.occurrences === 4 || cell.occurrences === 6 || cell.occurrences === 7 ? "zo" : "z";
+    return `obsadený ${cell.occupiedSlots}× ${prep} ${cell.occurrences} týždňov v mesiaci`;
+  }
+
+  // Viacero kurtov (celý šport alebo celé stredisko)
+  if (cell.occurrences <= 1) {
+    return `obsadených ${cell.occupiedSlots} z ${cell.totalCourts} kurtov`;
+  }
+  return `priemerne ${cell.occupiedCount} z ${cell.totalCourts} kurtov`;
+}
+
 export default function NewBookingsAdminDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState<Stats>({});
@@ -288,9 +310,7 @@ export default function NewBookingsAdminDashboard() {
                     {hoveredCell.percentage}% vyťaženosť
                   </span>
                   <span className="text-slate-500 text-[11px]">
-                    {selectedCourtId
-                      ? `(obsadený v ${hoveredCell.occupiedCount} zo ${hoveredCell.totalCourts} týždňov)`
-                      : `(obsadených priemerne ${hoveredCell.occupiedCount} z ${hoveredCell.totalCourts} kurtov)`}
+                    ({formatHeatmapDetail(hoveredCell, Boolean(selectedCourtId))})
                   </span>
                 </>
               ) : (
@@ -358,8 +378,8 @@ export default function NewBookingsAdminDashboard() {
                             ? "bg-emerald-500 border border-emerald-600 shadow-2xs"
                             : "bg-emerald-700 border border-emerald-800 shadow-xs"
                         }`}
-                        title={`${day} ${hour}:00–${hour + 1}:00: ${pct}% vyťaženosť (${count} z ${total} kurtov)`}
-                        aria-label={`${day} ${hour}:00–${hour + 1}:00: ${pct}%`}
+                        title={`${day} ${hour}:00–${hour + 1}:00: ${pct}% vyťaženosť (${formatHeatmapDetail(cell, Boolean(selectedCourtId))})`}
+                        aria-label={`${day} ${hour}:00–${hour + 1}:00: ${pct}% (${formatHeatmapDetail(cell, Boolean(selectedCourtId))})`}
                       />
                     );
                   })}

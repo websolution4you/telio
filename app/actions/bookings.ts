@@ -1597,8 +1597,11 @@ export type HeatmapCell = {
     dayName: string;  // "Po", "Ut", "St", "Št", "Pi", "So", "Ne"
     hour: number;     // 7 .. 22
     occupiedCount: number; // Priemer alebo počet obsadených kurtov
-    totalCourts: number;   // Celková kapacita
-    percentage: number;    // 0 .. 100
+    occupiedSlots: number; // Skutočný súčet obsadení v danú hodinu cez všetky týždne
+    occurrences: number;   // Koľko krát sa daný deň vyskytuje v období (1x pre týždeň, 4-5x pre mesiac)
+    totalCourts: number;   // Celková kapacita kurtov
+    percentage: number;    // 0 .. 100 %
+    isSingleCourt: boolean;// Či ide o filter 1 konkrétneho kurtu
 };
 
 export type CourtStatSummary = {
@@ -1778,13 +1781,17 @@ export async function fetchCourtHeatmapAction(params?: CourtHeatmapParams) {
                 const maxPossibleSlots = totalCapacity * occurrences;
                 const percentage = maxPossibleSlots > 0 ? Math.min(100, Math.round((sumOccupiedAcrossDates / maxPossibleSlots) * 100)) : 0;
 
+                const isSingleCourt = Boolean(params?.courtId || targetCourts.length === 1);
                 heatmap.push({
                     dayIndex,
                     dayName: dayNames[dayIndex],
                     hour,
                     occupiedCount: averageOccupied,
+                    occupiedSlots: sumOccupiedAcrossDates,
+                    occurrences,
                     totalCourts: totalCapacity,
                     percentage,
+                    isSingleCourt,
                 });
             }
         }
