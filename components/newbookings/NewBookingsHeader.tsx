@@ -386,33 +386,15 @@ export default function NewBookingsHeader({
                       Nastavenia
                     </span>
                   </Link>
-
-                  {/* 5. Audit logy */}
-                  <Link
-                    href="/dashboard/audit-logs"
-                    className={`group relative flex h-[58px] w-[80px] shrink-0 flex-col items-center justify-center rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 ${
-                      activeTab === "audit-logs"
-                        ? "border-white/25 bg-white/15 text-white shadow-inner"
-                        : "border-transparent bg-transparent text-slate-300 hover:border-white/10 hover:bg-white/10 hover:text-white"
-                    }`}
-                    title="Auditné logy a história aktivít"
-                  >
-                    <div className="transition-transform duration-200 group-hover:scale-105">
-                      <ScrollText className="h-4.5 w-4.5 transition-colors duration-200" strokeWidth={1.8} />
-                    </div>
-                    <span className="mt-1 text-[11px] font-medium tracking-normal transition-colors duration-200">
-                      Audit logy
-                    </span>
-                  </Link>
                 </div>
 
-                {/* Admin User Avatar s Dropdown menu (Transakcie + Odhlásiť) */}
+                {/* Admin User Avatar s Dropdown menu (Transakcie + Audit logy + Odhlásiť) */}
                 <div className="relative" ref={adminMenuRef}>
                   <button
                     type="button"
                     onClick={() => setAdminMenuOpen((prev) => !prev)}
                     className={`group relative flex h-[58px] w-[80px] shrink-0 flex-col items-center justify-center rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer ${
-                      adminMenuOpen || activeTab === "transactions"
+                      adminMenuOpen || activeTab === "transactions" || activeTab === "audit-logs"
                         ? "border-white/25 bg-white/15 text-white shadow-inner"
                         : "border-transparent bg-transparent text-slate-300 hover:border-white/10 hover:bg-white/10 hover:text-white"
                     }`}
