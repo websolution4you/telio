@@ -2,6 +2,7 @@
 
 import { getCoreDb, getCoreServiceDb } from "@/lib/server/supabase";
 import { getSession } from "@/lib/auth/bookingAuth";
+import { logActivity } from "@/lib/server/auditLog";
 import {
   DEFAULT_DISCOUNT_TIERS,
   DEFAULT_NTC_SUMMER_PRICELIST,
@@ -139,6 +140,30 @@ export async function savePricelistAction(pricelist: NtcPricelist): Promise<{
       console.warn("Could not save to Supabase ntc_pricelists (in-memory updated):", dbErr);
     }
 
+    await logActivity({
+      action: "pricelist.save",
+      category: "pricing",
+      entityType: "pricelist",
+      entityId: pricelist.id,
+      entityName: pricelist.name,
+      description: `Uložený cenník "${pricelist.name}" (${pricelist.intervals.length} intervalov, aktívny: ${pricelist.isActive ? "áno" : "nie"})`,
+      changes: {
+        before: null,
+        after: {
+          name: pricelist.name,
+          validFrom: pricelist.validFrom,
+          validTo: pricelist.validTo,
+          isActive: pricelist.isActive,
+          intervalsCount: pricelist.intervals.length,
+          nonMemberSurchargeEur: pricelist.nonMemberSurchargeEur,
+        }
+      },
+      metadata: {
+        pricelistId: pricelist.id,
+        isActive: pricelist.isActive,
+      }
+    });
+
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Nepodarilo sa uložiť cenník." };
@@ -174,6 +199,23 @@ export async function setActivePricelistAction(id: string): Promise<{
     } catch (e) {
       console.warn("Database sync skipped for active pricelist:", e);
     }
+
+    const activeItem = inMemoryPricelists.find((p) => p.id === id);
+    await logActivity({
+      action: "pricelist.activate",
+      category: "pricing",
+      entityType: "pricelist",
+      entityId: id,
+      entityName: activeItem?.name || id,
+      description: `Aktivovaný cenník "${activeItem?.name || id}"`,
+      changes: {
+        before: { isActive: false },
+        after: { isActive: true }
+      },
+      metadata: {
+        pricelistId: id,
+      }
+    });
 
     return { success: true };
   } catch (err: any) {
@@ -227,6 +269,21 @@ export async function deletePricelistAction(id: string): Promise<{
         }
 
         inMemoryPricelists = inMemoryPricelists.filter((p) => p.id !== id);
+
+        await logActivity({
+          action: "pricelist.delete",
+          category: "pricing",
+          entityType: "pricelist",
+          entityId: id,
+          entityName: target?.name || id,
+          description: `Zmazaný cenník "${target?.name || id}"`,
+          changes: {
+            before: { id, name: target?.name },
+            after: null
+          },
+          level: "warning",
+        });
+
         return { success: true };
       }
     } catch (e) {
@@ -247,6 +304,21 @@ export async function deletePricelistAction(id: string): Promise<{
     }
 
     inMemoryPricelists = inMemoryPricelists.filter((p) => p.id !== id);
+
+    await logActivity({
+      action: "pricelist.delete",
+      category: "pricing",
+      entityType: "pricelist",
+      entityId: id,
+      entityName: toDelete.name,
+      description: `Zmazaný cenník "${toDelete.name}"`,
+      changes: {
+        before: { id, name: toDelete.name },
+        after: null
+      },
+      level: "warning",
+    });
+
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || "Chyba pri zmazaní cenníka." };

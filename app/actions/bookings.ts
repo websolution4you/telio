@@ -13,6 +13,7 @@ import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import { getActivePricelist } from "@/app/actions/pricelists";
 import { getBratislavaDateKey, getBratislavaDateParts, getCourtOperatingLimitMinutes, isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
 import { courts as ntcCourts, type SportType } from "@/lib/bookings/mockBookings";
+import { logActivity } from "@/lib/server/auditLog";
 
 
 
@@ -568,6 +569,32 @@ export async function createBookingAction(payload: {
             bookingId = dbBooking.id;
         }
 
+        await logActivity({
+            action: "booking.create",
+            category: "bookings",
+            entityType: "booking",
+            entityId: bookingId,
+            entityName: `${payload.courtId} (${payload.start.slice(0, 16).replace("T", " ")}) - ${payload.customerName}`,
+            description: `Vytvorená nová rezervácia pre ${payload.customerName} na ${payload.courtId} (${calculatedPrice.toFixed(2)} €)`,
+            changes: {
+                before: null,
+                after: {
+                    courtId: payload.courtId,
+                    start: payload.start,
+                    end: payload.end,
+                    customerName: payload.customerName,
+                    priceEur: calculatedPrice,
+                    source: payload.source,
+                }
+            },
+            metadata: {
+                courtId: payload.courtId,
+                source: payload.source,
+                multisportCardsCount: payload.multisportCardsCount || 0,
+                chargedEur: wallet?.chargedEur ?? 0,
+            }
+        });
+
         revalidatePath("/bookings");
         revalidatePath("/newbookings");
         return {
@@ -837,6 +864,32 @@ export async function createRecurringBookingAction(payload: CreateRecurringBooki
             throw new Error(`Chyba databázy: ${insertError.message}`);
         }
 
+        await logActivity({
+            action: "booking.create_recurring",
+            category: "bookings",
+            entityType: "booking_series",
+            entityId: recurringGroupId,
+            entityName: `${payload.courtId} - séria (${validSlots.length} termínov) - ${finalCustomerName}`,
+            description: `Vytvorená séria ${validSlots.length} opakovaných rezervácií pre ${finalCustomerName} na ${payload.courtId}`,
+            changes: {
+                before: null,
+                after: {
+                    courtId: payload.courtId,
+                    recurringGroupId,
+                    createdCount: validSlots.length,
+                    totalRequested: candidateSlots.length,
+                    customerName: finalCustomerName,
+                }
+            },
+            metadata: {
+                courtId: payload.courtId,
+                recurringGroupId,
+                createdCount: validSlots.length,
+                totalRequested: candidateSlots.length,
+                skippedDates,
+            }
+        });
+
         revalidatePath("/bookings");
         revalidatePath("/newbookings");
         revalidatePath("/dashboard/newbookings");
@@ -925,7 +978,7 @@ export async function deleteBookingAction(id: string, deleteEntireSeries = false
 
         const db = getCoreDb();
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-        let query = db.from("bookings").select("id, user_id, start_at, tenant_id, notes");
+        let query = db.from("bookings").select("id, user_id, start_at, end_at, tenant_id, notes, customer_name, court_id, price_eur");
         query = isUuid ? query.eq("id", id) : query.eq("calendar_event_id", id);
         const { data: booking, error: selectError } = await query.maybeSingle();
 
@@ -973,6 +1026,24 @@ export async function deleteBookingAction(id: string, deleteEntireSeries = false
 
                 if (cancelSeriesError) throw new Error(`Chyba pri rušení série: ${cancelSeriesError.message}`);
             }
+
+            await logActivity({
+                action: "booking.delete_series",
+                category: "bookings",
+                entityType: "booking_series",
+                entityId: recurringGroupId,
+                entityName: `Séria (${matchingIds.length} termínov)`,
+                description: `Zrušená séria ${matchingIds.length} rezervácií od termínu ${booking.start_at?.slice(0, 10)}`,
+                changes: {
+                    before: { activeCount: matchingIds.length, status: "confirmed" },
+                    after: { status: "cancelled" }
+                },
+                metadata: {
+                    recurringGroupId,
+                    deletedCount: matchingIds.length,
+                },
+                level: "warning",
+            });
 
             revalidatePath("/bookings");
             revalidatePath("/newbookings");
@@ -1025,6 +1096,25 @@ export async function deleteBookingAction(id: string, deleteEntireSeries = false
                 .eq("id", booking.id);
             if (cancelError) throw new Error(`Database update error: ${cancelError.message}`);
         }
+
+        await logActivity({
+            action: "booking.delete",
+            category: "bookings",
+            entityType: "booking",
+            entityId: booking.id,
+            entityName: `${booking.court_id || "kurt"} (${booking.start_at?.slice(0, 16).replace("T", " ")}) - ${booking.customer_name || "Zákazník"}`,
+            description: `Zrušená rezervácia pre ${booking.customer_name || "zákazníka"}${wallet?.refunded ? ` (vrátených ${wallet.refundedEur.toFixed(2)} € do peňaženky)` : ""}`,
+            changes: {
+                before: { status: "confirmed", start_at: booking.start_at, end_at: booking.end_at, court_id: booking.court_id },
+                after: { status: "cancelled" }
+            },
+            metadata: {
+                courtId: booking.court_id,
+                refunded: wallet?.refunded ?? false,
+                refundedEur: wallet?.refundedEur ?? 0,
+            },
+            level: "warning",
+        });
 
         revalidatePath("/bookings");
         revalidatePath("/newbookings");
@@ -1226,6 +1316,23 @@ export async function rescheduleBookingAction(payload: {
         if (updateError) {
             throw new Error(`Database update error: ${updateError.message}`);
         }
+
+        await logActivity({
+            action: "booking.reschedule",
+            category: "bookings",
+            entityType: "booking",
+            entityId: booking.id,
+            entityName: `${payload.newCourtId} (${payload.newStart.slice(0, 16).replace("T", " ")}) - ${updatedBooking.customer_name}`,
+            description: `Presunutá rezervácia z ${booking.court_id} (${booking.start_at?.slice(0, 16).replace("T", " ")}) na ${payload.newCourtId} (${payload.newStart.slice(0, 16).replace("T", " ")})`,
+            changes: {
+                before: { courtId: booking.court_id, start_at: booking.start_at, end_at: booking.end_at },
+                after: { courtId: payload.newCourtId, start_at: payload.newStart, end_at: payload.newEnd }
+            },
+            metadata: {
+                previousCourtId: booking.court_id,
+                newCourtId: payload.newCourtId,
+            }
+        });
 
         revalidatePath("/bookings");
         revalidatePath("/newbookings");
@@ -1577,6 +1684,22 @@ export async function restoreBookingAction(id: string) {
         if (updateErr) {
             throw new Error(`Database update error: ${updateErr.message}`);
         }
+
+        await logActivity({
+            action: "booking.restore",
+            category: "bookings",
+            entityType: "booking",
+            entityId: targetDbId,
+            entityName: `${courtId} (${dbBooking.start_at?.slice(0, 16).replace("T", " ")})`,
+            description: `Obnovená zrušená rezervácia na ${courtId} (${dbBooking.start_at?.slice(0, 16).replace("T", " ")})`,
+            changes: {
+                before: { status: "cancelled" },
+                after: { status: "confirmed" }
+            },
+            metadata: {
+                courtId,
+            }
+        });
 
         revalidatePath("/bookings");
         return { success: true };

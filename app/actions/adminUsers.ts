@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getSession, type BookingRole, hashPassword, normalizePhone, verifyPassword } from "@/lib/auth/bookingAuth";
 import { getCoreServiceDb } from "@/lib/server/supabase";
 import { isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
+import { logActivity } from "@/lib/server/auditLog";
 
 
 const ALLOWED_ROLES: BookingRole[] = ["admin", "user", "trainer", "ntc_team"];
@@ -140,6 +141,19 @@ export async function updateBookingUserRoleAction(userId: string, role: BookingR
     return { success: false as const, error: "Rolu používateľa sa nepodarilo uložiť." };
   }
 
+  await logActivity({
+    action: "user.role_change",
+    category: "users",
+    entityType: "user",
+    entityId: user.id,
+    description: `Zmenená rola používateľa (ID: ${user.id}) na "${role}"`,
+    changes: {
+      before: null,
+      after: { role }
+    },
+    metadata: { targetUserId: user.id, newRole: role }
+  });
+
   revalidatePath("/dashboard/newbookings");
   revalidatePath("/dashboard/users-roles");
   return { success: true as const, userId: user.id, role: user.role as BookingRole };
@@ -168,6 +182,19 @@ export async function updateBookingUserDiscountTierAction(userId: string, discou
     }
     return { success: false as const, error: "Zľavovú hladinu používateľa sa nepodarilo uložiť." };
   }
+
+  await logActivity({
+    action: "user.tier_change",
+    category: "users",
+    entityType: "user",
+    entityId: user.id,
+    description: `Zmenená zľavová hladina používateľa (ID: ${user.id}) na "${cleanTierId}"`,
+    changes: {
+      before: null,
+      after: { discountTierId: cleanTierId }
+    },
+    metadata: { targetUserId: user.id, discountTierId: cleanTierId }
+  });
 
   revalidatePath("/dashboard/users-roles");
   revalidatePath("/dashboard/users");
@@ -235,6 +262,28 @@ export async function updateRoleBookingPolicyAction(input: RoleBookingPolicyInpu
     console.error("updateRoleBookingPolicyAction failed:", error);
     return { success: false as const, error: "Privilégiá roly sa nepodarilo uložiť." };
   }
+
+  await logActivity({
+    action: "settings.policy_update",
+    category: "settings",
+    entityType: "role_policy",
+    entityId: input.role,
+    entityName: `Pravidlá pre rolu: ${input.role}`,
+    description: `Aktualizované nastavenia a privilégia pre rolu "${input.role}"`,
+    changes: {
+      before: null,
+      after: {
+        role: input.role,
+        maxBookingDurationMinutes: input.maxBookingDurationMinutes,
+        bookingHorizonDays: input.bookingHorizonDays,
+        discountEurPerHour: input.discountEurPerHour,
+        cancellationDeadlineHours: input.cancellationDeadlineHours,
+        isActive: input.isActive,
+        canMakeRecurring: input.canMakeRecurring,
+      }
+    },
+    metadata: { role: input.role }
+  });
 
   revalidatePath("/dashboard/newbookings");
   revalidatePath("/dashboard/users-roles");
@@ -649,6 +698,28 @@ export async function createBookingUserByAdminAction(input: CreateAdminUserInput
     });
   }
 
+  await logActivity({
+    action: "user.create",
+    category: "users",
+    entityType: "user",
+    entityId: user.id,
+    entityName: user.name,
+    description: `Vytvorený nový používateľ "${user.name}" (${user.email}, rola: ${user.role})`,
+    changes: {
+      before: null,
+      after: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        cardNumber: user.card_number,
+        hasMultisport: Boolean(input.hasMultisport),
+        initialCredit,
+      }
+    },
+    metadata: { userId: user.id, email: user.email, role: user.role }
+  });
+
   revalidatePath("/dashboard/users");
   revalidatePath("/dashboard/newbookings");
 
@@ -780,6 +851,20 @@ export async function updateBookingUserProfileByAdminAction(userId: string, data
     return { success: false as const, error: "Profil sa nepodarilo aktualizovať." };
   }
 
+  await logActivity({
+    action: "user.update",
+    category: "users",
+    entityType: "user",
+    entityId: userId,
+    entityName: updateResult.data.name,
+    description: `Upravený profil používateľa "${updateResult.data.name}" (${updateResult.data.email})`,
+    changes: {
+      before: null,
+      after: updateResult.data,
+    },
+    metadata: { userId, updatedFields: Object.keys(data) }
+  });
+
   revalidatePath("/dashboard/users");
   revalidatePath("/dashboard/newbookings");
 
@@ -890,6 +975,21 @@ export async function deleteBookingUserByAdminAction(
 
   revalidatePath("/dashboard/users");
   revalidatePath("/dashboard/newbookings");
+
+  await logActivity({
+    action: "user.delete",
+    category: "users",
+    entityType: "user",
+    entityId: targetUserId,
+    entityName: targetUser.name,
+    description: `Odstránený používateľ "${targetUser.name}" (${targetUser.email})`,
+    changes: {
+      before: { id: targetUserId, name: targetUser.name, email: targetUser.email },
+      after: null,
+    },
+    metadata: { targetUserId, targetEmail: targetUser.email, hardDeleted: hardDeleteSuccess },
+    level: "warning",
+  });
 
   return { success: true as const };
 }
