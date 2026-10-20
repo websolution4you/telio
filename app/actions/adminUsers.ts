@@ -433,6 +433,174 @@ export async function fetchAdminUsersDirectoryAction(
   };
 }
 
+/**
+ * Server action: Export zoznamu používateľov do CSV formátu pre Excel (UTF-8 BOM)
+ */
+export async function exportAdminUsersCsvAction(
+  query = "",
+  roleFilter: "all" | BookingRole = "all"
+) {
+  const context = await requireCurrentAdmin();
+  if (!context) return { success: false as const, error: "Nemáte oprávnenie exportovať používateľov." };
+
+  const safeQuery = query.trim().slice(0, 100).replace(/[,%()]/g, " ");
+
+  const buildQuery = (withTier: boolean, withMultisport: boolean) => {
+    let selectCols = "id, name, email, phone, card_number, role, created_at";
+    if (withMultisport) selectCols += ", has_multisport";
+    if (withTier) selectCols += ", discount_tier_id";
+
+    let q = (context.db.from("booking_users") as any)
+      .select(selectCols)
+      .not("email", "ilike", "deleted_%@deleted.local")
+      .neq("name", "[Zmazaný používateľ]");
+
+    if (roleFilter !== "all" && ALLOWED_ROLES.includes(roleFilter)) {
+      q = q.eq("role", roleFilter);
+    }
+
+    if (safeQuery) {
+      const term = `%${safeQuery}%`;
+      q = q.or(`name.ilike.${term},email.ilike.${term},phone.ilike.${term},card_number.ilike.${term}`);
+    }
+
+    return q.order("name", { ascending: true }) as Promise<{
+      data: any[] | null;
+      error: any;
+    }>;
+  };
+
+  let { data: users, error } = await buildQuery(true, true);
+  if (error && (error.message?.includes("discount_tier_id") || (error as any).code === "PGRST204")) {
+    const retry = await buildQuery(false, true);
+    users = retry.data;
+    error = retry.error;
+  }
+  if (error && error.message?.includes("has_multisport")) {
+    const retry = await buildQuery(false, false);
+    users = retry.data;
+    error = retry.error;
+  }
+
+  if (error) {
+    console.error("exportAdminUsersCsvAction failed:", error);
+    return { success: false as const, error: "Používateľov sa nepodarilo načítať na export." };
+  }
+
+  const userList = users || [];
+  const userIds = userList.map((u) => u.id);
+
+  let walletMap = new Map<string, number>();
+  let bookingCountMap = new Map<string, number>();
+
+  if (userIds.length > 0) {
+    const [{ data: walletsData }, { data: bookingsData }] = await Promise.all([
+      context.db
+        .from("wallets")
+        .select("user_id, balance_eur")
+        .in("user_id", userIds),
+      context.db
+        .from("bookings")
+        .select("user_id")
+        .in("user_id", userIds),
+    ]);
+
+    if (walletsData) {
+      for (const w of walletsData) {
+        walletMap.set(w.user_id, Number(w.balance_eur || 0));
+      }
+    }
+
+    if (bookingsData) {
+      for (const b of bookingsData) {
+        if (b.user_id) {
+          bookingCountMap.set(b.user_id, (bookingCountMap.get(b.user_id) || 0) + 1);
+        }
+      }
+    }
+  }
+
+  const roleNameMap: Record<string, string> = {
+    admin: "Administrátor",
+    trainer: "Tréner",
+    user: "Používateľ",
+    ntc_team: "NTC Tím",
+  };
+
+  const escapeCsv = (val: any) => {
+    if (val === null || val === undefined) return '""';
+    const str = String(val).replace(/"/g, '""');
+    return `"${str}"`;
+  };
+
+  const headers = [
+    "ID používateľa",
+    "Meno a priezvisko",
+    "Email",
+    "Telefón",
+    "Číslo karty",
+    "Rola",
+    "Kód roly",
+    "Zľavová kategória",
+    "MultiSport karta",
+    "Zostatok kreditu (€)",
+    "Počet rezervácií",
+    "Dátum registrácie"
+  ];
+
+  const lines = [headers.map(escapeCsv).join(";")];
+
+  for (const u of userList) {
+    const d = new Date(u.created_at);
+    const regDate = `${d.toLocaleDateString("sk-SK")} ${d.toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}`;
+    const roleCode = u.role || "user";
+    const roleLabel = roleNameMap[roleCode] || roleCode;
+    const balance = (walletMap.get(u.id) ?? 0).toFixed(2);
+    const bookingsCount = bookingCountMap.get(u.id) ?? 0;
+    const hasMs = u.has_multisport ? "Áno" : "Nie";
+    const tier = u.discount_tier_id || "tier-base";
+
+    lines.push([
+      u.id,
+      u.name || "Bez mena",
+      u.email,
+      u.phone || "",
+      u.card_number || "",
+      roleLabel,
+      roleCode,
+      tier,
+      hasMs,
+      balance,
+      bookingsCount,
+      regDate,
+    ].map(escapeCsv).join(";"));
+  }
+
+  const csvContent = "\uFEFF" + lines.join("\r\n");
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const fileName = `pouzivatelia_export_${dateStr}.csv`;
+
+  await logActivity({
+    action: "user.export",
+    category: "users",
+    entityType: "user",
+    description: `Exportovaný zoznam ${userList.length} používateľov do CSV pre Excel`,
+    metadata: {
+      exportedCount: userList.length,
+      roleFilter,
+      query: safeQuery || undefined,
+    }
+  });
+
+  return {
+    success: true as const,
+    csvContent,
+    fileName,
+    totalExported: userList.length,
+  };
+}
+
+
 export type AdminUserDetailData = {
   user: {
     id: string;
