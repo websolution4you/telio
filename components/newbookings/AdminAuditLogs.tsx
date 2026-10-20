@@ -19,10 +19,11 @@ import {
   RefreshCw,
   Info,
   CheckCircle2,
-  XCircle,
   Eye,
   X,
-  Database
+  Database,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import {
   fetchAuditLogsAction,
@@ -36,6 +37,7 @@ const CATEGORIES: { id: string; label: string; icon: string }[] = [
   { id: "all", label: "Všetky", icon: "🌐" },
   { id: "bookings", label: "Rezervácie", icon: "🎾" },
   { id: "users", label: "Používatelia", icon: "👥" },
+  { id: "auth", label: "Prihlásenia", icon: "🔐" },
   { id: "settings", label: "Nastavenia", icon: "⚙️" },
   { id: "pricing", label: "Cenníky", icon: "💶" },
 ];
@@ -161,6 +163,38 @@ export default function AdminAuditLogs() {
   };
 
   const getActionBadge = (action: string, category: string) => {
+    if (action === "auth.login") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200/80">
+          <LogIn className="h-3 w-3 text-emerald-500" />
+          Prihlásenie
+        </span>
+      );
+    }
+    if (action === "auth.login_failed") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 border border-amber-200/80">
+          <AlertCircle className="h-3 w-3 text-amber-500" />
+          Zlyhané prihlásenie
+        </span>
+      );
+    }
+    if (action === "auth.logout") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700 border border-slate-200/80">
+          <LogOut className="h-3 w-3 text-slate-500" />
+          Odhlásenie
+        </span>
+      );
+    }
+    if (action === "auth.register") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700 border border-indigo-200/80">
+          <User className="h-3 w-3 text-indigo-500" />
+          Registrácia
+        </span>
+      );
+    }
     if (action.includes("delete")) {
       return (
         <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700 border border-rose-200/80">
