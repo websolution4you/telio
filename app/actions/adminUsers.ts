@@ -521,31 +521,50 @@ export async function exportAdminUsersCsvAction(
   }
 
   const roleNameMap: Record<string, string> = {
-    admin: "Administrátor",
-    trainer: "Tréner",
-    user: "Používateľ",
-    ntc_team: "NTC Tím",
+    admin: "Administrator",
+    trainer: "Trener",
+    user: "Pouzivatel",
+    ntc_team: "NTC Tim",
   };
 
-  const escapeCsv = (val: any) => {
+  const removeDiacritics = (str: any): string => {
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/ł/g, "l")
+      .replace(/Ł/g, "L")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D")
+      .replace(/€/g, "EUR");
+  };
+
+  const escapeCsv = (val: any): string => {
     if (val === null || val === undefined) return '""';
-    const str = String(val).replace(/"/g, '""');
+    const str = removeDiacritics(val).replace(/"/g, '""');
     return `"${str}"`;
   };
 
+  const escapeCsvText = (val: any): string => {
+    if (val === null || val === undefined || String(val).trim() === "") return '""';
+    const clean = removeDiacritics(val).replace(/"/g, '""');
+    // Format as ="..." so Excel treats it strictly as text without converting to scientific notation (4.219E+11)
+    return `="${clean}"`;
+  };
+
   const headers = [
-    "ID používateľa",
+    "ID pouzivatela",
     "Meno a priezvisko",
     "Email",
-    "Telefón",
-    "Číslo karty",
+    "Telefon",
+    "Cislo karty",
     "Rola",
-    "Kód roly",
-    "Zľavová kategória",
+    "Kod roly",
+    "Zlavova kategoria",
     "MultiSport karta",
-    "Zostatok kreditu (€)",
-    "Počet rezervácií",
-    "Dátum registrácie"
+    "Zostatok kreditu (EUR)",
+    "Pocet rezervacii",
+    "Datum registracie"
   ];
 
   const lines = [headers.map(escapeCsv).join(";")];
@@ -557,26 +576,26 @@ export async function exportAdminUsersCsvAction(
     const roleLabel = roleNameMap[roleCode] || roleCode;
     const balance = (walletMap.get(u.id) ?? 0).toFixed(2);
     const bookingsCount = bookingCountMap.get(u.id) ?? 0;
-    const hasMs = u.has_multisport ? "Áno" : "Nie";
+    const hasMs = u.has_multisport ? "Ano" : "Nie";
     const tier = u.discount_tier_id || "tier-base";
 
     lines.push([
-      u.id,
-      u.name || "Bez mena",
-      u.email,
-      u.phone || "",
-      u.card_number || "",
-      roleLabel,
-      roleCode,
-      tier,
-      hasMs,
-      balance,
-      bookingsCount,
-      regDate,
-    ].map(escapeCsv).join(";"));
+      escapeCsv(u.id),
+      escapeCsv(u.name || "Bez mena"),
+      escapeCsv(u.email),
+      escapeCsvText(u.phone),
+      escapeCsvText(u.card_number),
+      escapeCsv(roleLabel),
+      escapeCsv(roleCode),
+      escapeCsv(tier),
+      escapeCsv(hasMs),
+      escapeCsv(balance),
+      escapeCsv(bookingsCount),
+      escapeCsv(regDate),
+    ].join(";"));
   }
 
-  const csvContent = "\uFEFF" + lines.join("\r\n");
+  const csvContent = lines.join("\r\n");
   const dateStr = new Date().toISOString().slice(0, 10);
   const fileName = `pouzivatelia_export_${dateStr}.csv`;
 

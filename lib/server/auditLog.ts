@@ -218,17 +218,29 @@ export async function fetchAuditLogsAction(filters: AuditLogFilters = {}) {
 /**
  * Pomocná funkcia na bezpečné escapovanie hodnôt do CSV
  */
+function removeDiacritics(str: any): string {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ł/g, "l")
+    .replace(/Ł/g, "L")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .replace(/€/g, "EUR");
+}
+
 function escapeCsv(val: any): string {
   if (val === null || val === undefined) return '""';
   if (typeof val === "object") {
     val = JSON.stringify(val);
   }
-  const str = String(val).replace(/"/g, '""');
-  return `"${str}"`;
+  const clean = removeDiacritics(val).replace(/"/g, '""');
+  return `"${clean}"`;
 }
 
 /**
- * Server action: Export vyfiltrovaných logov do CSV formátu pre Excel (UTF-8 BOM)
+ * Server action: Export vyfiltrovaných logov do CSV formátu pre Excel (bez diakritiky)
  */
 export async function exportAuditLogsCsvAction(filters: AuditLogFilters = {}) {
   try {
@@ -277,34 +289,34 @@ export async function exportAuditLogsCsvAction(filters: AuditLogFilters = {}) {
 
     const rows = data || [];
     
-    // CSV Hlavička
+    // CSV Hlavička bez diakritiky
     const headers = [
       "ID",
-      "Dátum a čas",
-      "Používateľ (Kto)",
+      "Datum a cas",
+      "Pouzivatel (Kto)",
       "Email",
       "Rola",
-      "Kategória",
+      "Kategoria",
       "Akcia",
       "Typ entity",
       "ID Entity",
-      "Názov entity",
+      "Nazov entity",
       "Popis akcie",
-      "Úroveň",
+      "Uroven",
       "Zmeny (Diff)",
-      "Metadáta"
+      "Metadata"
     ];
 
     const csvLines = [headers.map(escapeCsv).join(";")];
 
     for (const r of rows) {
       const d = new Date(r.created_at);
-      const formattedDate = `${d.toLocaleDateString("sk-SK")} ${d.toLocaleTimeString("sk-SK")}`;
+      const formattedDate = `${d.toLocaleDateString("sk-SK")} ${d.toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}`;
 
       const rowValues = [
         r.id,
         formattedDate,
-        r.actor_name || "Systém",
+        r.actor_name || "System",
         r.actor_email || "",
         r.actor_role || "",
         r.category,
@@ -321,8 +333,7 @@ export async function exportAuditLogsCsvAction(filters: AuditLogFilters = {}) {
       csvLines.push(rowValues.map(escapeCsv).join(";"));
     }
 
-    // UTF-8 BOM (\uFEFF) zabezpečí, že Microsoft Excel správne otvorí slovenskú diakritiku
-    const csvContent = "\uFEFF" + csvLines.join("\r\n");
+    const csvContent = csvLines.join("\r\n");
     const dateStr = new Date().toISOString().slice(0, 10);
     const fileName = `audit_logy_export_${dateStr}.csv`;
 
