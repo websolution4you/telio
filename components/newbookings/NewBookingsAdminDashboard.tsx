@@ -186,14 +186,6 @@ export default function NewBookingsAdminDashboard() {
             <ArrowLeft className="h-4 w-4" />
             Späť na kalendár
           </Link>
-          <button
-            type="button"
-            onClick={() => setModal(true)}
-            className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-200 hover:text-slate-900 cursor-pointer active:scale-[0.98]"
-          >
-            <Wrench className="h-4 w-4 text-slate-500" />
-            <span>Zablokovať kurt</span>
-          </button>
         </div>
       </div>
 
