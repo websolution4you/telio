@@ -17,6 +17,7 @@ import {
   LogIn,
   LogOut,
   ReceiptText,
+  ScrollText,
   Settings,
   UserPlus,
   Users,
@@ -28,7 +29,7 @@ import { logoutAction } from "@/app/actions/auth";
 import { createWalletCardPayAction, getWalletAction } from "@/app/actions/wallet";
 import type { BookingUser, SessionPayload } from "@/lib/auth/bookingAuth";
 
-export type ActiveTab = "calendar" | "users" | "stats" | "pricing" | "settings" | "transactions";
+export type ActiveTab = "calendar" | "users" | "stats" | "pricing" | "settings" | "transactions" | "audit-logs";
 
 export type HeaderUser = BookingUser | SessionPayload | {
   id?: string;
@@ -387,13 +388,13 @@ export default function NewBookingsHeader({
                   </Link>
                 </div>
 
-                {/* Admin User Avatar s Dropdown menu (Transakcie + Odhlásiť) */}
+                {/* Admin User Avatar s Dropdown menu (Transakcie + Audit logy + Odhlásiť) */}
                 <div className="relative" ref={adminMenuRef}>
                   <button
                     type="button"
                     onClick={() => setAdminMenuOpen((prev) => !prev)}
                     className={`group relative flex h-[58px] w-[80px] shrink-0 flex-col items-center justify-center rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer ${
-                      adminMenuOpen || activeTab === "transactions"
+                      adminMenuOpen || activeTab === "transactions" || activeTab === "audit-logs"
                         ? "border-white/25 bg-white/15 text-white shadow-inner"
                         : "border-transparent bg-transparent text-slate-300 hover:border-white/10 hover:bg-white/10 hover:text-white"
                     }`}
@@ -461,6 +462,24 @@ export default function NewBookingsHeader({
                         <div className="flex flex-col text-left">
                           <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Transakcie</span>
                           <span className="text-[10px] font-normal text-slate-400">Prehľad platieb a kreditov</span>
+                        </div>
+                      </Link>
+
+                      {/* Audit logy */}
+                      <Link
+                        href="/dashboard/audit-logs"
+                        onClick={() => setAdminMenuOpen(false)}
+                        className={`flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 text-xs font-medium transition-colors duration-150 group ${activeTab === "audit-logs"
+                            ? "bg-slate-100 text-slate-950 font-semibold border-slate-200/80"
+                            : "text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950"
+                          }`}
+                      >
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                          <ScrollText className="h-4 w-4" />
+                        </span>
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Audit logy</span>
+                          <span className="text-[10px] font-normal text-slate-400">História všetkých aktivít</span>
                         </div>
                       </Link>
 
@@ -871,6 +890,20 @@ export default function NewBookingsHeader({
                       <div className="flex flex-col text-left">
                         <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Nastavenia</span>
                         <span className="text-[10px] font-normal text-slate-400">Nastavenia systému a rolí</span>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/dashboard/audit-logs"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2 text-xs font-medium text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
+                    >
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                        <ScrollText className="h-4 w-4" />
+                      </span>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-medium text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Audit logy</span>
+                        <span className="text-[10px] font-normal text-slate-400">História všetkých aktivít</span>
                       </div>
                     </Link>
 

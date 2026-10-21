@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getSession, type BookingRole, hashPassword, normalizePhone, verifyPassword } from "@/lib/auth/bookingAuth";
 import { getCoreServiceDb } from "@/lib/server/supabase";
 import { isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
+import { logActivity } from "@/lib/server/auditLog";
 
 
 const ALLOWED_ROLES: BookingRole[] = ["admin", "user", "trainer", "ntc_team"];
@@ -140,6 +141,19 @@ export async function updateBookingUserRoleAction(userId: string, role: BookingR
     return { success: false as const, error: "Rolu používateľa sa nepodarilo uložiť." };
   }
 
+  await logActivity({
+    action: "user.role_change",
+    category: "users",
+    entityType: "user",
+    entityId: user.id,
+    description: `Zmenená rola používateľa (ID: ${user.id}) na "${role}"`,
+    changes: {
+      before: null,
+      after: { role }
+    },
+    metadata: { targetUserId: user.id, newRole: role }
+  });
+
   revalidatePath("/dashboard/newbookings");
   revalidatePath("/dashboard/users-roles");
   return { success: true as const, userId: user.id, role: user.role as BookingRole };
@@ -168,6 +182,19 @@ export async function updateBookingUserDiscountTierAction(userId: string, discou
     }
     return { success: false as const, error: "Zľavovú hladinu používateľa sa nepodarilo uložiť." };
   }
+
+  await logActivity({
+    action: "user.tier_change",
+    category: "users",
+    entityType: "user",
+    entityId: user.id,
+    description: `Zmenená zľavová hladina používateľa (ID: ${user.id}) na "${cleanTierId}"`,
+    changes: {
+      before: null,
+      after: { discountTierId: cleanTierId }
+    },
+    metadata: { targetUserId: user.id, discountTierId: cleanTierId }
+  });
 
   revalidatePath("/dashboard/users-roles");
   revalidatePath("/dashboard/users");
@@ -235,6 +262,28 @@ export async function updateRoleBookingPolicyAction(input: RoleBookingPolicyInpu
     console.error("updateRoleBookingPolicyAction failed:", error);
     return { success: false as const, error: "Privilégiá roly sa nepodarilo uložiť." };
   }
+
+  await logActivity({
+    action: "settings.policy_update",
+    category: "settings",
+    entityType: "role_policy",
+    entityId: input.role,
+    entityName: `Pravidlá pre rolu: ${input.role}`,
+    description: `Aktualizované nastavenia a privilégia pre rolu "${input.role}"`,
+    changes: {
+      before: null,
+      after: {
+        role: input.role,
+        maxBookingDurationMinutes: input.maxBookingDurationMinutes,
+        bookingHorizonDays: input.bookingHorizonDays,
+        discountEurPerHour: input.discountEurPerHour,
+        cancellationDeadlineHours: input.cancellationDeadlineHours,
+        isActive: input.isActive,
+        canMakeRecurring: input.canMakeRecurring,
+      }
+    },
+    metadata: { role: input.role }
+  });
 
   revalidatePath("/dashboard/newbookings");
   revalidatePath("/dashboard/users-roles");
@@ -383,6 +432,193 @@ export async function fetchAdminUsersDirectoryAction(
     users: items,
   };
 }
+
+/**
+ * Server action: Export zoznamu používateľov do CSV formátu pre Excel (UTF-8 BOM)
+ */
+export async function exportAdminUsersCsvAction(
+  query = "",
+  roleFilter: "all" | BookingRole = "all"
+) {
+  const context = await requireCurrentAdmin();
+  if (!context) return { success: false as const, error: "Nemáte oprávnenie exportovať používateľov." };
+
+  const safeQuery = query.trim().slice(0, 100).replace(/[,%()]/g, " ");
+
+  const buildQuery = (withTier: boolean, withMultisport: boolean) => {
+    let selectCols = "id, name, email, phone, card_number, role, created_at";
+    if (withMultisport) selectCols += ", has_multisport";
+    if (withTier) selectCols += ", discount_tier_id";
+
+    let q = (context.db.from("booking_users") as any)
+      .select(selectCols)
+      .not("email", "ilike", "deleted_%@deleted.local")
+      .neq("name", "[Zmazaný používateľ]");
+
+    if (roleFilter !== "all" && ALLOWED_ROLES.includes(roleFilter)) {
+      q = q.eq("role", roleFilter);
+    }
+
+    if (safeQuery) {
+      const term = `%${safeQuery}%`;
+      q = q.or(`name.ilike.${term},email.ilike.${term},phone.ilike.${term},card_number.ilike.${term}`);
+    }
+
+    return q.order("name", { ascending: true }) as Promise<{
+      data: any[] | null;
+      error: any;
+    }>;
+  };
+
+  let { data: users, error } = await buildQuery(true, true);
+  if (error && (error.message?.includes("discount_tier_id") || (error as any).code === "PGRST204")) {
+    const retry = await buildQuery(false, true);
+    users = retry.data;
+    error = retry.error;
+  }
+  if (error && error.message?.includes("has_multisport")) {
+    const retry = await buildQuery(false, false);
+    users = retry.data;
+    error = retry.error;
+  }
+
+  if (error) {
+    console.error("exportAdminUsersCsvAction failed:", error);
+    return { success: false as const, error: "Používateľov sa nepodarilo načítať na export." };
+  }
+
+  const userList = users || [];
+  const userIds = userList.map((u) => u.id);
+
+  let walletMap = new Map<string, number>();
+  let bookingCountMap = new Map<string, number>();
+
+  if (userIds.length > 0) {
+    const [{ data: walletsData }, { data: bookingsData }] = await Promise.all([
+      context.db
+        .from("wallets")
+        .select("user_id, balance_eur")
+        .in("user_id", userIds),
+      context.db
+        .from("bookings")
+        .select("user_id")
+        .in("user_id", userIds),
+    ]);
+
+    if (walletsData) {
+      for (const w of walletsData) {
+        walletMap.set(w.user_id, Number(w.balance_eur || 0));
+      }
+    }
+
+    if (bookingsData) {
+      for (const b of bookingsData) {
+        if (b.user_id) {
+          bookingCountMap.set(b.user_id, (bookingCountMap.get(b.user_id) || 0) + 1);
+        }
+      }
+    }
+  }
+
+  const roleNameMap: Record<string, string> = {
+    admin: "Administrator",
+    trainer: "Trener",
+    user: "Pouzivatel",
+    ntc_team: "NTC Tim",
+  };
+
+  const removeDiacritics = (str: any): string => {
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/ł/g, "l")
+      .replace(/Ł/g, "L")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D")
+      .replace(/€/g, "EUR");
+  };
+
+  const escapeCsv = (val: any): string => {
+    if (val === null || val === undefined) return '""';
+    const str = removeDiacritics(val).replace(/"/g, '""');
+    return `"${str}"`;
+  };
+
+  const escapeCsvText = (val: any): string => {
+    if (val === null || val === undefined || String(val).trim() === "") return '""';
+    const clean = removeDiacritics(val).replace(/"/g, '""');
+    // Format as ="..." so Excel treats it strictly as text without converting to scientific notation (4.219E+11)
+    return `="${clean}"`;
+  };
+
+  const headers = [
+    "ID pouzivatela",
+    "Meno a priezvisko",
+    "Email",
+    "Telefon",
+    "Cislo karty",
+    "Rola",
+    "Kod roly",
+    "Zlavova kategoria",
+    "MultiSport karta",
+    "Zostatok kreditu (EUR)",
+    "Pocet rezervacii",
+    "Datum registracie"
+  ];
+
+  const lines = [headers.map(escapeCsv).join(";")];
+
+  for (const u of userList) {
+    const d = new Date(u.created_at);
+    const regDate = `${d.toLocaleDateString("sk-SK")} ${d.toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}`;
+    const roleCode = u.role || "user";
+    const roleLabel = roleNameMap[roleCode] || roleCode;
+    const balance = (walletMap.get(u.id) ?? 0).toFixed(2);
+    const bookingsCount = bookingCountMap.get(u.id) ?? 0;
+    const hasMs = u.has_multisport ? "Ano" : "Nie";
+    const tier = u.discount_tier_id || "tier-base";
+
+    lines.push([
+      escapeCsv(u.id),
+      escapeCsv(u.name || "Bez mena"),
+      escapeCsv(u.email),
+      escapeCsvText(u.phone),
+      escapeCsvText(u.card_number),
+      escapeCsv(roleLabel),
+      escapeCsv(roleCode),
+      escapeCsv(tier),
+      escapeCsv(hasMs),
+      escapeCsv(balance),
+      escapeCsv(bookingsCount),
+      escapeCsv(regDate),
+    ].join(";"));
+  }
+
+  const csvContent = lines.join("\r\n");
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const fileName = `pouzivatelia_export_${dateStr}.csv`;
+
+  await logActivity({
+    action: "user.export",
+    category: "users",
+    entityType: "user",
+    description: `Exportovaný zoznam ${userList.length} používateľov do CSV pre Excel`,
+    metadata: {
+      exportedCount: userList.length,
+      roleFilter,
+      query: safeQuery || undefined,
+    }
+  });
+
+  return {
+    success: true as const,
+    csvContent,
+    fileName,
+    totalExported: userList.length,
+  };
+}
+
 
 export type AdminUserDetailData = {
   user: {
@@ -649,6 +885,28 @@ export async function createBookingUserByAdminAction(input: CreateAdminUserInput
     });
   }
 
+  await logActivity({
+    action: "user.create",
+    category: "users",
+    entityType: "user",
+    entityId: user.id,
+    entityName: user.name,
+    description: `Vytvorený nový používateľ "${user.name}" (${user.email}, rola: ${user.role})`,
+    changes: {
+      before: null,
+      after: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        cardNumber: user.card_number,
+        hasMultisport: Boolean(input.hasMultisport),
+        initialCredit,
+      }
+    },
+    metadata: { userId: user.id, email: user.email, role: user.role }
+  });
+
   revalidatePath("/dashboard/users");
   revalidatePath("/dashboard/newbookings");
 
@@ -780,6 +1038,20 @@ export async function updateBookingUserProfileByAdminAction(userId: string, data
     return { success: false as const, error: "Profil sa nepodarilo aktualizovať." };
   }
 
+  await logActivity({
+    action: "user.update",
+    category: "users",
+    entityType: "user",
+    entityId: userId,
+    entityName: updateResult.data.name,
+    description: `Upravený profil používateľa "${updateResult.data.name}" (${updateResult.data.email})`,
+    changes: {
+      before: null,
+      after: updateResult.data,
+    },
+    metadata: { userId, updatedFields: Object.keys(data) }
+  });
+
   revalidatePath("/dashboard/users");
   revalidatePath("/dashboard/newbookings");
 
@@ -890,6 +1162,21 @@ export async function deleteBookingUserByAdminAction(
 
   revalidatePath("/dashboard/users");
   revalidatePath("/dashboard/newbookings");
+
+  await logActivity({
+    action: "user.delete",
+    category: "users",
+    entityType: "user",
+    entityId: targetUserId,
+    entityName: targetUser.name,
+    description: `Odstránený používateľ "${targetUser.name}" (${targetUser.email})`,
+    changes: {
+      before: { id: targetUserId, name: targetUser.name, email: targetUser.email },
+      after: null,
+    },
+    metadata: { targetUserId, targetEmail: targetUser.email, hardDeleted: hardDeleteSuccess },
+    level: "warning",
+  });
 
   return { success: true as const };
 }

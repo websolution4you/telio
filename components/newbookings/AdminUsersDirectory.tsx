@@ -15,6 +15,7 @@ import {
   Clock,
   Coins,
   CreditCard,
+  Download,
   Eye,
   EyeOff,
   History,
@@ -46,6 +47,7 @@ import {
   updateBookingUserProfileByAdminAction,
   deleteBookingUserByAdminAction,
   updateBookingUserDiscountTierAction,
+  exportAdminUsersCsvAction,
   type AdminUserDirectoryItem,
   type AdminUserDetailData,
   type CreateAdminUserInput,
@@ -128,6 +130,7 @@ export default function AdminUsersDirectory() {
   const [roleFilter, setRoleFilter] = useState<"all" | BookingRole>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     fetchPricelistsAction().then((res) => {
@@ -305,6 +308,30 @@ export default function AdminUsersDirectory() {
       setDeleteError(res.error || "Používateľa sa nepodarilo zmazať.");
     }
     setDeleteLoading(false);
+  };
+
+  const handleExportCsv = async () => {
+    setIsExporting(true);
+    try {
+      const res = await exportAdminUsersCsvAction(query, roleFilter);
+      if (res.success && res.csvContent) {
+        const blob = new Blob([res.csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", res.fileName || "pouzivatelia_export.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        alert(res.error || "Exportovanie používateľov zlyhalo.");
+      }
+    } catch (err: any) {
+      alert("Chyba pri sťahovaní CSV: " + (err?.message || err));
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   useEffect(() => {
@@ -596,18 +623,37 @@ export default function AdminUsersDirectory() {
               </button>
             </div>
 
-            {/* "+ Nový používateľ" Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setCreateUserError(null);
-                setCreateUserOpen(true);
-              }}
-              className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-200 hover:text-slate-900 cursor-pointer shrink-0 active:scale-[0.98] w-full sm:w-auto"
-            >
-              <UserPlus className="h-4 w-4 text-slate-500" />
-              <span>Nový používateľ</span>
-            </button>
+            {/* Action buttons: Nový používateľ + Exportovať CSV */}
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              {/* "+ Nový používateľ" Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setCreateUserError(null);
+                  setCreateUserOpen(true);
+                }}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-200 hover:text-slate-900 cursor-pointer shrink-0 active:scale-[0.98] w-full sm:w-auto"
+              >
+                <UserPlus className="h-4 w-4 text-slate-500" />
+                <span>Nový používateľ</span>
+              </button>
+
+              {/* Exportovať CSV Button */}
+              <button
+                type="button"
+                onClick={handleExportCsv}
+                disabled={isExporting || totalCount === 0}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-emerald-600/30 bg-emerald-50 px-4 py-2.5 text-xs sm:text-sm font-bold text-emerald-800 shadow-2xs transition hover:bg-emerald-100 hover:border-emerald-600/50 cursor-pointer shrink-0 active:scale-[0.98] disabled:opacity-50 w-full sm:w-auto"
+                title="Stiahnuť zoznam používateľov do tabuľky Excel (CSV s UTF-8 BOM)"
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-emerald-700" />
+                ) : (
+                  <Download className="h-4 w-4 text-emerald-700" />
+                )}
+                <span>Exportovať CSV</span>
+              </button>
+            </div>
           </div>
 
           {/* Role Filter Pills */}

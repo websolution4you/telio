@@ -16,6 +16,7 @@ import {
 import { Resend } from "resend";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { logActivity } from "@/lib/server/auditLog";
 
 const TENANT_ID = "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
 
@@ -174,6 +175,27 @@ export async function loginAction(email: string, password: string) {
 
         if (dbError || !user) {
             const fail = recordFailedLogin(normalizedEmail);
+
+            await logActivity({
+                action: "auth.login_failed",
+                category: "auth",
+                entityType: "user",
+                entityId: null,
+                entityName: normalizedEmail,
+                description: `Neúspešný pokus o prihlásenie pre ${normalizedEmail} (používateľ sa nenašiel)`,
+                actor: {
+                    name: normalizedEmail,
+                    email: normalizedEmail,
+                    role: "user",
+                },
+                metadata: {
+                    email: normalizedEmail,
+                    locked: fail.isNowLocked,
+                    remainingAttempts: fail.remainingAttempts,
+                },
+                level: fail.isNowLocked ? "critical" : "warning",
+            });
+
             if (fail.isNowLocked) {
                 try {
                     const cookieStore = await cookies();
@@ -201,6 +223,30 @@ export async function loginAction(email: string, password: string) {
 
         if (!isValid) {
             const fail = recordFailedLogin(normalizedEmail);
+
+            await logActivity({
+                action: "auth.login_failed",
+                category: "auth",
+                entityType: "user",
+                entityId: user.id,
+                entityName: user.name,
+                description: `Neúspešný pokus o prihlásenie pre ${user.name} (${normalizedEmail}) - nesprávne heslo`,
+                actor: {
+                    id: user.id,
+                    name: user.name,
+                    email: normalizedEmail,
+                    role: user.role,
+                },
+                metadata: {
+                    userId: user.id,
+                    email: normalizedEmail,
+                    role: user.role,
+                    locked: fail.isNowLocked,
+                    remainingAttempts: fail.remainingAttempts,
+                },
+                level: fail.isNowLocked ? "critical" : "warning",
+            });
+
             if (fail.isNowLocked) {
                 try {
                     const cookieStore = await cookies();
@@ -244,6 +290,27 @@ export async function loginAction(email: string, password: string) {
 
         const token = await createSession(bookingUser);
         await setSessionCookie(token);
+
+        await logActivity({
+            action: "auth.login",
+            category: "auth",
+            entityType: "user",
+            entityId: user.id,
+            entityName: user.name,
+            description: `Prihlásenie používateľa "${user.name}" (${user.email}, rola: ${user.role})`,
+            actor: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+            },
+            metadata: {
+                userId: user.id,
+                role: user.role,
+                cardNumber: user.card_number || null,
+            },
+            level: "info",
+        });
 
         return { success: true, user: bookingUser };
     } catch (error: any) {
@@ -384,6 +451,28 @@ export async function registerAction(
         const token = await createSession(bookingUser);
         await setSessionCookie(token);
 
+        await logActivity({
+            action: "auth.register",
+            category: "auth",
+            entityType: "user",
+            entityId: user.id,
+            entityName: user.name,
+            description: `Nová registrácia používateľa "${user.name}" (${user.email})`,
+            actor: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+            },
+            metadata: {
+                userId: user.id,
+                email: user.email,
+                role: user.role,
+                cardNumber: cleanCard,
+            },
+            level: "info",
+        });
+
         return { success: true, user: bookingUser };
     } catch (error: any) {
         console.error("Registration error:", error);
@@ -393,6 +482,25 @@ export async function registerAction(
 
 export async function logoutAction() {
     try {
+        const session = await getSession();
+        if (session) {
+            await logActivity({
+                action: "auth.logout",
+                category: "auth",
+                entityType: "user",
+                entityId: session.userId,
+                entityName: session.name,
+                description: `Odhlásenie používateľa "${session.name}" (${session.email})`,
+                actor: {
+                    id: session.userId,
+                    name: session.name,
+                    email: session.email,
+                    role: session.role,
+                },
+                metadata: { role: session.role },
+                level: "info",
+            });
+        }
         await clearSession();
         return { success: true };
     } catch (error: any) {
