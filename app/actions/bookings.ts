@@ -149,6 +149,7 @@ export async function fetchBookingsAction(startDateIso: string, endDateIso: stri
                 rescheduled?: boolean;
                 recurringGroupId?: string;
                 clientPlayerName?: string;
+                adminBlockType?: string;
             } = {
                 courtId: "",
                 source: "web",
@@ -195,6 +196,7 @@ export async function fetchBookingsAction(startDateIso: string, endDateIso: stri
                 isRescheduled: Boolean(notesObj.rescheduled),
                 recurringGroupId: notesObj.recurringGroupId || undefined,
                 clientPlayerName: notesObj.clientPlayerName || undefined,
+                adminBlockType: notesObj.adminBlockType || undefined,
             };
         });
 
@@ -216,6 +218,8 @@ export async function createBookingAction(payload: {
     source: "web" | "admin" | "voice-assistant" | "google-calendar";
     operationId?: string;
     multisportCardsCount?: number;
+    adminBlockType?: string;
+    clientPlayerName?: string;
 }) {
     try {
         const session = await getSession();
@@ -343,7 +347,9 @@ export async function createBookingAction(payload: {
             source: payload.source,
             notes: payload.title,
             multisportCardsCount: multisportCount,
-            priceEur: calculatedPrice
+            priceEur: calculatedPrice,
+            adminBlockType: payload.adminBlockType,
+            clientPlayerName: payload.clientPlayerName
         };
         const useWallet = session.role !== "admin" && payload.source !== "admin" && walletEnabledForUser(session.userId);
 
@@ -848,6 +854,7 @@ export async function createRecurringBookingAction(payload: CreateRecurringBooki
                 notes: baseTitle,
                 recurringGroupId,
                 clientPlayerName: payload.clientPlayerName || undefined,
+                adminBlockType: payload.adminBlockType || undefined,
                 repeatWeeks: candidateSlots.length,
             }),
             user_id: session.userId,

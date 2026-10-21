@@ -1209,13 +1209,15 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
 
     setLoading(true);
     const effectiveBlockType = adminBlockType || "Údržba kurtov";
+    const isMaintenanceBlock = currentUser.role === "admin" && effectiveBlockType === "Údržba kurtov";
     const customNote = title.trim();
+    const effectivePlayerName = isMaintenanceBlock ? "" : clientPlayerName.trim();
 
     if (isRecurring && canUserMakeRecurring) {
       const result = await createRecurringBookingAction({
         courtId: slot.courtId,
         title: customNote || (currentUser.role === "admin" ? effectiveBlockType : (sports.find((item) => item.id === sport)?.label || "Rezervácia")),
-        customerName: clientPlayerName.trim() || (currentUser.role === "admin" ? effectiveBlockType : currentUser.name),
+        customerName: effectivePlayerName || (currentUser.role === "admin" ? effectiveBlockType : currentUser.name),
         phone: phone || undefined,
         start: start.toISOString(),
         end: end.toISOString(),
@@ -1225,7 +1227,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
         untilDate: untilDate || undefined,
         repeatWeeks,
         adminBlockType: currentUser.role === "admin" ? effectiveBlockType : undefined,
-        clientPlayerName: clientPlayerName.trim() || undefined,
+        clientPlayerName: effectivePlayerName || undefined,
       });
 
       setLoading(false);
@@ -1288,19 +1290,25 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
       title: currentUser.role === "admin"
         ? (customNote || effectiveBlockType)
         : (customNote || (sports.find((item) => item.id === sport)?.label || "Rezervácia")),
-      customerName: clientPlayerName.trim() || (currentUser.role === "admin" ? effectiveBlockType : currentUser.name),
+      customerName: effectivePlayerName || (currentUser.role === "admin" ? effectiveBlockType : currentUser.name),
       phone: phone || undefined,
       start: start.toISOString(),
       end: end.toISOString(),
       status: currentUser.role === "admin" ? "blocked" : "confirmed",
       source: currentUser.role === "admin" ? "admin" : "web",
       operationId: crypto.randomUUID(),
-      multisportCardsCount
+      multisportCardsCount,
+      adminBlockType: currentUser.role === "admin" ? effectiveBlockType : undefined,
+      clientPlayerName: effectivePlayerName || undefined,
     });
     setLoading(false);
     if (!result.success || !result.booking) return setNotice(result.error || "Rezerváciu sa nepodarilo vytvoriť.");
     if (result.wallet && currentUser.role !== "admin") setWalletBalance(result.wallet.balanceEur);
-    const newBooking = result.booking as Booking;
+    const newBooking = {
+      ...result.booking,
+      adminBlockType: currentUser.role === "admin" ? effectiveBlockType : undefined,
+      clientPlayerName: effectivePlayerName || undefined,
+    } as Booking;
     knownBookingIds.current.add(newBooking.id);
     playTennisHitSound();
     setItems((current) => [...current, newBooking]);
@@ -1578,24 +1586,35 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     const voiceHighlight = highlightedVoiceBookings.includes(booking.id);
                     const isTrainer = booking.userRole === "trainer";
 
+                    const blockType = (booking.adminBlockType || "").toLowerCase();
                     const nameLower = (booking.customerName || "").toLowerCase();
                     const titleLower = (booking.title || "").toLowerCase();
 
                     const isTraining =
                       isTrainer ||
-                      nameLower.includes("tréning") ||
+                      blockType === "tréningy" ||
+                      blockType === "treningy" ||
+                      blockType === "tréning" ||
+                      nameLower === "tréningy" ||
+                      nameLower === "treningy" ||
+                      nameLower === "tréning" ||
                       titleLower.includes("tréning") ||
-                      nameLower.includes("trening") ||
                       titleLower.includes("trening");
 
                     const isAdminBlock =
                       !isTraining &&
-                      (nameLower.includes("admin") || titleLower.includes("admin"));
+                      (blockType === "rezervácia admin" ||
+                        blockType === "rezervacia admin" ||
+                        nameLower === "rezervácia admin" ||
+                        nameLower === "rezervacia admin" ||
+                        titleLower.includes("admin"));
 
                     const isMaintenance =
                       !isTraining &&
                       !isAdminBlock &&
-                      (nameLower.includes("údržba") ||
+                      (blockType === "údržba kurtov" ||
+                        blockType === "udrzba kurtov" ||
+                        nameLower.includes("údržba") ||
                         titleLower.includes("údržba") ||
                         booking.status === "blocked" ||
                         booking.source === "admin");
@@ -1606,17 +1625,26 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     let labelText = "";
 
                     if (isAdmin) {
+                      const rawPlayer = (booking.clientPlayerName?.trim() || booking.customerName?.trim() || "");
+                      const isDefaultSystemName = [
+                        "tréningy", "treningy", "tréning", "trening",
+                        "rezervácia admin", "rezervacia admin", "admin", "admin user",
+                        "údržba kurtov", "udrzba kurtov", "údržba", "udrzba",
+                        "rezervácia", "rezervacia"
+                      ].includes(rawPlayer.toLowerCase());
+                      const customPlayerName = isDefaultSystemName ? "" : rawPlayer;
+
                       if (isTraining) {
-                        labelText = "Tréningy";
+                        labelText = customPlayerName || "Tréningy";
                         bookingClasses = "border-[#EAAECF] bg-[#F4CDE4] text-slate-950 font-bold shadow-xs hover:bg-[#EEBDDC]";
                       } else if (isAdminBlock) {
-                        labelText = "Rezervácia Admin";
+                        labelText = customPlayerName || "Rezervácia Admin";
                         bookingClasses = "border-[#C0A0E0] bg-[#DCC7F0] text-slate-950 font-bold shadow-xs hover:bg-[#D2B8EC]";
                       } else if (isMaintenance) {
                         labelText = "Údržba kurtov";
                         bookingClasses = "border-[#F29E9E] bg-[#FFC9C9] text-slate-950 font-bold shadow-xs hover:bg-[#FFBABA]";
                       } else {
-                        labelText = booking.customerName || booking.title || "Rezervácia";
+                        labelText = customPlayerName || booking.title || "Rezervácia";
                         bookingClasses = "border-[#EAD77B] bg-[#FFF3B0] text-slate-950 font-bold shadow-xs hover:bg-[#FEECA0]";
                       }
                     } else {

@@ -425,6 +425,9 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                       type="button"
                       onClick={() => {
                         props.onAdminBlockType?.(opt.value);
+                        if (opt.value === "Údržba kurtov") {
+                          props.onClientPlayerName?.("");
+                        }
                         setAdminBlockTypeOpen(false);
                       }}
                       className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold transition text-left cursor-pointer ${currentBlockType === opt.value
@@ -496,7 +499,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
             </div>
           )}
 
-          {(props.isAdmin || props.canMakeRecurring) && (
+          {((props.isAdmin && currentBlockType !== "Údržba kurtov") || (!props.isAdmin && props.canMakeRecurring)) && (
             <Field
               icon={User}
               label="Meno hráča / zverenca (voliteľné)"
@@ -1062,7 +1065,11 @@ export function BookingDetailDialog({
 
         <div className="space-y-2.5 sm:space-y-3">
           <Detail icon={Clock3} label="Termín" value={`${formatDate(activeBooking.start)}, ${formatTime(activeBooking.start)} – ${formatTime(activeBooking.end)}`} />
-          <Detail icon={User} label={isMaintenanceOrAdmin ? "Dôvod blokácie" : "Meno"} value={isMaintenanceOrAdmin ? (activeBooking.customerName || "Údržba kurtov") : (activeBooking.customerName || "Neznáme")} />
+          <Detail
+            icon={User}
+            label={isMaintenanceOrAdmin ? (activeBooking.clientPlayerName || (activeBooking.customerName && !["údržba kurtov", "udrzba kurtov", "údržba", "udrzba", "rezervácia admin", "rezervacia admin", "tréningy", "treningy"].includes(activeBooking.customerName.toLowerCase())) ? "Meno hráča / zverenca" : "Dôvod blokácie") : "Meno"}
+            value={activeBooking.clientPlayerName || activeBooking.customerName || (isMaintenanceOrAdmin ? "Údržba kurtov" : "Neznáme")}
+          />
           {activeBooking.phone && !isMaintenanceOrAdmin && <Detail icon={Phone} label="Telefón" value={activeBooking.phone} />}
           {activeBooking.multisportCardsCount && activeBooking.multisportCardsCount > 0 ? (
             <Detail

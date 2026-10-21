@@ -28,6 +28,7 @@ export interface Booking {
   isRescheduled?: boolean;
   recurringGroupId?: string;
   clientPlayerName?: string;
+  adminBlockType?: string;
 }
 
 export const courts: Court[] = [
