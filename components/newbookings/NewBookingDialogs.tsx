@@ -701,7 +701,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
               <div className="flex items-baseline gap-1.5 flex-wrap">
                 {props.isAdmin ? (
                   <span className="rounded-md border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-bold text-violet-700">
-                    Admin blokovanie (bez kreditu)
+                    Admin rezervácia (bez kreditu)
                   </span>
                 ) : (
                   <>
@@ -887,7 +887,7 @@ export function BookingDetailDialog({
         booking.recurringGroupId ? "max-w-xl sm:max-w-2xl" : "max-w-md sm:p-8"
       }`}>
         <DialogHeader
-          title={isMaintenanceOrAdmin ? "Detail blokovania kurtu" : "Detail rezervácie"}
+          title={isMaintenanceOrAdmin ? "Detail rezervácie kurtu" : "Detail rezervácie"}
           subtitle={formatCourtDisplayName(court) || "Rezervované športovisko"}
           onClose={onClose}
         />
