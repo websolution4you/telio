@@ -228,7 +228,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
       <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-8">
         <DialogHeader
           title={props.isAdmin ? "Administrátorská rezervácia" : "Nová rezervácia"}
-          subtitle={props.isAdmin ? "Výber dôvodu blokovania kurtu a voliteľná poznámka." : "Skontrolujte vybraný termín a potvrďte rezerváciu."}
+          subtitle={props.isAdmin ? "Výber dôvodu rezervácie kurtu a voliteľná poznámka." : "Skontrolujte vybraný termín a potvrďte rezerváciu."}
           onClose={props.onClose}
         />
 
@@ -393,11 +393,11 @@ export function CreateBookingDialog(props: CreateDialogProps) {
             </label>
           </div>
 
-          {/* 2. Dôvod rezervácie / blokácie */}
+          {/* 2. Dôvod rezervácie */}
           {props.isAdmin ? (
             <div className="relative">
               <span className="mb-1.5 block text-xs font-semibold text-slate-700 sm:mb-2 sm:text-sm">
-                Dôvod blokácie
+                Dôvod rezervácie
               </span>
               <button
                 type="button"
@@ -514,7 +514,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
             label="Poznámka"
             value={props.title}
             onChange={props.onTitle}
-            placeholder={props.isAdmin ? "Voliteľná poznámka k blokácii..." : "Voliteľná poznámka k rezervácii..."}
+            placeholder="Voliteľná poznámka k rezervácii..."
           />
 
           {props.canMakeRecurring && (
@@ -1067,7 +1067,7 @@ export function BookingDetailDialog({
           <Detail icon={Clock3} label="Termín" value={`${formatDate(activeBooking.start)}, ${formatTime(activeBooking.start)} – ${formatTime(activeBooking.end)}`} />
           <Detail
             icon={User}
-            label={isMaintenanceOrAdmin ? (activeBooking.clientPlayerName || (activeBooking.customerName && !["údržba kurtov", "udrzba kurtov", "údržba", "udrzba", "rezervácia admin", "rezervacia admin", "tréningy", "treningy"].includes(activeBooking.customerName.toLowerCase())) ? "Meno hráča / zverenca" : "Dôvod blokácie") : "Meno"}
+            label={isMaintenanceOrAdmin ? (activeBooking.clientPlayerName || (activeBooking.customerName && !["údržba kurtov", "udrzba kurtov", "údržba", "udrzba", "rezervácia admin", "rezervacia admin", "tréningy", "treningy"].includes(activeBooking.customerName.toLowerCase())) ? "Meno hráča / zverenca" : "Dôvod rezervácie") : "Meno"}
             value={activeBooking.clientPlayerName || activeBooking.customerName || (isMaintenanceOrAdmin ? "Údržba kurtov" : "Neznáme")}
           />
           {activeBooking.phone && !isMaintenanceOrAdmin && <Detail icon={Phone} label="Telefón" value={activeBooking.phone} />}
