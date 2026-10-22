@@ -13,9 +13,6 @@ import {
   calculateBorderColor,
 } from "@/lib/bookings/categoryTypes";
 
-export type { AdminReservationCategory };
-export { DEFAULT_ADMIN_CATEGORIES, calculateBorderColor };
-
 async function requireAdminSession() {
   const session = await getSession();
   if (!session || session.role !== "admin") return null;
