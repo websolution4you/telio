@@ -89,7 +89,7 @@ export default function AdminUsersAndRoles() {
   const [newCatColor, setNewCatColor] = useState("#BAE6FD");
   const [newCatHasPlayerField, setNewCatHasPlayerField] = useState(true);
   const [isCreatingCat, setIsCreatingCat] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     fetchPricelistsAction().then((res) => {
@@ -326,7 +326,7 @@ export default function AdminUsersAndRoles() {
       }
       setCatMessage(`Nová kategória „${trimmed}“ bola vytvorená.`);
       setNewCatName("");
-      setShowAddForm(false);
+      setShowAddModal(false);
     }
     setIsCreatingCat(false);
   };
@@ -796,14 +796,14 @@ export default function AdminUsersAndRoles() {
           <button
             type="button"
             onClick={() => {
-              setShowAddForm((prev) => !prev);
+              setShowAddModal(true);
               setCatError("");
               setCatMessage("");
             }}
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-xs transition hover:bg-emerald-500 cursor-pointer active:scale-[0.98] shrink-0"
           >
             <Plus className="h-4 w-4" />
-            <span>{showAddForm ? "Zavrieť formulár" : "Pridať novú kategóriu"}</span>
+            <span>Pridať novú kategóriu</span>
           </button>
         </div>
 
@@ -821,117 +821,169 @@ export default function AdminUsersAndRoles() {
           </div>
         )}
 
-        {/* Formulár pre pridanie novej kategórie */}
-        {showAddForm && (
-          <form
-            onSubmit={handleCreateCategory}
-            className="rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50/40 p-4 sm:p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-emerald-600" />
-                Vytvoriť novú kategóriu rezervácie
-              </h3>
-              {/* Živý náhľad */}
-              <div
-                className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-bold shadow-2xs"
-                style={{
-                  backgroundColor: newCatColor,
-                  borderColor: calculateBorderColor(newCatColor),
-                  color: "#020617",
-                }}
-              >
-                <span>{newCatName.trim() || "Náhľad v kalendári"}</span>
-              </div>
-            </div>
+        {/* Modálové okno pre pridanie novej kategórie */}
+        {showAddModal && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4">
+            {/* Tmavé pozadie s rozmazaním */}
+            <button
+              type="button"
+              aria-label="Zavrieť"
+              className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm cursor-pointer"
+              onClick={() => setShowAddModal(false)}
+            />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Názov kategórie *
-                </label>
-                <input
-                  type="text"
-                  value={newCatName}
-                  onChange={(e) => setNewCatName(e.target.value)}
-                  placeholder="napr. Turnaj, Sústredenie, Akadémia..."
-                  className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm font-medium text-slate-900 shadow-2xs focus:border-emerald-500 focus:outline-hidden"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Farba kategórie (paleta alebo vlastná)
-                </label>
-                <div className="flex flex-wrap items-center gap-2">
-                  {COLOR_PRESETS.map((preset) => {
-                    const isSelected = newCatColor.toUpperCase() === preset.hex.toUpperCase();
-                    return (
-                      <button
-                        key={preset.hex}
-                        type="button"
-                        onClick={() => setNewCatColor(preset.hex)}
-                        className={`h-7 w-7 rounded-lg border transition shadow-2xs cursor-pointer flex items-center justify-center ${
-                          isSelected ? "ring-2 ring-slate-950 scale-110" : "hover:scale-105"
-                        }`}
-                        style={{
-                          backgroundColor: preset.hex,
-                          borderColor: calculateBorderColor(preset.hex),
-                        }}
-                        title={preset.name}
-                      >
-                        {isSelected && <Check className="h-3.5 w-3.5 text-slate-900" />}
-                      </button>
-                    );
-                  })}
-                  <div className="flex items-center gap-1.5 ml-1">
-                    <input
-                      type="color"
-                      value={newCatColor}
-                      onChange={(e) => setNewCatColor(e.target.value)}
-                      className="h-7 w-8 rounded-lg border border-slate-200 p-0.5 cursor-pointer bg-white"
-                      title="Vybrať vlastnú farbu"
-                    />
-                    <input
-                      type="text"
-                      value={newCatColor}
-                      onChange={(e) => setNewCatColor(e.target.value)}
-                      className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-mono font-bold uppercase text-slate-800"
-                    />
+            {/* Modálová karta */}
+            <div className="relative w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-5 sm:p-7 shadow-2xl transition-all max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+              {/* Hlavička modalu */}
+              <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4 mb-5">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/80 shadow-2xs">
+                    <Sparkles className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-slate-950">
+                      Pridať novú kategóriu rezervácie
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Zvoľte názov, farbu a možnosti zobrazenia v kalendári.
+                    </p>
                   </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+                  aria-label="Zavrieť okno"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-            </div>
 
-            <label className="flex items-center gap-2.5 pt-1 text-xs font-bold text-slate-800 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={newCatHasPlayerField}
-                onChange={(e) => setNewCatHasPlayerField(e.target.checked)}
-                className="h-4 w-4 rounded-md border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-              />
-              <span>Zobrazovať v okne rezervácie pole „Meno hráča / zverenca“</span>
-            </label>
+              {/* Formulár */}
+              <form onSubmit={handleCreateCategory} className="space-y-5">
+                {/* Živý náhľad */}
+                <div>
+                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    Živý náhľad v kalendári
+                  </span>
+                  <div
+                    className="inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm font-bold shadow-xs transition-all"
+                    style={{
+                      backgroundColor: newCatColor,
+                      borderColor: calculateBorderColor(newCatColor),
+                      color: "#020617",
+                    }}
+                  >
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: calculateBorderColor(newCatColor) }}
+                    />
+                    <span>{newCatName.trim() || "Názov kategórie"}</span>
+                  </div>
+                </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowAddForm(false)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
-              >
-                Zrušiť
-              </button>
-              <button
-                type="submit"
-                disabled={isCreatingCat || !newCatName.trim()}
-                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500 disabled:opacity-50 cursor-pointer"
-              >
-                {isCreatingCat && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                Vytvoriť kategóriu
-              </button>
+                {/* Názov kategórie */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Názov kategórie *
+                  </label>
+                  <input
+                    type="text"
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    placeholder="napr. Turnaj, Sústredenie, Akadémia..."
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 p-3 text-sm font-semibold text-slate-900 shadow-2xs focus:border-emerald-500 focus:bg-white focus:outline-hidden transition"
+                    autoFocus
+                    required
+                  />
+                </div>
+
+                {/* Farba kategórie */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-2">
+                    Farba v kalendári
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {COLOR_PRESETS.map((preset) => {
+                      const isSelected = newCatColor.toUpperCase() === preset.hex.toUpperCase();
+                      return (
+                        <button
+                          key={preset.hex}
+                          type="button"
+                          onClick={() => setNewCatColor(preset.hex)}
+                          className={`h-8 w-8 rounded-xl border transition shadow-2xs cursor-pointer flex items-center justify-center ${
+                            isSelected ? "ring-2 ring-slate-950 scale-110" : "hover:scale-105"
+                          }`}
+                          style={{
+                            backgroundColor: preset.hex,
+                            borderColor: calculateBorderColor(preset.hex),
+                          }}
+                          title={preset.name}
+                        >
+                          {isSelected && <Check className="h-4 w-4 text-slate-900" />}
+                        </button>
+                      );
+                    })}
+                    <div className="flex items-center gap-1.5 ml-1">
+                      <input
+                        type="color"
+                        value={newCatColor}
+                        onChange={(e) => setNewCatColor(e.target.value)}
+                        className="h-8 w-9 rounded-xl border border-slate-200 p-0.5 cursor-pointer bg-white"
+                        title="Vybrať vlastnú farbu"
+                      />
+                      <input
+                        type="text"
+                        value={newCatColor}
+                        onChange={(e) => setNewCatColor(e.target.value)}
+                        className="w-22 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-mono font-bold uppercase text-slate-800"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Checkbox: Meno hráča / zverenca */}
+                <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+                  <label className="flex items-start gap-3 text-xs font-bold text-slate-800 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newCatHasPlayerField}
+                      onChange={(e) => setNewCatHasPlayerField(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded-md border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <div>
+                      <span className="block leading-snug font-bold text-slate-900">
+                        Zobrazovať v okne rezervácie pole „Meno hráča / zverenca“
+                      </span>
+                      <span className="block text-[11px] font-normal text-slate-500 mt-0.5 leading-snug">
+                        Ak je zapnuté, pri rezervácii zadáte meno hráča a to sa zobrazí priamo v políčku termínu v kalendári.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Tlačidlá akcie */}
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    Zrušiť
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreatingCat || !newCatName.trim()}
+                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-xs hover:bg-emerald-500 disabled:opacity-50 transition cursor-pointer active:scale-95"
+                  >
+                    {isCreatingCat && <Loader2 className="h-4 w-4 animate-spin" />}
+                    <span>Uložiť kategóriu</span>
+                  </button>
+                </div>
+              </form>
             </div>
-          </form>
+          </div>
         )}
 
         {/* Zoznam existujúcich kategórií */}
