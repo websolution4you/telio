@@ -7,12 +7,16 @@ import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import type { NtcPricelist } from "@/lib/bookings/pricingTypes";
 import { formatDuration } from "@/lib/bookings/rolePolicy";
 import { fetchSeriesBookingsAction } from "@/app/actions/bookings";
+import {
+  type AdminReservationCategory,
+  DEFAULT_ADMIN_CATEGORIES,
+} from "@/lib/bookings/categoryTypes";
 
-export const ADMIN_BLOCK_OPTIONS = [
-  { value: "Údržba kurtov", color: "#FFC9C9", border: "#F29E9E" },
-  { value: "Rezervácia Admin", color: "#FFFF33", border: "#E6E600" },
-  { value: "Tréningy", color: "#F4CDE4", border: "#EAAECF" },
-] as const;
+export const ADMIN_BLOCK_OPTIONS = DEFAULT_ADMIN_CATEGORIES.map((c) => ({
+  value: c.name,
+  color: c.color,
+  border: c.border,
+}));
 
 export const DAYS_OF_WEEK = [
   { id: 1, label: "Po", full: "Pondelok" },
@@ -98,6 +102,7 @@ type CreateDialogProps = {
   duration: number;
   title: string;
   phone: string;
+  categories?: AdminReservationCategory[];
   adminBlockType?: string;
   onAdminBlockType?: (value: string) => void;
   hasCard?: boolean;
@@ -165,8 +170,22 @@ export function CreateBookingDialog(props: CreateDialogProps) {
   const [showCustomTopUp, setShowCustomTopUp] = useState(false);
   const [customTopUpInput, setCustomTopUpInput] = useState("");
   const [customTopUpError, setCustomTopUpError] = useState<string | null>(null);
-  const currentBlockType = props.adminBlockType || "Údržba kurtov";
-  const selectedOption = ADMIN_BLOCK_OPTIONS.find((opt) => opt.value === currentBlockType) || ADMIN_BLOCK_OPTIONS[0];
+
+  const availableCategories = useMemo(() => {
+    return props.categories && props.categories.length > 0
+      ? props.categories
+      : DEFAULT_ADMIN_CATEGORIES;
+  }, [props.categories]);
+
+  const currentBlockType = props.adminBlockType || availableCategories[0]?.name || "Údržba kurtov";
+  const selectedOption = useMemo(() => {
+    const lower = currentBlockType.toLowerCase();
+    return (
+      availableCategories.find(
+        (opt) => opt.name.toLowerCase() === lower || opt.id.toLowerCase() === lower
+      ) || availableCategories[0]
+    );
+  }, [availableCategories, currentBlockType]);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -412,28 +431,29 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                       borderColor: selectedOption.border,
                     }}
                   />
-                  <span>{selectedOption.value}</span>
+                  <span>{selectedOption.name}</span>
                 </div>
                 <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${adminBlockTypeOpen ? "rotate-180" : ""}`} />
               </button>
 
               {adminBlockTypeOpen && (
-                <div className="absolute left-0 right-0 z-50 mt-1.5 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-100">
-                  {ADMIN_BLOCK_OPTIONS.map((opt) => (
+                <div className="absolute left-0 right-0 z-50 mt-1.5 max-h-60 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-100">
+                  {availableCategories.map((opt) => (
                     <button
-                      key={opt.value}
+                      key={opt.id}
                       type="button"
                       onClick={() => {
-                        props.onAdminBlockType?.(opt.value);
-                        if (opt.value === "Údržba kurtov") {
+                        props.onAdminBlockType?.(opt.name);
+                        if (!opt.hasPlayerField) {
                           props.onClientPlayerName?.("");
                         }
                         setAdminBlockTypeOpen(false);
                       }}
-                      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold transition text-left cursor-pointer ${currentBlockType === opt.value
+                      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold transition text-left cursor-pointer ${
+                        currentBlockType.toLowerCase() === opt.name.toLowerCase() || currentBlockType === opt.id
                           ? "bg-slate-100 text-slate-950"
                           : "hover:bg-slate-50 text-slate-700"
-                        }`}
+                      }`}
                     >
                       <span
                         className="h-4 w-4 rounded-md border shadow-2xs shrink-0"
@@ -442,7 +462,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                           borderColor: opt.border,
                         }}
                       />
-                      <span className="text-xs sm:text-sm">{opt.value}</span>
+                      <span className="text-xs sm:text-sm">{opt.name}</span>
                     </button>
                   ))}
                 </div>
@@ -499,7 +519,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
             </div>
           )}
 
-          {((props.isAdmin && currentBlockType !== "Údržba kurtov") || (!props.isAdmin && props.canMakeRecurring)) && (
+          {((props.isAdmin && Boolean(selectedOption?.hasPlayerField)) || (!props.isAdmin && props.canMakeRecurring)) && (
             <Field
               icon={User}
               label="Meno hráča / zverenca (voliteľné)"
@@ -758,7 +778,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                 : props.isRecurring
                   ? `Vytvoriť opakovanú sériu (${occurrencesCount} ${occurrencesCount === 1 ? "termín" : occurrencesCount < 5 ? "termíny" : "termínov"})`
                   : props.isAdmin
-                    ? `Rezervovať (${selectedOption.value})`
+                    ? `Rezervovať (${selectedOption.name})`
                     : "Vytvoriť rezerváciu"}
           </button>
         </form>

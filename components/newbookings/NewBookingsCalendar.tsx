@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpRight, CalendarDays, CalendarSync, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Plus, Receipt, Repeat, Settings, ShieldCheck, Sparkles, UserPlus, Users, X } from "lucide-react";
+import { ArrowUpRight, CalendarDays, CalendarSync, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Palette, Plus, Receipt, Repeat, Settings, ShieldCheck, Sparkles, UserPlus, Users, X } from "lucide-react";
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { ThreeDChartIcon, ThreeDSettingsIcon, ThreeDUserAvatarIcon } from "@/components/icons/ThreeDNavIcons";
 import { createBookingAction, createRecurringBookingAction, deleteBookingAction, fetchBookingsAction, rescheduleBookingAction } from "@/app/actions/bookings";
@@ -18,6 +18,10 @@ import { openingHours } from "@/lib/bookings/mockBookings";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import type { NtcPricelist } from "@/lib/bookings/pricingTypes";
 import { getCourtOperatingLimitMinutes, getDurationOptions, type RoleBookingPolicy } from "@/lib/bookings/rolePolicy";
+import {
+  type AdminReservationCategory,
+  DEFAULT_ADMIN_CATEGORIES,
+} from "@/lib/bookings/categoryTypes";
 
 import HolographicTennisCourt from "./HolographicTennisCourt";
 import NewBookingsHeader from "./NewBookingsHeader";
@@ -27,6 +31,7 @@ import { BookingDetailDialog, CreateBookingDialog, DeleteDialog, RescheduleConfi
 type Props = {
   courts: Court[];
   initialBookings: Booking[];
+  initialCategories?: AdminReservationCategory[];
   currentUser: BookingUser | null;
   rolePolicy: RoleBookingPolicy | null;
   initialWalletBalance?: number | null;
@@ -229,7 +234,15 @@ function playTennisHitSound() {
   }
 }
 
-export default function NewBookingsCalendar({ courts, initialBookings, currentUser: initialCurrentUser, rolePolicy: initialRolePolicy, initialWalletBalance, activePricelist }: Props) {
+export default function NewBookingsCalendar({
+  courts,
+  initialBookings,
+  initialCategories,
+  currentUser: initialCurrentUser,
+  rolePolicy: initialRolePolicy,
+  initialWalletBalance,
+  activePricelist,
+}: Props) {
   const router = useRouter();
   const voiceHighlightTimers = useRef(new Map<string, number>());
   const [currentUser, setCurrentUser] = useState(initialCurrentUser);
@@ -303,6 +316,18 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
   const [notice, setNotice] = useState("");
   const [title, setTitle] = useState("");
   const [phone, setPhone] = useState("");
+  const [categories, setCategories] = useState<AdminReservationCategory[]>(
+    initialCategories && initialCategories.length > 0
+      ? initialCategories
+      : DEFAULT_ADMIN_CATEGORIES
+  );
+
+  useEffect(() => {
+    if (initialCategories && initialCategories.length > 0) {
+      setCategories(initialCategories);
+    }
+  }, [initialCategories]);
+
   const [adminBlockType, setAdminBlockType] = useState<string>("Údržba kurtov");
   const [duration, setDuration] = useState(60);
   const [isRecurring, setIsRecurring] = useState(false);
@@ -1590,62 +1615,81 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     const nameLower = (booking.customerName || "").toLowerCase();
                     const titleLower = (booking.title || "").toLowerCase();
 
-                    const isTraining =
-                      isTrainer ||
-                      blockType === "tréningy" ||
-                      blockType === "treningy" ||
-                      blockType === "tréning" ||
-                      nameLower === "tréningy" ||
-                      nameLower === "treningy" ||
-                      nameLower === "tréning" ||
-                      titleLower.includes("tréning") ||
-                      titleLower.includes("trening");
+                    const matchedCategory = categories.find((cat) => {
+                      const cName = cat.name.toLowerCase();
+                      const cId = cat.id.toLowerCase();
+                      if (blockType && (blockType === cName || blockType === cId)) return true;
+                      if (cat.id === "training") {
+                        return (
+                          isTrainer ||
+                          blockType === "tréningy" ||
+                          blockType === "treningy" ||
+                          blockType === "tréning" ||
+                          nameLower === "tréningy" ||
+                          nameLower === "treningy" ||
+                          nameLower === "tréning" ||
+                          titleLower.includes("tréning") ||
+                          titleLower.includes("trening")
+                        );
+                      }
+                      if (cat.id === "admin_reservation") {
+                        return (
+                          blockType === "rezervácia admin" ||
+                          blockType === "rezervacia admin" ||
+                          nameLower === "rezervácia admin" ||
+                          nameLower === "rezervacia admin" ||
+                          titleLower.includes("admin")
+                        );
+                      }
+                      if (cat.id === "maintenance") {
+                        return (
+                          blockType === "údržba kurtov" ||
+                          blockType === "udrzba kurtov" ||
+                          nameLower.includes("údržba") ||
+                          titleLower.includes("údržba") ||
+                          booking.status === "blocked" ||
+                          booking.source === "admin"
+                        );
+                      }
+                      return false;
+                    });
 
-                    const isAdminBlock =
-                      !isTraining &&
-                      (blockType === "rezervácia admin" ||
-                        blockType === "rezervacia admin" ||
-                        nameLower === "rezervácia admin" ||
-                        nameLower === "rezervacia admin" ||
-                        titleLower.includes("admin"));
-
-                    const isMaintenance =
-                      !isTraining &&
-                      !isAdminBlock &&
-                      (blockType === "údržba kurtov" ||
-                        blockType === "udrzba kurtov" ||
-                        nameLower.includes("údržba") ||
-                        titleLower.includes("údržba") ||
-                        booking.status === "blocked" ||
-                        booking.source === "admin");
-
-                    const isAnyAdminOrBlock = isTraining || isAdminBlock || isMaintenance || booking.source === "admin" || booking.status === "blocked";
+                    const isMaintenance = matchedCategory?.id === "maintenance" || (!matchedCategory && (booking.status === "blocked" || booking.source === "admin"));
+                    const isAnyAdminOrBlock = Boolean(matchedCategory) || booking.source === "admin" || booking.status === "blocked";
 
                     let bookingClasses = "";
                     let labelText = "";
+                    let slotCustomStyle: React.CSSProperties = {};
 
                     if (isAdmin) {
                       const rawPlayer = (booking.clientPlayerName?.trim() || booking.customerName?.trim() || "");
-                      const isDefaultSystemName = [
+                      const allKnownNames = [
                         "tréningy", "treningy", "tréning", "trening",
                         "rezervácia admin", "rezervacia admin", "admin", "admin user",
                         "údržba kurtov", "udrzba kurtov", "údržba", "udrzba",
-                        "rezervácia", "rezervacia"
-                      ].includes(rawPlayer.toLowerCase());
+                        "rezervácia", "rezervacia",
+                        ...categories.map((c) => c.name.toLowerCase()),
+                        ...categories.map((c) => c.id.toLowerCase()),
+                      ];
+                      const isDefaultSystemName = allKnownNames.includes(rawPlayer.toLowerCase());
                       const customPlayerName = isDefaultSystemName ? "" : rawPlayer;
 
-                      if (isTraining) {
-                        labelText = customPlayerName || "Tréningy";
-                        bookingClasses = "border-[#EAAECF] bg-[#F4CDE4] text-slate-950 font-bold shadow-xs hover:bg-[#EEBDDC]";
-                      } else if (isAdminBlock) {
-                        labelText = customPlayerName || "Rezervácia Admin";
-                        bookingClasses = "border-[#E6E600] bg-[#FFFF33] text-slate-950 font-bold shadow-xs hover:bg-[#F2F200]";
-                      } else if (isMaintenance) {
-                        labelText = "Údržba kurtov";
-                        bookingClasses = "border-[#F29E9E] bg-[#FFC9C9] text-slate-950 font-bold shadow-xs hover:bg-[#FFBABA]";
+                      if (matchedCategory) {
+                        labelText = matchedCategory.hasPlayerField
+                          ? (customPlayerName || matchedCategory.name)
+                          : matchedCategory.name;
+                        slotCustomStyle = {
+                          backgroundColor: matchedCategory.color,
+                          borderColor: matchedCategory.border,
+                        };
+                        bookingClasses = "text-slate-950 font-bold shadow-xs hover:brightness-95";
                       } else {
                         labelText = customPlayerName || booking.title || "Rezervácia";
-                        bookingClasses = "border-[#EAD77B] bg-[#FFF3B0] text-slate-950 font-bold shadow-xs hover:bg-[#FEECA0]";
+                        slotCustomStyle = {
+                          backgroundColor: "#FFF3B0",
+                          borderColor: "#EAD77B",
+                        };
+                        bookingClasses = "text-slate-950 font-bold shadow-xs hover:bg-[#FEECA0]";
                       }
                     } else {
                       if (isAnyAdminOrBlock) {
@@ -1662,6 +1706,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                     const isBeingRescheduled = reschedulingBooking?.id === booking.id;
                     if (isBeingRescheduled) {
                       labelText = "Presúva sa...";
+                      slotCustomStyle = {};
                       bookingClasses = "border-2 border-dashed border-emerald-500 bg-emerald-100/90 text-emerald-950 font-bold ring-2 ring-emerald-400";
                     }
 
@@ -1684,6 +1729,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                             }
                             if (canManage) setDetail(booking);
                           }}
+                          style={slotCustomStyle}
                           className={`pointer-events-auto h-full w-full overflow-hidden rounded-2xl border px-1.5 py-1 text-center transition duration-150 hover:scale-[1.01] flex flex-col items-center justify-center ${voiceHighlight ? "booking-magnify-drop" : ""
                             } ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${bookingClasses}`}
                           title={canManage ? `Detail: ${labelText}` : (isAnyAdminOrBlock ? "Údržba" : "Obsadené")}
@@ -2039,18 +2085,26 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                   <i className="h-3.5 w-3.5 rounded-md border border-[#EAD77B] bg-[#FFF3B0] shadow-xs" />
                   Klient
                 </span>
-                <span className="flex items-center gap-2">
-                  <i className="h-3.5 w-3.5 rounded-md border border-[#F29E9E] bg-[#FFC9C9] shadow-xs" />
-                  Údržba kurtov
-                </span>
-                <span className="flex items-center gap-2">
-                  <i className="h-3.5 w-3.5 rounded-md border border-[#E6E600] bg-[#FFFF33] shadow-xs" />
-                  Rezervácia Admin
-                </span>
-                <span className="flex items-center gap-2">
-                  <i className="h-3.5 w-3.5 rounded-md border border-[#EAAECF] bg-[#F4CDE4] shadow-xs" />
-                  Tréningy
-                </span>
+                {categories.map((cat) => (
+                  <span key={cat.id} className="flex items-center gap-2">
+                    <i
+                      className="h-3.5 w-3.5 rounded-md border shadow-xs"
+                      style={{
+                        backgroundColor: cat.color,
+                        borderColor: cat.border,
+                      }}
+                    />
+                    {cat.name}
+                  </span>
+                ))}
+                <Link
+                  href="/dashboard/users-roles#categories"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50 cursor-pointer active:scale-95"
+                  title="Upraviť farby a kategórie v nastaveniach"
+                >
+                  <Palette className="h-3.5 w-3.5 text-slate-500" />
+                  <span>Farby & kategórie</span>
+                </Link>
               </>
             ) : (
               <>
@@ -2128,6 +2182,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
           onMultisportCardsCount={setMultisportCardsCount}
           title={title}
           phone={phone}
+          categories={categories}
           adminBlockType={adminBlockType}
           onAdminBlockType={setAdminBlockType}
           isAdmin={currentUser?.role === "admin"}
