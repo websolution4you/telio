@@ -1639,7 +1639,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                         bookingClasses = "border-[#EAAECF] bg-[#F4CDE4] text-slate-950 font-bold shadow-xs hover:bg-[#EEBDDC]";
                       } else if (isAdminBlock) {
                         labelText = customPlayerName || "Rezervácia Admin";
-                        bookingClasses = "border-[#C0A0E0] bg-[#DCC7F0] text-slate-950 font-bold shadow-xs hover:bg-[#D2B8EC]";
+                        bookingClasses = "border-[#E6E600] bg-[#FFFF33] text-slate-950 font-bold shadow-xs hover:bg-[#F2F200]";
                       } else if (isMaintenance) {
                         labelText = "Údržba kurtov";
                         bookingClasses = "border-[#F29E9E] bg-[#FFC9C9] text-slate-950 font-bold shadow-xs hover:bg-[#FFBABA]";
@@ -2044,7 +2044,7 @@ export default function NewBookingsCalendar({ courts, initialBookings, currentUs
                   Údržba kurtov
                 </span>
                 <span className="flex items-center gap-2">
-                  <i className="h-3.5 w-3.5 rounded-md border border-[#C0A0E0] bg-[#DCC7F0] shadow-xs" />
+                  <i className="h-3.5 w-3.5 rounded-md border border-[#E6E600] bg-[#FFFF33] shadow-xs" />
                   Rezervácia Admin
                 </span>
                 <span className="flex items-center gap-2">

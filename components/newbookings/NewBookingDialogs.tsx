@@ -10,7 +10,7 @@ import { fetchSeriesBookingsAction } from "@/app/actions/bookings";
 
 export const ADMIN_BLOCK_OPTIONS = [
   { value: "Údržba kurtov", color: "#FFC9C9", border: "#F29E9E" },
-  { value: "Rezervácia Admin", color: "#DCC7F0", border: "#C0A0E0" },
+  { value: "Rezervácia Admin", color: "#FFFF33", border: "#E6E600" },
   { value: "Tréningy", color: "#F4CDE4", border: "#EAAECF" },
 ] as const;
 
