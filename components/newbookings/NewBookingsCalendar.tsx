@@ -1614,45 +1614,43 @@ export default function NewBookingsCalendar({
                     const blockType = (booking.adminBlockType || "").toLowerCase();
                     const nameLower = (booking.customerName || "").toLowerCase();
                     const titleLower = (booking.title || "").toLowerCase();
+                    // 1. Prioritné priradenie podľa explicitne zvoleného typu (adminBlockType)
+                    let matchedCategory: AdminReservationCategory | undefined;
 
-                    const matchedCategory = categories.find((cat) => {
-                      const cName = cat.name.toLowerCase();
-                      const cId = cat.id.toLowerCase();
-                      if (blockType && (blockType === cName || blockType === cId)) return true;
-                      if (cat.id === "training") {
-                        return (
-                          isTrainer ||
-                          blockType === "tréningy" ||
-                          blockType === "treningy" ||
-                          blockType === "tréning" ||
-                          nameLower === "tréningy" ||
-                          nameLower === "treningy" ||
-                          nameLower === "tréning" ||
-                          titleLower.includes("tréning") ||
-                          titleLower.includes("trening")
-                        );
+                    if (blockType) {
+                      matchedCategory = categories.find((cat) => {
+                        const cName = cat.name.toLowerCase();
+                        const cId = cat.id.toLowerCase();
+                        return blockType === cName || blockType === cId;
+                      });
+                    }
+
+                    // 2. Fallback detekcia pre staré historické záznamy bez adminBlockType
+                    if (!matchedCategory) {
+                      if (
+                        isTrainer ||
+                        nameLower === "tréningy" ||
+                        nameLower === "treningy" ||
+                        nameLower === "tréning" ||
+                        titleLower.includes("tréning") ||
+                        titleLower.includes("trening")
+                      ) {
+                        matchedCategory = categories.find((c) => c.id === "training");
+                      } else if (
+                        nameLower === "rezervácia admin" ||
+                        nameLower === "rezervacia admin" ||
+                        titleLower.includes("admin")
+                      ) {
+                        matchedCategory = categories.find((c) => c.id === "admin_reservation");
+                      } else if (
+                        nameLower.includes("údržba") ||
+                        titleLower.includes("údržba") ||
+                        booking.status === "blocked" ||
+                        booking.source === "admin"
+                      ) {
+                        matchedCategory = categories.find((c) => c.id === "maintenance");
                       }
-                      if (cat.id === "admin_reservation") {
-                        return (
-                          blockType === "rezervácia admin" ||
-                          blockType === "rezervacia admin" ||
-                          nameLower === "rezervácia admin" ||
-                          nameLower === "rezervacia admin" ||
-                          titleLower.includes("admin")
-                        );
-                      }
-                      if (cat.id === "maintenance") {
-                        return (
-                          blockType === "údržba kurtov" ||
-                          blockType === "udrzba kurtov" ||
-                          nameLower.includes("údržba") ||
-                          titleLower.includes("údržba") ||
-                          booking.status === "blocked" ||
-                          booking.source === "admin"
-                        );
-                      }
-                      return false;
-                    });
+                    }
 
                     const isMaintenance = matchedCategory?.id === "maintenance" || (!matchedCategory && (booking.status === "blocked" || booking.source === "admin"));
                     const isAnyAdminOrBlock = Boolean(matchedCategory) || booking.source === "admin" || booking.status === "blocked";

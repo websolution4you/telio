@@ -896,6 +896,12 @@ export function BookingDetailDialog({
       activeBooking.title.toLowerCase().includes("tréning")
     ));
 
+  const isMaintenanceBlock =
+    activeBooking.adminBlockType === "Údržba kurtov" ||
+    activeBooking.adminBlockType === "maintenance" ||
+    Boolean(activeBooking.customerName && activeBooking.customerName.toLowerCase().includes("údržba")) ||
+    Boolean(activeBooking.title && activeBooking.title.toLowerCase().includes("údržba"));
+
   const isFuture = new Date(activeBooking.start).getTime() > Date.now();
   const isRescheduled = Boolean(activeBooking.isRescheduled);
   const isCancelled = activeBooking.status === "cancelled";
@@ -1115,7 +1121,7 @@ export function BookingDetailDialog({
 
         {canManage && !isRescheduled && !isCancelled && canCancel && (
           <button onClick={() => onDelete(activeBooking)} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700 transition hover:bg-red-100 sm:px-5 sm:text-sm">
-            <Trash2 className="h-4 w-4" /> {isMaintenanceOrAdmin ? "Odblokovať kurt" : "Zrušiť rezerváciu"}
+            <Trash2 className="h-4 w-4" /> {isMaintenanceBlock ? "Odblokovať kurt" : "Zrušiť rezerváciu"}
           </button>
         )}
         {canManage && !isRescheduled && !isCancelled && !canCancel && (
