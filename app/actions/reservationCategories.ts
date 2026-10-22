@@ -96,6 +96,15 @@ export async function saveReservationCategoryAction(category: {
         existingIsSystem = Boolean(existing.is_system);
         existingSortOrder = Number(existing.sort_order ?? 0);
       }
+    } else {
+      const { data: maxRow } = await db
+        .from("ntc_reservation_categories")
+        .select("sort_order")
+        .eq("tenant_id", TENANT_ID)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      existingSortOrder = (Number(maxRow?.sort_order ?? 0)) + 1;
     }
 
     const rowToSave = {
@@ -106,7 +115,7 @@ export async function saveReservationCategoryAction(category: {
       border: borderHex,
       is_system: existingIsSystem,
       has_player_field: category.hasPlayerField,
-      sort_order: isNew ? Date.now() : existingSortOrder,
+      sort_order: existingSortOrder,
       updated_at: new Date().toISOString(),
     };
 
