@@ -1158,113 +1158,184 @@ export function BookingDetailDialog({
               </button>
             </div>
 
-            {subSlots.length === 0 ? (
-              <p className="text-[11px] text-slate-500 italic bg-white/70 rounded-xl p-2.5 border border-dashed border-amber-200 text-center">
-                Zatiaľ nie je zadaný žiadny rozpis. V kalendári sa zobrazuje celkový názov rezervácie.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {subSlots.map((slot, idx) => (
-                  <div key={idx} className="flex items-center gap-1.5 bg-white p-2 rounded-xl border border-amber-200/80 shadow-2xs">
-                    <div className="flex items-center gap-1 shrink-0">
-                      <input
-                        type="time"
-                        value={slot.from}
-                        onChange={(e) => {
-                          const updated = [...subSlots];
-                          updated[idx] = { ...updated[idx], from: e.target.value };
-                          setSubSlots(updated);
-                        }}
-                        className="w-[74px] rounded-lg border border-slate-200 px-1.5 py-1 text-xs font-semibold text-slate-800 focus:border-amber-500 focus:outline-hidden"
-                      />
-                      <span className="text-xs text-slate-400">–</span>
-                      <input
-                        type="time"
-                        value={slot.to}
-                        onChange={(e) => {
-                          const updated = [...subSlots];
-                          updated[idx] = { ...updated[idx], to: e.target.value };
-                          setSubSlots(updated);
-                        }}
-                        className="w-[74px] rounded-lg border border-slate-200 px-1.5 py-1 text-xs font-semibold text-slate-800 focus:border-amber-500 focus:outline-hidden"
-                      />
+            {(() => {
+              const parseTimeToMin = (tStr: string) => {
+                const [h, m] = tStr.split(":").map(Number);
+                return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
+              };
+              const minToTime = (min: number) => {
+                const h = Math.floor(min / 60);
+                const m = min % 60;
+                return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+              };
+
+              const bStartMin = parseTimeToMin(formatTime(activeBooking.start));
+              const bEndMin = parseTimeToMin(formatTime(activeBooking.end));
+
+              // Generate all 30-min options from bStartMin to bEndMin
+              const allTimeOptions: string[] = [];
+              for (let m = bStartMin; m <= bEndMin; m += 30) {
+                allTimeOptions.push(minToTime(m));
+              }
+
+              return (
+                <>
+                  {subSlots.length === 0 ? (
+                    <p className="text-[11px] text-slate-500 italic bg-white/70 rounded-xl p-2.5 border border-dashed border-amber-200 text-center">
+                      Zatiaľ nie je zadaný žiadny rozpis. V kalendári sa zobrazuje celkový názov rezervácie.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {subSlots.map((slot, idx) => {
+                        const currentFromMin = parseTimeToMin(slot.from);
+                        // Available 'from' options: from bStartMin to bEndMin - 30
+                        const fromOptions = allTimeOptions.filter(t => parseTimeToMin(t) < bEndMin);
+                        // Available 'to' options: strictly greater than slot.from, up to bEndMin
+                        const toOptions = allTimeOptions.filter(t => parseTimeToMin(t) > currentFromMin);
+
+                        return (
+                          <div key={idx} className="flex items-center gap-1.5 bg-white p-2 rounded-xl border border-amber-200/80 shadow-2xs">
+                            <div className="flex items-center gap-1 shrink-0">
+                              <select
+                                value={slot.from}
+                                onChange={(e) => {
+                                  const newFrom = e.target.value;
+                                  const newFromMin = parseTimeToMin(newFrom);
+                                  const updated = [...subSlots];
+                                  let newTo = slot.to;
+                                  if (parseTimeToMin(newTo) <= newFromMin) {
+                                    newTo = minToTime(Math.min(bEndMin, newFromMin + 60));
+                                  }
+                                  updated[idx] = { ...updated[idx], from: newFrom, to: newTo };
+                                  setSubSlots(updated);
+                                }}
+                                className="w-[78px] rounded-lg border border-slate-200 bg-slate-50/70 px-1.5 py-1 text-xs font-bold text-slate-800 focus:border-amber-500 focus:bg-white focus:outline-hidden cursor-pointer"
+                              >
+                                {fromOptions.map((opt) => (
+                                  <option key={opt} value={opt}>
+                                    {opt}
+                                  </option>
+                                ))}
+                              </select>
+                              <span className="text-xs text-slate-400 font-bold">–</span>
+                              <select
+                                value={slot.to}
+                                onChange={(e) => {
+                                  const updated = [...subSlots];
+                                  updated[idx] = { ...updated[idx], to: e.target.value };
+                                  setSubSlots(updated);
+                                }}
+                                className="w-[78px] rounded-lg border border-slate-200 bg-slate-50/70 px-1.5 py-1 text-xs font-bold text-slate-800 focus:border-amber-500 focus:bg-white focus:outline-hidden cursor-pointer"
+                              >
+                                {toOptions.map((opt) => (
+                                  <option key={opt} value={opt}>
+                                    {opt}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <input
+                              type="text"
+                              placeholder="Meno hráča / zverenca..."
+                              value={slot.player}
+                              onChange={(e) => {
+                                const updated = [...subSlots];
+                                updated[idx] = { ...updated[idx], player: e.target.value };
+                                setSubSlots(updated);
+                              }}
+                              className="flex-1 min-w-0 rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-amber-500 focus:outline-hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = subSlots.filter((_, i) => i !== idx);
+                                setSubSlots(updated);
+                              }}
+                              className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer shrink-0"
+                              title="Odstrániť riadok"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <input
-                      type="text"
-                      placeholder="Meno hráča / zverenca..."
-                      value={slot.player}
-                      onChange={(e) => {
-                        const updated = [...subSlots];
-                        updated[idx] = { ...updated[idx], player: e.target.value };
-                        setSubSlots(updated);
-                      }}
-                      className="flex-1 min-w-0 rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-amber-500 focus:outline-hidden"
-                    />
+                  )}
+
+                  {subSlotsError && (
+                    <p className="text-[11px] font-semibold text-red-600 bg-red-50 p-2 rounded-lg border border-red-200">
+                      {subSlotsError}
+                    </p>
+                  )}
+
+                  {subSlotsSuccess && (
+                    <p className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 p-2 rounded-lg border border-emerald-200 flex items-center gap-1.5">
+                      <Check className="h-3.5 w-3.5" /> Rozpis hráčov bol úspešne uložený.
+                    </p>
+                  )}
+
+                  <div className="flex justify-end pt-1">
                     <button
                       type="button"
-                      onClick={() => {
-                        const updated = subSlots.filter((_, i) => i !== idx);
-                        setSubSlots(updated);
+                      disabled={savingSubSlots}
+                      onClick={async () => {
+                        setSavingSubSlots(true);
+                        setSubSlotsError(null);
+                        setSubSlotsSuccess(false);
+
+                        // Client-side validation:
+                        for (let i = 0; i < subSlots.length; i++) {
+                          const s = subSlots[i];
+                          if (!s.player.trim()) {
+                            setSubSlotsError(`Zadajte meno hráča pre riadok ${i + 1} (${s.from}–${s.to}).`);
+                            setSavingSubSlots(false);
+                            return;
+                          }
+                          const fMin = parseTimeToMin(s.from);
+                          const tMin = parseTimeToMin(s.to);
+                          if (tMin <= fMin) {
+                            setSubSlotsError(`Čas ukončenia (${s.to}) musí byť neskorší ako začiatok (${s.from}) pre hráča "${s.player}".`);
+                            setSavingSubSlots(false);
+                            return;
+                          }
+                          if (fMin < bStartMin || tMin > bEndMin) {
+                            setSubSlotsError(`Čas ${s.from}–${s.to} musí byť v rámci trvania rezervácie (${formatTime(activeBooking.start)}–${formatTime(activeBooking.end)}).`);
+                            setSavingSubSlots(false);
+                            return;
+                          }
+                        }
+
+                        const res = await updateBookingSubSlotsAction(activeBooking.id, subSlots);
+                        setSavingSubSlots(false);
+
+                        if (res.success) {
+                          setSubSlotsSuccess(true);
+                          const cleanSlots = subSlots.filter(s => s.player && s.player.trim().length > 0);
+                          setActiveBooking(prev => ({ ...prev, subSlots: cleanSlots }));
+                          if (onSubSlotsUpdated) {
+                            onSubSlotsUpdated(activeBooking.id, cleanSlots);
+                          }
+                          setTimeout(() => setSubSlotsSuccess(false), 3000);
+                        } else {
+                          setSubSlotsError(res.error || "Nepodarilo sa uložiť rozpis.");
+                        }
                       }}
-                      className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer shrink-0"
-                      title="Odstrániť riadok"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-amber-700 transition disabled:opacity-50 cursor-pointer"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      {savingSubSlots ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Ukladám...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-3.5 w-3.5" /> Uložiť rozpis hráčov
+                        </>
+                      )}
                     </button>
                   </div>
-                ))}
-              </div>
-            )}
-
-            {subSlotsError && (
-              <p className="text-[11px] font-semibold text-red-600 bg-red-50 p-2 rounded-lg border border-red-200">
-                {subSlotsError}
-              </p>
-            )}
-
-            {subSlotsSuccess && (
-              <p className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 p-2 rounded-lg border border-emerald-200 flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5" /> Rozpis hráčov bol úspešne uložený.
-              </p>
-            )}
-
-            <div className="flex justify-end pt-1">
-              <button
-                type="button"
-                disabled={savingSubSlots}
-                onClick={async () => {
-                  setSavingSubSlots(true);
-                  setSubSlotsError(null);
-                  setSubSlotsSuccess(false);
-
-                  const res = await updateBookingSubSlotsAction(activeBooking.id, subSlots);
-                  setSavingSubSlots(false);
-
-                  if (res.success) {
-                    setSubSlotsSuccess(true);
-                    const cleanSlots = subSlots.filter(s => s.player && s.player.trim().length > 0);
-                    setActiveBooking(prev => ({ ...prev, subSlots: cleanSlots }));
-                    if (onSubSlotsUpdated) {
-                      onSubSlotsUpdated(activeBooking.id, cleanSlots);
-                    }
-                    setTimeout(() => setSubSlotsSuccess(false), 3000);
-                  } else {
-                    setSubSlotsError(res.error || "Nepodarilo sa uložiť rozpis.");
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-amber-700 transition disabled:opacity-50 cursor-pointer"
-              >
-                {savingSubSlots ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Ukladám...
-                  </>
-                ) : (
-                  <>
-                    <Check className="h-3.5 w-3.5" /> Uložiť rozpis hráčov
-                  </>
-                )}
-              </button>
-            </div>
+                </>
+              );
+            })()}
           </div>
         )}
 

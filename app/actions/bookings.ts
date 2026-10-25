@@ -1997,14 +1997,26 @@ export async function updateBookingSubSlotsAction(
             parsedNotes = { notes: booking.notes || "" };
         }
 
+        const parseTimeToMin = (tStr: string) => {
+            const [h, m] = tStr.split(":").map(Number);
+            return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
+        };
+
         // Validate and sanitize sub-slots
-        const sanitizedSubSlots: BookingSubSlot[] = subSlots
-            .filter(s => s && typeof s.player === "string" && s.player.trim().length > 0 && s.from && s.to)
-            .map(s => ({
+        const sanitizedSubSlots: BookingSubSlot[] = [];
+        for (const s of subSlots) {
+            if (!s || typeof s.player !== "string" || !s.player.trim() || !s.from || !s.to) continue;
+            const fromMin = parseTimeToMin(s.from);
+            const toMin = parseTimeToMin(s.to);
+            if (toMin <= fromMin) {
+                return { success: false, error: `Čas ukončenia (${s.to}) musí byť neskorší ako začiatok (${s.from}) pre hráča "${s.player}".` };
+            }
+            sanitizedSubSlots.push({
                 from: s.from.trim(),
                 to: s.to.trim(),
                 player: s.player.trim()
-            }));
+            });
+        }
 
         parsedNotes.subSlots = sanitizedSubSlots;
 
