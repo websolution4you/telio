@@ -1427,10 +1427,25 @@ export default function NewBookingsCalendar({
     window.location.replace(result.url);
   };
 
-  const position = (booking: Booking) => {
+  const getBratislavaMinutes = (dateStr: string) => {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Europe/Bratislava",
+      hour: "numeric",
+      minute: "numeric",
+      hourCycle: "h23",
+    }).formatToParts(new Date(dateStr));
+    const h = Number(parts.find((p) => p.type === "hour")?.value || 0);
+    const m = Number(parts.find((p) => p.type === "minute")?.value || 0);
+    return h * 60 + m;
+  };
 
-    const start = new Date(booking.start); const end = new Date(booking.end); const total = (openingHours.endHour - openingHours.startHour) * 60; const offset = (start.getHours() - openingHours.startHour) * 60 + start.getMinutes();
-    return { left: `${offset / total * 100}%`, width: `${(end.getTime() - start.getTime()) / 60000 / total * 100}%` };
+  const position = (booking: Booking) => {
+    const startM = getBratislavaMinutes(booking.start);
+    const endM = getBratislavaMinutes(booking.end);
+    const total = (openingHours.endHour - openingHours.startHour) * 60;
+    const offset = startM - openingHours.startHour * 60;
+    const duration = Math.max(0, endM - startM);
+    return { left: `${(offset / total) * 100}%`, width: `${(duration / total) * 100}%` };
   };
 
   const renderDaySection = (dayDate: Date, isFirstDay: boolean, showDayHeader: boolean) => {
@@ -1741,16 +1756,16 @@ export default function NewBookingsCalendar({
                                     const [h, m] = tStr.split(":").map(Number);
                                     return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
                                   };
-                                  const bStart = new Date(booking.start);
-                                  const bEnd = new Date(booking.end);
-                                  const totalMins = Math.max(1, (bEnd.getTime() - bStart.getTime()) / 60000);
+                                  const bStartMin = getBratislavaMinutes(booking.start);
+                                  const bEndMin = getBratislavaMinutes(booking.end);
+                                  const totalMins = Math.max(1, bEndMin - bStartMin);
 
                                   return booking.subSlots.map((slot, sIdx) => {
                                     const sMin = parseTimeToMin(slot.from);
                                     const eMin = parseTimeToMin(slot.to);
                                     let slotDur = eMin - sMin;
                                     if (slotDur <= 0) slotDur = totalMins / booking.subSlots!.length;
-                                    const widthPct = Math.max(10, Math.min(100, (slotDur / totalMins) * 100));
+                                    const widthPct = Math.max(5, Math.min(100, (slotDur / totalMins) * 100));
 
                                     return (
                                       <div
