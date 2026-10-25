@@ -1660,7 +1660,7 @@ export default function NewBookingsCalendar({
                     let labelText = "";
                     let slotCustomStyle: React.CSSProperties = {};
 
-                    if (isAdmin) {
+                    if (isAdmin || isNtcTeam) {
                       const rawPlayer = (booking.clientPlayerName?.trim() || booking.customerName?.trim() || "");
                       const allKnownNames = [
                         "tréningy", "treningy", "tréning", "trening",
@@ -1735,7 +1735,7 @@ export default function NewBookingsCalendar({
                         >
                           {isAdmin || isNtcTeam ? (
                             booking.subSlots && booking.subSlots.length > 0 ? (
-                              <div className="relative z-[1] flex h-full w-full select-none pointer-events-none divide-x divide-slate-900/15 overflow-hidden">
+                              <div className="relative z-[1] flex h-full w-full select-none pointer-events-none divide-x-2 divide-slate-950/30 overflow-hidden">
                                 {(() => {
                                   const parseTimeToMin = (tStr: string) => {
                                     const [h, m] = tStr.split(":").map(Number);
