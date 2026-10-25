@@ -10,6 +10,12 @@ export type Court = {
 
 export type BookingStatus = "confirmed" | "pending" | "blocked" | "cancelled";
 
+export type BookingSubSlot = {
+  from: string; // napr. "09:00"
+  to: string;   // napr. "11:00"
+  player: string; // napr. "Alex Molčan"
+};
+
 export interface Booking {
   id: string;
   courtId: string;
@@ -29,6 +35,7 @@ export interface Booking {
   recurringGroupId?: string;
   clientPlayerName?: string;
   adminBlockType?: string;
+  subSlots?: BookingSubSlot[];
 }
 
 export const courts: Court[] = [

@@ -12,7 +12,7 @@ import { walletEnabledForUser } from "@/lib/server/wallet";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import { getActivePricelist } from "@/app/actions/pricelists";
 import { getBratislavaDateKey, getBratislavaDateParts, getCourtOperatingLimitMinutes, isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
-import { courts as ntcCourts, type SportType } from "@/lib/bookings/mockBookings";
+import { courts as ntcCourts, type SportType, type BookingSubSlot } from "@/lib/bookings/mockBookings";
 import { logActivity } from "@/lib/server/auditLog";
 
 
@@ -150,6 +150,7 @@ export async function fetchBookingsAction(startDateIso: string, endDateIso: stri
                 recurringGroupId?: string;
                 clientPlayerName?: string;
                 adminBlockType?: string;
+                subSlots?: BookingSubSlot[];
             } = {
                 courtId: "",
                 source: "web",
@@ -197,6 +198,7 @@ export async function fetchBookingsAction(startDateIso: string, endDateIso: stri
                 recurringGroupId: notesObj.recurringGroupId || undefined,
                 clientPlayerName: notesObj.clientPlayerName || undefined,
                 adminBlockType: notesObj.adminBlockType || undefined,
+                subSlots: Array.isArray(notesObj.subSlots) ? notesObj.subSlots : undefined,
             };
         });
 
@@ -968,6 +970,7 @@ export async function fetchSeriesBookingsAction(recurringGroupId: string) {
                 source: parsedNotes.source || undefined,
                 multisportCardsCount: parsedNotes.multisportCardsCount || 0,
                 isRescheduled: parsedNotes.isRescheduled || false,
+                subSlots: Array.isArray(parsedNotes.subSlots) ? parsedNotes.subSlots : undefined,
             };
         });
 
@@ -1959,5 +1962,91 @@ export async function fetchCourtHeatmapAction(params?: CourtHeatmapParams) {
     } catch (e: any) {
         console.error("fetchCourtHeatmapAction failed:", e);
         return { success: false, error: e.message || "Nepodarilo sa načítať dáta vyťaženosti." };
+    }
+}
+
+export async function updateBookingSubSlotsAction(
+    bookingId: string,
+    subSlots: BookingSubSlot[]
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const session = await getSession();
+        if (!session) {
+            return { success: false, error: "Neprihlásený používateľ." };
+        }
+
+        const allowedRoles = ["admin", "superadmin", "ntc_team", "reception"];
+        if (!allowedRoles.includes(session.role || "")) {
+            return { success: false, error: "Nemáte oprávnenie upravovať rozpis hráčov tejto rezervácie." };
+        }
+
+        const db = getCoreDb();
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bookingId);
+        let query = db.from("bookings").select("id, court_id, notes, tenant_id, customer_name, start_at, end_at");
+        query = isUuid ? query.eq("id", bookingId) : query.eq("calendar_event_id", bookingId);
+        const { data: booking, error: findError } = await query.single();
+
+        if (findError || !booking) {
+            return { success: false, error: "Rezervácia nebola nájdená." };
+        }
+
+        let parsedNotes: Record<string, any> = {};
+        try {
+            parsedNotes = typeof booking.notes === "string" ? JSON.parse(booking.notes) : (booking.notes || {});
+        } catch {
+            parsedNotes = { notes: booking.notes || "" };
+        }
+
+        // Validate and sanitize sub-slots
+        const sanitizedSubSlots: BookingSubSlot[] = subSlots
+            .filter(s => s && typeof s.player === "string" && s.player.trim().length > 0 && s.from && s.to)
+            .map(s => ({
+                from: s.from.trim(),
+                to: s.to.trim(),
+                player: s.player.trim()
+            }));
+
+        parsedNotes.subSlots = sanitizedSubSlots;
+
+        const { error: updateError } = await db
+            .from("bookings")
+            .update({ notes: JSON.stringify(parsedNotes) })
+            .eq("id", booking.id);
+
+        if (updateError) {
+            console.error("updateBookingSubSlotsAction update error:", updateError);
+            return { success: false, error: "Nepodarilo sa uložiť rozpis hráčov do databázy." };
+        }
+
+        try {
+            await logActivity({
+                action: "booking.sub_slots_update",
+                category: "bookings",
+                entityType: "booking",
+                entityId: booking.id,
+                entityName: `${booking.court_id || "kurt"} - ${booking.customer_name || "rezervácia"}`,
+                description: `Aktualizovaný rozpis hráčov pre rezerváciu (${sanitizedSubSlots.length} položiek)`,
+                changes: {
+                    before: null,
+                    after: {
+                        subSlots: sanitizedSubSlots,
+                    },
+                },
+                metadata: {
+                    updated_by: session.email || session.userId || "",
+                    sub_slots_count: sanitizedSubSlots.length,
+                    customer_name: booking.customer_name,
+                },
+                tenantId: booking.tenant_id,
+            });
+        } catch (e) {
+            console.warn("Failed to log activity for sub_slots_updated:", e);
+        }
+
+        revalidatePath("/newbookings");
+        return { success: true };
+    } catch (e: any) {
+        console.error("updateBookingSubSlotsAction exception:", e);
+        return { success: false, error: e.message || "Chyba pri ukladaní rozpisu." };
     }
 }

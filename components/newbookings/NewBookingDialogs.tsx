@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Calendar, CalendarSync, ChevronDown, ChevronLeft, ChevronRight, Clock3, Coins, CreditCard, List, Loader2, MessageSquare, Phone, Repeat, Sparkles, Trash2, User, X } from "lucide-react";
-import type { Booking, Court } from "@/lib/bookings/mockBookings";
+import { ArrowRight, Calendar, CalendarSync, Check, ChevronDown, ChevronLeft, ChevronRight, Clock3, Coins, CreditCard, List, Loader2, MessageSquare, Phone, Plus, Repeat, Sparkles, Trash2, User, Users, X } from "lucide-react";
+import type { Booking, BookingSubSlot, Court } from "@/lib/bookings/mockBookings";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import type { NtcPricelist } from "@/lib/bookings/pricingTypes";
 import { formatDuration } from "@/lib/bookings/rolePolicy";
-import { fetchSeriesBookingsAction } from "@/app/actions/bookings";
+import { fetchSeriesBookingsAction, updateBookingSubSlotsAction } from "@/app/actions/bookings";
 import {
   type AdminReservationCategory,
   DEFAULT_ADMIN_CATEGORIES,
@@ -793,11 +793,13 @@ type DetailProps = {
   canManage: boolean;
   canCancel: boolean;
   cancellationDeadlineHours: number;
+  currentRole?: string;
   onClose: () => void;
   onDelete: (target?: Booking) => void;
   onStartReschedule?: (target?: Booking) => void;
   onOpenSeriesOverview?: (recurringGroupId: string) => void;
   onNavigateToDate?: (date: Date) => void;
+  onSubSlotsUpdated?: (bookingId: string, subSlots: BookingSubSlot[]) => void;
 };
 
 export function BookingDetailDialog({
@@ -806,16 +808,24 @@ export function BookingDetailDialog({
   canManage,
   canCancel,
   cancellationDeadlineHours,
+  currentRole,
   onClose,
   onDelete,
   onStartReschedule,
   onOpenSeriesOverview,
   onNavigateToDate,
+  onSubSlotsUpdated,
 }: DetailProps) {
   const [activeBooking, setActiveBooking] = useState<Booking>(booking);
   const [seriesBookings, setSeriesBookings] = useState<Booking[]>([]);
   const [fetchingSeries, setFetchingSeries] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date(booking.start));
+
+  // Sub-slots management state
+  const [subSlots, setSubSlots] = useState<BookingSubSlot[]>(() => booking.subSlots ? [...booking.subSlots] : []);
+  const [savingSubSlots, setSavingSubSlots] = useState(false);
+  const [subSlotsSuccess, setSubSlotsSuccess] = useState(false);
+  const [subSlotsError, setSubSlotsError] = useState<string | null>(null);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -827,6 +837,9 @@ export function BookingDetailDialog({
   useEffect(() => {
     setActiveBooking(booking);
     setCalendarMonth(new Date(booking.start));
+    setSubSlots(booking.subSlots ? [...booking.subSlots] : []);
+    setSubSlotsSuccess(false);
+    setSubSlotsError(null);
   }, [booking]);
 
   useEffect(() => {
@@ -1108,6 +1121,152 @@ export function BookingDetailDialog({
             <Detail icon={MessageSquare} label="Poznámka" value={activeBooking.title} />
           )}
         </div>
+
+        {/* Rozpis hráčov (hodinové / časové bloky) pre Admin a NTC Team */}
+        {(currentRole === "admin" || currentRole === "ntc_team" || canManage) && !isCancelled && (
+          <div className="mt-4 rounded-2xl border border-amber-200/90 bg-amber-50/50 p-3 sm:p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-500 text-white shadow-xs">
+                  <Users className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-amber-950">Rozpis hráčov na kurte</h4>
+                  <p className="text-[10.5px] text-amber-800">
+                    Rozdeľte časový blok rezervácie na konkrétnych hráčov (tréningy / zverenci).
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const bStart = formatTime(activeBooking.start);
+                  const bEnd = formatTime(activeBooking.end);
+                  let nextFrom = bStart;
+                  if (subSlots.length > 0) {
+                    const last = subSlots[subSlots.length - 1];
+                    nextFrom = last.to;
+                  }
+                  setSubSlots([
+                    ...subSlots,
+                    { from: nextFrom, to: bEnd, player: "" }
+                  ]);
+                }}
+                className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-white px-2 py-1 text-[11px] font-bold text-amber-900 shadow-2xs hover:bg-amber-100 transition cursor-pointer"
+              >
+                <Plus className="h-3 w-3" /> Pridať hráča
+              </button>
+            </div>
+
+            {subSlots.length === 0 ? (
+              <p className="text-[11px] text-slate-500 italic bg-white/70 rounded-xl p-2.5 border border-dashed border-amber-200 text-center">
+                Zatiaľ nie je zadaný žiadny rozpis. V kalendári sa zobrazuje celkový názov rezervácie.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {subSlots.map((slot, idx) => (
+                  <div key={idx} className="flex items-center gap-1.5 bg-white p-2 rounded-xl border border-amber-200/80 shadow-2xs">
+                    <div className="flex items-center gap-1 shrink-0">
+                      <input
+                        type="time"
+                        value={slot.from}
+                        onChange={(e) => {
+                          const updated = [...subSlots];
+                          updated[idx] = { ...updated[idx], from: e.target.value };
+                          setSubSlots(updated);
+                        }}
+                        className="w-[74px] rounded-lg border border-slate-200 px-1.5 py-1 text-xs font-semibold text-slate-800 focus:border-amber-500 focus:outline-hidden"
+                      />
+                      <span className="text-xs text-slate-400">–</span>
+                      <input
+                        type="time"
+                        value={slot.to}
+                        onChange={(e) => {
+                          const updated = [...subSlots];
+                          updated[idx] = { ...updated[idx], to: e.target.value };
+                          setSubSlots(updated);
+                        }}
+                        className="w-[74px] rounded-lg border border-slate-200 px-1.5 py-1 text-xs font-semibold text-slate-800 focus:border-amber-500 focus:outline-hidden"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Meno hráča / zverenca..."
+                      value={slot.player}
+                      onChange={(e) => {
+                        const updated = [...subSlots];
+                        updated[idx] = { ...updated[idx], player: e.target.value };
+                        setSubSlots(updated);
+                      }}
+                      className="flex-1 min-w-0 rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-amber-500 focus:outline-hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = subSlots.filter((_, i) => i !== idx);
+                        setSubSlots(updated);
+                      }}
+                      className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer shrink-0"
+                      title="Odstrániť riadok"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {subSlotsError && (
+              <p className="text-[11px] font-semibold text-red-600 bg-red-50 p-2 rounded-lg border border-red-200">
+                {subSlotsError}
+              </p>
+            )}
+
+            {subSlotsSuccess && (
+              <p className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 p-2 rounded-lg border border-emerald-200 flex items-center gap-1.5">
+                <Check className="h-3.5 w-3.5" /> Rozpis hráčov bol úspešne uložený.
+              </p>
+            )}
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                disabled={savingSubSlots}
+                onClick={async () => {
+                  setSavingSubSlots(true);
+                  setSubSlotsError(null);
+                  setSubSlotsSuccess(false);
+
+                  const res = await updateBookingSubSlotsAction(activeBooking.id, subSlots);
+                  setSavingSubSlots(false);
+
+                  if (res.success) {
+                    setSubSlotsSuccess(true);
+                    const cleanSlots = subSlots.filter(s => s.player && s.player.trim().length > 0);
+                    setActiveBooking(prev => ({ ...prev, subSlots: cleanSlots }));
+                    if (onSubSlotsUpdated) {
+                      onSubSlotsUpdated(activeBooking.id, cleanSlots);
+                    }
+                    setTimeout(() => setSubSlotsSuccess(false), 3000);
+                  } else {
+                    setSubSlotsError(res.error || "Nepodarilo sa uložiť rozpis.");
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-amber-700 transition disabled:opacity-50 cursor-pointer"
+              >
+                {savingSubSlots ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Ukladám...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-3.5 w-3.5" /> Uložiť rozpis hráčov
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
 
         {canManage && isFuture && !isCancelled && onStartReschedule && (
           <button

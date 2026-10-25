@@ -1606,8 +1606,9 @@ export default function NewBookingsCalendar({
                 <div className={`pointer-events-none absolute inset-0 ${courtHasHighlight ? "z-40" : "z-10"}`}>
                   {dayBookings.filter((booking) => booking.courtId === court.id).map((booking) => {
                     const isAdmin = currentUser?.role === "admin";
+                    const isNtcTeam = currentUser?.role === "ntc_team";
                     const own = !!currentUser && currentUser.id === booking.user_id;
-                    const canManage = own || isAdmin;
+                    const canManage = own || isAdmin || isNtcTeam;
                     const voiceHighlight = highlightedVoiceBookings.includes(booking.id);
                     const isTrainer = booking.userRole === "trainer";
 
@@ -1732,17 +1733,54 @@ export default function NewBookingsCalendar({
                             } ${canManage ? "cursor-pointer" : "cursor-not-allowed"} ${bookingClasses}`}
                           title={canManage ? `Detail: ${labelText}` : (isAnyAdminOrBlock ? "Údržba" : "Obsadené")}
                         >
-                          {isAdmin ? (
-                            <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(8px,0.65vw,11px)] font-bold leading-tight select-none pointer-events-none tracking-tight">
-                              {booking.recurringGroupId && (
-                                <Repeat className="h-2.5 w-2.5 mb-0.5 opacity-75 shrink-0" />
-                              )}
-                              {labelText.split(" ").filter(Boolean).map((part, idx) => (
-                                <span key={idx} className="block leading-[1.15] whitespace-nowrap max-w-full">
-                                  {part}
-                                </span>
-                              ))}
-                            </div>
+                          {isAdmin || isNtcTeam ? (
+                            booking.subSlots && booking.subSlots.length > 0 ? (
+                              <div className="relative z-[1] flex h-full w-full select-none pointer-events-none divide-x divide-slate-900/15 overflow-hidden">
+                                {(() => {
+                                  const parseTimeToMin = (tStr: string) => {
+                                    const [h, m] = tStr.split(":").map(Number);
+                                    return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
+                                  };
+                                  const bStart = new Date(booking.start);
+                                  const bEnd = new Date(booking.end);
+                                  const totalMins = Math.max(1, (bEnd.getTime() - bStart.getTime()) / 60000);
+
+                                  return booking.subSlots.map((slot, sIdx) => {
+                                    const sMin = parseTimeToMin(slot.from);
+                                    const eMin = parseTimeToMin(slot.to);
+                                    let slotDur = eMin - sMin;
+                                    if (slotDur <= 0) slotDur = totalMins / booking.subSlots!.length;
+                                    const widthPct = Math.max(10, Math.min(100, (slotDur / totalMins) * 100));
+
+                                    return (
+                                      <div
+                                        key={sIdx}
+                                        style={{ width: `${widthPct}%` }}
+                                        className="flex flex-col items-center justify-center h-full px-1 py-0.5 text-center min-w-0 overflow-hidden"
+                                      >
+                                        <span className="block text-[clamp(7.5px,0.55vw,9.5px)] font-bold text-slate-700/90 leading-tight whitespace-nowrap">
+                                          {slot.from}–{slot.to}
+                                        </span>
+                                        <span className="block text-[clamp(8px,0.65vw,11px)] font-extrabold text-slate-950 leading-tight truncate max-w-full">
+                                          {slot.player}
+                                        </span>
+                                      </div>
+                                    );
+                                  });
+                                })()}
+                              </div>
+                            ) : (
+                              <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(8px,0.65vw,11px)] font-bold leading-tight select-none pointer-events-none tracking-tight">
+                                {booking.recurringGroupId && (
+                                  <Repeat className="h-2.5 w-2.5 mb-0.5 opacity-75 shrink-0" />
+                                )}
+                                {labelText.split(" ").filter(Boolean).map((part, idx) => (
+                                  <span key={idx} className="block leading-[1.15] whitespace-nowrap max-w-full">
+                                    {part}
+                                  </span>
+                                ))}
+                              </div>
+                            )
                           ) : (
                             <div className={`relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center font-sans select-none pointer-events-none ${own ? "text-emerald-950" : (isAnyAdminOrBlock ? "text-white" : "text-slate-800")
                               }`}>
@@ -2225,9 +2263,15 @@ export default function NewBookingsCalendar({
         <BookingDetailDialog
           booking={detail}
           court={courts.find((court) => court.id === detail.courtId)}
-          canManage={!!currentUser && (currentUser.role === "admin" || currentUser.id === detail.user_id)}
+          canManage={!!currentUser && (currentUser.role === "admin" || currentUser.role === "ntc_team" || currentUser.id === detail.user_id)}
           canCancel={currentUser?.role === "admin" || new Date(detail.start).getTime() - now.getTime() > (rolePolicy?.cancellationDeadlineHours ?? 24) * 60 * 60 * 1000}
           cancellationDeadlineHours={rolePolicy?.cancellationDeadlineHours ?? 24}
+          currentRole={currentUser?.role}
+          onSubSlotsUpdated={(bookingId, subSlots) => {
+            setItems((prev) =>
+              prev.map((b) => (b.id === bookingId ? { ...b, subSlots } : b))
+            );
+          }}
           onClose={() => setDetail(null)}
           onDelete={(target) => setDeleting(target || detail)}
           onOpenSeriesOverview={(groupId) => setSeriesOverviewGroupId(groupId)}
