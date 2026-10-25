@@ -1771,14 +1771,18 @@ export default function NewBookingsCalendar({
                                       <div
                                         key={sIdx}
                                         style={{ width: `${widthPct}%` }}
-                                        className="flex flex-col items-center justify-center h-full px-1 py-0.5 text-center min-w-0 overflow-hidden"
+                                        className="flex flex-col items-center justify-center h-full px-0.5 py-0.5 text-center min-w-0 overflow-hidden leading-tight"
                                       >
-                                        <span className="block text-[clamp(7.5px,0.55vw,9.5px)] font-bold text-slate-700/90 leading-tight whitespace-nowrap">
+                                        <span className="block text-[clamp(7.5px,0.55vw,9.5px)] font-bold text-slate-700/90 leading-tight whitespace-nowrap mb-0.5">
                                           {slot.from}–{slot.to}
                                         </span>
-                                        <span className="block text-[clamp(8px,0.65vw,11px)] font-extrabold text-slate-950 leading-tight truncate max-w-full">
-                                          {slot.player}
-                                        </span>
+                                        <div className="flex flex-col items-center justify-center w-full text-[clamp(7.5px,0.6vw,10.5px)] font-extrabold text-slate-950 leading-[1.1] tracking-tight">
+                                          {slot.player.split(" ").filter(Boolean).map((part, pIdx) => (
+                                            <span key={pIdx} className="block whitespace-nowrap max-w-full">
+                                              {part}
+                                            </span>
+                                          ))}
+                                        </div>
                                       </div>
                                     );
                                   });
