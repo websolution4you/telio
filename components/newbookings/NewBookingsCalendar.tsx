@@ -17,7 +17,7 @@ import type { Booking, Court, SportType } from "@/lib/bookings/mockBookings";
 import { openingHours } from "@/lib/bookings/mockBookings";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import type { NtcPricelist } from "@/lib/bookings/pricingTypes";
-import { getCourtOperatingLimitMinutes, getDurationOptions, type RoleBookingPolicy } from "@/lib/bookings/rolePolicy";
+import { createBratislavaIso, getBratislavaDateKey, getCourtOperatingLimitMinutes, getDurationOptions, type RoleBookingPolicy } from "@/lib/bookings/rolePolicy";
 import {
   type AdminReservationCategory,
   DEFAULT_ADMIN_CATEGORIES,
@@ -46,7 +46,7 @@ const sports: { id: SportType; label: string }[] = [
   { id: "tennis-clay", label: "Tenis antuka" },
 ];
 
-const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+const dateKey = (date: Date) => getBratislavaDateKey(date);
 const formatTime = (value: string) => new Intl.DateTimeFormat("sk-SK", { timeZone: "Europe/Bratislava", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 const formatCompactInterval = (startVal: string, endVal: string) => {
   const s = new Date(startVal);
@@ -1093,7 +1093,8 @@ export default function NewBookingsCalendar({
       }
       return setAuth("register");
     }
-    const start = new Date(targetDate); start.setHours(hour, 0, 0, 0);
+    const startIso = createBratislavaIso(targetDate, hour, 0);
+    const start = new Date(startIso);
     setIsRecurring(false);
     setRepeatWeeks(4);
     setFrequencyWeeks(1);
@@ -1128,8 +1129,8 @@ export default function NewBookingsCalendar({
     const isPast = targetIsToday ? hour <= now.getHours() : dateKey(targetDate) < dateKey(now);
     if (isPast) return { eligible: false, reason: "past" as const };
 
-    const start = new Date(targetDate);
-    start.setHours(hour, 0, 0, 0);
+    const startIso = createBratislavaIso(targetDate, hour, 0);
+    const start = new Date(startIso);
     const end = new Date(start.getTime() + reschedDurationMin * 60000);
 
     // Check if it's the current slot of the booking itself
@@ -1178,15 +1179,16 @@ export default function NewBookingsCalendar({
     setRescheduleLoading(true);
     setRescheduleError("");
 
-    const start = new Date(rescheduleSlot.date);
-    start.setHours(rescheduleSlot.hour, 0, 0, 0);
+    const startIso = createBratislavaIso(rescheduleSlot.date, rescheduleSlot.hour, 0);
+    const start = new Date(startIso);
     const end = new Date(start.getTime() + reschedDurationMin * 60000);
+    const endIso = end.toISOString();
 
     const res = await rescheduleBookingAction({
       bookingId: reschedulingBooking.id,
       newCourtId: rescheduleSlot.courtId,
-      newStart: start.toISOString(),
-      newEnd: end.toISOString(),
+      newStart: startIso,
+      newEnd: endIso,
     });
 
     setRescheduleLoading(false);
@@ -1229,7 +1231,10 @@ export default function NewBookingsCalendar({
   const submit = async (event: React.FormEvent) => {
     event.preventDefault(); if (!slot || !currentUser) return;
     const validation = clayError(slot.courtId, sport, slot.hour, duration); if (validation) return setNotice(validation);
-    const start = new Date(slot.date); start.setHours(slot.hour, 0, 0, 0); const end = new Date(start.getTime() + duration * 60000);
+    const startIso = createBratislavaIso(slot.date, slot.hour, 0);
+    const start = new Date(startIso);
+    const end = new Date(start.getTime() + duration * 60000);
+    const endIso = end.toISOString();
     if (hasConflict(slot.courtId, start, end)) return setNotice("Vybraný kurt je v tomto čase obsadený.");
 
     setLoading(true);
@@ -1244,8 +1249,8 @@ export default function NewBookingsCalendar({
         title: customNote || (currentUser.role === "admin" ? effectiveBlockType : (sports.find((item) => item.id === sport)?.label || "Rezervácia")),
         customerName: effectivePlayerName || (currentUser.role === "admin" ? effectiveBlockType : currentUser.name),
         phone: phone || undefined,
-        start: start.toISOString(),
-        end: end.toISOString(),
+        start: startIso,
+        end: endIso,
         repeatFrequency,
         frequencyWeeks,
         daysOfWeek,
@@ -1317,8 +1322,8 @@ export default function NewBookingsCalendar({
         : (customNote || (sports.find((item) => item.id === sport)?.label || "Rezervácia")),
       customerName: effectivePlayerName || (currentUser.role === "admin" ? effectiveBlockType : currentUser.name),
       phone: phone || undefined,
-      start: start.toISOString(),
-      end: end.toISOString(),
+      start: startIso,
+      end: endIso,
       status: currentUser.role === "admin" ? "blocked" : "confirmed",
       source: currentUser.role === "admin" ? "admin" : "web",
       operationId: crypto.randomUUID(),

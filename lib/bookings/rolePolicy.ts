@@ -50,6 +50,38 @@ export function getBratislavaDateKey(date: Date): string {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+export function createBratislavaIso(dateInput: Date | string, hour: number, minute = 0): string {
+  const d = typeof dateInput === "string"
+    ? new Date(dateInput.includes("T") ? dateInput : `${dateInput}T12:00:00Z`)
+    : new Date(dateInput);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Bratislava",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const year = parts.find((p) => p.type === "year")?.value || "2026";
+  const month = parts.find((p) => p.type === "month")?.value || "01";
+  const day = parts.find((p) => p.type === "day")?.value || "01";
+  const dateStr = `${year}-${month}-${day}`;
+
+  const noonUtc = new Date(`${dateStr}T12:00:00Z`);
+  const offParts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Bratislava",
+    timeZoneName: "longOffset",
+  }).formatToParts(noonUtc);
+  const offStr = offParts.find((p) => p.type === "timeZoneName")?.value || "GMT+1";
+  const m = offStr.match(/GMT([+-]\d+)(?::(\d+))?/);
+  const offHours = m ? parseInt(m[1], 10) : 1;
+  const offMins = m && m[2] ? parseInt(m[2], 10) : 0;
+  const totalOffMin = offHours * 60 + (offHours >= 0 ? offMins : -offMins);
+
+  const utcTotalMin = hour * 60 + minute - totalOffMin;
+  const utcDate = new Date(`${dateStr}T00:00:00Z`);
+  utcDate.setUTCMinutes(utcTotalMin);
+  return utcDate.toISOString();
+}
+
 export function getCourtOperatingLimitMinutes(courtId: string, start: Date): number {
   const { hour, minute } = getBratislavaDateParts(start);
   const minuteOfDay = hour * 60 + minute;

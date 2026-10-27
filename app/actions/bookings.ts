@@ -11,7 +11,7 @@ import { getSession, type BookingRole } from "@/lib/auth/bookingAuth";
 import { walletEnabledForUser } from "@/lib/server/wallet";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import { getActivePricelist } from "@/app/actions/pricelists";
-import { getBratislavaDateKey, getBratislavaDateParts, getCourtOperatingLimitMinutes, isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
+import { createBratislavaIso, getBratislavaDateKey, getBratislavaDateParts, getCourtOperatingLimitMinutes, isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
 import { courts as ntcCourts, type SportType, type BookingSubSlot } from "@/lib/bookings/mockBookings";
 import { logActivity } from "@/lib/server/auditLog";
 
@@ -701,38 +701,51 @@ export async function createRecurringBookingAction(payload: CreateRecurringBooki
         type SlotOccur = { start: Date; end: Date; dateStr: string };
         const candidateSlots: SlotOccur[] = [];
 
+        const firstBratislava = getBratislavaDateParts(firstStart);
+        const bHour = firstBratislava.hour;
+        const bMinute = firstBratislava.minute;
+
         if (repeatFrequency === "daily") {
             let current = new Date(firstStart);
             while (current <= endDate && candidateSlots.length < 1500) {
-                const slotEnd = new Date(current.getTime() + durationMs);
+                const slotIso = createBratislavaIso(current, bHour, bMinute);
+                const slotStart = new Date(slotIso);
+                const slotEnd = new Date(slotStart.getTime() + durationMs);
                 const dateStr = new Intl.DateTimeFormat("sk-SK", {
+                    timeZone: "Europe/Bratislava",
                     day: "numeric", month: "numeric", year: "numeric"
-                }).format(current);
-                candidateSlots.push({ start: new Date(current), end: slotEnd, dateStr });
+                }).format(slotStart);
+                candidateSlots.push({ start: slotStart, end: slotEnd, dateStr });
                 current.setDate(current.getDate() + 1);
             }
         } else if (repeatFrequency === "monthly") {
             let current = new Date(firstStart);
             const originalDay = firstStart.getDate();
             while (current <= endDate && candidateSlots.length < 1500) {
-                const slotEnd = new Date(current.getTime() + durationMs);
+                const slotIso = createBratislavaIso(current, bHour, bMinute);
+                const slotStart = new Date(slotIso);
+                const slotEnd = new Date(slotStart.getTime() + durationMs);
                 const dateStr = new Intl.DateTimeFormat("sk-SK", {
+                    timeZone: "Europe/Bratislava",
                     day: "numeric", month: "numeric", year: "numeric"
-                }).format(current);
-                candidateSlots.push({ start: new Date(current), end: slotEnd, dateStr });
+                }).format(slotStart);
+                candidateSlots.push({ start: slotStart, end: slotEnd, dateStr });
 
-                current = new Date(current.getFullYear(), current.getMonth() + 1, originalDay, firstStart.getHours(), firstStart.getMinutes(), 0, 0);
+                current = new Date(current.getFullYear(), current.getMonth() + 1, originalDay, 12, 0, 0, 0);
             }
         } else if (repeatFrequency === "yearly") {
             let current = new Date(firstStart);
             while (current <= endDate && candidateSlots.length < 1500) {
-                const slotEnd = new Date(current.getTime() + durationMs);
+                const slotIso = createBratislavaIso(current, bHour, bMinute);
+                const slotStart = new Date(slotIso);
+                const slotEnd = new Date(slotStart.getTime() + durationMs);
                 const dateStr = new Intl.DateTimeFormat("sk-SK", {
+                    timeZone: "Europe/Bratislava",
                     day: "numeric", month: "numeric", year: "numeric"
-                }).format(current);
-                candidateSlots.push({ start: new Date(current), end: slotEnd, dateStr });
+                }).format(slotStart);
+                candidateSlots.push({ start: slotStart, end: slotEnd, dateStr });
 
-                current = new Date(current.getFullYear() + 1, current.getMonth(), current.getDate(), firstStart.getHours(), firstStart.getMinutes(), 0, 0);
+                current = new Date(current.getFullYear() + 1, current.getMonth(), current.getDate(), 12, 0, 0, 0);
             }
         } else {
             // "weekly"
@@ -750,14 +763,16 @@ export async function createRecurringBookingAction(payload: CreateRecurringBooki
             while (currentWeekBase <= endDate && candidateSlots.length < 1500) {
                 for (const dow of selectedDays) {
                     const dayOffset = (dow === 0 ? 7 : dow) - 1; // 0 for Mon, 6 for Sun
-                    const slotDate = new Date(currentWeekBase);
-                    slotDate.setDate(slotDate.getDate() + dayOffset);
-                    slotDate.setHours(firstStart.getHours(), firstStart.getMinutes(), 0, 0);
+                    const dayCandidate = new Date(currentWeekBase);
+                    dayCandidate.setDate(dayCandidate.getDate() + dayOffset);
 
+                    const slotIso = createBratislavaIso(dayCandidate, bHour, bMinute);
+                    const slotDate = new Date(slotIso);
                     const slotEnd = new Date(slotDate.getTime() + durationMs);
 
                     if (slotDate.getTime() >= firstStart.getTime() && slotDate.getTime() <= endDate.getTime()) {
                         const dateStr = new Intl.DateTimeFormat("sk-SK", {
+                            timeZone: "Europe/Bratislava",
                             day: "numeric",
                             month: "numeric",
                             year: "numeric"
