@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
 import NewBookingsCalendar from "@/components/newbookings/NewBookingsCalendar";
 import { fetchBookingsAction } from "@/app/actions/bookings";
-<<<<<<< HEAD
-import { getActivePricelist } from "@/app/actions/pricelists";
-import { fetchReservationCategoriesAction } from "@/app/actions/reservationCategories";
-=======
 import { fetchPricelistsAction, getActivePricelist } from "@/app/actions/pricelists";
->>>>>>> d0ae70b (feat(pricing): date-based pricelist selection and overlap/gap validation)
+import { fetchReservationCategoriesAction } from "@/app/actions/reservationCategories";
 import { getSession } from "@/lib/auth/bookingAuth";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 import type { Booking } from "@/lib/bookings/mockBookings";
