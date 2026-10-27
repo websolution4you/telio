@@ -9,6 +9,7 @@ import {
   DEFAULT_NTC_WINTER_PRICELIST,
   NtcPricelist,
 } from "@/lib/bookings/pricingTypes";
+import { formatLocalDateKey } from "@/lib/bookings/pricelistValidation";
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
 
@@ -54,14 +55,23 @@ export async function fetchPricelistsAction(): Promise<{
   }
 }
 
-export async function getActivePricelist(): Promise<NtcPricelist> {
+/**
+ * Returns the pricelist valid for the given target date (or today).
+ * If no pricelist specifically covers the date (gap), falls back to the default pricelist (Option 1A).
+ */
+export async function getActivePricelist(targetDate?: string | Date): Promise<NtcPricelist> {
+  const dateKey = formatLocalDateKey(targetDate || new Date());
+
   try {
     const db = getCoreDb();
+    // 1. Try finding a pricelist covering target date: valid_from <= dateKey and valid_to >= dateKey
     const { data, error } = await db
       .from("ntc_pricelists")
       .select("id, name, valid_from, valid_to, is_active, non_member_surcharge_eur, intervals, discount_tiers")
       .or(`tenant_id.eq.${TENANT_ID},tenant_id.eq.default`)
-      .eq("is_active", true)
+      .lte("valid_from", dateKey)
+      .gte("valid_to", dateKey)
+      .order("valid_from", { ascending: false })
       .limit(1)
       .maybeSingle();
 
@@ -77,12 +87,35 @@ export async function getActivePricelist(): Promise<NtcPricelist> {
         discountTiers: typeof data.discount_tiers === "string" ? JSON.parse(data.discount_tiers) : (data.discount_tiers || DEFAULT_DISCOUNT_TIERS),
       };
     }
+
+    // 2. Fallback (Option 1A): If no exact match (gap), get latest or any configured pricelist
+    const { data: anyData } = await db
+      .from("ntc_pricelists")
+      .select("id, name, valid_from, valid_to, is_active, non_member_surcharge_eur, intervals, discount_tiers")
+      .or(`tenant_id.eq.${TENANT_ID},tenant_id.eq.default`)
+      .order("valid_from", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (anyData) {
+      return {
+        id: anyData.id,
+        name: anyData.name,
+        validFrom: anyData.valid_from,
+        validTo: anyData.valid_to,
+        isActive: true,
+        nonMemberSurchargeEur: Number(anyData.non_member_surcharge_eur) || 2.00,
+        intervals: typeof anyData.intervals === "string" ? JSON.parse(anyData.intervals) : (anyData.intervals || []),
+        discountTiers: typeof anyData.discount_tiers === "string" ? JSON.parse(anyData.discount_tiers) : (anyData.discount_tiers || DEFAULT_DISCOUNT_TIERS),
+      };
+    }
   } catch (err: any) {
     console.error("getActivePricelist error, fallback to in-memory:", err);
   }
 
-  const activeInMemory = inMemoryPricelists.find((p) => p.isActive);
-  return activeInMemory || DEFAULT_NTC_WINTER_PRICELIST;
+  // Fallback in-memory by date or first
+  const matched = inMemoryPricelists.find((p) => p.validFrom <= dateKey && p.validTo >= dateKey);
+  return matched || inMemoryPricelists[0] || DEFAULT_NTC_WINTER_PRICELIST;
 }
 
 export async function savePricelistAction(pricelist: NtcPricelist): Promise<{
@@ -98,28 +131,14 @@ export async function savePricelistAction(pricelist: NtcPricelist): Promise<{
     // Update in-memory first for instant preview
     const idx = inMemoryPricelists.findIndex((p) => p.id === pricelist.id);
     if (idx >= 0) {
-      inMemoryPricelists[idx] = pricelist;
+      inMemoryPricelists[idx] = { ...pricelist, isActive: true };
     } else {
-      inMemoryPricelists.push(pricelist);
-    }
-
-    // If marked active, deactivate others
-    if (pricelist.isActive) {
-      for (const p of inMemoryPricelists) {
-        if (p.id !== pricelist.id) p.isActive = false;
-      }
+      inMemoryPricelists.push({ ...pricelist, isActive: true });
     }
 
     // Try persisting to Supabase if table exists
     try {
       const serviceDb = getCoreServiceDb();
-      if (pricelist.isActive) {
-        await serviceDb
-          .from("ntc_pricelists")
-          .update({ is_active: false })
-          .eq("tenant_id", TENANT_ID);
-      }
-
       await serviceDb.from("ntc_pricelists").upsert(
         {
           id: pricelist.id,
@@ -127,7 +146,7 @@ export async function savePricelistAction(pricelist: NtcPricelist): Promise<{
           name: pricelist.name,
           valid_from: pricelist.validFrom,
           valid_to: pricelist.validTo,
-          is_active: pricelist.isActive,
+          is_active: true,
           non_member_surcharge_eur: pricelist.nonMemberSurchargeEur,
           intervals: pricelist.intervals,
           discount_tiers: pricelist.discountTiers || DEFAULT_DISCOUNT_TIERS,
@@ -249,10 +268,6 @@ export async function deletePricelistAction(id: string): Promise<{
           return { success: true };
         }
 
-        // Cannot delete an active pricelist
-        if (target.is_active) {
-          return { success: false, error: "Nemôžete zmazať aktívny cenník. Najprv nastavte iný cenník ako aktívny." };
-        }
 
         // Cannot delete the only remaining pricelist in the DB
         if (dbRows.length <= 1) {

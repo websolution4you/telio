@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import NewBookingsCalendar from "@/components/newbookings/NewBookingsCalendar";
 import { fetchBookingsAction } from "@/app/actions/bookings";
+<<<<<<< HEAD
 import { getActivePricelist } from "@/app/actions/pricelists";
 import { fetchReservationCategoriesAction } from "@/app/actions/reservationCategories";
+=======
+import { fetchPricelistsAction, getActivePricelist } from "@/app/actions/pricelists";
+>>>>>>> d0ae70b (feat(pricing): date-based pricelist selection and overlap/gap validation)
 import { getSession } from "@/lib/auth/bookingAuth";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 import type { Booking } from "@/lib/bookings/mockBookings";
@@ -135,13 +139,17 @@ export default async function NewBookingsPage() {
   start.setHours(0, 0, 0, 0);
   const end = new Date();
   end.setHours(23, 59, 59, 999);
-  const [result, activePricelist, categoriesResult] = await Promise.all([
+  const [result, pricelistsRes, activePricelist, categoriesResult] = await Promise.all([
     fetchBookingsAction(start.toISOString(), end.toISOString()),
+    fetchPricelistsAction(),
     getActivePricelist(),
     fetchReservationCategoriesAction(),
   ]);
   const initialBookings = result.success && result.bookings ? result.bookings as Booking[] : [];
   const initialCategories = categoriesResult?.categories || [];
+  const pricelists = pricelistsRes.success && pricelistsRes.pricelists.length > 0
+    ? pricelistsRes.pricelists
+    : (activePricelist ? [activePricelist] : []);
 
   return (
     <NewBookingsCalendar
@@ -152,6 +160,7 @@ export default async function NewBookingsPage() {
       rolePolicy={rolePolicy}
       initialWalletBalance={initialWalletBalance}
       activePricelist={activePricelist}
+      pricelists={pricelists}
     />
   );
 }

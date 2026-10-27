@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
+  AlertTriangle,
   Calendar,
   Check,
   Clock3,
@@ -18,6 +19,11 @@ import {
   PriceInterval,
   DEFAULT_DISCOUNT_TIERS,
 } from "@/lib/bookings/pricingTypes";
+import {
+  analyzePricelistTimeline,
+  countDaysBetween,
+  formatDateSk,
+} from "@/lib/bookings/pricelistValidation";
 import EditIntervalModal from "./EditIntervalModal";
 
 type Props = {
@@ -25,6 +31,7 @@ type Props = {
   onClose: () => void;
   onCreate: (pricelist: NtcPricelist) => void;
   currentPricelist?: NtcPricelist;
+  existingPricelists?: NtcPricelist[];
 };
 
 import {
@@ -67,6 +74,7 @@ export default function CreatePricelistModal({
   onClose,
   onCreate,
   currentPricelist,
+  existingPricelists,
 }: Props) {
   const currentYear = new Date().getFullYear();
   const [name, setName] = useState(`Letná sezóna ${currentYear}`);
@@ -105,6 +113,45 @@ export default function CreatePricelistModal({
   ];
 
   const [intervals, setIntervals] = useState<PriceInterval[]>(getFreshDefaultIntervals);
+
+  const timelineAnalysis = useMemo(() => {
+    if (!existingPricelists || existingPricelists.length === 0) return null;
+    const draft: NtcPricelist = {
+      id: "draft-new",
+      name: name.trim() || "Nový cenník",
+      validFrom,
+      validTo,
+      isActive: true,
+      nonMemberSurchargeEur: 2.00,
+      intervals,
+      discountTiers: DEFAULT_DISCOUNT_TIERS,
+    };
+    return analyzePricelistTimeline([...existingPricelists, draft]);
+  }, [existingPricelists, name, validFrom, validTo, intervals]);
+
+  const draftOverlaps = useMemo(() => {
+    if (!timelineAnalysis) return [];
+    return timelineAnalysis.overlaps.filter(
+      (o) => o.pricelistA.id === "draft-new" || o.pricelistB.id === "draft-new"
+    );
+  }, [timelineAnalysis]);
+
+  const draftGaps = useMemo(() => {
+    if (!timelineAnalysis) return [];
+    return timelineAnalysis.gaps.filter(
+      (g) => g.pricelistBefore.id === "draft-new" || g.pricelistAfter.id === "draft-new"
+    );
+  }, [timelineAnalysis]);
+
+  const draftInvalid = useMemo(() => {
+    if (!timelineAnalysis) return null;
+    return timelineAnalysis.invalidRanges.find((r) => r.pricelist.id === "draft-new");
+  }, [timelineAnalysis]);
+
+  const durationDays = useMemo(() => {
+    if (!validFrom || !validTo) return 0;
+    return countDaysBetween(validFrom, validTo);
+  }, [validFrom, validTo]);
 
   // Every time the modal opens, reset to fresh standard default intervals & fields
   useEffect(() => {
@@ -396,13 +443,43 @@ export default function CreatePricelistModal({
             </div>
           </div>
 
-          {/* Informatívna poznámka k platnosti */}
-          <div className="flex items-center gap-1.5 rounded-xl bg-slate-50 border border-slate-200/80 px-2.5 py-1.5 text-[11px] text-slate-600">
-            <Info className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-            <span>
-              <b>Platnosť je informatívna</b>, cenník sa v systéme uplatňuje, ak je nastavený ako <b>aktívny</b>.
-            </span>
-          </div>
+          {/* Dynamické upozornenie na nadväznosť / prekrývanie / medzery */}
+          {draftInvalid ? (
+            <div className="flex items-start gap-2 rounded-xl bg-rose-50 border border-rose-200 p-2.5 text-[11px] text-rose-800">
+              <AlertTriangle className="h-3.5 w-3.5 text-rose-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block">Neplatný rozsah:</span>
+                <span>{draftInvalid.message}</span>
+              </div>
+            </div>
+          ) : draftOverlaps.length > 0 ? (
+            <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-300 p-2.5 text-[11px] text-amber-950">
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <span className="font-bold text-amber-900 block">Upozornenie: Prekrývanie termínov</span>
+                {draftOverlaps.map((ov, idx) => (
+                  <div key={idx} className="text-slate-800">• {ov.message}</div>
+                ))}
+              </div>
+            </div>
+          ) : draftGaps.length > 0 ? (
+            <div className="flex items-start gap-2 rounded-xl bg-sky-50 border border-sky-300 p-2.5 text-[11px] text-sky-950">
+              <Info className="h-3.5 w-3.5 text-sky-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <span className="font-bold text-sky-900 block">Upozornenie: Medzera v platnosti</span>
+                {draftGaps.map((gp, idx) => (
+                  <div key={idx} className="text-slate-800">• {gp.message}</div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200/80 px-2.5 py-1.5 text-[11px] text-emerald-800">
+              <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+              <span>
+                <b>Platnosť cenníka: {durationDays} dní</b> ({formatDateSk(validFrom)} – {formatDateSk(validTo)}). Ceny sa pri rezerváciách uplatňujú automaticky podľa termínu rezervácie.
+              </span>
+            </div>
+          )}
 
           {/* Cenové hladiny / Časové pásma */}
           <div className="space-y-2 pt-1 border-t border-slate-100">
