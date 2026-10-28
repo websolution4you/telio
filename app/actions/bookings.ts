@@ -387,7 +387,7 @@ export async function createBookingAction(payload: {
         const isRegistered = Boolean(bookingUser);
         const multisportCount = Math.min(2, Math.max(0, Math.floor(payload.multisportCardsCount || 0)));
 
-        const activePricelist = await getActivePricelist();
+        const activePricelist = await getActivePricelist(payload.start);
         const pricingResult = calculateNtcBookingPrice(
             payload.courtId,
             payload.start,
@@ -1300,7 +1300,7 @@ export async function rescheduleBookingAction(payload: {
             const multisportCount = Number(notesObj.multisportCardsCount || 0);
             const userDiscountTierId = (policyData as any)?.discount_tier_id;
 
-            const activePricelist = await getActivePricelist();
+            const originalPricelist = await getActivePricelist(booking.start_at);
 
             const originalPrice = booking.price_eur != null
                 ? Number(booking.price_eur)
@@ -1311,10 +1311,11 @@ export async function rescheduleBookingAction(payload: {
                     isRegistered,
                     roleDiscount,
                     multisportCount,
-                    activePricelist,
+                    originalPricelist,
                     userDiscountTierId
                 ).totalPriceEur;
 
+            const newPricelist = await getActivePricelist(payload.newStart);
             const newPriceResult = calculateNtcBookingPrice(
                 payload.newCourtId,
                 payload.newStart,
@@ -1322,7 +1323,7 @@ export async function rescheduleBookingAction(payload: {
                 isRegistered,
                 roleDiscount,
                 multisportCount,
-                activePricelist,
+                newPricelist,
                 userDiscountTierId
             );
 

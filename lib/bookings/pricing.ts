@@ -1,5 +1,28 @@
 import { SportType } from "./mockBookings";
 import { DEFAULT_DISCOUNT_TIERS, DEFAULT_NTC_WINTER_PRICELIST, DiscountTier, NtcPricelist } from "./pricingTypes";
+import { formatLocalDateKey } from "./pricelistValidation";
+
+/**
+ * Resolves the seasonal pricelist for a specific date (Date object or string).
+ * If multiple pricelists match the date, the first matching is used.
+ * If no pricelist matches (gap), it uses the fallback pricelist (Option 1A).
+ */
+export function getPricelistForDate(
+  targetDate?: Date | string | null,
+  pricelists?: NtcPricelist[]
+): NtcPricelist {
+  const list = pricelists && pricelists.length > 0 ? pricelists : [DEFAULT_NTC_WINTER_PRICELIST];
+  const dateKey = formatLocalDateKey(targetDate || new Date());
+
+  if (dateKey) {
+    const matched = list.find((p) => p.validFrom <= dateKey && p.validTo >= dateKey);
+    if (matched) return matched;
+  }
+
+  // Fallback (1A): return the currently active or first available
+  const activeFallback = list.find((p) => p.isActive);
+  return activeFallback || list[0] || DEFAULT_NTC_WINTER_PRICELIST;
+}
 
 export type NtcPricingResult = {
   totalPriceEur: number;

@@ -15,7 +15,7 @@ import { supabase } from "@/lib/supabase";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 import type { Booking, Court, SportType } from "@/lib/bookings/mockBookings";
 import { openingHours } from "@/lib/bookings/mockBookings";
-import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
+import { calculateNtcBookingPrice, getPricelistForDate } from "@/lib/bookings/pricing";
 import type { NtcPricelist } from "@/lib/bookings/pricingTypes";
 import { createBratislavaIso, getBratislavaDateKey, getCourtOperatingLimitMinutes, getDurationOptions, type RoleBookingPolicy } from "@/lib/bookings/rolePolicy";
 import {
@@ -36,6 +36,7 @@ type Props = {
   rolePolicy: RoleBookingPolicy | null;
   initialWalletBalance?: number | null;
   activePricelist?: NtcPricelist;
+  pricelists?: NtcPricelist[];
 };
 type Slot = { courtId: string; date: Date; hour: number };
 
@@ -242,6 +243,7 @@ export default function NewBookingsCalendar({
   rolePolicy: initialRolePolicy,
   initialWalletBalance,
   activePricelist,
+  pricelists,
 }: Props) {
   const router = useRouter();
   const voiceHighlightTimers = useRef(new Map<string, number>());
@@ -361,6 +363,7 @@ export default function NewBookingsCalendar({
     if (reschedulingBooking.priceEur != null) return Number(reschedulingBooking.priceEur);
     const isRegistered = Boolean(currentUser);
     const roleDiscount = rolePolicy?.discountEurPerHour ?? 0;
+    const targetPricelist = getPricelistForDate(reschedulingBooking.start, pricelists || (activePricelist ? [activePricelist] : undefined));
     return calculateNtcBookingPrice(
       reschedulingBooking.courtId,
       reschedulingBooking.start,
@@ -368,10 +371,10 @@ export default function NewBookingsCalendar({
       isRegistered,
       roleDiscount,
       reschedulingBooking.multisportCardsCount || 0,
-      activePricelist,
+      targetPricelist,
       currentUser?.discountTierId
     ).totalPriceEur;
-  }, [reschedulingBooking, reschedDurationMin, currentUser, rolePolicy, activePricelist]);
+  }, [reschedulingBooking, reschedDurationMin, currentUser, rolePolicy, activePricelist, pricelists]);
   const [now, setNow] = useState(() => new Date());
   const [highlightedVoiceBookings, setHighlightedVoiceBookings] = useState<string[]>([]);
   const handledRecurringSoundGroups = useRef(new Set<string>());
@@ -1156,6 +1159,7 @@ export default function NewBookingsCalendar({
     if (currentUser?.role !== "admin") {
       const isRegistered = Boolean(currentUser);
       const roleDiscount = rolePolicy?.discountEurPerHour ?? 0;
+      const targetPricelist = getPricelistForDate(start, pricelists || (activePricelist ? [activePricelist] : undefined));
       const calc = calculateNtcBookingPrice(
         courtId,
         start.toISOString(),
@@ -1163,7 +1167,7 @@ export default function NewBookingsCalendar({
         isRegistered,
         roleDiscount,
         reschedulingBooking.multisportCardsCount || 0,
-        activePricelist,
+        targetPricelist,
         currentUser?.discountTierId
       );
       if (Math.abs(calc.totalPriceEur - reschedOriginalPrice) > 0.05) {
@@ -1172,7 +1176,7 @@ export default function NewBookingsCalendar({
     }
 
     return { eligible: true };
-  }, [reschedulingBooking, now, date, reschedDurationMin, blockedLabel, sport, items, currentUser, rolePolicy, reschedOriginalPrice, activePricelist]);
+  }, [reschedulingBooking, now, date, reschedDurationMin, blockedLabel, sport, items, currentUser, rolePolicy, reschedOriginalPrice, activePricelist, pricelists]);
 
   const handleConfirmReschedule = async () => {
     if (!reschedulingBooking || !rescheduleSlot) return;
@@ -2234,7 +2238,7 @@ export default function NewBookingsCalendar({
           date={slot.date}
           hour={slot.hour}
           duration={duration}
-          pricelist={activePricelist}
+          pricelist={getPricelistForDate(slot.date, pricelists || (activePricelist ? [activePricelist] : undefined))}
           durationOptions={getAvailableDurationOptions(slot.courtId, new Date(new Date(slot.date).setHours(slot.hour, 0, 0, 0)))}
           discountEurPerHour={rolePolicy?.discountEurPerHour ?? 0}
           userDiscountTierId={currentUser?.discountTierId}

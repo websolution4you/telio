@@ -25,6 +25,7 @@ import {
   Database,
   LogIn,
   LogOut,
+  CloudUpload,
 } from "lucide-react";
 import {
   fetchAuditLogsAction,
@@ -65,6 +66,31 @@ export default function AdminAuditLogs() {
   const [isExporting, setIsExporting] = useState(false);
   const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [azureLoading, setAzureLoading] = useState(false);
+  const [azureFeedback, setAzureFeedback] = useState<string | null>(null);
+
+  const handleTriggerAzureBackup = async () => {
+    setAzureLoading(true);
+    setAzureFeedback(null);
+    try {
+      const res = await fetch("/api/cron/backup-logs", { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.result?.success) {
+        setAzureFeedback(
+          `✅ Záloha do Azure bola úspešne odoslaná (${data.result.uploads.map((u: any) => u.blobName).join(", ")})`
+        );
+        loadLogs();
+      } else {
+        const errMsg =
+          data.result?.errors?.join("; ") || data.error || data.message || "Chyba zálohovania";
+        setAzureFeedback(`❌ Záloha zlyhala: ${errMsg}`);
+      }
+    } catch (e: any) {
+      setAzureFeedback(`❌ Chyba spojenia: ${e.message}`);
+    } finally {
+      setAzureLoading(false);
+    }
+  };
 
   const [isPending, startTransition] = useTransition();
 
@@ -308,22 +334,52 @@ export default function AdminAuditLogs() {
             })}
           </div>
 
-          {/* Tlačidlo exportu do CSV */}
-          <button
-            type="button"
-            onClick={handleExportCsv}
-            disabled={isExporting || totalCount === 0}
-            className="inline-flex items-center gap-2 rounded-xl border border-emerald-600/30 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 shadow-2xs transition hover:bg-emerald-100 hover:border-emerald-600/50 active:scale-95 disabled:opacity-50 cursor-pointer"
-            title="Stiahnuť vyfiltrované záznamy do tabuľky Excel (CSV s UTF-8 BOM)"
-          >
-            {isExporting ? (
-              <RefreshCw className="h-4 w-4 animate-spin text-emerald-700" />
-            ) : (
-              <Download className="h-4 w-4 text-emerald-700" />
-            )}
-            <span>Exportovať CSV pre Excel</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Tlačidlo manuálneho odoslania do Azure */}
+            <button
+              type="button"
+              onClick={handleTriggerAzureBackup}
+              disabled={azureLoading}
+              className="inline-flex items-center gap-2 rounded-xl border border-sky-600/30 bg-sky-50 px-3.5 py-2 text-xs font-bold text-sky-800 shadow-2xs transition hover:bg-sky-100 hover:border-sky-600/50 active:scale-95 disabled:opacity-50 cursor-pointer"
+              title="Okamžite spustiť export a nahrať zálohu do Azure Blob Storage"
+            >
+              {azureLoading ? (
+                <RefreshCw className="h-4 w-4 animate-spin text-sky-700" />
+              ) : (
+                <CloudUpload className="h-4 w-4 text-sky-700" />
+              )}
+              <span>{azureLoading ? "Odosielam..." : "Zálohovať do Azure"}</span>
+            </button>
+
+            {/* Tlačidlo exportu do CSV */}
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={isExporting || totalCount === 0}
+              className="inline-flex items-center gap-2 rounded-xl border border-emerald-600/30 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 shadow-2xs transition hover:bg-emerald-100 hover:border-emerald-600/50 active:scale-95 disabled:opacity-50 cursor-pointer"
+              title="Stiahnuť vyfiltrované záznamy do tabuľky Excel (CSV s UTF-8 BOM)"
+            >
+              {isExporting ? (
+                <RefreshCw className="h-4 w-4 animate-spin text-emerald-700" />
+              ) : (
+                <Download className="h-4 w-4 text-emerald-700" />
+              )}
+              <span>Exportovať CSV pre Excel</span>
+            </button>
+          </div>
         </div>
+
+        {azureFeedback && (
+          <div className="mt-3 flex items-center justify-between rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2 text-xs font-medium text-sky-900 shadow-2xs">
+            <span>{azureFeedback}</span>
+            <button
+              onClick={() => setAzureFeedback(null)}
+              className="text-slate-400 hover:text-slate-600 ml-2 font-bold cursor-pointer"
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         {/* Vyhľadávanie a podrobné filtre */}
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
