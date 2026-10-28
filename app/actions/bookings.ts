@@ -14,6 +14,11 @@ import { getActivePricelist } from "@/app/actions/pricelists";
 import { createBratislavaIso, getBratislavaDateKey, getBratislavaDateParts, getCourtOperatingLimitMinutes, isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
 import { courts as ntcCourts, type SportType, type BookingSubSlot } from "@/lib/bookings/mockBookings";
 import { logActivity } from "@/lib/server/auditLog";
+import {
+    type PublicAvailabilityResult,
+    validatePublicAvailabilityRange,
+    mapPublicAvailabilityRows,
+} from "@/lib/bookings/publicAvailability";
 
 
 
@@ -206,6 +211,57 @@ export async function fetchBookingsAction(startDateIso: string, endDateIso: stri
     } catch (error: any) {
         console.error("fetchBookingsAction failed:", error);
         return { success: false, error: error.message || "Failed to load bookings" };
+    }
+}
+
+export async function fetchPublicAvailabilityAction(
+    startDateIso: string,
+    endDateIso: string
+): Promise<PublicAvailabilityResult> {
+    const validation = validatePublicAvailabilityRange(startDateIso, endDateIso);
+    if (!validation.valid) {
+        return {
+            success: false,
+            code: validation.code,
+            error: validation.error,
+        };
+    }
+
+    try {
+        const db = getCoreServiceDb();
+        const { data, error } = await db
+            .from("bookings")
+            .select("court_id,start_at,end_at,status")
+            .eq("tenant_id", TENANT_ID)
+            .in("status", ["confirmed", "pending", "blocked"])
+            .gt("end_at", validation.start)
+            .lt("start_at", validation.end);
+
+        if (error) {
+            console.error("[fetchPublicAvailabilityAction] DB query failed");
+            return {
+                success: false,
+                code: "DB_ERROR",
+                error: "Dostupnosť sa nepodarilo načítať. Skúste to prosím neskôr.",
+            };
+        }
+
+        const { slots, skippedCount } = mapPublicAvailabilityRows(data);
+        if (skippedCount > 0) {
+            console.warn(`[fetchPublicAvailabilityAction] Ignored ${skippedCount} rows with missing or invalid court_id/timestamps`);
+        }
+
+        return {
+            success: true,
+            slots,
+        };
+    } catch {
+        console.error("[fetchPublicAvailabilityAction] Unexpected error");
+        return {
+            success: false,
+            code: "DB_ERROR",
+            error: "Dostupnosť sa nepodarilo načítať. Skúste to prosím neskôr.",
+        };
     }
 }
 
