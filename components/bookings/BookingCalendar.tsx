@@ -20,15 +20,16 @@ import {
 } from "lucide-react";
 import type { Booking, Court, SportType } from "@/lib/bookings/mockBookings";
 import { openingHours } from "@/lib/bookings/mockBookings";
-import { fetchBookingsAction, createBookingAction, deleteBookingAction } from "@/app/actions/bookings";
+import { fetchBookingsAction, fetchPublicAvailabilityAction, createBookingAction, deleteBookingAction } from "@/app/actions/bookings";
 import { supabase } from "@/lib/supabase";
 import { useLang } from "@/lib/i18n";
+import { type CalendarItem, toPublicCalendarItem } from "@/lib/bookings/publicAvailability";
 
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 
 type BookingCalendarProps = {
   courts: Court[];
-  bookings: Booking[];
+  initialItems: CalendarItem[];
   currentUser?: BookingUser | null;
 };
 
@@ -143,7 +144,7 @@ function playTennisHitSound() {
   }
 }
 
-export default function BookingCalendar({ courts, bookings, currentUser }: BookingCalendarProps) {
+export default function BookingCalendar({ courts, initialItems, currentUser }: BookingCalendarProps) {
   const { lang } = useLang();
 
   const sportLabels: Record<SportType, string> = useMemo(() => ({
@@ -157,8 +158,8 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
   const [baseDate, setBaseDate] = useState(() => new Date());
   const viewDaysCount = 1;
   
-  // Interactive Local state for bookings
-  const [localBookings, setLocalBookings] = useState<Booking[]>(() => bookings);
+  // Interactive Local state for items (CalendarItem[])
+  const [localItems, setLocalItems] = useState<CalendarItem[]>(() => initialItems);
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const [isCompact, setIsCompact] = useState(false);
   
@@ -178,12 +179,26 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
   const [formSource, setFormSource] = useState<Booking["source"]>("web");
   const [formDurationMinutes, setFormDurationMinutes] = useState<number>(60);
   const [errorMsg, setErrorMsg] = useState("");
-
   const [isLoading, setIsLoading] = useState(false);
+
+  // Bezpečný prechod z prihláseného do anonymného stavu:
+  useEffect(() => {
+    if (!currentUser) {
+      setLocalItems((prev) => {
+        const hasPrivate = prev.some((i) => i.kind === "booking");
+        if (!hasPrivate) return prev;
+        return prev.filter((i) => i.kind === "public-occupied");
+      });
+      setIsModalOpen(false);
+      setSelectedSlot(null);
+      setInfoModalBooking(null);
+      setConfirmModal({ isOpen: false });
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     let active = true;
-    async function loadLiveBookings() {
+    async function loadLiveData() {
       setIsLoading(true);
       const start = new Date(baseDate);
       start.setHours(0, 0, 0, 0);
@@ -192,21 +207,35 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
       end.setDate(end.getDate() + viewDaysCount);
       end.setHours(23, 59, 59, 999);
 
-      const res = await fetchBookingsAction(start.toISOString(), end.toISOString());
-      if (active && res.success && res.bookings) {
-        setLocalBookings(res.bookings);
+      if (!currentUser) {
+        // Pre anonymného návštevníka voláme výhradne fetchPublicAvailabilityAction
+        const res = await fetchPublicAvailabilityAction(start.toISOString(), end.toISOString());
+        if (active && res.success && res.slots) {
+          setLocalItems(res.slots.map(toPublicCalendarItem));
+        }
+      } else {
+        const res = await fetchBookingsAction(start.toISOString(), end.toISOString());
+        if (active && res.success && res.bookings) {
+          setLocalItems(res.bookings.map((b) => ({ kind: "booking", booking: b })));
+        }
       }
+
       if (active) {
         setIsLoading(false);
       }
     }
-    loadLiveBookings();
+    loadLiveData();
     return () => {
       active = false;
     };
-  }, [baseDate, viewDaysCount, reloadTrigger]);
+  }, [baseDate, viewDaysCount, reloadTrigger, currentUser]);
 
   useEffect(() => {
+    // Striktný guard: pre anonymného používateľa sa effect ukončí pred prvým supabase.channel / subscribe
+    if (!currentUser) {
+      return;
+    }
+
     console.log("Realtime (bookings): Initializing subscription to table 'bookings'...");
     const channel = supabase
       .channel("bookings-realtime")
@@ -233,7 +262,42 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
       console.log("Realtime (bookings): Cleaning up subscription...");
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [currentUser]);
+
+  // Bezpečný polling pre anonymného návštevníka každých 30 sekúnd
+  useEffect(() => {
+    if (currentUser) return;
+
+    let active = true;
+    let isFetching = false;
+
+    const pollInterval = window.setInterval(async () => {
+      if (isFetching) return;
+      isFetching = true;
+
+      try {
+        const start = new Date(baseDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(baseDate);
+        end.setDate(end.getDate() + viewDaysCount);
+        end.setHours(23, 59, 59, 999);
+
+        const res = await fetchPublicAvailabilityAction(start.toISOString(), end.toISOString());
+        if (active && res.success && res.slots) {
+          setLocalItems(res.slots.map(toPublicCalendarItem));
+        }
+      } catch (err) {
+        console.error("Anonymous polling error:", err);
+      } finally {
+        isFetching = false;
+      }
+    }, 30_000);
+
+    return () => {
+      active = false;
+      window.clearInterval(pollInterval);
+    };
+  }, [currentUser, baseDate, viewDaysCount]);
 
   const todayStr = useMemo(() => getLocalDateString(new Date()), []);
   const maxAllowedDateObj = useMemo(() => {
@@ -363,15 +427,21 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
     const targetStart = new Date(startIso).getTime();
     const targetEnd = new Date(endIso).getTime();
     
-    return localBookings.some((booking) => {
-      if (booking.id === excludeId) return false;
-      if (booking.courtId !== courtId) return false;
-      if (booking.status === "cancelled") return false;
-      const bStart = new Date(booking.start).getTime();
-      const bEnd = new Date(booking.end).getTime();
-      
-      // Overlap condition
-      return targetStart < bEnd && targetEnd > bStart;
+    return localItems.some((item) => {
+      if (item.kind === "booking") {
+        const booking = item.booking;
+        if (booking.id === excludeId) return false;
+        if (booking.courtId !== courtId) return false;
+        if (booking.status === "cancelled") return false;
+        const bStart = new Date(booking.start).getTime();
+        const bEnd = new Date(booking.end).getTime();
+        return targetStart < bEnd && targetEnd > bStart;
+      } else {
+        if (item.courtId !== courtId) return false;
+        const bStart = new Date(item.start).getTime();
+        const bEnd = new Date(item.end).getTime();
+        return targetStart < bEnd && targetEnd > bStart;
+      }
     });
   };
 
@@ -428,7 +498,7 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
 
     if (res.success && res.booking) {
       playTennisHitSound();
-      setLocalBookings((prev) => [...prev, res.booking as Booking]);
+      setLocalItems((prev) => [...prev, { kind: "booking", booking: res.booking as Booking }]);
       setIsModalOpen(false);
       setSelectedSlot(null);
     } else {
@@ -454,7 +524,7 @@ export default function BookingCalendar({ courts, bookings, currentUser }: Booki
     setIsLoading(false);
     
     if (res.success) {
-      setLocalBookings((prev) => prev.filter((b) => b.id !== id));
+      setLocalItems((prev) => prev.filter((item) => item.kind !== "booking" || item.booking.id !== id));
     } else {
       setConfirmModal({ isOpen: true, isError: true, message: res.error || "Nepodarilo sa zrušiť rezerváciu v Google kalendári." });
     }
@@ -496,10 +566,10 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
 };
 
   // Get position style for booking on the horizontal timeline
-  const getBookingStyle = (booking: Booking, dateStr: string) => {
-    const startParts = getSlovakiaTimeParts(booking.start);
-    const start = new Date(booking.start);
-    const end = new Date(booking.end);
+  const getBookingStyle = (item: { start: string; end: string }, dateStr: string) => {
+    const startParts = getSlovakiaTimeParts(item.start);
+    const start = new Date(item.start);
+    const end = new Date(item.end);
 
     const totalMinutes = (openingHours.endHour - openingHours.startHour) * 60;
     
@@ -807,11 +877,14 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
             const dateString = getLocalDateString(date);
             const isToday = getLocalDateString(new Date()) === dateString;
             
-            // Filter bookings for this date and sport
-            const dateBookings = localBookings.filter((b) => {
-              const bookingDateStr = getLocalDateString(new Date(b.start));
-              const courtObj = courts.find((c) => c.id === b.courtId);
-              return bookingDateStr === dateString && courtObj?.sport === selectedSport && b.status !== "cancelled";
+            // Filter items for this date and sport
+            const dateItems = localItems.filter((item) => {
+              const startStr = item.kind === "booking" ? item.booking.start : item.start;
+              const courtId = item.kind === "booking" ? item.booking.courtId : item.courtId;
+              const isCancelled = item.kind === "booking" && item.booking.status === "cancelled";
+              const bookingDateStr = getLocalDateString(new Date(startStr));
+              const courtObj = courts.find((c) => c.id === courtId);
+              return bookingDateStr === dateString && courtObj?.sport === selectedSport && !isCancelled;
             });
 
             return (
@@ -887,8 +960,8 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                     {/* Court Rows */}
                     <div className="divide-y divide-white/[0.03]">
                       {visibleCourts.map((court) => {
-                        // Filter bookings for this specific court on this date
-                        const courtBookings = dateBookings.filter((b) => b.courtId === court.id);
+                        // Filter items for this specific court on this date
+                        const courtItems = dateItems.filter((item) => (item.kind === "booking" ? item.booking.courtId : item.courtId) === court.id);
 
                         return (
                           <div 
@@ -991,12 +1064,51 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                 })}
                               </div>
 
-
-
                               {/* Bookings cards overlay */}
                               <div className={`absolute inset-x-0 ${isCompact ? "inset-y-1" : "inset-y-2"} pointer-events-none`}>
                                 <div className="relative w-full h-full">
-                                  {courtBookings.map((booking) => {
+                                  {courtItems.map((item) => {
+                                    if (item.kind === "public-occupied") {
+                                      const style = getBookingStyle(item, dateString);
+                                      const startParts = getSlovakiaTimeParts(item.start);
+                                      const endParts = getSlovakiaTimeParts(item.end);
+                                      const startTimeStr = `${String(startParts.hour).padStart(2, "0")}:${String(startParts.minute).padStart(2, "0")}`;
+                                      const endTimeStr = `${String(endParts.hour).padStart(2, "0")}:${String(endParts.minute).padStart(2, "0")}`;
+                                      const timeLabel = `${startTimeStr} - ${endTimeStr}`;
+
+                                      return (
+                                        <div
+                                          key={item.key}
+                                          onClick={() => {
+                                            // Explicitný návrat: žiadny detail ani management pre public slot
+                                            return;
+                                          }}
+                                          className={`absolute h-full rounded-xl pointer-events-auto flex items-center overflow-hidden transition-all ${isCompact ? 'px-0 justify-center' : 'px-2'} border border-slate-700/60 bg-slate-800/80 text-slate-300 shadow-md cursor-default`}
+                                          style={{
+                                            ...style,
+                                            left: `calc(${style.left} + 2px)`,
+                                            width: `calc(${style.width} - 4px)`
+                                          }}
+                                          title={`Obsadené: ${timeLabel}`}
+                                        >
+                                          <div className={`flex flex-col ${isCompact ? 'items-center justify-center w-full' : 'items-start'} leading-[1.2]`}>
+                                            <span className="text-[10px] font-bold font-mono select-none">
+                                              {startTimeStr}
+                                            </span>
+                                            <span className="text-[10px] font-bold font-mono select-none opacity-80">
+                                              {endTimeStr}
+                                            </span>
+                                            {!isCompact && (
+                                              <span className="text-[9px] uppercase font-bold text-slate-400 mt-0.5 select-none">
+                                                Obsadené
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+
+                                    const booking = item.booking;
                                     const style = getBookingStyle(booking, dateString);
                                     const meta = getBookingColor(booking);
                                     

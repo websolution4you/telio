@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import {
     validatePublicAvailabilityRange,
     mapPublicAvailabilityRows,
+    toPublicCalendarItem,
 } from "./lib/bookings/publicAvailability.ts";
 
 test("BEHAVIORAL: 1. Neplatný dátum je odmietnutý validáciou", () => {
@@ -150,6 +151,33 @@ test("BEHAVIORAL: 8. Sprísnený fail-closed mapper: neplatné timestampy, end_a
     assert.equal(slots[0].end, new Date("2026-11-01T10:00:00Z").toISOString());
 });
 
+test("BEHAVIORAL: 9. toPublicCalendarItem mapper: formát kľúča a ochrana pred únikom citlivých dát", () => {
+    const slot = {
+        courtId: "court-clay-1",
+        start: "2026-11-01T09:00:00.000Z",
+        end: "2026-11-01T10:00:00.000Z",
+        status: "occupied",
+    };
+
+    const item = toPublicCalendarItem(slot);
+    assert.equal(item.kind, "public-occupied");
+    assert.equal(item.key, "public:court-clay-1:2026-11-01T09:00:00.000Z:2026-11-01T10:00:00.000Z");
+    assert.equal(item.courtId, "court-clay-1");
+    assert.equal(item.start, slot.start);
+    assert.equal(item.end, slot.end);
+    assert.equal(item.status, "occupied");
+
+    const itemKeys = Object.keys(item).sort();
+    assert.deepEqual(itemKeys, ["courtId", "end", "key", "kind", "start", "status"]);
+
+    // Overenie, že položka neobsahuje žiadne interné booking identifikátory ani osobné údaje
+    assert.equal(item.id, undefined);
+    assert.equal(item.userId, undefined);
+    assert.equal(item.customerName, undefined);
+    assert.equal(item.priceEur, undefined);
+    assert.equal(item.booking, undefined);
+});
+
 // 2. SOURCE-CONTRACT TEST: statická overovacia kontrola zdrojového kódu app/actions/bookings.ts
 test("SOURCE-CONTRACT: fetchPublicAvailabilityAction query contract & zero-leakage check", () => {
     const __filename = fileURLToPath(import.meta.url);
@@ -207,4 +235,267 @@ test("SOURCE-CONTRACT: fetchPublicAvailabilityAction query contract & zero-leaka
             `Forbidden pattern '${forbidden}' was detected in fetchPublicAvailabilityAction body!`
         );
     }
+});
+
+// 3. SOURCE-CONTRACT TEST: overenie ochrany fetchBookingsAction (session guard pred DB)
+test("SOURCE-CONTRACT: fetchBookingsAction session guard order before DB call within isolated function body", () => {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const bookingsActionPath = path.join(__dirname, "app", "actions", "bookings.ts");
+    const sourceContent = fs.readFileSync(bookingsActionPath, "utf-8");
+
+    const actionIndex = sourceContent.indexOf("export async function fetchBookingsAction");
+    assert.ok(actionIndex > -1, "fetchBookingsAction must exist in app/actions/bookings.ts");
+
+    // Jednoznačné ohraničenie konca funkcie podľa začiatku nasledujúcej exportovanej server action
+    const nextActionIndex = sourceContent.indexOf("export async function fetchPublicAvailabilityAction", actionIndex);
+    assert.ok(nextActionIndex > actionIndex, "fetchPublicAvailabilityAction must follow fetchBookingsAction");
+
+    const isolatedBody = sourceContent.slice(actionIndex, nextActionIndex);
+
+    assert.ok(isolatedBody.includes("await getSession()"), "isolatedBody must contain await getSession()");
+    assert.ok(isolatedBody.includes("!session || !session.userId"), "isolatedBody must verify !session || !session.userId");
+    assert.ok(isolatedBody.includes('code: "UNAUTHORIZED"'), "isolatedBody must return UNAUTHORIZED");
+
+    const sessionCheckPos = isolatedBody.indexOf("await getSession()");
+    const unauthorizedPos = isolatedBody.indexOf('code: "UNAUTHORIZED"');
+    const getCoreServiceDbPos = isolatedBody.indexOf("getCoreServiceDb()");
+    const fromBookingsPos = isolatedBody.indexOf('.from("bookings")');
+
+    assert.ok(unauthorizedPos > sessionCheckPos, "UNAUTHORIZED check must follow getSession()");
+    assert.ok(getCoreServiceDbPos > unauthorizedPos, "getCoreServiceDb() must be strictly after UNAUTHORIZED return");
+    assert.ok(fromBookingsPos > unauthorizedPos, ".from(\"bookings\") must be strictly after UNAUTHORIZED return");
+});
+
+// 4. SOURCE-CONTRACT TEST: Rekurzívny scan repozitára pre volania fetchBookingsAction
+test("SOURCE-CONTRACT: Recursive repository scan for fetchBookingsAction call sites", () => {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+
+    const directoriesToScan = [
+        path.join(__dirname, "app"),
+        path.join(__dirname, "components"),
+        path.join(__dirname, "lib"),
+    ];
+
+    function getAllFiles(dirPath, arrayOfFiles = []) {
+        const files = fs.readdirSync(dirPath);
+        for (const file of files) {
+            const fullPath = path.join(dirPath, file);
+            if (fs.statSync(fullPath).isDirectory()) {
+                getAllFiles(fullPath, arrayOfFiles);
+            } else if (file.endsWith(".ts") || file.endsWith(".tsx") || file.endsWith(".js") || file.endsWith(".mjs")) {
+                arrayOfFiles.push(fullPath);
+            }
+        }
+        return arrayOfFiles;
+    }
+
+    const allSourceFiles = directoriesToScan.flatMap((dir) => getAllFiles(dir));
+    const foundCallSites = [];
+
+    for (const filePath of allSourceFiles) {
+        const relPath = path.relative(__dirname, filePath).replace(/\\/g, "/");
+        const content = fs.readFileSync(filePath, "utf-8");
+
+        const lines = content.split("\n");
+        lines.forEach((line, index) => {
+            if (line.includes("fetchBookingsAction(") && !line.includes("export async function fetchBookingsAction") && !line.trim().startsWith("//")) {
+                foundCallSites.push({ file: relPath, line: index + 1, content: line.trim() });
+            }
+        });
+    }
+
+    // Očakávané presné produkčné call sites:
+    const expectedFiles = [
+        "app/newbookings/page.tsx",
+        "app/bookings/page.tsx",
+        "components/newbookings/NewBookingsCalendar.tsx",
+        "components/bookings/BookingCalendar.tsx",
+    ];
+
+    const actualFilesWithCalls = Array.from(new Set(foundCallSites.map((c) => c.file))).sort();
+    assert.deepEqual(actualFilesWithCalls, expectedFiles.sort(), "All call sites of fetchBookingsAction must match expected inventory");
+    assert.equal(foundCallSites.length, 5, "Expected exactly 5 call sites across official application");
+});
+
+// 5. SOURCE-CONTRACT TEST: Podrobné kontroly jednotlivých call sites a komponentov (a až h)
+test("SOURCE-CONTRACT: Call site isolation and branch contracts (a-h)", () => {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+
+    // a) app/newbookings/page.tsx
+    const newBookingsPage = fs.readFileSync(path.join(__dirname, "app/newbookings/page.tsx"), "utf-8");
+    assert.ok(newBookingsPage.includes("session?.userId"), "app/newbookings/page.tsx must branch on session?.userId");
+    assert.ok(newBookingsPage.includes("fetchPublicAvailabilityAction"), "app/newbookings/page.tsx must call fetchPublicAvailabilityAction");
+    assert.equal(newBookingsPage.includes("bookingsOrAvailRes as"), false, "Must not contain bookingsOrAvailRes as");
+    assert.equal(newBookingsPage.includes("as { success: boolean; bookings"), false, "Must not contain unsafe assertion for bookings");
+    assert.equal(newBookingsPage.includes("as { success: boolean; slots"), false, "Must not contain unsafe assertion for slots");
+
+    // b) app/bookings/page.tsx
+    const bookingsPage = fs.readFileSync(path.join(__dirname, "app/bookings/page.tsx"), "utf-8");
+    assert.ok(bookingsPage.includes("session?.userId"), "app/bookings/page.tsx must branch on session?.userId");
+    assert.ok(bookingsPage.includes("fetchPublicAvailabilityAction"), "app/bookings/page.tsx must call fetchPublicAvailabilityAction");
+    assert.ok(bookingsPage.includes("fetchBookingsAction"), "app/bookings/page.tsx must call fetchBookingsAction");
+
+    // c) NewBookingsCalendar authenticated load
+    const newCal = fs.readFileSync(path.join(__dirname, "components/newbookings/NewBookingsCalendar.tsx"), "utf-8");
+    const loadIndex = newCal.indexOf("async function load()");
+    assert.ok(loadIndex > -1);
+    const loadSlice = newCal.slice(loadIndex, loadIndex + 2500);
+    assert.ok(loadSlice.includes("fetchPublicAvailabilityAction"), "load() must call fetchPublicAvailabilityAction in anonymous branch");
+    assert.ok(loadSlice.includes("fetchBookingsAction"), "load() must call fetchBookingsAction in authenticated branch");
+    assert.ok(loadSlice.includes('if (item.kind === "booking")'), "load() must filter only item.kind === booking during authenticated merge");
+    assert.equal(loadSlice.includes('item.kind === "public-occupied" ? item.key : item.booking.id'), false, "load() must not keep public-occupied items in authenticated merge");
+
+    // d) NewBookingsCalendar anonymous polling
+    const anonPollIndex = newCal.indexOf("Safe background polling for anonymous visitors");
+    assert.ok(anonPollIndex > -1);
+    const anonPollSlice = newCal.slice(anonPollIndex, anonPollIndex + 1200);
+    assert.ok(anonPollSlice.includes("if (currentUser) return;"), "Anonymous polling must guard with if (currentUser) return;");
+    assert.ok(anonPollSlice.includes("fetchPublicAvailabilityAction"), "Anonymous polling must call fetchPublicAvailabilityAction");
+    assert.equal(anonPollSlice.includes("fetchBookingsAction"), false, "Anonymous polling must NEVER call fetchBookingsAction");
+    assert.ok(anonPollSlice.includes("30_000"), "Anonymous polling interval must be 30 seconds");
+    assert.ok(anonPollSlice.includes("isFetching"), "Anonymous polling must guard against request overlap");
+    assert.ok(anonPollSlice.includes("clearInterval"), "Anonymous polling must clear interval on unmount");
+
+    // e) NewBookingsCalendar Realtime & authenticated polling lifecycle contract (source-contract, nie behaviorálny concurrency test)
+    const realtimeMarker = "1. Supabase Realtime WebSocket listener";
+    const realtimeMarkerIdx = newCal.indexOf(realtimeMarker);
+    assert.ok(realtimeMarkerIdx > -1, "Realtime listener marker must exist");
+    const effectStartIdx = newCal.lastIndexOf("useEffect(() => {", realtimeMarkerIdx);
+    const anonPollStartIdx = newCal.indexOf("Safe background polling for anonymous visitors", realtimeMarkerIdx);
+    assert.ok(effectStartIdx > -1 && anonPollStartIdx > effectStartIdx, "Must isolate authenticated Realtime/polling useEffect");
+
+    const isolatedAuthRealtimeEffect = newCal.slice(effectStartIdx, anonPollStartIdx);
+
+    const guardMatch = isolatedAuthRealtimeEffect.match(/if\s*\(!currentUser\)\s*\{\s*return;\s*\}/);
+    assert.ok(guardMatch, "Authenticated Realtime/polling effect must guard with if (!currentUser) { return; }");
+    const guardEndPos = guardMatch.index + guardMatch[0].length;
+
+    const firstChannelPos = isolatedAuthRealtimeEffect.indexOf('supabase.channel("newbookings-realtime")');
+    const walletChannelPos = isolatedAuthRealtimeEffect.indexOf('supabase.channel("wallets-realtime")');
+    const pollIntervalPos = isolatedAuthRealtimeEffect.indexOf("const pollInterval = window.setInterval");
+    const cleanupReturnPos = isolatedAuthRealtimeEffect.indexOf("return () => {");
+
+    assert.ok(firstChannelPos > guardEndPos, "if (!currentUser) return must be before channels");
+
+    const activeDeclPos = isolatedAuthRealtimeEffect.indexOf("let active = true;");
+    assert.ok(activeDeclPos > guardEndPos && activeDeclPos < firstChannelPos, "let active = true; must exist right after !currentUser guard and before channels");
+
+    // Cleanup ordering
+    assert.ok(cleanupReturnPos > pollIntervalPos, "Cleanup return must exist at the end of effect");
+    const cleanupSlice = isolatedAuthRealtimeEffect.slice(cleanupReturnPos);
+    const activeFalsePos = cleanupSlice.indexOf("active = false;");
+    const removeChannel1Pos = cleanupSlice.indexOf("supabase.removeChannel(channel)");
+    const removeChannel2Pos = cleanupSlice.indexOf("supabase.removeChannel(walletChannel)");
+    const clearIntervalPos = cleanupSlice.indexOf("window.clearInterval(pollInterval)");
+    const clearTimersPos = cleanupSlice.indexOf("timers.forEach");
+
+    assert.ok(activeFalsePos > -1, "Cleanup must set active = false;");
+    assert.ok(activeFalsePos < removeChannel1Pos, "active = false must be before removeChannel(channel)");
+    assert.ok(activeFalsePos < removeChannel2Pos, "active = false must be before removeChannel(walletChannel)");
+    assert.ok(activeFalsePos < clearIntervalPos, "active = false must be before clearInterval(pollInterval)");
+    assert.ok(activeFalsePos < clearTimersPos, "active = false must be before timer cleanup");
+
+    // Bookings Realtime callback check
+    const bookingsCallbackSlice = isolatedAuthRealtimeEffect.slice(firstChannelPos, walletChannelPos);
+    const bookingsPayloadIdx = bookingsCallbackSlice.indexOf("(payload) => {");
+    assert.ok(bookingsPayloadIdx > -1, "Bookings realtime callback must exist");
+    const afterBookingsPayload = bookingsCallbackSlice.slice(bookingsPayloadIdx, bookingsPayloadIdx + 120);
+    assert.match(afterBookingsPayload, /\(payload\)\s*=>\s*\{\s*if\s*\(!active\)\s*return;/, "Bookings Realtime callback must start with if (!active) return;");
+
+    // Wallets Realtime callback check
+    const walletsCallbackSlice = isolatedAuthRealtimeEffect.slice(walletChannelPos, pollIntervalPos);
+    const walletsPayloadIdx = walletsCallbackSlice.indexOf("(payload) => {");
+    assert.ok(walletsPayloadIdx > -1, "Wallets realtime callback must exist");
+    const afterWalletsPayload = walletsCallbackSlice.slice(walletsPayloadIdx, walletsPayloadIdx + 120);
+    assert.match(afterWalletsPayload, /\(payload\)\s*=>\s*\{\s*if\s*\(!active\)\s*return;/, "Wallets Realtime callback must start with if (!active) return;");
+
+    // Authenticated 3.5s polling check
+    const pollSlice = isolatedAuthRealtimeEffect.slice(pollIntervalPos, cleanupReturnPos);
+    assert.match(pollSlice, /setInterval\(async\s*\(\)\s*=>\s*\{\s*if\s*\(!active\)\s*return;/, "Polling callback must check if (!active) return; before starting request");
+
+    const awaitFetchIdx = pollSlice.indexOf("await fetchBookingsAction(");
+    assert.ok(awaitFetchIdx > -1, "Polling must await fetchBookingsAction");
+    const afterAwaitFetch = pollSlice.slice(awaitFetchIdx, awaitFetchIdx + 180);
+    assert.match(afterAwaitFetch, /await fetchBookingsAction\([\s\S]+?\);\s*if\s*\(!active\)\s*return;/, "Polling must check if (!active) return; immediately after await fetchBookingsAction");
+
+    const afterAwaitActiveGuardPos = pollSlice.indexOf("if (!active) return;", awaitFetchIdx);
+    const pollSetItemsPos = pollSlice.indexOf("setItems(", awaitFetchIdx);
+    const pollKnownIdsPos = pollSlice.indexOf("knownBookingIds.current.add", awaitFetchIdx);
+    const pollPlaySoundPos = pollSlice.indexOf("playTennisHitSound()", awaitFetchIdx);
+    const pollHighlightPos = pollSlice.indexOf("setHighlightedVoiceBookings(", awaitFetchIdx);
+
+    assert.ok(afterAwaitActiveGuardPos < pollSetItemsPos, "Delayed polling result must be blocked by if (!active) return before setItems");
+    assert.ok(afterAwaitActiveGuardPos < pollKnownIdsPos, "Delayed polling result must be blocked before knownBookingIds update");
+    assert.ok(afterAwaitActiveGuardPos < pollPlaySoundPos, "Delayed polling result must be blocked before playTennisHitSound");
+    assert.ok(afterAwaitActiveGuardPos < pollHighlightPos, "Delayed polling result must be blocked before setHighlightedVoiceBookings");
+
+    // Wallet async callbacks check inside authenticated effect
+    const walletThenMatches = [...isolatedAuthRealtimeEffect.matchAll(/getWalletAction\(\)\.then\(\([a-zA-Z0-9_]+\)\s*=>\s*\{\s*if\s*\(!active\)\s*return;/g)];
+    const totalWalletThens = [...isolatedAuthRealtimeEffect.matchAll(/getWalletAction\(\)\.then\(/g)];
+    assert.equal(totalWalletThens.length, 2, "Expected 2 getWalletAction().then(...) calls in authenticated effect");
+    assert.equal(walletThenMatches.length, 2, "All getWalletAction().then(...) callbacks in authenticated effect must guard with if (!active) return; before state updates");
+
+    // f & g) BookingCalendar load and anonymous polling
+    const bookCal = fs.readFileSync(path.join(__dirname, "components/bookings/BookingCalendar.tsx"), "utf-8");
+    const bookLoadIndex = bookCal.indexOf("async function loadLiveData()");
+    assert.ok(bookLoadIndex > -1);
+    const bookLoadSlice = bookCal.slice(bookLoadIndex, bookLoadIndex + 1000);
+    assert.ok(bookLoadSlice.includes("fetchPublicAvailabilityAction"), "BookingCalendar loadLiveData must call fetchPublicAvailabilityAction for anonymous");
+    assert.ok(bookLoadSlice.includes("fetchBookingsAction"), "BookingCalendar loadLiveData must call fetchBookingsAction for authenticated");
+
+    const bookAnonPollIndex = bookCal.indexOf("Bezpečný polling pre anonymného návštevníka každých 30 sekúnd");
+    assert.ok(bookAnonPollIndex > -1);
+    const bookAnonPollSlice = bookCal.slice(bookAnonPollIndex, bookAnonPollIndex + 1200);
+    assert.ok(bookAnonPollSlice.includes("if (currentUser) return;"), "BookingCalendar polling must return if currentUser");
+    assert.ok(bookAnonPollSlice.includes("fetchPublicAvailabilityAction"), "BookingCalendar polling must call fetchPublicAvailabilityAction");
+    assert.equal(bookAnonPollSlice.includes("fetchBookingsAction"), false, "BookingCalendar polling must not call fetchBookingsAction");
+    assert.ok(bookAnonPollSlice.includes("30_000"), "BookingCalendar polling must be 30 seconds");
+    assert.ok(bookAnonPollSlice.includes("isFetching"), "BookingCalendar polling must guard against request overlap");
+    assert.ok(bookAnonPollSlice.includes("clearInterval"), "BookingCalendar polling must clear interval on unmount");
+
+    // h) BookingCalendar Realtime guard
+    const bookRealtimeIndex = bookCal.indexOf('channel("bookings-realtime")');
+    assert.ok(bookRealtimeIndex > -1);
+    const beforeBookRealtime = bookCal.slice(bookRealtimeIndex - 200, bookRealtimeIndex);
+    assert.match(beforeBookRealtime, /if\s*\(!currentUser\)\s*\{\s*return;\s*\}/, "BookingCalendar Realtime must return if !currentUser before channel");
+});
+
+// 6. SOURCE-CONTRACT TEST: Ochrana public slotov pred management akciami
+test("SOURCE-CONTRACT: Protection of public slots against management actions in calendar rendering", () => {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+
+    const newCal = fs.readFileSync(path.join(__dirname, "components/newbookings/NewBookingsCalendar.tsx"), "utf-8");
+    const bookCal = fs.readFileSync(path.join(__dirname, "components/bookings/BookingCalendar.tsx"), "utf-8");
+
+    // V NewBookingsCalendar: nájdi render vetvu v JSX pre item.kind === "public-occupied"
+    const newCalRenderMarker = 'dayBookings.filter((item) => (item.kind === "public-occupied"';
+    const markerIdx = newCal.indexOf(newCalRenderMarker);
+    assert.ok(markerIdx > -1, "Marker for calendar items rendering must exist in NewBookingsCalendar");
+    const newCalPublicRenderIdx = newCal.indexOf('if (item.kind === "public-occupied")', markerIdx);
+    assert.ok(newCalPublicRenderIdx > -1, "NewBookingsCalendar must have explicit item.kind === 'public-occupied' check in render");
+    const newCalPrivateRenderIdx = newCal.indexOf('const booking = item.booking;', newCalPublicRenderIdx);
+    assert.ok(newCalPrivateRenderIdx > newCalPublicRenderIdx, "Private booking render must follow public render");
+
+    const newCalPublicBranch = newCal.slice(newCalPublicRenderIdx, newCalPrivateRenderIdx);
+    assert.equal(newCalPublicBranch.includes("deleteBookingAction"), false);
+    assert.equal(newCalPublicBranch.includes("rescheduleBookingAction"), false);
+    assert.equal(newCalPublicBranch.includes("setDetail("), false);
+    assert.equal(newCalPublicBranch.includes("setDeleting("), false);
+    assert.equal(newCalPublicBranch.includes("booking.id"), false);
+
+    // V BookingCalendar: nájdi render vetvu pre item.kind === "public-occupied"
+    const bookCalPublicRenderIdx = bookCal.indexOf('if (item.kind === "public-occupied")');
+    assert.ok(bookCalPublicRenderIdx > -1, "BookingCalendar must have explicit item.kind === 'public-occupied' check");
+    const bookCalPrivateRenderIdx = bookCal.indexOf('const booking = item.booking;', bookCalPublicRenderIdx);
+    assert.ok(bookCalPrivateRenderIdx > bookCalPublicRenderIdx, "Private booking render must follow public render");
+
+    const bookCalPublicBranch = bookCal.slice(bookCalPublicRenderIdx, bookCalPrivateRenderIdx);
+    assert.equal(bookCalPublicBranch.includes("deleteBookingAction"), false);
+    assert.equal(bookCalPublicBranch.includes("setInfoModalBooking("), false);
+    assert.equal(bookCalPublicBranch.includes("setConfirmModal("), false);
+    assert.equal(bookCalPublicBranch.includes("booking.id"), false);
 });

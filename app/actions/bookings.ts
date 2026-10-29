@@ -114,6 +114,15 @@ function parseGCalEvent(event: any) {
 
 export async function fetchBookingsAction(startDateIso: string, endDateIso: string) {
     try {
+        const session = await getSession();
+        if (!session || !session.userId) {
+            return {
+                success: false,
+                code: "UNAUTHORIZED",
+                error: "Pre načítanie detailov rezervácií sa musíte prihlásiť.",
+            };
+        }
+
         const db = getCoreServiceDb();
         
         console.log(`Fetching bookings from Supabase for NTC Tenant: ${TENANT_ID} from ${startDateIso} to ${endDateIso}`);

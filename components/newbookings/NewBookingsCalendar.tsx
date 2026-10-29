@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, CalendarDays, CalendarSync, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Palette, Plus, Receipt, Repeat, Settings, ShieldCheck, Sparkles, UserPlus, Users, X } from "lucide-react";
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { ThreeDChartIcon, ThreeDSettingsIcon, ThreeDUserAvatarIcon } from "@/components/icons/ThreeDNavIcons";
-import { createBookingAction, createRecurringBookingAction, deleteBookingAction, fetchBookingsAction, rescheduleBookingAction } from "@/app/actions/bookings";
+import { createBookingAction, createRecurringBookingAction, deleteBookingAction, fetchBookingsAction, fetchPublicAvailabilityAction, rescheduleBookingAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
 import { createWalletCardPayAction, createWalletCheckoutAction, getWalletAction, reconcileWalletCardPayAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
 
@@ -22,6 +22,10 @@ import {
   type AdminReservationCategory,
   DEFAULT_ADMIN_CATEGORIES,
 } from "@/lib/bookings/categoryTypes";
+import {
+  type CalendarItem,
+  toPublicCalendarItem,
+} from "@/lib/bookings/publicAvailability";
 
 import HolographicTennisCourt from "./HolographicTennisCourt";
 import NewBookingsHeader from "./NewBookingsHeader";
@@ -30,7 +34,7 @@ import { BookingDetailDialog, CreateBookingDialog, DeleteDialog, RescheduleConfi
 
 type Props = {
   courts: Court[];
-  initialBookings: Booking[];
+  initialItems: CalendarItem[];
   initialCategories?: AdminReservationCategory[];
   currentUser: BookingUser | null;
   rolePolicy: RoleBookingPolicy | null;
@@ -237,7 +241,7 @@ function playTennisHitSound() {
 
 export default function NewBookingsCalendar({
   courts,
-  initialBookings,
+  initialItems,
   initialCategories,
   currentUser: initialCurrentUser,
   rolePolicy: initialRolePolicy,
@@ -270,11 +274,30 @@ export default function NewBookingsCalendar({
     setRolePolicy(initialRolePolicy);
   }, [initialRolePolicy]);
 
+  // Bezpečný prechod z prihláseného do anonymného stavu:
+  // Okamžite odstránime súkromné booking objekty a resetujeme management stavy
+  useEffect(() => {
+    if (!currentUser) {
+      setItems((prev) => {
+        const hasPrivate = prev.some((i) => i.kind === "booking");
+        if (!hasPrivate) return prev;
+        return prev.filter((i) => i.kind === "public-occupied");
+      });
+      setDetail(null);
+      setDeleting(null);
+      setReschedulingBooking(null);
+      setRescheduleSlot(null);
+      setSeriesOverviewGroupId(null);
+      setSlot(null);
+      setNotice("");
+    }
+  }, [currentUser]);
+
   const [sport, setSport] = useState<SportType>("badminton");
   const [date, setDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"day" | "week">("day");
   const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [items, setItems] = useState(initialBookings);
+  const [items, setItems] = useState<CalendarItem[]>(() => initialItems);
   const [reload, setReload] = useState(0);
   const [loading, setLoading] = useState(false);
 
@@ -378,7 +401,13 @@ export default function NewBookingsCalendar({
   const [now, setNow] = useState(() => new Date());
   const [highlightedVoiceBookings, setHighlightedVoiceBookings] = useState<string[]>([]);
   const handledRecurringSoundGroups = useRef(new Set<string>());
-  const knownBookingIds = useRef<Set<string>>(new Set(initialBookings.map((b) => b.id)));
+  const knownBookingIds = useRef<Set<string>>(
+    new Set(
+      initialItems
+        .filter((i): i is import("@/lib/bookings/publicAvailability").PrivateBookingItem => i.kind === "booking")
+        .map((i) => i.booking.id)
+    )
+  );
   const today = useMemo(() => { const value = new Date(); value.setHours(0, 0, 0, 0); return value; }, []);
   const bookingHorizonDays = rolePolicy?.bookingHorizonDays ?? 14;
   const maxDate = useMemo(() => {
@@ -619,6 +648,28 @@ export default function NewBookingsCalendar({
   useEffect(() => {
     let active = true;
     async function load() {
+      if (!currentUser) {
+        // Pre anonymného návštevníka voláme výhradne fetchPublicAvailabilityAction
+        // Rozsah: date až date + (viewMode === 'week' ? 7 : 1) dní, neprekračuje 14 dní
+        const start = new Date(date);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(date);
+        if (viewMode === "week") {
+          end.setDate(end.getDate() + 7);
+        } else {
+          end.setDate(end.getDate() + 1);
+        }
+        end.setHours(23, 59, 59, 999);
+
+        const result = await fetchPublicAvailabilityAction(start.toISOString(), end.toISOString());
+        if (active && result.success && result.slots) {
+          const publicItems = result.slots.map(toPublicCalendarItem);
+          setItems(publicItems);
+        }
+        if (active) setLoading(false);
+        return;
+      }
+
       // Prefetch a window around `date` (-14 to +28 days) so navigating days/weeks is INSTANT!
       const start = new Date(date);
       start.setDate(start.getDate() - 14);
@@ -634,9 +685,14 @@ export default function NewBookingsCalendar({
           knownBookingIds.current.add(b.id);
         }
         setItems((prev) => {
-          const freshMap = new Map(prev.map((b) => [b.id, b]));
+          const freshMap = new Map<string, CalendarItem>();
+          for (const item of prev) {
+            if (item.kind === "booking") {
+              freshMap.set(item.booking.id, item);
+            }
+          }
           for (const b of fetched) {
-            freshMap.set(b.id, b);
+            freshMap.set(b.id, { kind: "booking", booking: b });
           }
           return Array.from(freshMap.values());
         });
@@ -645,15 +701,23 @@ export default function NewBookingsCalendar({
     }
     load();
     return () => { active = false; };
-  }, [date, reload]);
+  }, [date, reload, currentUser, viewMode]);
 
   useEffect(() => {
+    if (!currentUser) {
+      return;
+    }
+
+    let active = true;
     const timers = voiceHighlightTimers.current;
 
     // 1. Supabase Realtime WebSocket listener (instant 0ms response when event arrives)
     const channel = supabase.channel("newbookings-realtime").on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, (payload) => {
+      if (!active) return;
+
       if (currentUser && currentUser.role !== "admin") {
         getWalletAction().then((res) => {
+          if (!active) return;
           if (res.success && res.enabled) {
             setWalletBalance(res.balanceEur);
           }
@@ -689,8 +753,8 @@ export default function NewBookingsCalendar({
         };
 
         setItems((current) => {
-          const filtered = current.filter((b) => b.id !== mappedBooking.id);
-          return [...filtered, mappedBooking];
+          const filtered = current.filter((item) => (item.kind === "booking" ? item.booking.id !== mappedBooking.id : true));
+          return [...filtered, { kind: "booking", booking: mappedBooking }];
         });
 
         // If booking was already handled by our own submit action, skip sound and re-animation
@@ -718,6 +782,7 @@ export default function NewBookingsCalendar({
           const existingTimer = timers.get(bookingId);
           if (existingTimer) window.clearTimeout(existingTimer);
           const timer = window.setTimeout(() => {
+            if (!active) return;
             setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
             timers.delete(bookingId);
           }, 4500);
@@ -726,34 +791,45 @@ export default function NewBookingsCalendar({
       } else if (payload.eventType === "DELETE") {
         const oldId = (payload.old as any)?.id;
         if (oldId) {
-          setItems((current) => current.filter((b) => b.id !== oldId));
+          setItems((current) => current.filter((item) => (item.kind === "booking" ? item.booking.id !== oldId : true)));
         }
       } else if (payload.eventType === "UPDATE") {
         const updated = payload.new as any;
         if (updated?.id) {
           if (updated.status === "cancelled") {
-            setItems((current) => current.filter((b) => b.id !== updated.id));
+            setItems((current) => current.filter((item) => (item.kind === "booking" ? item.booking.id !== updated.id : true)));
           } else {
-            setItems((current) => current.map((b) => b.id === updated.id ? { ...b, status: updated.status } : b));
+            setItems((current) => current.map((item) => {
+              if (item.kind === "booking" && item.booking.id === updated.id) {
+                return { kind: "booking", booking: { ...item.booking, status: updated.status } };
+              }
+              return item;
+            }));
           }
         }
       }
     }).subscribe();
 
     const walletChannel = supabase.channel("wallets-realtime").on("postgres_changes", { event: "*", schema: "public", table: "wallets" }, (payload) => {
+      if (!active) return;
+
       if (currentUser && currentUser.role !== "admin") {
         const raw = payload.new as any;
         if (raw?.user_id === currentUser.id && raw?.balance_eur !== undefined) {
           setWalletBalance(Number(raw.balance_eur));
           setWalletHighlight(true);
-          setTimeout(() => setWalletHighlight(false), 3500);
+          setTimeout(() => {
+            if (!active) return;
+            setWalletHighlight(false);
+          }, 3500);
         }
       }
     }).subscribe();
 
-    // 2. Background Polling from Google Cloud SQL every 3.5s
+    // 2. Background Polling from Google Cloud SQL every 3.5s for logged-in users
     // Ensures real-time updates even when database writes bypass Supabase websockets
     const pollInterval = window.setInterval(async () => {
+      if (!active) return;
       const start = new Date(date); start.setHours(0, 0, 0, 0);
       const end = new Date(date);
       if (viewMode === "week") {
@@ -761,57 +837,68 @@ export default function NewBookingsCalendar({
       }
       end.setHours(23, 59, 59, 999);
       const result = await fetchBookingsAction(start.toISOString(), end.toISOString());
+      if (!active) return;
       if (!result.success || !result.bookings) return;
 
       const freshBookings = result.bookings as Booking[];
+      const newArrivals = freshBookings.filter(
+        (fb) => !knownBookingIds.current.has(fb.id) && fb.status !== "cancelled"
+      );
+
+      for (const fb of freshBookings) {
+        knownBookingIds.current.add(fb.id);
+      }
+
+      if (newArrivals.length > 0) {
+        const unplayedArrivals = newArrivals.filter((b) => {
+          if (b.recurringGroupId) {
+            if (handledRecurringSoundGroups.current.has(b.recurringGroupId)) return false;
+            handledRecurringSoundGroups.current.add(b.recurringGroupId);
+          }
+          return true;
+        });
+        if (unplayedArrivals.length > 0) {
+          playTennisHitSound();
+        }
+        for (const nb of newArrivals) {
+          const bookingId = nb.id;
+          const bKey = dateKey(new Date(nb.start));
+          const isVisibleNow = viewMode === "week"
+            ? bKey >= dateKey(date) && bKey <= dateKey(weekEndDate)
+            : bKey === dateKey(date);
+
+          if (isVisibleNow) {
+            setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
+            const existingTimer = timers.get(bookingId);
+            if (existingTimer) window.clearTimeout(existingTimer);
+            const timer = window.setTimeout(() => {
+              if (!active) return;
+              setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
+              timers.delete(bookingId);
+            }, 4500);
+            timers.set(bookingId, timer);
+          }
+        }
+      }
+
+      if (!active) return;
       setItems((prevItems) => {
-        const newArrivals = freshBookings.filter(
-          (fb) => !knownBookingIds.current.has(fb.id) && fb.status !== "cancelled"
-        );
-
-        for (const fb of freshBookings) {
-          knownBookingIds.current.add(fb.id);
-        }
-
-        if (newArrivals.length > 0) {
-          const unplayedArrivals = newArrivals.filter((b) => {
-            if (b.recurringGroupId) {
-              if (handledRecurringSoundGroups.current.has(b.recurringGroupId)) return false;
-              handledRecurringSoundGroups.current.add(b.recurringGroupId);
-            }
-            return true;
-          });
-          if (unplayedArrivals.length > 0) {
-            playTennisHitSound();
-          }
-          for (const nb of newArrivals) {
-            const bookingId = nb.id;
-            const bKey = dateKey(new Date(nb.start));
-            const isVisibleNow = viewMode === "week"
-              ? bKey >= dateKey(date) && bKey <= dateKey(weekEndDate)
-              : bKey === dateKey(date);
-
-            if (isVisibleNow) {
-              setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
-              const existingTimer = timers.get(bookingId);
-              if (existingTimer) window.clearTimeout(existingTimer);
-              const timer = window.setTimeout(() => {
-                setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
-                timers.delete(bookingId);
-              }, 4500);
-              timers.set(bookingId, timer);
-            }
+        if (!active) return prevItems;
+        const freshMap = new Map<string, CalendarItem>();
+        for (const item of prevItems) {
+          if (item.kind === "booking") {
+            freshMap.set(item.booking.id, item);
           }
         }
-        const freshMap = new Map(prevItems.map((b) => [b.id, b]));
         for (const fb of freshBookings) {
-          freshMap.set(fb.id, fb);
+          freshMap.set(fb.id, { kind: "booking", booking: fb });
         }
         return Array.from(freshMap.values());
       });
 
       if (currentUser && currentUser.role !== "admin") {
         getWalletAction().then((wRes) => {
+          if (!active) return;
           if (wRes.success && wRes.enabled && wRes.balanceEur !== undefined) {
             setWalletBalance(wRes.balanceEur);
           }
@@ -820,6 +907,7 @@ export default function NewBookingsCalendar({
     }, 3500);
 
     return () => {
+      active = false;
       supabase.removeChannel(channel);
       supabase.removeChannel(walletChannel);
       window.clearInterval(pollInterval);
@@ -829,6 +917,47 @@ export default function NewBookingsCalendar({
     };
   }, [currentUser, date, viewMode]);
 
+
+  // Safe background polling for anonymous visitors:
+  // Every 30s, calls fetchPublicAvailabilityAction only, unmount-safe, no overlaps.
+  useEffect(() => {
+    if (currentUser) return;
+
+    let active = true;
+    let isFetching = false;
+
+    const pollInterval = window.setInterval(async () => {
+      if (isFetching) return;
+      isFetching = true;
+
+      try {
+        const start = new Date(date);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(date);
+        if (viewMode === "week") {
+          end.setDate(end.getDate() + 7);
+        } else {
+          end.setDate(end.getDate() + 1);
+        }
+        end.setHours(23, 59, 59, 999);
+
+        const result = await fetchPublicAvailabilityAction(start.toISOString(), end.toISOString());
+        if (active && result.success && result.slots) {
+          const publicItems = result.slots.map(toPublicCalendarItem);
+          setItems(publicItems);
+        }
+      } catch (err) {
+        console.error("Anonymous polling error:", err);
+      } finally {
+        isFetching = false;
+      }
+    }, 30_000);
+
+    return () => {
+      active = false;
+      window.clearInterval(pollInterval);
+    };
+  }, [currentUser, date, viewMode]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30_000);
@@ -848,12 +977,19 @@ export default function NewBookingsCalendar({
   const getBookingsForDay = useCallback(
     (targetDate: Date) => {
       const targetKey = dateKey(targetDate);
-      return items.filter(
-        (booking) =>
-          booking.status !== "cancelled" &&
-          dateKey(new Date(booking.start)) === targetKey &&
-          courts.find((court) => court.id === booking.courtId)?.sport === sport
-      );
+      return items.filter((item) => {
+        if (item.kind === "public-occupied") {
+          return (
+            dateKey(new Date(item.start)) === targetKey &&
+            courts.find((court) => court.id === item.courtId)?.sport === sport
+          );
+        }
+        return (
+          item.booking.status !== "cancelled" &&
+          dateKey(new Date(item.booking.start)) === targetKey &&
+          courts.find((court) => court.id === item.booking.courtId)?.sport === sport
+        );
+      });
     },
     [items, courts, sport]
   );
@@ -967,19 +1103,52 @@ export default function NewBookingsCalendar({
   const getAvailableDurationOptions = (courtId: string, start: Date) => {
     if (currentUser?.role !== "admin" && rolePolicy && !rolePolicy.isActive) return [];
     const startDayKey = dateKey(start);
-    const dayBookings = items.filter(
-      (booking) =>
-        booking.status !== "cancelled" &&
-        dateKey(new Date(booking.start)) === startDayKey &&
-        courts.find((court) => court.id === booking.courtId)?.sport === sport
-    );
-    const courtBookings = dayBookings.filter((booking) => booking.courtId === courtId);
-    if (courtBookings.some((booking) => new Date(booking.start) <= start && new Date(booking.end) > start)) return [];
-    const nextBooking = courtBookings
-      .filter((booking) => new Date(booking.start) >= start)
-      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())[0];
-    const minutesUntilNextBooking = nextBooking
-      ? Math.floor((new Date(nextBooking.start).getTime() - start.getTime()) / 60000)
+    const dayItems = items.filter((item) => {
+      if (item.kind === "public-occupied") {
+        return (
+          dateKey(new Date(item.start)) === startDayKey &&
+          courts.find((court) => court.id === item.courtId)?.sport === sport
+        );
+      }
+      return (
+        item.booking.status !== "cancelled" &&
+        dateKey(new Date(item.booking.start)) === startDayKey &&
+        courts.find((court) => court.id === item.booking.courtId)?.sport === sport
+      );
+    });
+
+    const courtItems = dayItems.filter((item) => {
+      const cId = item.kind === "public-occupied" ? item.courtId : item.booking.courtId;
+      return cId === courtId;
+    });
+
+    if (
+      courtItems.some((item) => {
+        const itemStart = new Date(item.kind === "public-occupied" ? item.start : item.booking.start);
+        const itemEnd = new Date(item.kind === "public-occupied" ? item.end : item.booking.end);
+        return itemStart <= start && itemEnd > start;
+      })
+    ) {
+      return [];
+    }
+
+    const nextItem = courtItems
+      .filter((item) => {
+        const itemStart = new Date(item.kind === "public-occupied" ? item.start : item.booking.start);
+        return itemStart >= start;
+      })
+      .sort((a, b) => {
+        const aStart = new Date(a.kind === "public-occupied" ? a.start : a.booking.start).getTime();
+        const bStart = new Date(b.kind === "public-occupied" ? b.start : b.booking.start).getTime();
+        return aStart - bStart;
+      })[0];
+
+    const nextStart = nextItem
+      ? new Date(nextItem.kind === "public-occupied" ? nextItem.start : nextItem.booking.start)
+      : null;
+
+    const minutesUntilNextBooking = nextStart
+      ? Math.floor((nextStart.getTime() - start.getTime()) / 60000)
       : Number.POSITIVE_INFINITY;
     const maxAllowed = rolePolicy?.maxBookingDurationMinutes ?? (currentUser?.role === "admin" ? 720 : 120);
     const availableMinutes = Math.min(
@@ -1124,7 +1293,18 @@ export default function NewBookingsCalendar({
       setSlot({ courtId, date: new Date(targetDate), hour });
     }
   };
-  const hasConflict = (courtId: string, start: Date, end: Date) => items.some((booking) => booking.status !== "cancelled" && booking.courtId === courtId && start < new Date(booking.end) && end > new Date(booking.start));
+  const hasConflict = (courtId: string, start: Date, end: Date) =>
+    items.some((item) => {
+      if (item.kind === "public-occupied") {
+        return item.courtId === courtId && start < new Date(item.end) && end > new Date(item.start);
+      }
+      return (
+        item.booking.status !== "cancelled" &&
+        item.booking.courtId === courtId &&
+        start < new Date(item.booking.end) &&
+        end > new Date(item.booking.start)
+      );
+    });
 
   const getRescheduleSlotStatus = useCallback((courtId: string, hour: number, targetDate: Date = date) => {
     if (!reschedulingBooking) return null;
@@ -1147,9 +1327,24 @@ export default function NewBookingsCalendar({
 
     // Check conflicts (ignoring the booking being rescheduled itself)
     const targetDayKey = dateKey(targetDate);
-    const conflict = items.some(
-      (b) => b.status !== "cancelled" && b.id !== reschedulingBooking.id && b.courtId === courtId && dateKey(new Date(b.start)) === targetDayKey && start < new Date(b.end) && end > new Date(b.start)
-    );
+    const conflict = items.some((item) => {
+      if (item.kind === "public-occupied") {
+        return (
+          item.courtId === courtId &&
+          dateKey(new Date(item.start)) === targetDayKey &&
+          start < new Date(item.end) &&
+          end > new Date(item.start)
+        );
+      }
+      return (
+        item.booking.status !== "cancelled" &&
+        item.booking.id !== reschedulingBooking.id &&
+        item.booking.courtId === courtId &&
+        dateKey(new Date(item.booking.start)) === targetDayKey &&
+        start < new Date(item.booking.end) &&
+        end > new Date(item.booking.start)
+      );
+    });
     if (conflict) return { eligible: false, reason: "occupied" as const };
 
     // Check operating limits of court
@@ -1202,17 +1397,21 @@ export default function NewBookingsCalendar({
     }
 
     setItems((prev) =>
-      prev.map((b) =>
-        b.id === reschedulingBooking.id
-          ? {
-            ...b,
-            courtId: rescheduleSlot.courtId,
-            start: start.toISOString(),
-            end: end.toISOString(),
-            isRescheduled: true,
-          }
-          : b
-      )
+      prev.map((item) => {
+        if (item.kind === "booking" && item.booking.id === reschedulingBooking.id) {
+          return {
+            kind: "booking",
+            booking: {
+              ...item.booking,
+              courtId: rescheduleSlot.courtId,
+              start: start.toISOString(),
+              end: end.toISOString(),
+              isRescheduled: true,
+            },
+          };
+        }
+        return item;
+      })
     );
 
     playTennisHitSound();
@@ -1273,7 +1472,7 @@ export default function NewBookingsCalendar({
       for (const nb of newBookings) {
         knownBookingIds.current.add(nb.id);
       }
-      setItems((current) => [...current, ...newBookings]);
+      setItems((current) => [...current, ...newBookings.map((b) => ({ kind: "booking" as const, booking: b }))]);
       setSlot(null);
       setIsRecurring(false);
       setRepeatFrequency("weekly");
@@ -1345,7 +1544,7 @@ export default function NewBookingsCalendar({
     } as Booking;
     knownBookingIds.current.add(newBooking.id);
     playTennisHitSound();
-    setItems((current) => [...current, newBooking]);
+    setItems((current) => [...current, { kind: "booking", booking: newBooking }]);
     // Trigger highlight animation on the new booking box for 3 seconds
     const newId = newBooking.id;
     const timers = voiceHighlightTimers.current;
@@ -1384,10 +1583,16 @@ export default function NewBookingsCalendar({
     if (deleteEntireSeries && deleting.recurringGroupId) {
       const fromMs = new Date(deleting.start).getTime();
       setItems((current) =>
-        current.filter((b) => !(b.recurringGroupId === deleting.recurringGroupId && new Date(b.start).getTime() >= fromMs))
+        current.filter((item) => {
+          if (item.kind !== "booking") return true;
+          const b = item.booking;
+          return !(b.recurringGroupId === deleting.recurringGroupId && new Date(b.start).getTime() >= fromMs);
+        })
       );
     } else {
-      setItems((current) => current.filter((booking) => booking.id !== deleting.id));
+      setItems((current) =>
+        current.filter((item) => (item.kind === "booking" ? item.booking.id !== deleting.id : true))
+      );
     }
     setDeleting(null);
     setDetail(null);
@@ -1448,9 +1653,9 @@ export default function NewBookingsCalendar({
     return h * 60 + m;
   };
 
-  const position = (booking: Booking) => {
-    const startM = getBratislavaMinutes(booking.start);
-    const endM = getBratislavaMinutes(booking.end);
+  const position = (item: { start: string; end: string }) => {
+    const startM = getBratislavaMinutes(item.start);
+    const endM = getBratislavaMinutes(item.end);
     const total = (openingHours.endHour - openingHours.startHour) * 60;
     const offset = startM - openingHours.startHour * 60;
     const duration = Math.max(0, endM - startM);
@@ -1529,9 +1734,10 @@ export default function NewBookingsCalendar({
         </div>
 
         {dayCourts.map((court) => {
-          const courtHasHighlight = dayBookings.some(
-            (b) => b.courtId === court.id && highlightedVoiceBookings.includes(b.id)
-          );
+          const courtHasHighlight = dayBookings.some((item) => {
+            if (item.kind !== "booking") return false;
+            return item.booking.courtId === court.id && highlightedVoiceBookings.includes(item.booking.id);
+          });
           return (
             <div key={court.id} className={`grid border-b border-slate-100 py-1 ${courtHasHighlight ? "relative z-30" : ""}`} style={{ gridTemplateColumns: calendarColumns }}>
               <div className="sticky left-0 z-20 flex min-h-20 flex-col items-center justify-center text-center border-r border-slate-200 bg-white/95 px-1.5 shadow-[3px_0_10px_rgba(15,23,42,0.03)] backdrop-blur-xs">
@@ -1628,7 +1834,39 @@ export default function NewBookingsCalendar({
                   />
                 )}
                 <div className={`pointer-events-none absolute inset-0 ${courtHasHighlight ? "z-40" : "z-10"}`}>
-                  {dayBookings.filter((booking) => booking.courtId === court.id).map((booking) => {
+                  {dayBookings.filter((item) => (item.kind === "public-occupied" ? item.courtId : item.booking.courtId) === court.id).map((item) => {
+                    if (item.kind === "public-occupied") {
+                      return (
+                        <div
+                          key={item.key}
+                          className="absolute inset-y-0 p-1"
+                          style={position(item)}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              // Explicit guard: žiadny detail ani management pre public slot
+                              return;
+                            }}
+                            className="pointer-events-auto h-full w-full overflow-hidden rounded-2xl border px-1.5 py-1 text-center transition duration-150 flex flex-col items-center justify-center cursor-not-allowed border-slate-300 bg-[#CBD5E1] text-slate-800 font-semibold shadow-xs"
+                            title="Obsadené"
+                          >
+                            <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center font-sans select-none pointer-events-none text-slate-800">
+                              <span className="block text-[clamp(8.5px,0.65vw,11px)] font-bold leading-tight tracking-tight whitespace-nowrap inline-flex items-center gap-1 justify-center">
+                                {formatCompactInterval(item.start, item.end)}
+                              </span>
+                              <div className="mt-0.5 flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(8px,0.6vw,10.5px)] font-bold leading-[1.1] tracking-tight">
+                                <span className="block whitespace-nowrap max-w-full">
+                                  Obsadené
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    const booking = item.booking;
                     const isAdmin = currentUser?.role === "admin";
                     const isNtcTeam = currentUser?.role === "ntc_team";
                     const own = !!currentUser && currentUser.id === booking.user_id;
@@ -2297,7 +2535,12 @@ export default function NewBookingsCalendar({
           currentRole={currentUser?.role}
           onSubSlotsUpdated={(bookingId, subSlots) => {
             setItems((prev) =>
-              prev.map((b) => (b.id === bookingId ? { ...b, subSlots } : b))
+              prev.map((item) => {
+                if (item.kind === "booking" && item.booking.id === bookingId) {
+                  return { kind: "booking", booking: { ...item.booking, subSlots } };
+                }
+                return item;
+              })
             );
           }}
           onClose={() => setDetail(null)}
@@ -2360,14 +2603,15 @@ export default function NewBookingsCalendar({
           onCancelSingleBooking={async (bookingId) => {
             const res = await deleteBookingAction(bookingId, false);
             if (res.success) {
-              setItems((prev) => prev.filter((b) => b.id !== bookingId));
+              setItems((prev) => prev.filter((item) => (item.kind === "booking" ? item.booking.id !== bookingId : true)));
               setNotice("Termín bol úspešne uvoľnený pre verejnosť.");
             } else {
               setNotice(res.error || "Termín sa nepodarilo uvoľniť.");
             }
           }}
           onCancelEntireSeries={async (groupId) => {
-            const targetBooking = detail || items.find((b) => b.recurringGroupId === groupId);
+            const foundItem = items.find((item) => item.kind === "booking" && item.booking.recurringGroupId === groupId);
+            const targetBooking = detail || (foundItem && foundItem.kind === "booking" ? foundItem.booking : null);
             if (targetBooking) {
               setDeleting(targetBooking);
               await remove(true);

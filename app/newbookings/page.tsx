@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import NewBookingsCalendar from "@/components/newbookings/NewBookingsCalendar";
-import { fetchBookingsAction } from "@/app/actions/bookings";
+import { fetchBookingsAction, fetchPublicAvailabilityAction } from "@/app/actions/bookings";
 import { fetchPricelistsAction, getActivePricelist } from "@/app/actions/pricelists";
 import { fetchReservationCategoriesAction } from "@/app/actions/reservationCategories";
 import { getSession } from "@/lib/auth/bookingAuth";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
-import type { Booking } from "@/lib/bookings/mockBookings";
 import type { RoleBookingPolicy } from "@/lib/bookings/rolePolicy";
+import { toPublicCalendarItem, type CalendarItem } from "@/lib/bookings/publicAvailability";
 
 import { courts } from "@/lib/bookings/mockBookings";
 import { getCoreDb, getCoreServiceDb } from "@/lib/server/supabase";
@@ -135,13 +135,30 @@ export default async function NewBookingsPage() {
   start.setHours(0, 0, 0, 0);
   const end = new Date();
   end.setHours(23, 59, 59, 999);
-  const [result, pricelistsRes, activePricelist, categoriesResult] = await Promise.all([
-    fetchBookingsAction(start.toISOString(), end.toISOString()),
+
+  const [pricelistsRes, activePricelist, categoriesResult] = await Promise.all([
     fetchPricelistsAction(),
     getActivePricelist(),
     fetchReservationCategoriesAction(),
   ]);
-  const initialBookings = result.success && result.bookings ? result.bookings as Booking[] : [];
+
+  let initialItems: CalendarItem[] = [];
+
+  if (session?.userId) {
+    const res = await fetchBookingsAction(start.toISOString(), end.toISOString());
+    if (res.success && res.bookings) {
+      initialItems = res.bookings.map((b) => ({
+        kind: "booking" as const,
+        booking: b,
+      }));
+    }
+  } else {
+    const res = await fetchPublicAvailabilityAction(start.toISOString(), end.toISOString());
+    if (res.success && res.slots) {
+      initialItems = res.slots.map(toPublicCalendarItem);
+    }
+  }
+
   const initialCategories = categoriesResult?.categories || [];
   const pricelists = pricelistsRes.success && pricelistsRes.pricelists.length > 0
     ? pricelistsRes.pricelists
@@ -150,7 +167,7 @@ export default async function NewBookingsPage() {
   return (
     <NewBookingsCalendar
       courts={courts}
-      initialBookings={initialBookings}
+      initialItems={initialItems}
       initialCategories={initialCategories}
       currentUser={currentUser}
       rolePolicy={rolePolicy}

@@ -16,6 +16,35 @@ export type PublicAvailabilityResult =
         error: string;
     };
 
+export type PublicCalendarItem = {
+    kind: "public-occupied";
+    key: string;
+    courtId: string;
+    start: string;
+    end: string;
+    status: "occupied";
+};
+
+import type { Booking } from "./mockBookings";
+
+export type PrivateBookingItem = {
+    kind: "booking";
+    booking: Booking;
+};
+
+export type CalendarItem = PublicCalendarItem | PrivateBookingItem;
+
+export function toPublicCalendarItem(slot: PublicAvailabilitySlot): PublicCalendarItem {
+    return {
+        kind: "public-occupied",
+        key: `public:${slot.courtId}:${slot.start}:${slot.end}`,
+        courtId: slot.courtId,
+        start: slot.start,
+        end: slot.end,
+        status: "occupied",
+    };
+}
+
 const MAX_PUBLIC_AVAILABILITY_RANGE_MS = 14 * 24 * 60 * 60 * 1000;
 const ALLOWED_PUBLIC_STATUSES = new Set(["confirmed", "pending", "blocked"]);
 
