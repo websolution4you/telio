@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import NewBookingsCalendar from "@/components/newbookings/NewBookingsCalendar";
-import { fetchBookingsAction, fetchPublicAvailabilityAction } from "@/app/actions/bookings";
+import { fetchAuthorizedCalendarItemsAction, fetchPublicAvailabilityAction } from "@/app/actions/bookings";
 import { fetchPricelistsAction, getActivePricelist } from "@/app/actions/pricelists";
 import { fetchReservationCategoriesAction } from "@/app/actions/reservationCategories";
 import { getSession } from "@/lib/auth/bookingAuth";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 import type { RoleBookingPolicy } from "@/lib/bookings/rolePolicy";
-import { toPublicCalendarItem, type CalendarItem } from "@/lib/bookings/publicAvailability";
+import { toPublicCalendarItem, type CalendarAccessMode, type CalendarItem } from "@/lib/bookings/publicAvailability";
 
 import { courts } from "@/lib/bookings/mockBookings";
 import { getCoreDb, getCoreServiceDb } from "@/lib/server/supabase";
@@ -131,10 +131,11 @@ export default async function NewBookingsPage() {
     initialWalletBalance = Math.round((confirmed + pending) * 100) / 100;
   }
 
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
+  // Polootvorený interval [start, end) s bezpečnou dĺžkou <= 14 × 24h (DST-safe cez UTC milisekundy)
+  const nowAnchor = new Date();
+  const todayMidnightMs = new Date(nowAnchor.getFullYear(), nowAnchor.getMonth(), nowAnchor.getDate(), 0, 0, 0, 0).getTime();
+  const start = new Date(todayMidnightMs - 2 * 24 * 60 * 60 * 1000);
+  const end = new Date(todayMidnightMs + 12 * 24 * 60 * 60 * 1000);
 
   const [pricelistsRes, activePricelist, categoriesResult] = await Promise.all([
     fetchPricelistsAction(),
@@ -143,14 +144,13 @@ export default async function NewBookingsPage() {
   ]);
 
   let initialItems: CalendarItem[] = [];
+  let initialAccessMode: CalendarAccessMode | null = null;
 
   if (session?.userId) {
-    const res = await fetchBookingsAction(start.toISOString(), end.toISOString());
-    if (res.success && res.bookings) {
-      initialItems = res.bookings.map((b) => ({
-        kind: "booking" as const,
-        booking: b,
-      }));
+    const res = await fetchAuthorizedCalendarItemsAction(start.toISOString(), end.toISOString());
+    if (res.success) {
+      initialItems = res.items;
+      initialAccessMode = res.accessMode;
     }
   } else {
     const res = await fetchPublicAvailabilityAction(start.toISOString(), end.toISOString());
@@ -168,6 +168,7 @@ export default async function NewBookingsPage() {
     <NewBookingsCalendar
       courts={courts}
       initialItems={initialItems}
+      initialAccessMode={initialAccessMode}
       initialCategories={initialCategories}
       currentUser={currentUser}
       rolePolicy={rolePolicy}

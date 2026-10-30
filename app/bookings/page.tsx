@@ -4,12 +4,12 @@ import Footer from "@/components/Footer";
 import BookingCalendar from "@/components/bookings/BookingCalendar";
 import BookingAuthWrapper from "@/components/bookings/BookingAuthWrapper";
 import { courts } from "@/lib/bookings/mockBookings";
-import { fetchBookingsAction, fetchPublicAvailabilityAction } from "@/app/actions/bookings";
+import { fetchAuthorizedCalendarItemsAction, fetchPublicAvailabilityAction } from "@/app/actions/bookings";
 import { getSession } from "@/lib/auth/bookingAuth";
 import { getCoreDb } from "@/lib/server/supabase";
 import { Sparkles } from "lucide-react";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
-import { toPublicCalendarItem, type CalendarItem } from "@/lib/bookings/publicAvailability";
+import { toPublicCalendarItem, type CalendarAccessMode, type CalendarItem } from "@/lib/bookings/publicAvailability";
 
 export const metadata: Metadata = {
   title: "Telio Bookings — Rezervácia kurtov NTC Bratislava",
@@ -29,6 +29,7 @@ export default async function BookingsPage() {
 
   let user: BookingUser | null = null;
   let initialItems: CalendarItem[] = [];
+  let initialAccessMode: CalendarAccessMode | null = null;
 
   // Fetch initial bookings (publicly visible)
   const start = new Date();
@@ -40,10 +41,11 @@ export default async function BookingsPage() {
   let fetchError: string | null = null;
 
   if (session?.userId) {
-    const res = await fetchBookingsAction(start.toISOString(), end.toISOString());
-    if (res.success && res.bookings) {
-      initialItems = res.bookings.map((b) => ({ kind: "booking" as const, booking: b }));
-    } else if (!res.success) {
+    const res = await fetchAuthorizedCalendarItemsAction(start.toISOString(), end.toISOString());
+    if (res.success) {
+      initialItems = res.items;
+      initialAccessMode = res.accessMode;
+    } else {
       fetchError = res.error || "Nepodarilo sa načítať rezervácie.";
     }
   } else {
@@ -137,7 +139,7 @@ export default async function BookingsPage() {
         </div>
       )}
 
-      <BookingAuthWrapper user={user} courts={courts} initialItems={initialItems} />
+      <BookingAuthWrapper user={user} courts={courts} initialItems={initialItems} initialAccessMode={initialAccessMode} />
 
       <Footer />
     </main>

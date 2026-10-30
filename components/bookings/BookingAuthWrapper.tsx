@@ -8,15 +8,16 @@ import RegisterForm from "./RegisterForm";
 import { getCurrentUserAction } from "@/app/actions/auth";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 import type { Court } from "@/lib/bookings/mockBookings";
-import type { CalendarItem } from "@/lib/bookings/publicAvailability";
+import type { CalendarAccessMode, CalendarItem } from "@/lib/bookings/publicAvailability";
 
 type BookingAuthWrapperProps = {
     user: BookingUser | null;
     courts: Court[];
     initialItems: CalendarItem[];
+    initialAccessMode: CalendarAccessMode | null;
 };
 
-export default function BookingAuthWrapper({ user: initialUser, courts, initialItems }: BookingAuthWrapperProps) {
+export default function BookingAuthWrapper({ user: initialUser, courts, initialItems, initialAccessMode }: BookingAuthWrapperProps) {
     const router = useRouter();
     const [showRegister, setShowRegister] = useState(false);
     const [user, setUser] = useState<BookingUser | null>(initialUser);
@@ -44,7 +45,7 @@ export default function BookingAuthWrapper({ user: initialUser, courts, initialI
     if (user) {
         return (
             <div className="relative w-full">
-                <BookingCalendar courts={courts} initialItems={initialItems} currentUser={user} />
+                <BookingCalendar courts={courts} initialItems={initialItems} initialAccessMode={initialAccessMode} currentUser={user} />
             </div>
         );
     }
@@ -78,7 +79,7 @@ export default function BookingAuthWrapper({ user: initialUser, courts, initialI
                 </div>
             )}
 
-            <BookingCalendar courts={courts} initialItems={initialItems} currentUser={user} />
+            <BookingCalendar courts={courts} initialItems={initialItems} initialAccessMode={initialAccessMode} currentUser={user} />
         </div>
     );
 }

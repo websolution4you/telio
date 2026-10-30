@@ -20,16 +20,28 @@ import {
 } from "lucide-react";
 import type { Booking, Court, SportType } from "@/lib/bookings/mockBookings";
 import { openingHours } from "@/lib/bookings/mockBookings";
-import { fetchBookingsAction, fetchPublicAvailabilityAction, createBookingAction, deleteBookingAction } from "@/app/actions/bookings";
+import { fetchAuthorizedCalendarItemsAction, fetchPublicAvailabilityAction, createBookingAction, deleteBookingAction } from "@/app/actions/bookings";
 import { supabase } from "@/lib/supabase";
 import { useLang } from "@/lib/i18n";
-import { type CalendarItem, toPublicCalendarItem } from "@/lib/bookings/publicAvailability";
+import {
+  type CalendarAccessMode,
+  type CalendarItem,
+  type OwnBookingCalendarItem,
+  type OwnBookingDto,
+  type StaffBookingCalendarItem,
+  isPrivilegedReadRole,
+  mapCreatedBookingToOwnBookingDto,
+  toOwnBookingCalendarItem,
+  toPublicCalendarItem,
+  toStaffBookingCalendarItem,
+} from "@/lib/bookings/publicAvailability";
 
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 
 type BookingCalendarProps = {
   courts: Court[];
   initialItems: CalendarItem[];
+  initialAccessMode?: CalendarAccessMode | null;
   currentUser?: BookingUser | null;
 };
 
@@ -144,7 +156,7 @@ function playTennisHitSound() {
   }
 }
 
-export default function BookingCalendar({ courts, initialItems, currentUser }: BookingCalendarProps) {
+export default function BookingCalendar({ courts, initialItems, initialAccessMode = null, currentUser }: BookingCalendarProps) {
   const { lang } = useLang();
 
   const sportLabels: Record<SportType, string> = useMemo(() => ({
@@ -160,6 +172,8 @@ export default function BookingCalendar({ courts, initialItems, currentUser }: B
   
   // Interactive Local state for items (CalendarItem[])
   const [localItems, setLocalItems] = useState<CalendarItem[]>(() => initialItems);
+
+  const [accessMode, setAccessMode] = useState<CalendarAccessMode | null>(() => initialAccessMode ?? null);
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const [isCompact, setIsCompact] = useState(false);
   
@@ -181,18 +195,36 @@ export default function BookingCalendar({ courts, initialItems, currentUser }: B
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Bezpečný prechod z prihláseného do anonymného stavu:
+  useEffect(() => {
+    if (initialAccessMode !== undefined) {
+      setAccessMode(initialAccessMode);
+    }
+  }, [initialAccessMode]);
+
+  // Bezpečný prechod z prihláseného do anonymného stavu alebo zo staff do restricted:
   useEffect(() => {
     if (!currentUser) {
+      setAccessMode(null);
       setLocalItems((prev) => {
-        const hasPrivate = prev.some((i) => i.kind === "booking");
+        const hasPrivate = prev.some((i) => i.kind !== "public-occupied");
         if (!hasPrivate) return prev;
         return prev.filter((i) => i.kind === "public-occupied");
       });
       setIsModalOpen(false);
       setSelectedSlot(null);
-      setInfoModalBooking(null);
+      setInfoModalItem(null);
       setConfirmModal({ isOpen: false });
+      return;
+    }
+
+    if (!isPrivilegedReadRole(currentUser.role)) {
+      setAccessMode("restricted");
+      setLocalItems((prev) => {
+        const hasStaff = prev.some((i) => i.kind === "staff-booking");
+        if (!hasStaff) return prev;
+        return prev.filter((i) => i.kind !== "staff-booking");
+      });
+      setInfoModalItem((prev) => (prev?.kind === "staff-booking" ? null : prev));
     }
   }, [currentUser]);
 
@@ -200,12 +232,9 @@ export default function BookingCalendar({ courts, initialItems, currentUser }: B
     let active = true;
     async function loadLiveData() {
       setIsLoading(true);
-      const start = new Date(baseDate);
-      start.setHours(0, 0, 0, 0);
-      
-      const end = new Date(baseDate);
-      end.setDate(end.getDate() + viewDaysCount);
-      end.setHours(23, 59, 59, 999);
+      const anchorMidnightMs = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 0, 0, 0, 0).getTime();
+      const start = new Date(anchorMidnightMs);
+      const end = new Date(anchorMidnightMs + viewDaysCount * 24 * 60 * 60 * 1000);
 
       if (!currentUser) {
         // Pre anonymného návštevníka voláme výhradne fetchPublicAvailabilityAction
@@ -214,9 +243,16 @@ export default function BookingCalendar({ courts, initialItems, currentUser }: B
           setLocalItems(res.slots.map(toPublicCalendarItem));
         }
       } else {
-        const res = await fetchBookingsAction(start.toISOString(), end.toISOString());
-        if (active && res.success && res.bookings) {
-          setLocalItems(res.bookings.map((b) => ({ kind: "booking", booking: b })));
+        // Pre prihláseného používateľa voláme role-aware fetchAuthorizedCalendarItemsAction
+        const res = await fetchAuthorizedCalendarItemsAction(start.toISOString(), end.toISOString());
+        if (active && res.success) {
+          setAccessMode(res.accessMode);
+          if (res.accessMode === "restricted") {
+            setInfoModalItem((prev) => (prev?.kind === "staff-booking" ? null : prev));
+            setLocalItems(res.items.filter((i) => i.kind !== "staff-booking"));
+          } else {
+            setLocalItems(res.items);
+          }
         }
       }
 
@@ -231,8 +267,8 @@ export default function BookingCalendar({ courts, initialItems, currentUser }: B
   }, [baseDate, viewDaysCount, reloadTrigger, currentUser]);
 
   useEffect(() => {
-    // Striktný guard: pre anonymného používateľa sa effect ukončí pred prvým supabase.channel / subscribe
-    if (!currentUser) {
+    // Striktný guard: pre anonymného používateľa aj pre restricted roly (user/trainer) sa Realtime channel vôbec nevytvára
+    if (!currentUser || accessMode !== "staff" || (currentUser.role !== "admin" && currentUser.role !== "ntc_team")) {
       return;
     }
 
@@ -262,7 +298,7 @@ export default function BookingCalendar({ courts, initialItems, currentUser }: B
       console.log("Realtime (bookings): Cleaning up subscription...");
       supabase.removeChannel(channel);
     };
-  }, [currentUser]);
+  }, [currentUser, accessMode]);
 
   // Bezpečný polling pre anonymného návštevníka každých 30 sekúnd
   useEffect(() => {
@@ -276,18 +312,16 @@ export default function BookingCalendar({ courts, initialItems, currentUser }: B
       isFetching = true;
 
       try {
-        const start = new Date(baseDate);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(baseDate);
-        end.setDate(end.getDate() + viewDaysCount);
-        end.setHours(23, 59, 59, 999);
+        const anchorMidnightMs = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 0, 0, 0, 0).getTime();
+        const start = new Date(anchorMidnightMs);
+        const end = new Date(anchorMidnightMs + viewDaysCount * 24 * 60 * 60 * 1000);
 
-        const res = await fetchPublicAvailabilityAction(start.toISOString(), end.toISOString());
-        if (active && res.success && res.slots) {
-          setLocalItems(res.slots.map(toPublicCalendarItem));
-        }
+          const res = await fetchPublicAvailabilityAction(start.toISOString(), end.toISOString());
+          if (active && res.success && res.slots) {
+            setLocalItems(res.slots.map(toPublicCalendarItem));
+          }
       } catch (err) {
-        console.error("Anonymous polling error:", err);
+        console.error("Polling error:", err);
       } finally {
         isFetching = false;
       }
@@ -428,18 +462,18 @@ export default function BookingCalendar({ courts, initialItems, currentUser }: B
     const targetEnd = new Date(endIso).getTime();
     
     return localItems.some((item) => {
-      if (item.kind === "booking") {
+      if (item.kind === "public-occupied") {
+        if (item.courtId !== courtId) return false;
+        const bStart = new Date(item.start).getTime();
+        const bEnd = new Date(item.end).getTime();
+        return targetStart < bEnd && targetEnd > bStart;
+      } else {
         const booking = item.booking;
         if (booking.id === excludeId) return false;
         if (booking.courtId !== courtId) return false;
         if (booking.status === "cancelled") return false;
         const bStart = new Date(booking.start).getTime();
         const bEnd = new Date(booking.end).getTime();
-        return targetStart < bEnd && targetEnd > bStart;
-      } else {
-        if (item.courtId !== courtId) return false;
-        const bStart = new Date(item.start).getTime();
-        const bEnd = new Date(item.end).getTime();
         return targetStart < bEnd && targetEnd > bStart;
       }
     });
@@ -498,7 +532,12 @@ export default function BookingCalendar({ courts, initialItems, currentUser }: B
 
     if (res.success && res.booking) {
       playTennisHitSound();
-      setLocalItems((prev) => [...prev, { kind: "booking", booking: res.booking as Booking }]);
+      const b = res.booking;
+      const newItem: OwnBookingCalendarItem | StaffBookingCalendarItem =
+        accessMode === "staff"
+          ? toStaffBookingCalendarItem(b)
+          : toOwnBookingCalendarItem(mapCreatedBookingToOwnBookingDto(b));
+      setLocalItems((prev) => [...prev, newItem]);
       setIsModalOpen(false);
       setSelectedSlot(null);
     } else {
@@ -507,7 +546,7 @@ export default function BookingCalendar({ courts, initialItems, currentUser }: B
   };
 
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; bookingId?: string; message?: string; isError?: boolean }>({ isOpen: false });
-  const [infoModalBooking, setInfoModalBooking] = useState<Booking | null>(null);
+  const [infoModalItem, setInfoModalItem] = useState<OwnBookingCalendarItem | StaffBookingCalendarItem | null>(null);
 
   const handleDeleteBookingClick = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -524,7 +563,7 @@ export default function BookingCalendar({ courts, initialItems, currentUser }: B
     setIsLoading(false);
     
     if (res.success) {
-      setLocalItems((prev) => prev.filter((item) => item.kind !== "booking" || item.booking.id !== id));
+      setLocalItems((prev) => prev.filter((item) => item.kind === "public-occupied" || item.booking.id !== id));
     } else {
       setConfirmModal({ isOpen: true, isError: true, message: res.error || "Nepodarilo sa zrušiť rezerváciu v Google kalendári." });
     }
@@ -586,10 +625,21 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
     };
   };
 
-  // Get color and layout based on booking details
-  const getBookingColor = (booking: Booking) => {
+  // Get color and layout based on calendar item (own-booking vs staff-booking)
+  const getBookingColor = (item: OwnBookingCalendarItem | StaffBookingCalendarItem) => {
     const baseStyle = "backdrop-blur-md shadow-lg border-t border-r border-b";
-    
+
+    if (item.kind === "own-booking") {
+      return {
+        bg: "linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(234, 179, 8, 0.05) 100%)",
+        border: `${baseStyle} border-yellow-500/20 border-l-4 border-l-yellow-400`,
+        text: "text-yellow-400 drop-shadow-md",
+        badgeBg: "bg-yellow-500/20 text-yellow-300",
+        label: "Vaša rezervácia",
+      };
+    }
+
+    const booking = item.booking;
     if (currentUser && currentUser.id === booking.user_id) {
       return {
         bg: "linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(234, 179, 8, 0.05) 100%)",
@@ -879,9 +929,9 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
             
             // Filter items for this date and sport
             const dateItems = localItems.filter((item) => {
-              const startStr = item.kind === "booking" ? item.booking.start : item.start;
-              const courtId = item.kind === "booking" ? item.booking.courtId : item.courtId;
-              const isCancelled = item.kind === "booking" && item.booking.status === "cancelled";
+              const startStr = item.kind === "public-occupied" ? item.start : item.booking.start;
+              const courtId = item.kind === "public-occupied" ? item.courtId : item.booking.courtId;
+              const isCancelled = item.kind !== "public-occupied" && item.booking.status === "cancelled";
               const bookingDateStr = getLocalDateString(new Date(startStr));
               const courtObj = courts.find((c) => c.id === courtId);
               return bookingDateStr === dateString && courtObj?.sport === selectedSport && !isCancelled;
@@ -961,7 +1011,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                     <div className="divide-y divide-white/[0.03]">
                       {visibleCourts.map((court) => {
                         // Filter items for this specific court on this date
-                        const courtItems = dateItems.filter((item) => (item.kind === "booking" ? item.booking.courtId : item.courtId) === court.id);
+                        const courtItems = dateItems.filter((item) => (item.kind === "public-occupied" ? item.courtId : item.booking.courtId) === court.id);
 
                         return (
                           <div 
@@ -1110,14 +1160,18 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
 
                                     const booking = item.booking;
                                     const style = getBookingStyle(booking, dateString);
-                                    const meta = getBookingColor(booking);
+                                    const meta = getBookingColor(item);
                                     
                                     const startParts = getSlovakiaTimeParts(booking.start);
                                     const endParts = getSlovakiaTimeParts(booking.end);
                                     const startTimeStr = `${String(startParts.hour).padStart(2, "0")}:${String(startParts.minute).padStart(2, "0")}`;
                                     const endTimeStr = `${String(endParts.hour).padStart(2, "0")}:${String(endParts.minute).padStart(2, "0")}`;
                                     const timeLabel = `${startTimeStr} - ${endTimeStr}`;
-                                    const canDelete = currentUser && (currentUser.role === 'admin' || currentUser.id === booking.user_id);
+                                    const canDelete =
+                                      Boolean(currentUser) &&
+                                      (item.kind === "own-booking" ||
+                                        currentUser?.role === "admin" ||
+                                        currentUser?.id === item.booking.user_id);
 
                                     let finalBg = meta.bg;
                                     let finalTextColor = meta.text;
@@ -1139,7 +1193,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                                         key={booking.id}
                                         onClick={() => {
                                           if (canDelete) {
-                                            setInfoModalBooking(booking);
+                                            setInfoModalItem(item);
                                           }
                                         }}
                                         className={`absolute h-full rounded-xl pointer-events-auto flex items-center overflow-hidden transition-all ${isCompact ? 'px-0 justify-center' : 'px-2'} group/booking hover:z-20 hover:-translate-y-0.5 hover:shadow-xl ${finalBorder} ${canDelete ? 'cursor-pointer' : ''}`}
@@ -1347,11 +1401,11 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
       )}
 
       {/* Booking Info Modal */}
-      {infoModalBooking && (
+      {infoModalItem && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div 
             className="absolute inset-0 bg-slate-950/60 backdrop-blur-xl"
-            onClick={() => setInfoModalBooking(null)}
+            onClick={() => setInfoModalItem(null)}
           />
           <div 
             className="relative w-full max-w-sm rounded-3xl border border-white/10 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in duration-200"
@@ -1361,7 +1415,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-white">Detail rezervácie</h3>
                 <button 
-                  onClick={() => setInfoModalBooking(null)}
+                  onClick={() => setInfoModalItem(null)}
                   className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
                 >
                   <X className="h-4 w-4" />
@@ -1377,9 +1431,9 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                   <div>
                     <div className="text-xs text-slate-500">Čas</div>
                     <div className="font-bold text-white">
-                      {new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(new Date(infoModalBooking.start))}
+                      {new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(new Date(infoModalItem.booking.start))}
                       <br/>
-                      {new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" }).format(new Date(infoModalBooking.start))} - {new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" }).format(new Date(infoModalBooking.end))}
+                      {new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" }).format(new Date(infoModalItem.booking.start))} - {new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit" }).format(new Date(infoModalItem.booking.end))}
                     </div>
                   </div>
                 </div>
@@ -1392,13 +1446,13 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                   <div>
                     <div className="text-xs text-slate-500">Meno</div>
                     <div className="font-bold text-white">
-                      {infoModalBooking.customerName || "Neznáme"}
+                      {infoModalItem.booking.customerName || "Neznáme"}
                     </div>
                   </div>
                 </div>
 
                 {/* Phone */}
-                {infoModalBooking.phone && (
+                {infoModalItem.booking.phone && (
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-xl bg-green-500/10 text-green-400">
                       <Phone className="h-5 w-5" />
@@ -1406,14 +1460,14 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                     <div>
                       <div className="text-xs text-slate-500">Telefón</div>
                       <div className="font-bold text-white">
-                        {infoModalBooking.phone}
+                        {infoModalItem.booking.phone}
                       </div>
                     </div>
                   </div>
                 )}
 
                 {/* Note */}
-                {infoModalBooking.title && (
+                {infoModalItem.booking.title && (
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
                       <MessageSquare className="h-5 w-5" />
@@ -1421,7 +1475,7 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
                     <div>
                       <div className="text-xs text-slate-500">Poznámka</div>
                       <div className="font-bold text-white">
-                        {infoModalBooking.title}
+                        {infoModalItem.booking.title}
                       </div>
                     </div>
                   </div>
@@ -1429,11 +1483,12 @@ const getSlovakiaTimeParts = (dateInput: string | Date) => {
               </div>
 
               {/* Delete Button */}
-              {currentUser && (currentUser.role === 'admin' || currentUser.id === infoModalBooking.user_id) && (
+              {currentUser && (infoModalItem.kind === "own-booking" || currentUser.role === 'admin' || currentUser.id === infoModalItem.booking.user_id) && (
                 <button
                   onClick={(e) => {
-                    setInfoModalBooking(null);
-                    handleDeleteBookingClick(infoModalBooking.id, e);
+                    const targetId = infoModalItem.booking.id;
+                    setInfoModalItem(null);
+                    handleDeleteBookingClick(targetId, e);
                   }}
                   className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-colors"
                 >

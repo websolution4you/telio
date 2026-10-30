@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, CalendarDays, CalendarSync, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Clock, Coins, LayoutDashboard, LogIn, LogOut, Palette, Plus, Receipt, Repeat, Settings, ShieldCheck, Sparkles, UserPlus, Users, X } from "lucide-react";
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { ThreeDChartIcon, ThreeDSettingsIcon, ThreeDUserAvatarIcon } from "@/components/icons/ThreeDNavIcons";
-import { createBookingAction, createRecurringBookingAction, deleteBookingAction, fetchBookingsAction, fetchPublicAvailabilityAction, rescheduleBookingAction } from "@/app/actions/bookings";
+import { createBookingAction, createRecurringBookingAction, deleteBookingAction, fetchAuthorizedCalendarItemsAction, fetchPublicAvailabilityAction, rescheduleBookingAction } from "@/app/actions/bookings";
 import { logoutAction } from "@/app/actions/auth";
 import { createWalletCardPayAction, createWalletCheckoutAction, getWalletAction, reconcileWalletCardPayAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
 
@@ -23,18 +23,27 @@ import {
   DEFAULT_ADMIN_CATEGORIES,
 } from "@/lib/bookings/categoryTypes";
 import {
+  type CalendarAccessMode,
   type CalendarItem,
+  type OwnBookingCalendarItem,
+  type OwnBookingDto,
+  type StaffBookingCalendarItem,
+  isPrivilegedReadRole,
+  mapCreatedBookingToOwnBookingDto,
+  toOwnBookingCalendarItem,
   toPublicCalendarItem,
+  toStaffBookingCalendarItem,
 } from "@/lib/bookings/publicAvailability";
 
 import HolographicTennisCourt from "./HolographicTennisCourt";
 import NewBookingsHeader from "./NewBookingsHeader";
 import NewBookingAuth from "./NewBookingAuth";
-import { BookingDetailDialog, CreateBookingDialog, DeleteDialog, RescheduleConfirmDialog, SeriesOverviewDialog, formatCourtDisplayName } from "./NewBookingDialogs";
+import { BookingDetailDialog, CreateBookingDialog, DeleteDialog, RescheduleConfirmDialog, SeriesOverviewDialog, formatCourtDisplayName, type DetailCalendarItem } from "./NewBookingDialogs";
 
 type Props = {
   courts: Court[];
   initialItems: CalendarItem[];
+  initialAccessMode?: CalendarAccessMode | null;
   initialCategories?: AdminReservationCategory[];
   currentUser: BookingUser | null;
   rolePolicy: RoleBookingPolicy | null;
@@ -242,6 +251,7 @@ function playTennisHitSound() {
 export default function NewBookingsCalendar({
   courts,
   initialItems,
+  initialAccessMode,
   initialCategories,
   currentUser: initialCurrentUser,
   rolePolicy: initialRolePolicy,
@@ -253,6 +263,7 @@ export default function NewBookingsCalendar({
   const voiceHighlightTimers = useRef(new Map<string, number>());
   const [currentUser, setCurrentUser] = useState(initialCurrentUser);
   const [rolePolicy, setRolePolicy] = useState(initialRolePolicy);
+  const [accessMode, setAccessMode] = useState<CalendarAccessMode | null>(() => initialAccessMode ?? null);
   const [pendingSlot, setPendingSlot] = useState<Slot | null>(null);
 
   useEffect(() => {
@@ -274,12 +285,19 @@ export default function NewBookingsCalendar({
     setRolePolicy(initialRolePolicy);
   }, [initialRolePolicy]);
 
-  // Bezpečný prechod z prihláseného do anonymného stavu:
-  // Okamžite odstránime súkromné booking objekty a resetujeme management stavy
+  useEffect(() => {
+    if (initialAccessMode !== undefined) {
+      setAccessMode(initialAccessMode);
+    }
+  }, [initialAccessMode]);
+
+  // Bezpečný prechod z prihláseného do anonymného stavu alebo zo staff do restricted:
+  // Okamžite odstránime súkromné / staff booking objekty a resetujeme management stavy
   useEffect(() => {
     if (!currentUser) {
+      setAccessMode(null);
       setItems((prev) => {
-        const hasPrivate = prev.some((i) => i.kind === "booking");
+        const hasPrivate = prev.some((i) => i.kind !== "public-occupied");
         if (!hasPrivate) return prev;
         return prev.filter((i) => i.kind === "public-occupied");
       });
@@ -290,6 +308,19 @@ export default function NewBookingsCalendar({
       setSeriesOverviewGroupId(null);
       setSlot(null);
       setNotice("");
+      return;
+    }
+
+    if (!isPrivilegedReadRole(currentUser.role)) {
+      setAccessMode("restricted");
+      setItems((prev) => {
+        const hasStaff = prev.some((i) => i.kind === "staff-booking");
+        if (!hasStaff) return prev;
+        return prev.filter((i) => i.kind !== "staff-booking");
+      });
+      setDetail((prev) => (prev?.kind === "staff-booking" ? null : prev));
+      setDeleting((prev) => (prev?.kind === "staff-booking" ? null : prev));
+      setReschedulingBooking((prev) => (prev?.kind === "staff-booking" ? null : prev));
     }
   }, [currentUser]);
 
@@ -332,9 +363,9 @@ export default function NewBookingsCalendar({
     }
   }, []);
   const [slot, setSlot] = useState<Slot | null>(null);
-  const [detail, setDetail] = useState<Booking | null>(null);
-  const [deleting, setDeleting] = useState<Booking | null>(null);
-  const [reschedulingBooking, setReschedulingBooking] = useState<Booking | null>(null);
+  const [detail, setDetail] = useState<DetailCalendarItem | null>(null);
+  const [deleting, setDeleting] = useState<DetailCalendarItem | null>(null);
+  const [reschedulingBooking, setReschedulingBooking] = useState<DetailCalendarItem | null>(null);
   const [rescheduleSlot, setRescheduleSlot] = useState<{ courtId: string; date: Date; hour: number } | null>(null);
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
   const [rescheduleError, setRescheduleError] = useState("");
@@ -376,24 +407,25 @@ export default function NewBookingsCalendar({
 
   const reschedDurationMin = useMemo(() => {
     if (!reschedulingBooking) return 60;
-    const s = new Date(reschedulingBooking.start).getTime();
-    const e = new Date(reschedulingBooking.end).getTime();
+    const s = new Date(reschedulingBooking.booking.start).getTime();
+    const e = new Date(reschedulingBooking.booking.end).getTime();
     return Math.max(30, Math.round((e - s) / 60000));
   }, [reschedulingBooking]);
 
   const reschedOriginalPrice = useMemo(() => {
     if (!reschedulingBooking) return 0;
-    if (reschedulingBooking.priceEur != null) return Number(reschedulingBooking.priceEur);
+    const b = reschedulingBooking.booking;
+    if (b.priceEur != null) return Number(b.priceEur);
     const isRegistered = Boolean(currentUser);
     const roleDiscount = rolePolicy?.discountEurPerHour ?? 0;
-    const targetPricelist = getPricelistForDate(reschedulingBooking.start, pricelists || (activePricelist ? [activePricelist] : undefined));
+    const targetPricelist = getPricelistForDate(b.start, pricelists || (activePricelist ? [activePricelist] : undefined));
     return calculateNtcBookingPrice(
-      reschedulingBooking.courtId,
-      reschedulingBooking.start,
+      b.courtId,
+      b.start,
       reschedDurationMin,
       isRegistered,
       roleDiscount,
-      reschedulingBooking.multisportCardsCount || 0,
+      b.multisportCardsCount || 0,
       targetPricelist,
       currentUser?.discountTierId
     ).totalPriceEur;
@@ -404,7 +436,7 @@ export default function NewBookingsCalendar({
   const knownBookingIds = useRef<Set<string>>(
     new Set(
       initialItems
-        .filter((i): i is import("@/lib/bookings/publicAvailability").PrivateBookingItem => i.kind === "booking")
+        .filter((i): i is DetailCalendarItem => i.kind === "own-booking" || i.kind === "staff-booking")
         .map((i) => i.booking.id)
     )
   );
@@ -650,16 +682,10 @@ export default function NewBookingsCalendar({
     async function load() {
       if (!currentUser) {
         // Pre anonymného návštevníka voláme výhradne fetchPublicAvailabilityAction
-        // Rozsah: date až date + (viewMode === 'week' ? 7 : 1) dní, neprekračuje 14 dní
-        const start = new Date(date);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(date);
-        if (viewMode === "week") {
-          end.setDate(end.getDate() + 7);
-        } else {
-          end.setDate(end.getDate() + 1);
-        }
-        end.setHours(23, 59, 59, 999);
+        // Rozsah: polootvorený interval [anchorMidnight, anchorMidnight + 8d / 1d), DST-safe <= 14 dní
+        const anchorMidnightMs = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0).getTime();
+        const start = new Date(anchorMidnightMs);
+        const end = new Date(anchorMidnightMs + (viewMode === "week" ? 8 : 1) * 24 * 60 * 60 * 1000);
 
         const result = await fetchPublicAvailabilityAction(start.toISOString(), end.toISOString());
         if (active && result.success && result.slots) {
@@ -670,32 +696,43 @@ export default function NewBookingsCalendar({
         return;
       }
 
-      // Prefetch a window around `date` (-14 to +28 days) so navigating days/weeks is INSTANT!
-      const start = new Date(date);
-      start.setDate(start.getDate() - 14);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(date);
-      end.setDate(end.getDate() + 28);
-      end.setHours(23, 59, 59, 999);
+      // Pre prihláseného používateľa voláme role-aware fetchAuthorizedCalendarItemsAction
+      // Polootvorený 14-dňový interval [-2d, +12d) pokrývajúci 1-dňový aj 8-dňový pohľad (presne <= 14 × 24h, DST-safe)
+      const anchorMidnightMs = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0).getTime();
+      const start = new Date(anchorMidnightMs - 2 * 24 * 60 * 60 * 1000);
+      const end = new Date(anchorMidnightMs + 12 * 24 * 60 * 60 * 1000);
 
-      const result = await fetchBookingsAction(start.toISOString(), end.toISOString());
-      if (active && result.success && result.bookings) {
-        const fetched = result.bookings as Booking[];
-        for (const b of fetched) {
-          knownBookingIds.current.add(b.id);
-        }
-        setItems((prev) => {
-          const freshMap = new Map<string, CalendarItem>();
-          for (const item of prev) {
-            if (item.kind === "booking") {
-              freshMap.set(item.booking.id, item);
+      const result = await fetchAuthorizedCalendarItemsAction(start.toISOString(), end.toISOString());
+      if (!active) return;
+
+      if (result.success) {
+        setAccessMode(result.accessMode);
+        if (result.accessMode === "restricted") {
+          setDetail((prev) => (prev?.kind === "staff-booking" ? null : prev));
+          setDeleting((prev) => (prev?.kind === "staff-booking" ? null : prev));
+          setReschedulingBooking((prev) => (prev?.kind === "staff-booking" ? null : prev));
+          setItems(result.items.filter((i) => i.kind !== "staff-booking"));
+        } else {
+          for (const item of result.items) {
+            if (item.kind === "staff-booking") {
+              knownBookingIds.current.add(item.booking.id);
             }
           }
-          for (const b of fetched) {
-            freshMap.set(b.id, { kind: "booking", booking: b });
-          }
-          return Array.from(freshMap.values());
-        });
+          setItems((prev) => {
+            const freshMap = new Map<string, CalendarItem>();
+            for (const item of prev) {
+              if (item.kind === "staff-booking") {
+                freshMap.set(item.booking.id, item);
+              }
+            }
+            for (const item of result.items) {
+              if (item.kind === "staff-booking") {
+                freshMap.set(item.booking.id, item);
+              }
+            }
+            return Array.from(freshMap.values());
+          });
+        }
       }
       if (active) setLoading(false);
     }
@@ -710,191 +747,228 @@ export default function NewBookingsCalendar({
 
     let active = true;
     const timers = voiceHighlightTimers.current;
+    const isStaffUser =
+      accessMode === "staff" &&
+      (currentUser.role === "admin" || currentUser.role === "ntc_team");
 
-    // 1. Supabase Realtime WebSocket listener (instant 0ms response when event arrives)
-    const channel = supabase.channel("newbookings-realtime").on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, (payload) => {
-      if (!active) return;
-
-      if (currentUser && currentUser.role !== "admin") {
-        getWalletAction().then((res) => {
+    // 1. Supabase Realtime WebSocket listener IBA pre privilegované staff roly (admin / ntc_team)
+    // Pre restricted roly (user / trainer) sa channel vôbec nevytvára ani neprihlasuje na odber.
+    const channel = isStaffUser
+      ? supabase.channel("newbookings-realtime").on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, (payload) => {
           if (!active) return;
-          if (res.success && res.enabled) {
-            setWalletBalance(res.balanceEur);
-          }
-        });
-      }
 
-      if (payload.eventType === "INSERT") {
-        const raw = payload.new as any;
-        if (!raw?.id) return;
-
-        const bookingId = raw.id;
-        const alreadyKnown = knownBookingIds.current.has(bookingId);
-        knownBookingIds.current.add(bookingId);
-
-        let notesObj: any = {};
-        try {
-          notesObj = typeof raw.notes === "string" ? JSON.parse(raw.notes) : (raw.notes || {});
-        } catch { }
-
-        const resolvedCourtId = notesObj.courtId || raw.court_id || raw.courtId || "badminton-1";
-        const mappedBooking: Booking = {
-          id: raw.id,
-          courtId: resolvedCourtId,
-          title: notesObj.notes || raw.customer_name || "Rezervácia",
-          customerName: raw.customer_name || "Rezervácia",
-          phone: raw.customer_phone || undefined,
-          start: raw.start_at,
-          end: raw.end_at,
-          status: (raw.status || "confirmed") as any,
-          source: (notesObj.source || "voice-assistant") as any,
-          user_id: raw.user_id || undefined,
-          userRole: "user",
-        };
-
-        setItems((current) => {
-          const filtered = current.filter((item) => (item.kind === "booking" ? item.booking.id !== mappedBooking.id : true));
-          return [...filtered, { kind: "booking", booking: mappedBooking }];
-        });
-
-        // If booking was already handled by our own submit action, skip sound and re-animation
-        if (alreadyKnown) return;
-
-        const recurringId = notesObj.recurringGroupId;
-        if (recurringId) {
-          if (!handledRecurringSoundGroups.current.has(recurringId)) {
-            handledRecurringSoundGroups.current.add(recurringId);
-            playTennisHitSound();
-          }
-        } else {
-          playTennisHitSound();
-        }
-
-        // Only animate if this booking falls on the currently viewed date / week
-        const bStart = new Date(raw.start_at);
-        const bKey = dateKey(bStart);
-        const isVisibleNow = viewMode === "week"
-          ? bKey >= dateKey(date) && bKey <= dateKey(weekEndDate)
-          : bKey === dateKey(date);
-
-        if (isVisibleNow) {
-          setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
-          const existingTimer = timers.get(bookingId);
-          if (existingTimer) window.clearTimeout(existingTimer);
-          const timer = window.setTimeout(() => {
-            if (!active) return;
-            setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
-            timers.delete(bookingId);
-          }, 4500);
-          timers.set(bookingId, timer);
-        }
-      } else if (payload.eventType === "DELETE") {
-        const oldId = (payload.old as any)?.id;
-        if (oldId) {
-          setItems((current) => current.filter((item) => (item.kind === "booking" ? item.booking.id !== oldId : true)));
-        }
-      } else if (payload.eventType === "UPDATE") {
-        const updated = payload.new as any;
-        if (updated?.id) {
-          if (updated.status === "cancelled") {
-            setItems((current) => current.filter((item) => (item.kind === "booking" ? item.booking.id !== updated.id : true)));
-          } else {
-            setItems((current) => current.map((item) => {
-              if (item.kind === "booking" && item.booking.id === updated.id) {
-                return { kind: "booking", booking: { ...item.booking, status: updated.status } };
+          if (currentUser && currentUser.role !== "admin") {
+            getWalletAction().then((res) => {
+              if (!active) return;
+              if (res.success && res.enabled) {
+                setWalletBalance(res.balanceEur);
               }
-              return item;
-            }));
+            });
           }
-        }
-      }
-    }).subscribe();
 
-    const walletChannel = supabase.channel("wallets-realtime").on("postgres_changes", { event: "*", schema: "public", table: "wallets" }, (payload) => {
-      if (!active) return;
+          if (payload.eventType === "INSERT") {
+            const raw = payload.new as Record<string, unknown> | null;
+            if (!raw || typeof raw.id !== "string") return;
 
-      if (currentUser && currentUser.role !== "admin") {
-        const raw = payload.new as any;
-        if (raw?.user_id === currentUser.id && raw?.balance_eur !== undefined) {
-          setWalletBalance(Number(raw.balance_eur));
-          setWalletHighlight(true);
-          setTimeout(() => {
-            if (!active) return;
-            setWalletHighlight(false);
-          }, 3500);
-        }
-      }
-    }).subscribe();
+            const bookingId = raw.id;
+            const alreadyKnown = knownBookingIds.current.has(bookingId);
+            knownBookingIds.current.add(bookingId);
 
-    // 2. Background Polling from Google Cloud SQL every 3.5s for logged-in users
-    // Ensures real-time updates even when database writes bypass Supabase websockets
+            let notesObj: Record<string, unknown> = {};
+            try {
+              notesObj = typeof raw.notes === "string" ? JSON.parse(raw.notes) : (raw.notes && typeof raw.notes === "object" ? (raw.notes as Record<string, unknown>) : {});
+            } catch { }
+
+            const resolvedCourtId =
+              (typeof notesObj.courtId === "string" && notesObj.courtId) ||
+              (typeof raw.court_id === "string" && raw.court_id) ||
+              (typeof raw.courtId === "string" && raw.courtId) ||
+              "badminton-1";
+            const startIso = typeof raw.start_at === "string" ? raw.start_at : "";
+            const endIso = typeof raw.end_at === "string" ? raw.end_at : "";
+            if (!startIso || !endIso) return;
+
+            const mappedBooking: Booking = {
+              id: bookingId,
+              courtId: resolvedCourtId,
+              title: (typeof notesObj.notes === "string" && notesObj.notes) || (typeof raw.customer_name === "string" && raw.customer_name) || "Rezervácia",
+              customerName: (typeof raw.customer_name === "string" && raw.customer_name) || "Rezervácia",
+              phone: typeof raw.customer_phone === "string" ? raw.customer_phone : undefined,
+              start: startIso,
+              end: endIso,
+              status: (raw.status === "blocked" || raw.status === "cancelled" || raw.status === "pending" ? raw.status : "confirmed"),
+              source: (notesObj.source === "admin" || notesObj.source === "web" ? notesObj.source : "voice-assistant"),
+              user_id: typeof raw.user_id === "string" ? raw.user_id : undefined,
+              userRole: "user",
+            };
+
+            setItems((current) => {
+              const filtered = current.filter((item) => (item.kind === "staff-booking" ? item.booking.id !== mappedBooking.id : true));
+              return [...filtered, toStaffBookingCalendarItem(mappedBooking)];
+            });
+
+            // If booking was already handled by our own submit action, skip sound and re-animation
+            if (alreadyKnown) return;
+
+            const recurringId = typeof notesObj.recurringGroupId === "string" ? notesObj.recurringGroupId : undefined;
+            if (recurringId) {
+              if (!handledRecurringSoundGroups.current.has(recurringId)) {
+                handledRecurringSoundGroups.current.add(recurringId);
+                playTennisHitSound();
+              }
+            } else {
+              playTennisHitSound();
+            }
+
+            // Only animate if this booking falls on the currently viewed date / week
+            const bStart = new Date(startIso);
+            const bKey = dateKey(bStart);
+            const isVisibleNow = viewMode === "week"
+              ? bKey >= dateKey(date) && bKey <= dateKey(weekEndDate)
+              : bKey === dateKey(date);
+
+            if (isVisibleNow) {
+              setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
+              const existingTimer = timers.get(bookingId);
+              if (existingTimer) window.clearTimeout(existingTimer);
+              const timer = window.setTimeout(() => {
+                if (!active) return;
+                setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
+                timers.delete(bookingId);
+              }, 4500);
+              timers.set(bookingId, timer);
+            }
+          } else if (payload.eventType === "DELETE") {
+            const oldRaw = payload.old as Record<string, unknown> | null;
+            const oldId = typeof oldRaw?.id === "string" ? oldRaw.id : null;
+            if (oldId) {
+              setItems((current) => current.filter((item) => (item.kind === "staff-booking" ? item.booking.id !== oldId : true)));
+            }
+          } else if (payload.eventType === "UPDATE") {
+            const updated = payload.new as Record<string, unknown> | null;
+            const updatedId = typeof updated?.id === "string" ? updated.id : null;
+            if (updatedId) {
+              if (updated?.status === "cancelled") {
+                setItems((current) => current.filter((item) => (item.kind === "staff-booking" ? item.booking.id !== updatedId : true)));
+              } else if (updated?.status === "confirmed" || updated?.status === "blocked" || updated?.status === "pending") {
+                const nextStatus = updated.status;
+                setItems((current) => current.map((item) => {
+                  if (item.kind === "staff-booking" && item.booking.id === updatedId) {
+                    return { kind: "staff-booking", booking: { ...item.booking, status: nextStatus } };
+                  }
+                  return item;
+                }));
+              }
+            }
+          }
+        }).subscribe()
+      : null;
+
+    // 2. Background Polling from Google Cloud SQL every 3.5s for logged-in users via role-aware action
+    // Ensures real-time updates without exposing foreign booking details to restricted roles
     const pollInterval = window.setInterval(async () => {
       if (!active) return;
-      const start = new Date(date); start.setHours(0, 0, 0, 0);
-      const end = new Date(date);
-      if (viewMode === "week") {
-        end.setDate(end.getDate() + 7);
-      }
-      end.setHours(23, 59, 59, 999);
-      const result = await fetchBookingsAction(start.toISOString(), end.toISOString());
+      const anchorMidnightMs = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0).getTime();
+      const start = new Date(anchorMidnightMs);
+      const end = new Date(anchorMidnightMs + (viewMode === "week" ? 8 : 1) * 24 * 60 * 60 * 1000);
+      const startMs = start.getTime();
+      const endMs = end.getTime();
+
+      const result = await fetchAuthorizedCalendarItemsAction(start.toISOString(), end.toISOString());
       if (!active) return;
-      if (!result.success || !result.bookings) return;
+      if (!result.success) return;
 
-      const freshBookings = result.bookings as Booking[];
-      const newArrivals = freshBookings.filter(
-        (fb) => !knownBookingIds.current.has(fb.id) && fb.status !== "cancelled"
-      );
+      setAccessMode(result.accessMode);
 
-      for (const fb of freshBookings) {
-        knownBookingIds.current.add(fb.id);
-      }
+      if (result.accessMode === "restricted") {
+        setDetail((prev) => (prev?.kind === "staff-booking" ? null : prev));
+        setDeleting((prev) => (prev?.kind === "staff-booking" ? null : prev));
+        setReschedulingBooking((prev) => (prev?.kind === "staff-booking" ? null : prev));
 
-      if (newArrivals.length > 0) {
-        const unplayedArrivals = newArrivals.filter((b) => {
-          if (b.recurringGroupId) {
-            if (handledRecurringSoundGroups.current.has(b.recurringGroupId)) return false;
-            handledRecurringSoundGroups.current.add(b.recurringGroupId);
+        for (const item of result.items) {
+          if (item.kind === "own-booking") {
+            knownBookingIds.current.add(item.booking.id);
           }
-          return true;
+        }
+
+        if (!active) return;
+        setItems((prevItems) => {
+          if (!active) return prevItems;
+          // Zachováme položky mimo dotazovaného okna a nahradíme položky v okne autorizovaným výsledkom (bez akýchkoľvek staff-booking položiek)
+          const outsideWindow = prevItems.filter((item) => {
+            if (item.kind === "staff-booking") return false;
+            const iStartMs = new Date(item.kind === "public-occupied" ? item.start : item.booking.start).getTime();
+            const iEndMs = new Date(item.kind === "public-occupied" ? item.end : item.booking.end).getTime();
+            const overlaps = iEndMs > startMs && iStartMs < endMs;
+            return !overlaps;
+          });
+          return [...outsideWindow, ...result.items.filter((i) => i.kind !== "staff-booking")];
         });
-        if (unplayedArrivals.length > 0) {
-          playTennisHitSound();
-        }
-        for (const nb of newArrivals) {
-          const bookingId = nb.id;
-          const bKey = dateKey(new Date(nb.start));
-          const isVisibleNow = viewMode === "week"
-            ? bKey >= dateKey(date) && bKey <= dateKey(weekEndDate)
-            : bKey === dateKey(date);
+      } else {
+        const freshStaffItems = result.items.filter(
+          (item): item is StaffBookingCalendarItem => item.kind === "staff-booking"
+        );
+        const freshBookings = freshStaffItems.map((i) => i.booking);
+        const newArrivals = freshBookings.filter(
+          (fb) => !knownBookingIds.current.has(fb.id) && fb.status !== "cancelled"
+        );
 
-          if (isVisibleNow) {
-            setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
-            const existingTimer = timers.get(bookingId);
-            if (existingTimer) window.clearTimeout(existingTimer);
-            const timer = window.setTimeout(() => {
-              if (!active) return;
-              setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
-              timers.delete(bookingId);
-            }, 4500);
-            timers.set(bookingId, timer);
-          }
-        }
-      }
-
-      if (!active) return;
-      setItems((prevItems) => {
-        if (!active) return prevItems;
-        const freshMap = new Map<string, CalendarItem>();
-        for (const item of prevItems) {
-          if (item.kind === "booking") {
-            freshMap.set(item.booking.id, item);
-          }
-        }
         for (const fb of freshBookings) {
-          freshMap.set(fb.id, { kind: "booking", booking: fb });
+          knownBookingIds.current.add(fb.id);
         }
-        return Array.from(freshMap.values());
-      });
+
+        if (newArrivals.length > 0) {
+          const unplayedArrivals = newArrivals.filter((b) => {
+            if (b.recurringGroupId) {
+              if (handledRecurringSoundGroups.current.has(b.recurringGroupId)) return false;
+              handledRecurringSoundGroups.current.add(b.recurringGroupId);
+            }
+            return true;
+          });
+          if (unplayedArrivals.length > 0) {
+            playTennisHitSound();
+          }
+          for (const nb of newArrivals) {
+            const bookingId = nb.id;
+            const bKey = dateKey(new Date(nb.start));
+            const isVisibleNow = viewMode === "week"
+              ? bKey >= dateKey(date) && bKey <= dateKey(weekEndDate)
+              : bKey === dateKey(date);
+
+            if (isVisibleNow) {
+              setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
+              const existingTimer = timers.get(bookingId);
+              if (existingTimer) window.clearTimeout(existingTimer);
+              const timer = window.setTimeout(() => {
+                if (!active) return;
+                setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
+                timers.delete(bookingId);
+              }, 4500);
+              timers.set(bookingId, timer);
+            }
+          }
+        }
+
+        if (!active) return;
+        setItems((prevItems) => {
+          if (!active) return prevItems;
+          const freshMap = new Map<string, CalendarItem>();
+          for (const item of prevItems) {
+            if (item.kind === "staff-booking") {
+              const iStartMs = new Date(item.booking.start).getTime();
+              const iEndMs = new Date(item.booking.end).getTime();
+              const overlaps = iEndMs > startMs && iStartMs < endMs;
+              if (!overlaps) {
+                freshMap.set(item.booking.id, item);
+              }
+            }
+          }
+          for (const staffItem of freshStaffItems) {
+            freshMap.set(staffItem.booking.id, staffItem);
+          }
+          return Array.from(freshMap.values());
+        });
+      }
 
       if (currentUser && currentUser.role !== "admin") {
         getWalletAction().then((wRes) => {
@@ -908,14 +982,15 @@ export default function NewBookingsCalendar({
 
     return () => {
       active = false;
-      supabase.removeChannel(channel);
-      supabase.removeChannel(walletChannel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
       window.clearInterval(pollInterval);
       timers.forEach((timer) => window.clearTimeout(timer));
       timers.clear();
       setHighlightedVoiceBookings([]);
     };
-  }, [currentUser, date, viewMode]);
+  }, [currentUser, accessMode, date, viewMode, weekEndDate]);
 
 
   // Safe background polling for anonymous visitors:
@@ -931,15 +1006,9 @@ export default function NewBookingsCalendar({
       isFetching = true;
 
       try {
-        const start = new Date(date);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(date);
-        if (viewMode === "week") {
-          end.setDate(end.getDate() + 7);
-        } else {
-          end.setDate(end.getDate() + 1);
-        }
-        end.setHours(23, 59, 59, 999);
+        const anchorMidnightMs = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0).getTime();
+        const start = new Date(anchorMidnightMs);
+        const end = new Date(anchorMidnightMs + (viewMode === "week" ? 8 : 1) * 24 * 60 * 60 * 1000);
 
         const result = await fetchPublicAvailabilityAction(start.toISOString(), end.toISOString());
         if (active && result.success && result.slots) {
@@ -1306,8 +1375,17 @@ export default function NewBookingsCalendar({
       );
     });
 
+  const toCurrentAccessBookingItem = useCallback((b: Omit<Booking, "source"> & { source: string }): DetailCalendarItem => {
+    if (accessMode === "staff") {
+      const normalizedSource: Booking["source"] = b.source === "admin" || b.source === "voice-assistant" || b.source === "google-calendar" ? b.source : "web";
+      return toStaffBookingCalendarItem({ ...b, source: normalizedSource });
+    }
+    return toOwnBookingCalendarItem(mapCreatedBookingToOwnBookingDto(b));
+  }, [accessMode]);
+
   const getRescheduleSlotStatus = useCallback((courtId: string, hour: number, targetDate: Date = date) => {
     if (!reschedulingBooking) return null;
+    const reschedB = reschedulingBooking.booking;
     const targetIsToday = dateKey(targetDate) === dateKey(now);
     const isPast = targetIsToday ? hour <= now.getHours() : dateKey(targetDate) < dateKey(now);
     if (isPast) return { eligible: false, reason: "past" as const };
@@ -1317,7 +1395,7 @@ export default function NewBookingsCalendar({
     const end = new Date(start.getTime() + reschedDurationMin * 60000);
 
     // Check if it's the current slot of the booking itself
-    if (courtId === reschedulingBooking.courtId && start.getTime() === new Date(reschedulingBooking.start).getTime()) {
+    if (courtId === reschedB.courtId && start.getTime() === new Date(reschedB.start).getTime()) {
       return { eligible: false, reason: "current" as const };
     }
 
@@ -1338,7 +1416,7 @@ export default function NewBookingsCalendar({
       }
       return (
         item.booking.status !== "cancelled" &&
-        item.booking.id !== reschedulingBooking.id &&
+        item.booking.id !== reschedB.id &&
         item.booking.courtId === courtId &&
         dateKey(new Date(item.booking.start)) === targetDayKey &&
         start < new Date(item.booking.end) &&
@@ -1361,7 +1439,7 @@ export default function NewBookingsCalendar({
         reschedDurationMin,
         isRegistered,
         roleDiscount,
-        reschedulingBooking.multisportCardsCount || 0,
+        reschedB.multisportCardsCount || 0,
         targetPricelist,
         currentUser?.discountTierId
       );
@@ -1375,6 +1453,7 @@ export default function NewBookingsCalendar({
 
   const handleConfirmReschedule = async () => {
     if (!reschedulingBooking || !rescheduleSlot) return;
+    const reschedB = reschedulingBooking.booking;
     setRescheduleLoading(true);
     setRescheduleError("");
 
@@ -1384,7 +1463,7 @@ export default function NewBookingsCalendar({
     const endIso = end.toISOString();
 
     const res = await rescheduleBookingAction({
-      bookingId: reschedulingBooking.id,
+      bookingId: reschedB.id,
       newCourtId: rescheduleSlot.courtId,
       newStart: startIso,
       newEnd: endIso,
@@ -1398,9 +1477,21 @@ export default function NewBookingsCalendar({
 
     setItems((prev) =>
       prev.map((item) => {
-        if (item.kind === "booking" && item.booking.id === reschedulingBooking.id) {
+        if (item.kind === "own-booking" && item.booking.id === reschedB.id) {
           return {
-            kind: "booking",
+            kind: "own-booking",
+            booking: {
+              ...item.booking,
+              courtId: rescheduleSlot.courtId,
+              start: start.toISOString(),
+              end: end.toISOString(),
+              isRescheduled: true,
+            },
+          };
+        }
+        if (item.kind === "staff-booking" && item.booking.id === reschedB.id) {
+          return {
+            kind: "staff-booking",
             booking: {
               ...item.booking,
               courtId: rescheduleSlot.courtId,
@@ -1415,7 +1506,7 @@ export default function NewBookingsCalendar({
     );
 
     playTennisHitSound();
-    const reschedId = reschedulingBooking.id;
+    const reschedId = reschedB.id;
     const timers = voiceHighlightTimers.current;
     setHighlightedVoiceBookings((curr) => curr.includes(reschedId) ? curr : [...curr, reschedId]);
     const existingTimer = timers.get(reschedId);
@@ -1468,11 +1559,11 @@ export default function NewBookingsCalendar({
         return setNotice(result.error || "Opakovanú rezerváciu sa nepodarilo vytvoriť.");
       }
 
-      const newBookings = result.bookings as Booking[];
+      const newBookings = result.bookings;
       for (const nb of newBookings) {
         knownBookingIds.current.add(nb.id);
       }
-      setItems((current) => [...current, ...newBookings.map((b) => ({ kind: "booking" as const, booking: b }))]);
+      setItems((current) => [...current, ...newBookings.map(toCurrentAccessBookingItem)]);
       setSlot(null);
       setIsRecurring(false);
       setRepeatFrequency("weekly");
@@ -1537,14 +1628,14 @@ export default function NewBookingsCalendar({
     setLoading(false);
     if (!result.success || !result.booking) return setNotice(result.error || "Rezerváciu sa nepodarilo vytvoriť.");
     if (result.wallet && currentUser.role !== "admin") setWalletBalance(result.wallet.balanceEur);
-    const newBooking = {
+    const newBooking: Booking = {
       ...result.booking,
       adminBlockType: currentUser.role === "admin" ? effectiveBlockType : undefined,
       clientPlayerName: effectivePlayerName || undefined,
-    } as Booking;
+    };
     knownBookingIds.current.add(newBooking.id);
     playTennisHitSound();
-    setItems((current) => [...current, { kind: "booking", booking: newBooking }]);
+    setItems((current) => [...current, toCurrentAccessBookingItem(newBooking)]);
     // Trigger highlight animation on the new booking box for 3 seconds
     const newId = newBooking.id;
     const timers = voiceHighlightTimers.current;
@@ -1568,30 +1659,33 @@ export default function NewBookingsCalendar({
     );
   };
 
-  const remove = async (deleteEntireSeries = false) => {
-    if (!deleting) return;
+  const remove = async (deleteEntireSeries = false, explicitTargetItem?: DetailCalendarItem | null) => {
+    const targetItem = explicitTargetItem !== undefined ? explicitTargetItem : deleting;
+    if (!targetItem) return;
+    const delBooking = targetItem.booking;
+    const isSelf = targetItem.kind === "own-booking" || (targetItem.kind === "staff-booking" && currentUser?.id === targetItem.booking.user_id);
     setLoading(true);
-    const result = await deleteBookingAction(deleting.id, deleteEntireSeries);
+    const result = await deleteBookingAction(delBooking.id, deleteEntireSeries);
     setLoading(false);
     if (!result.success) {
       setDeleting(null);
       return setNotice(result.error || "Rezerváciu sa nepodarilo zrušiť.");
     }
-    if (result.wallet && currentUser?.id === deleting.user_id) {
+    if (result.wallet && isSelf) {
       setWalletBalance(result.wallet.balanceEur);
     }
-    if (deleteEntireSeries && deleting.recurringGroupId) {
-      const fromMs = new Date(deleting.start).getTime();
+    if (deleteEntireSeries && delBooking.recurringGroupId) {
+      const fromMs = new Date(delBooking.start).getTime();
       setItems((current) =>
         current.filter((item) => {
-          if (item.kind !== "booking") return true;
+          if (item.kind === "public-occupied") return true;
           const b = item.booking;
-          return !(b.recurringGroupId === deleting.recurringGroupId && new Date(b.start).getTime() >= fromMs);
+          return !(b.recurringGroupId === delBooking.recurringGroupId && new Date(b.start).getTime() >= fromMs);
         })
       );
     } else {
       setItems((current) =>
-        current.filter((item) => (item.kind === "booking" ? item.booking.id !== deleting.id : true))
+        current.filter((item) => (item.kind !== "public-occupied" ? item.booking.id !== delBooking.id : true))
       );
     }
     setDeleting(null);
@@ -1599,11 +1693,10 @@ export default function NewBookingsCalendar({
     if (deleteEntireSeries) {
       setNotice(`Celá séria (${result.deletedCount || 1} termínov) bola úspešne zrušená.`);
     } else if (result.wallet && result.wallet.refunded) {
-      const isSelf = currentUser?.id === deleting.user_id;
       setNotice(
         isSelf
           ? `Rezervácia bola zrušená. Vrátené do peňaženky: ${result.wallet.refundedEur.toFixed(2)} €.`
-          : `Rezervácia bola zrušená. Zákazníkovi (${deleting.customerName || "používateľ"}) bol vrátený kredit: ${result.wallet.refundedEur.toFixed(2)} €.`
+          : `Rezervácia bola zrušená. Zákazníkovi (${delBooking.customerName || "používateľ"}) bol vrátený kredit: ${result.wallet.refundedEur.toFixed(2)} €.`
       );
     } else {
       setNotice("Rezervácia bola zrušená.");
@@ -1669,12 +1762,12 @@ export default function NewBookingsCalendar({
     const dayPastPercent = !dayIsToday
       ? (dateKey(dayDate) < dateKey(now) ? 100 : 0)
       : Math.max(
-          0,
-          Math.min(
-            100,
-            ((now.getHours() + 1 - openingHours.startHour) / (openingHours.endHour - openingHours.startHour)) * 100
-          )
-        );
+        0,
+        Math.min(
+          100,
+          ((now.getHours() + 1 - openingHours.startHour) / (openingHours.endHour - openingHours.startHour)) * 100
+        )
+      );
 
     return (
       <div key={dateKey(dayDate)} className="w-full">
@@ -1735,7 +1828,7 @@ export default function NewBookingsCalendar({
 
         {dayCourts.map((court) => {
           const courtHasHighlight = dayBookings.some((item) => {
-            if (item.kind !== "booking") return false;
+            if (item.kind === "public-occupied") return false;
             return item.booking.courtId === court.id && highlightedVoiceBookings.includes(item.booking.id);
           });
           return (
@@ -1835,6 +1928,7 @@ export default function NewBookingsCalendar({
                 )}
                 <div className={`pointer-events-none absolute inset-0 ${courtHasHighlight ? "z-40" : "z-10"}`}>
                   {dayBookings.filter((item) => (item.kind === "public-occupied" ? item.courtId : item.booking.courtId) === court.id).map((item) => {
+                    // 1. Vetva: anonymná / cudzia obsadenosť (kind === "public-occupied")
                     if (item.kind === "public-occupied") {
                       return (
                         <div
@@ -1866,6 +1960,61 @@ export default function NewBookingsCalendar({
                       );
                     }
 
+                    // 2. Vetva: vlastná rezervácia restricted používateľa (kind === "own-booking")
+                    if (item.kind === "own-booking") {
+                      const ownBooking = item.booking;
+                      const voiceHighlight = highlightedVoiceBookings.includes(ownBooking.id);
+                      const isBeingRescheduled = reschedulingBooking?.booking.id === ownBooking.id;
+                      const ownLabelText = isBeingRescheduled ? "Presúva sa..." : "Vaša rezervácia";
+                      const ownBookingClasses = isBeingRescheduled
+                        ? "border-2 border-dashed border-emerald-500 bg-emerald-100/90 text-emerald-950 font-bold ring-2 ring-emerald-400"
+                        : "border-emerald-300 bg-[#DCFCE7] text-emerald-950 font-bold shadow-xs hover:bg-[#BBF7D0]";
+
+                      return (
+                        <div
+                          key={ownBooking.id}
+                          className={`absolute inset-y-0 p-1 ${voiceHighlight ? "z-50" : ""}`}
+                          style={position(ownBooking)}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (reschedulingBooking) {
+                                if (ownBooking.id === reschedulingBooking.booking.id) {
+                                  setNotice("Túto rezerváciu práve presúvate. Vyberte zelené okienko [Presunúť sem] pre nový termín.");
+                                } else {
+                                  setNotice("Tento termín je už obsadený inou rezerváciou.");
+                                }
+                                return;
+                              }
+                              setDetail(item);
+                            }}
+                            className={`pointer-events-auto h-full w-full overflow-hidden rounded-2xl border px-1.5 py-1 text-center transition duration-150 hover:scale-[1.01] flex flex-col items-center justify-center cursor-pointer ${
+                              voiceHighlight ? "booking-magnify-drop" : ""
+                            } ${ownBookingClasses}`}
+                            title={`Detail: ${ownLabelText}`}
+                          >
+                            <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center font-sans select-none pointer-events-none text-emerald-950">
+                              <span className="block text-[clamp(8.5px,0.65vw,11px)] font-bold leading-tight tracking-tight whitespace-nowrap inline-flex items-center gap-1 justify-center">
+                                {ownBooking.recurringGroupId && (
+                                  <Repeat className="h-2.5 w-2.5 opacity-75 shrink-0" />
+                                )}
+                                {formatCompactInterval(ownBooking.start, ownBooking.end)}
+                              </span>
+                              <div className="mt-0.5 flex flex-col items-center justify-center w-full px-0.5 text-center text-[clamp(8px,0.6vw,10.5px)] font-bold leading-[1.1] tracking-tight">
+                                {ownLabelText.split(" ").filter(Boolean).map((part, idx) => (
+                                  <span key={idx} className="block whitespace-nowrap max-w-full">
+                                    {part}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    // 3. Vetva: privilegovaný staff pohľad (kind === "staff-booking")
                     const booking = item.booking;
                     const isAdmin = currentUser?.role === "admin";
                     const isNtcTeam = currentUser?.role === "ntc_team";
@@ -1964,7 +2113,7 @@ export default function NewBookingsCalendar({
                         bookingClasses = "border-slate-300 bg-[#CBD5E1] text-slate-800 font-semibold shadow-xs";
                       }
                     }
-                    const isBeingRescheduled = reschedulingBooking?.id === booking.id;
+                    const isBeingRescheduled = reschedulingBooking?.booking.id === booking.id;
                     if (isBeingRescheduled) {
                       labelText = "Presúva sa...";
                       slotCustomStyle = {};
@@ -1981,14 +2130,14 @@ export default function NewBookingsCalendar({
                           type="button"
                           onClick={() => {
                             if (reschedulingBooking) {
-                              if (booking.id === reschedulingBooking.id) {
+                              if (booking.id === reschedulingBooking.booking.id) {
                                 setNotice("Túto rezerváciu práve presúvate. Vyberte zelené okienko [Presunúť sem] pre nový termín.");
                               } else {
                                 setNotice("Tento termín je už obsadený inou rezerváciou.");
                               }
                               return;
                             }
-                            if (canManage) setDetail(booking);
+                            if (canManage) setDetail(item);
                           }}
                           style={slotCustomStyle}
                           className={`pointer-events-auto h-full w-full overflow-hidden rounded-2xl border px-1.5 py-1 text-center transition duration-150 hover:scale-[1.01] flex flex-col items-center justify-center ${voiceHighlight ? "booking-magnify-drop" : ""
@@ -2141,8 +2290,8 @@ export default function NewBookingsCalendar({
         {/* Plávajúca prichytená hlavička s hodinami pri vertikálnom scrollovaní nadol */}
         <div
           className={`fixed top-0 left-0 right-0 z-40 transition-all duration-150 ${showFloatingHeader
-              ? "opacity-100 translate-y-0 pointer-events-auto"
-              : "opacity-0 -translate-y-full pointer-events-none"
+            ? "opacity-100 translate-y-0 pointer-events-auto"
+            : "opacity-0 -translate-y-full pointer-events-none"
             }`}
           style={{
             boxShadow: "0 4px 16px -2px rgba(15, 23, 42, 0.12)",
@@ -2237,7 +2386,7 @@ export default function NewBookingsCalendar({
             )}
             <div className="grid grid-cols-2 gap-1.5 lg:grid-cols-4 sm:gap-2">
               {sports.map((item) => {
-                const origCourt = courts.find((c) => c.id === reschedulingBooking?.courtId);
+                const origCourt = courts.find((c) => c.id === reschedulingBooking?.booking.courtId);
                 const isSportLocked = Boolean(reschedulingBooking && origCourt && item.id !== origCourt.sport);
                 return (
                   <button
@@ -2246,10 +2395,10 @@ export default function NewBookingsCalendar({
                     onClick={() => setSport(item.id)}
                     title={isSportLocked ? "Počas presunu rezervácie je možné vybrať iba rovnaký šport" : undefined}
                     className={`cursor-pointer rounded-lg sm:rounded-xl border py-1.5 px-2 sm:p-3 text-xs sm:text-sm font-semibold sm:font-bold transition duration-200 ${sport === item.id
-                        ? "border-slate-950 bg-slate-950 text-white shadow-xs sm:shadow-sm"
-                        : isSportLocked
-                          ? "border-slate-200 bg-slate-100 text-slate-400 opacity-40 cursor-not-allowed"
-                          : "border-slate-200 bg-white text-slate-600 shadow-2xs hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 hover:shadow-xs"
+                      ? "border-slate-950 bg-slate-950 text-white shadow-xs sm:shadow-sm"
+                      : isSportLocked
+                        ? "border-slate-200 bg-slate-100 text-slate-400 opacity-40 cursor-not-allowed"
+                        : "border-slate-200 bg-white text-slate-600 shadow-2xs hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 hover:shadow-xs"
                       }`}
                   >
                     {item.label}
@@ -2272,11 +2421,10 @@ export default function NewBookingsCalendar({
                   <button
                     type="button"
                     onClick={() => setViewMode("day")}
-                    className={`cursor-pointer px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-bold rounded-md sm:rounded-lg transition ${
-                      viewMode === "day"
-                        ? "bg-white text-slate-900 shadow-2xs"
-                        : "text-slate-500 hover:text-slate-900"
-                    }`}
+                    className={`cursor-pointer px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-bold rounded-md sm:rounded-lg transition ${viewMode === "day"
+                      ? "bg-white text-slate-900 shadow-2xs"
+                      : "text-slate-500 hover:text-slate-900"
+                      }`}
                   >
                     1 deň
                   </button>
@@ -2288,11 +2436,10 @@ export default function NewBookingsCalendar({
                         setDate(new Date());
                       }
                     }}
-                    className={`cursor-pointer px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-bold rounded-md sm:rounded-lg transition ${
-                      viewMode === "week"
-                        ? "bg-white text-slate-900 shadow-2xs"
-                        : "text-slate-500 hover:text-slate-900"
-                    }`}
+                    className={`cursor-pointer px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-bold rounded-md sm:rounded-lg transition ${viewMode === "week"
+                      ? "bg-white text-slate-900 shadow-2xs"
+                      : "text-slate-500 hover:text-slate-900"
+                      }`}
                   >
                     Dnes + 7 dní
                   </button>
@@ -2527,17 +2674,26 @@ export default function NewBookingsCalendar({
       )}
       {detail && (
         <BookingDetailDialog
-          booking={detail}
-          court={courts.find((court) => court.id === detail.courtId)}
-          canManage={!!currentUser && (currentUser.role === "admin" || currentUser.role === "ntc_team" || currentUser.id === detail.user_id)}
-          canCancel={currentUser?.role === "admin" || new Date(detail.start).getTime() - now.getTime() > (rolePolicy?.cancellationDeadlineHours ?? 24) * 60 * 60 * 1000}
+          detailItem={detail}
+          accessMode={accessMode}
+          court={courts.find((court) => court.id === detail.booking.courtId)}
+          canManage={
+            Boolean(currentUser) &&
+            (detail.kind === "own-booking" ||
+              currentUser?.role === "admin" ||
+              currentUser?.id === detail.booking.user_id)
+          }
+          canCancel={
+            currentUser?.role === "admin" ||
+            new Date(detail.booking.start).getTime() - now.getTime() > (rolePolicy?.cancellationDeadlineHours ?? 24) * 60 * 60 * 1000
+          }
           cancellationDeadlineHours={rolePolicy?.cancellationDeadlineHours ?? 24}
           currentRole={currentUser?.role}
           onSubSlotsUpdated={(bookingId, subSlots) => {
             setItems((prev) =>
               prev.map((item) => {
-                if (item.kind === "booking" && item.booking.id === bookingId) {
-                  return { kind: "booking", booking: { ...item.booking, subSlots } };
+                if (item.kind === "staff-booking" && item.booking.id === bookingId) {
+                  return { kind: "staff-booking", booking: { ...item.booking, subSlots } };
                 }
                 return item;
               })
@@ -2552,12 +2708,12 @@ export default function NewBookingsCalendar({
             setTimeout(() => scrollToCurrentTime(true), 100);
           }}
           onStartReschedule={(target) => {
-            const targetBooking = target || detail;
-            const origCourt = courts.find((court) => court.id === targetBooking.courtId);
+            const targetItem = target || detail;
+            const origCourt = courts.find((court) => court.id === targetItem.booking.courtId);
             if (origCourt && origCourt.sport !== sport) {
               setSport(origCourt.sport);
             }
-            setReschedulingBooking(targetBooking);
+            setReschedulingBooking(targetItem);
             setDetail(null);
             setNotice("Vyberte nový voľný termín v kalendári s rovnakou cenou a dĺžkou.");
           }}
@@ -2565,8 +2721,8 @@ export default function NewBookingsCalendar({
       )}
       {rescheduleSlot && reschedulingBooking && (
         <RescheduleConfirmDialog
-          booking={reschedulingBooking}
-          court={courts.find((court) => court.id === reschedulingBooking.courtId)}
+          booking={reschedulingBooking.booking}
+          court={courts.find((court) => court.id === reschedulingBooking.booking.courtId)}
           targetCourt={courts.find((court) => court.id === rescheduleSlot.courtId)}
           targetDate={rescheduleSlot.date}
           targetHour={rescheduleSlot.hour}
@@ -2584,15 +2740,15 @@ export default function NewBookingsCalendar({
         <DeleteDialog
           loading={loading}
           error={notice || undefined}
-          isSeries={Boolean(deleting.recurringGroupId)}
+          isSeries={Boolean(deleting.booking.recurringGroupId)}
           onCancel={() => { setDeleting(null); setNotice(""); }}
-          onConfirm={(deleteSeries) => remove(deleteSeries)}
+          onConfirm={(deleteSeries) => remove(deleteSeries, deleting)}
         />
       )}
       {seriesOverviewGroupId && (
         <SeriesOverviewDialog
           recurringGroupId={seriesOverviewGroupId}
-          courtName={detail ? formatCourtDisplayName(courts.find((c) => c.id === detail.courtId)) : undefined}
+          courtName={detail ? formatCourtDisplayName(courts.find((c) => c.id === detail.booking.courtId)) : undefined}
           courts={courts}
           onClose={() => setSeriesOverviewGroupId(null)}
           onSelectDate={(targetDate) => {
@@ -2603,18 +2759,21 @@ export default function NewBookingsCalendar({
           onCancelSingleBooking={async (bookingId) => {
             const res = await deleteBookingAction(bookingId, false);
             if (res.success) {
-              setItems((prev) => prev.filter((item) => (item.kind === "booking" ? item.booking.id !== bookingId : true)));
+              setItems((prev) => prev.filter((item) => (item.kind !== "public-occupied" ? item.booking.id !== bookingId : true)));
               setNotice("Termín bol úspešne uvoľnený pre verejnosť.");
             } else {
               setNotice(res.error || "Termín sa nepodarilo uvoľniť.");
             }
           }}
-          onCancelEntireSeries={async (groupId) => {
-            const foundItem = items.find((item) => item.kind === "booking" && item.booking.recurringGroupId === groupId);
-            const targetBooking = detail || (foundItem && foundItem.kind === "booking" ? foundItem.booking : null);
-            if (targetBooking) {
-              setDeleting(targetBooking);
-              await remove(true);
+          onCancelEntireSeries={async (groupId, selectedTargetItem) => {
+            const foundItem = items.find(
+              (item): item is DetailCalendarItem =>
+                (item.kind === "own-booking" || item.kind === "staff-booking") &&
+                item.booking.recurringGroupId === groupId
+            );
+            const targetItem = selectedTargetItem || detail || foundItem || null;
+            if (targetItem) {
+              await remove(true, targetItem);
             }
             setSeriesOverviewGroupId(null);
           }}

@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Calendar, CalendarSync, Check, ChevronDown, ChevronLeft, ChevronRight, Clock3, Coins, CreditCard, List, Loader2, MessageSquare, Phone, Plus, Repeat, Sparkles, Trash2, User, Users, X } from "lucide-react";
 import type { Booking, BookingSubSlot, Court } from "@/lib/bookings/mockBookings";
+import type {
+  CalendarAccessMode,
+  OwnBookingCalendarItem,
+  OwnBookingDto,
+  StaffBookingCalendarItem,
+} from "@/lib/bookings/publicAvailability";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import type { NtcPricelist } from "@/lib/bookings/pricingTypes";
 import { formatDuration } from "@/lib/bookings/rolePolicy";
@@ -787,23 +793,27 @@ export function CreateBookingDialog(props: CreateDialogProps) {
   );
 }
 
+export type DetailCalendarItem = OwnBookingCalendarItem | StaffBookingCalendarItem;
+
 type DetailProps = {
-  booking: Booking;
+  detailItem: DetailCalendarItem;
+  accessMode?: CalendarAccessMode | null;
   court?: Court;
   canManage: boolean;
   canCancel: boolean;
   cancellationDeadlineHours: number;
   currentRole?: string;
   onClose: () => void;
-  onDelete: (target?: Booking) => void;
-  onStartReschedule?: (target?: Booking) => void;
+  onDelete: (target?: DetailCalendarItem) => void;
+  onStartReschedule?: (target?: DetailCalendarItem) => void;
   onOpenSeriesOverview?: (recurringGroupId: string) => void;
   onNavigateToDate?: (date: Date) => void;
   onSubSlotsUpdated?: (bookingId: string, subSlots: BookingSubSlot[]) => void;
 };
 
 export function BookingDetailDialog({
-  booking,
+  detailItem,
+  accessMode,
   court,
   canManage,
   canCancel,
@@ -816,13 +826,15 @@ export function BookingDetailDialog({
   onNavigateToDate,
   onSubSlotsUpdated,
 }: DetailProps) {
-  const [activeBooking, setActiveBooking] = useState<Booking>(booking);
-  const [seriesBookings, setSeriesBookings] = useState<Booking[]>([]);
+  const [activeItem, setActiveItem] = useState<DetailCalendarItem>(detailItem);
+  const [seriesItems, setSeriesItems] = useState<DetailCalendarItem[]>([]);
   const [fetchingSeries, setFetchingSeries] = useState(false);
-  const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date(booking.start));
+  const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date(detailItem.booking.start));
 
-  // Sub-slots management state
-  const [subSlots, setSubSlots] = useState<BookingSubSlot[]>(() => booking.subSlots ? [...booking.subSlots] : []);
+  // Sub-slots management state (iba pre staff-booking)
+  const [subSlots, setSubSlots] = useState<BookingSubSlot[]>(() =>
+    detailItem.kind === "staff-booking" && detailItem.booking.subSlots ? [...detailItem.booking.subSlots] : []
+  );
   const [savingSubSlots, setSavingSubSlots] = useState(false);
   const [subSlotsSuccess, setSubSlotsSuccess] = useState(false);
   const [subSlotsError, setSubSlotsError] = useState<string | null>(null);
@@ -835,27 +847,30 @@ export function BookingDetailDialog({
   }, []);
 
   useEffect(() => {
-    setActiveBooking(booking);
-    setCalendarMonth(new Date(booking.start));
-    setSubSlots(booking.subSlots ? [...booking.subSlots] : []);
+    setActiveItem(detailItem);
+    setCalendarMonth(new Date(detailItem.booking.start));
+    setSubSlots(
+      detailItem.kind === "staff-booking" && detailItem.booking.subSlots ? [...detailItem.booking.subSlots] : []
+    );
     setSubSlotsSuccess(false);
     setSubSlotsError(null);
-  }, [booking]);
+  }, [detailItem]);
 
   useEffect(() => {
-    if (!booking.recurringGroupId) return;
+    const groupId = detailItem.booking.recurringGroupId;
+    if (!groupId) return;
     let active = true;
     setFetchingSeries(true);
-    fetchSeriesBookingsAction(booking.recurringGroupId).then((res) => {
-      if (active && res.success && res.bookings) {
-        setSeriesBookings(res.bookings as Booking[]);
+    fetchSeriesBookingsAction(groupId).then((res) => {
+      if (active && res.success) {
+        setSeriesItems(res.items);
       }
       if (active) setFetchingSeries(false);
     });
     return () => {
       active = false;
     };
-  }, [booking.recurringGroupId]);
+  }, [detailItem.booking.recurringGroupId]);
 
   const formatDate = (value: string) => new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(new Date(value));
   const formatTime = (value: string) => new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bratislava" }).format(new Date(value));
@@ -863,15 +878,15 @@ export function BookingDetailDialog({
     `${val.getFullYear()}-${String(val.getMonth() + 1).padStart(2, "0")}-${String(val.getDate()).padStart(2, "0")}`;
 
   const bookingsByDateKey = useMemo(() => {
-    const map = new Map<string, Booking[]>();
-    for (const b of seriesBookings) {
-      const k = toDateKey(new Date(b.start));
+    const map = new Map<string, DetailCalendarItem[]>();
+    for (const sItem of seriesItems) {
+      const k = toDateKey(new Date(sItem.booking.start));
       const list = map.get(k) || [];
-      list.push(b);
+      list.push(sItem);
       map.set(k, list);
     }
     return map;
-  }, [seriesBookings]);
+  }, [seriesItems]);
 
   const monthCalendarDays = useMemo(() => {
     const firstDay = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
@@ -891,12 +906,21 @@ export function BookingDetailDialog({
   }, [calendarMonth]);
 
   const activeSeriesCount = useMemo(() => {
-    return seriesBookings.filter((b) => b.status !== "cancelled").length;
-  }, [seriesBookings]);
+    return seriesItems.filter((item) => item.booking.status !== "cancelled").length;
+  }, [seriesItems]);
+
+  const activeBooking = activeItem.booking;
+  const isStaffDetail = activeItem.kind === "staff-booking";
+  const canEditSubSlots =
+    isStaffDetail &&
+    accessMode === "staff" &&
+    (currentRole === "admin" || currentRole === "ntc_team");
 
   const isMaintenanceOrAdmin =
-    activeBooking.source === "admin" ||
-    activeBooking.userRole === "admin" ||
+    (activeItem.kind === "staff-booking" && (
+      activeItem.booking.source === "admin" ||
+      activeItem.booking.userRole === "admin"
+    )) ||
     activeBooking.status === "blocked" ||
     Boolean(activeBooking.customerName && (
       activeBooking.customerName.toLowerCase().includes("údržba") ||
@@ -910,8 +934,10 @@ export function BookingDetailDialog({
     ));
 
   const isMaintenanceBlock =
-    activeBooking.adminBlockType === "Údržba kurtov" ||
-    activeBooking.adminBlockType === "maintenance" ||
+    (activeItem.kind === "staff-booking" && (
+      activeItem.booking.adminBlockType === "Údržba kurtov" ||
+      activeItem.booking.adminBlockType === "maintenance"
+    )) ||
     Boolean(activeBooking.customerName && activeBooking.customerName.toLowerCase().includes("údržba")) ||
     Boolean(activeBooking.title && activeBooking.title.toLowerCase().includes("údržba"));
 
@@ -923,7 +949,7 @@ export function BookingDetailDialog({
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4">
       <button aria-label="Zavrieť" className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={onClose} />
       <div className={`relative max-h-[92vh] w-full overflow-y-auto overscroll-contain rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl transition-all sm:p-6 ${
-        booking.recurringGroupId ? "max-w-xl sm:max-w-2xl" : "max-w-md sm:p-8"
+        detailItem.booking.recurringGroupId ? "max-w-xl sm:max-w-2xl" : "max-w-md sm:p-8"
       }`}>
         <DialogHeader
           title={isMaintenanceOrAdmin ? "Detail rezervácie kurtu" : "Detail rezervácie"}
@@ -939,7 +965,7 @@ export function BookingDetailDialog({
         )}
 
         {/* Embedded Monthly Recurring Series Calendar in Upper Section */}
-        {booking.recurringGroupId && (
+        {detailItem.booking.recurringGroupId && (
           <div className="mb-4 rounded-2xl border border-indigo-200/90 bg-indigo-50/60 p-3 sm:p-4 space-y-2.5">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
@@ -1003,8 +1029,8 @@ export function BookingDetailDialog({
                     const key = toDateKey(cellDate);
                     const matchingSlots = bookingsByDateKey.get(key) || [];
                     const hasSlot = matchingSlots.length > 0;
-                    const slot = matchingSlots[0];
-                    const isSlotCancelled = slot?.status === "cancelled";
+                    const slotItem = matchingSlots[0];
+                    const isSlotCancelled = slotItem?.booking.status === "cancelled";
                     const isSelected = activeBooking && toDateKey(new Date(activeBooking.start)) === key;
                     const isToday = toDateKey(new Date()) === key;
 
@@ -1013,7 +1039,16 @@ export function BookingDetailDialog({
                         key={key}
                         type="button"
                         disabled={!hasSlot}
-                        onClick={() => slot && setActiveBooking(slot)}
+                        onClick={() => {
+                          if (slotItem) {
+                            setActiveItem(slotItem);
+                            setSubSlots(
+                              slotItem.kind === "staff-booking" && slotItem.booking.subSlots
+                                ? [...slotItem.booking.subSlots]
+                                : []
+                            );
+                          }
+                        }}
                         className={`relative min-h-[46px] sm:min-h-[50px] p-1 rounded-xl flex flex-col justify-between transition border text-left ${
                           !isCurrentMonth
                             ? "opacity-25 bg-slate-50 border-slate-100 cursor-default"
@@ -1047,7 +1082,7 @@ export function BookingDetailDialog({
                           )}
                         </div>
 
-                        {hasSlot && (
+                        {hasSlot && slotItem && (
                           <div className="w-full mt-0.5">
                             {isSlotCancelled ? (
                               <span className="block truncate rounded bg-red-100 px-0.5 py-0.5 text-[8px] sm:text-[8.5px] font-bold text-red-700 text-center">
@@ -1057,7 +1092,7 @@ export function BookingDetailDialog({
                               <div className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[8.5px] font-extrabold text-center shadow-2xs flex items-center justify-center gap-0.5 ${
                                 isSelected ? "bg-emerald-700 text-white" : "bg-emerald-600 text-white"
                               }`}>
-                                <span className="truncate">{formatTime(slot.start)}</span>
+                                <span className="truncate">{formatTime(slotItem.booking.start)}</span>
                               </div>
                             )}
                           </div>
@@ -1085,11 +1120,11 @@ export function BookingDetailDialog({
               {onOpenSeriesOverview && (
                 <button
                   type="button"
-                  onClick={() => onOpenSeriesOverview(booking.recurringGroupId!)}
+                  onClick={() => onOpenSeriesOverview(detailItem.booking.recurringGroupId!)}
                   className="inline-flex items-center gap-1 font-semibold text-slate-500 hover:text-slate-800 transition cursor-pointer"
                 >
                   <List className="h-3.5 w-3.5" />
-                  <span>Kompletný zoznam ({seriesBookings.length})</span>
+                  <span>Kompletný zoznam ({seriesItems.length})</span>
                 </button>
               )}
             </div>
@@ -1122,8 +1157,8 @@ export function BookingDetailDialog({
           )}
         </div>
 
-        {/* Rozpis hráčov (hodinové / časové bloky) pre Admin a NTC Team */}
-        {(currentRole === "admin" || currentRole === "ntc_team" || canManage) && !isCancelled && (
+        {/* Rozpis hráčov (hodinové / časové bloky) IBA pre serverom overené staff detail položky (Admin a NTC Team) */}
+        {canEditSubSlots && !isCancelled && (
           <div className="mt-4 rounded-2xl border border-amber-200/90 bg-amber-50/50 p-3 sm:p-4 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -1311,7 +1346,11 @@ export function BookingDetailDialog({
                         if (res.success) {
                           setSubSlotsSuccess(true);
                           const cleanSlots = subSlots.filter(s => s.player && s.player.trim().length > 0);
-                          setActiveBooking(prev => ({ ...prev, subSlots: cleanSlots }));
+                          setActiveItem(prev =>
+                            prev.kind === "staff-booking"
+                              ? { kind: "staff-booking", booking: { ...prev.booking, subSlots: cleanSlots } }
+                              : prev
+                          );
                           if (onSubSlotsUpdated) {
                             onSubSlotsUpdated(activeBooking.id, cleanSlots);
                           }
@@ -1342,7 +1381,7 @@ export function BookingDetailDialog({
         {canManage && isFuture && !isCancelled && onStartReschedule && (
           <button
             type="button"
-            onClick={() => onStartReschedule(activeBooking)}
+            onClick={() => onStartReschedule(activeItem)}
             className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500 bg-emerald-600 px-4 py-3 text-xs font-bold text-white shadow-md shadow-emerald-700/20 transition hover:bg-emerald-700 sm:mt-6 sm:px-5 sm:text-sm cursor-pointer"
           >
             <CalendarSync className="h-4 w-4" /> Presunúť termín rezervácie
@@ -1350,7 +1389,7 @@ export function BookingDetailDialog({
         )}
 
         {canManage && !isRescheduled && !isCancelled && canCancel && (
-          <button onClick={() => onDelete(activeBooking)} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700 transition hover:bg-red-100 sm:px-5 sm:text-sm">
+          <button onClick={() => onDelete(activeItem)} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700 transition hover:bg-red-100 sm:px-5 sm:text-sm">
             <Trash2 className="h-4 w-4" /> {isMaintenanceBlock ? "Odblokovať kurt" : "Zrušiť rezerváciu"}
           </button>
         )}
@@ -1381,7 +1420,7 @@ export function RescheduleConfirmDialog({
   onCancel,
   onConfirm,
 }: {
-  booking: Booking;
+  booking: OwnBookingDto | Booking;
   court?: Court;
   targetCourt?: Court;
   targetDate: Date;
@@ -1650,15 +1689,16 @@ export function SeriesOverviewDialog({
   onClose: () => void;
   onSelectDate: (date: Date) => void;
   onCancelSingleBooking: (bookingId: string) => Promise<void>;
-  onCancelEntireSeries: (recurringGroupId: string) => Promise<void>;
+  onCancelEntireSeries: (recurringGroupId: string, selectedTargetItem?: DetailCalendarItem | null) => Promise<void>;
 }) {
-  const [seriesBookings, setSeriesBookings] = useState<any[]>([]);
+  const [seriesItems, setSeriesItems] = useState<DetailCalendarItem[]>([]);
+  const seriesBookings = useMemo(() => seriesItems.map((i) => i.booking), [seriesItems]);
   const [fetching, setFetching] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [confirmDeleteSeries, setConfirmDeleteSeries] = useState(false);
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date());
-  const [selectedSlot, setSelectedSlot] = useState<any | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<(OwnBookingDto | Booking) | null>(null);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -1670,12 +1710,13 @@ export function SeriesOverviewDialog({
   const loadSeries = async () => {
     setFetching(true);
     const res = await fetchSeriesBookingsAction(recurringGroupId);
-    if (res.success && res.bookings) {
-      setSeriesBookings(res.bookings);
-      if (res.bookings.length > 0) {
-        const first = new Date(res.bookings[0].start);
+    if (res.success) {
+      const extracted = res.items.map((item) => item.booking);
+      setSeriesItems(res.items);
+      if (extracted.length > 0) {
+        const first = new Date(extracted[0].start);
         setCalendarMonth(new Date(first.getFullYear(), first.getMonth(), 1));
-        setSelectedSlot(res.bookings[0]);
+        setSelectedSlot(extracted[0]);
       }
     }
     setFetching(false);
@@ -1713,7 +1754,9 @@ export function SeriesOverviewDialog({
 
   const handleDeleteAll = async () => {
     setActionLoadingId("all");
-    await onCancelEntireSeries(recurringGroupId);
+    const activeItems = seriesItems.filter((i) => i.booking.status !== "cancelled");
+    const selectedItem = selectedSlot && selectedSlot.status !== "cancelled" ? seriesItems.find((i) => i.booking.id === selectedSlot.id) ?? activeItems[0] ?? null : activeItems[0] ?? null;
+    await onCancelEntireSeries(recurringGroupId, selectedItem);
     setActionLoadingId(null);
     onClose();
   };

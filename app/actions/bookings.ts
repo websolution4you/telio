@@ -16,13 +16,86 @@ import { courts as ntcCourts, type SportType, type BookingSubSlot } from "@/lib/
 import { logActivity } from "@/lib/server/auditLog";
 import {
     type PublicAvailabilityResult,
+    type AuthorizedCalendarItemsResult,
+    type SeriesBookingsResult,
+    type CalendarAccessMode,
+    type StaffUserMeta,
+    type OwnBookingCalendarItem,
+    type StaffBookingCalendarItem,
     validatePublicAvailabilityRange,
+    validateCalendarRangeByAccessMode,
+    resolveServerAccessMode,
     mapPublicAvailabilityRows,
+    mapRestrictedOccupancyRowsToPublicItems,
+    mapOwnBookingRowToCalendarItem,
+    mapStaffBookingRowToCalendarItem,
+    mergeRestrictedCalendarItems,
+    isValidRecurringGroupId,
+    extractValidRecurringGroupIdFromNotes,
 } from "@/lib/bookings/publicAvailability";
 
 
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
+
+type VerifiedBookingCaller = {
+    userId: string;
+    role: BookingRole;
+    accessMode: CalendarAccessMode;
+    name: string;
+};
+
+/**
+ * Server-only helper: načíta session a čerstvý riadok z `booking_users` podľa `session.userId`.
+ * Nepoužíva `session.role` na autorizačné rozhodnutie. Neznáme roly alebo neexistujúci DB riadok odmietne fail-closed.
+ */
+async function getVerifiedBookingCaller(): Promise<
+    | { ok: true; caller: VerifiedBookingCaller }
+    | { ok: false; code: "UNAUTHORIZED" | "FORBIDDEN"; error: string }
+> {
+    const session = await getSession();
+    if (!session || !session.userId) {
+        return {
+            ok: false,
+            code: "UNAUTHORIZED",
+            error: "Pre načítanie detailov rezervácií sa musíte prihlásiť.",
+        };
+    }
+
+    const serviceDb = getCoreServiceDb();
+    const { data: userRow, error: userError } = await serviceDb
+        .from("booking_users")
+        .select("id, role, name")
+        .eq("id", session.userId)
+        .maybeSingle();
+
+    if (userError || !userRow || !userRow.id) {
+        return {
+            ok: false,
+            code: "UNAUTHORIZED",
+            error: "Používateľský účet sa nepodarilo overiť.",
+        };
+    }
+
+    const accessMode = resolveServerAccessMode(userRow.role);
+    if (!accessMode) {
+        return {
+            ok: false,
+            code: "FORBIDDEN",
+            error: "Vaša rola nemá povolený prístup ku kalendáru.",
+        };
+    }
+
+    return {
+        ok: true,
+        caller: {
+            userId: userRow.id,
+            role: userRow.role as BookingRole,
+            accessMode,
+            name: typeof userRow.name === "string" ? userRow.name : "",
+        },
+    };
+}
 
 // Helper to parse court ID and metadata from Google Calendar event description/summary
 function parseGCalEvent(event: any) {
@@ -112,111 +185,176 @@ function parseGCalEvent(event: any) {
     };
 }
 
-export async function fetchBookingsAction(startDateIso: string, endDateIso: string) {
+async function loadStaffBookingItemsInRange(
+    startIso: string,
+    endIso: string
+): Promise<StaffBookingCalendarItem[]> {
+    const db = getCoreServiceDb();
+
+    const { data, error } = await db
+        .from("bookings")
+        .select("id, court_id, start_at, end_at, status, customer_name, customer_phone, user_id, price_eur, notes")
+        .eq("tenant_id", TENANT_ID)
+        .neq("status", "cancelled")
+        .gt("end_at", startIso)
+        .lt("start_at", endIso)
+        .order("start_at", { ascending: true });
+
+    if (error) {
+        throw new Error(`Database error: ${error.message}`);
+    }
+
+    const userIds = Array.from(new Set((data || []).map((r) => r.user_id).filter(Boolean))) as string[];
+    const userMap = new Map<string, StaffUserMeta>();
+    if (userIds.length > 0) {
+        const { data: usersData } = await db
+            .from("booking_users")
+            .select("id, role, card_number, name")
+            .in("id", userIds);
+        if (usersData) {
+            for (const u of usersData) {
+                userMap.set(u.id, {
+                    role: u.role,
+                    cardNumber: u.card_number || undefined,
+                    name: u.name,
+                });
+            }
+        }
+    }
+
+    const staffItems: StaffBookingCalendarItem[] = [];
+    for (const row of data || []) {
+        const mapped = mapStaffBookingRowToCalendarItem(row, userMap, false);
+        if (mapped) {
+            staffItems.push(mapped);
+        }
+    }
+
+    return staffItems;
+}
+
+export async function fetchAuthorizedCalendarItemsAction(
+    startDateIso: string,
+    endDateIso: string
+): Promise<AuthorizedCalendarItemsResult> {
     try {
-        const session = await getSession();
-        if (!session || !session.userId) {
+        const authResult = await getVerifiedBookingCaller();
+        if (!authResult.ok) {
             return {
                 success: false,
-                code: "UNAUTHORIZED",
-                error: "Pre načítanie detailov rezervácií sa musíte prihlásiť.",
+                code: authResult.code,
+                error: authResult.error,
             };
         }
 
-        const db = getCoreServiceDb();
-        
-        console.log(`Fetching bookings from Supabase for NTC Tenant: ${TENANT_ID} from ${startDateIso} to ${endDateIso}`);
-        
-        const { data, error } = await db
-            .from("bookings")
-            .select("*")
-            .eq("tenant_id", TENANT_ID)
-            .gte("end_at", startDateIso)
-            .lte("start_at", endDateIso);
-
-        if (error) {
-            throw new Error(`Database error: ${error.message}`);
-        }
-
-        // Fetch user metadata for bookings that have a user_id
-        const userIds = Array.from(new Set((data || []).map((r) => r.user_id).filter(Boolean)));
-        const userMap = new Map<string, { role: string; cardNumber?: string; name?: string }>();
-        if (userIds.length > 0) {
-            const { data: usersData } = await db
-                .from("booking_users")
-                .select("id, role, card_number, name")
-                .in("id", userIds);
-            if (usersData) {
-                for (const u of usersData) {
-                    userMap.set(u.id, { role: u.role, cardNumber: u.card_number || undefined, name: u.name });
-                }
-            }
-        }
-
-        // Map database events to booking objects
-        const bookings = (data || []).map(row => {
-            let notesObj: {
-                courtId?: string;
-                source?: string;
-                notes?: string;
-                multisportCardsCount?: number;
-                rescheduled?: boolean;
-                recurringGroupId?: string;
-                clientPlayerName?: string;
-                adminBlockType?: string;
-                subSlots?: BookingSubSlot[];
-            } = {
-                courtId: "",
-                source: "web",
-                notes: "",
-                multisportCardsCount: 0,
-                rescheduled: false,
-            };
-            try {
-                notesObj = { ...notesObj, ...JSON.parse(row.notes || "{}") };
-            } catch (e) {
-                console.error("Failed to parse notes JSON:", e);
-            }
-            const userMeta = row.user_id ? userMap.get(row.user_id) : undefined;
-            const isRowAdminOrBlock =
-                notesObj.source === "admin" ||
-                userMeta?.role === "admin" ||
-                row.status === "blocked" ||
-                Boolean(row.customer_name && row.customer_name.toLowerCase().includes("údržba"));
-
-            let finalCustomerName = notesObj.clientPlayerName || row.customer_name || userMeta?.name;
-            if (isRowAdminOrBlock && !notesObj.clientPlayerName) {
-                if (!finalCustomerName || finalCustomerName === "Admin User") {
-                    finalCustomerName = "Údržba kurtov";
-                }
-            }
-
+        const { caller } = authResult;
+        const validation = validateCalendarRangeByAccessMode(startDateIso, endDateIso, caller.accessMode);
+        if (!validation.valid) {
             return {
-                id: row.id,
-                courtId: notesObj.courtId || "badminton-1",
-                title: isRowAdminOrBlock && (!notesObj.notes || notesObj.notes === "Údržba / Blokovanie" || notesObj.notes === "Údržba")
-                    ? (finalCustomerName || "Údržba kurtov")
-                    : (notesObj.notes || row.customer_name || "Rezervácia"),
-                customerName: finalCustomerName,
-                phone: row.customer_phone || undefined,
-                start: row.start_at,
-                end: row.end_at,
-                status: row.status as "confirmed" | "blocked" | "cancelled",
-                source: (notesObj.source || "web") as any,
-                user_id: row.user_id || undefined,
-                userRole: isRowAdminOrBlock ? "admin" : (userMeta?.role || "user"),
-                userCardNumber: userMeta?.cardNumber,
-                multisportCardsCount: Number(notesObj.multisportCardsCount || 0),
-                priceEur: row.price_eur != null ? Number(row.price_eur) : undefined,
-                isRescheduled: Boolean(notesObj.rescheduled),
-                recurringGroupId: notesObj.recurringGroupId || undefined,
-                clientPlayerName: notesObj.clientPlayerName || undefined,
-                adminBlockType: notesObj.adminBlockType || undefined,
-                subSlots: Array.isArray(notesObj.subSlots) ? notesObj.subSlots : undefined,
+                success: false,
+                code: validation.code,
+                error: validation.error,
             };
-        });
+        }
 
-        return { success: true, bookings };
+        if (caller.accessMode === "staff") {
+            const staffItems = await loadStaffBookingItemsInRange(validation.start, validation.end);
+            return {
+                success: true,
+                accessMode: "staff",
+                items: staffItems,
+            };
+        }
+
+        // Restricted vetva (`user`, `trainer`):
+        // 1. Bezpečná obsadenosť všetkých aktívnych rezervácií v intervale (s Q.1 výnimkou pre serverovú extrakciu courtId z notes)
+        const db = getCoreServiceDb();
+        const [occupancyRes, ownRes] = await Promise.all([
+            db
+                .from("bookings")
+                .select("court_id,start_at,end_at,status,notes")
+                .eq("tenant_id", TENANT_ID)
+                .in("status", ["confirmed", "pending", "blocked"])
+                .gt("end_at", validation.start)
+                .lt("start_at", validation.end),
+            db
+                .from("bookings")
+                .select("id,court_id,start_at,end_at,status,customer_name,customer_phone,price_eur,notes")
+                .eq("tenant_id", TENANT_ID)
+                .eq("user_id", caller.userId)
+                .neq("status", "cancelled")
+                .gt("end_at", validation.start)
+                .lt("start_at", validation.end)
+                .order("start_at", { ascending: true }),
+        ]);
+
+        if (occupancyRes.error || ownRes.error) {
+            console.error("[fetchAuthorizedCalendarItemsAction] Restricted DB query failed");
+            return {
+                success: false,
+                code: "DB_ERROR",
+                error: "Kalendár sa nepodarilo načítať. Skúste to prosím neskôr.",
+            };
+        }
+
+        const { items: publicItems } = mapRestrictedOccupancyRowsToPublicItems(occupancyRes.data);
+        const ownItems: OwnBookingCalendarItem[] = [];
+        for (const row of ownRes.data || []) {
+            const mappedOwn = mapOwnBookingRowToCalendarItem(row, caller.name, false);
+            if (mappedOwn) {
+                ownItems.push(mappedOwn);
+            }
+        }
+
+        const mergedItems = mergeRestrictedCalendarItems(publicItems, ownItems);
+        return {
+            success: true,
+            accessMode: "restricted",
+            items: mergedItems,
+        };
+    } catch (error) {
+        console.error("[fetchAuthorizedCalendarItemsAction] Unexpected error:", error);
+        return {
+            success: false,
+            code: "DB_ERROR",
+            error: "Kalendár sa nepodarilo načítať. Skúste to prosím neskôr.",
+        };
+    }
+}
+
+export async function fetchBookingsAction(startDateIso: string, endDateIso: string) {
+    try {
+        const authResult = await getVerifiedBookingCaller();
+        if (!authResult.ok) {
+            return {
+                success: false,
+                code: authResult.code,
+                error: authResult.error,
+            };
+        }
+
+        if (authResult.caller.accessMode !== "staff") {
+            return {
+                success: false,
+                code: "FORBIDDEN",
+                error: "Nemáte oprávnenie na načítanie detailných rezervácií.",
+            };
+        }
+
+        const validation = validateCalendarRangeByAccessMode(startDateIso, endDateIso, "staff");
+        if (!validation.valid) {
+            return {
+                success: false,
+                code: validation.code,
+                error: validation.error,
+            };
+        }
+
+        const staffItems = await loadStaffBookingItemsInRange(validation.start, validation.end);
+        return {
+            success: true,
+            bookings: staffItems.map((item) => item.booking),
+        };
     } catch (error: any) {
         console.error("fetchBookingsAction failed:", error);
         return { success: false, error: error.message || "Failed to load bookings" };
@@ -240,7 +378,7 @@ export async function fetchPublicAvailabilityAction(
         const db = getCoreServiceDb();
         const { data, error } = await db
             .from("bookings")
-            .select("court_id,start_at,end_at,status")
+            .select("court_id,start_at,end_at,status,notes")
             .eq("tenant_id", TENANT_ID)
             .in("status", ["confirmed", "pending", "blocked"])
             .gt("end_at", validation.start)
@@ -1010,65 +1148,126 @@ export async function createRecurringBookingAction(payload: CreateRecurringBooki
     }
 }
 
-export async function fetchSeriesBookingsAction(recurringGroupId: string) {
+export async function fetchSeriesBookingsAction(recurringGroupId: string): Promise<SeriesBookingsResult> {
     try {
-        const session = await getSession();
-        if (!session) return { success: false, error: "Neprihlásený používateľ." };
+        if (!isValidRecurringGroupId(recurringGroupId)) {
+            return {
+                success: false,
+                code: "INVALID_INPUT",
+                error: "Neplatný identifikátor opakovanej série.",
+            };
+        }
 
-        const db = getCoreDb();
+        const authResult = await getVerifiedBookingCaller();
+        if (!authResult.ok) {
+            return {
+                success: false,
+                code: authResult.code,
+                error: authResult.error,
+            };
+        }
+
+        const { caller } = authResult;
+        const db = getCoreServiceDb();
+
+        if (caller.accessMode === "restricted") {
+            const { data, error } = await db
+                .from("bookings")
+                .select("id, court_id, start_at, end_at, status, customer_name, customer_phone, price_eur, notes")
+                .eq("tenant_id", TENANT_ID)
+                .eq("user_id", caller.userId)
+                .order("start_at", { ascending: true });
+
+            if (error) throw error;
+
+            const ownItems: OwnBookingCalendarItem[] = [];
+            for (const row of data || []) {
+                const rowGroupId = extractValidRecurringGroupIdFromNotes(row.notes);
+                if (rowGroupId !== recurringGroupId) continue;
+                const mapped = mapOwnBookingRowToCalendarItem(row, caller.name, true);
+                if (mapped) {
+                    ownItems.push(mapped);
+                }
+            }
+
+            return {
+                success: true,
+                accessMode: "restricted",
+                items: ownItems,
+            };
+        }
+
+        // Privileged read vetva (`admin`, `ntc_team`):
         const { data, error } = await db
             .from("bookings")
-            .select("id, start_at, end_at, status, notes, customer_name, court_id")
+            .select("id, court_id, start_at, end_at, status, customer_name, customer_phone, user_id, price_eur, notes")
             .eq("tenant_id", TENANT_ID)
-            .like("notes", `%${recurringGroupId}%`)
             .order("start_at", { ascending: true });
 
         if (error) throw error;
 
-        const matching = (data || []).filter(row => {
-            try {
-                const notes = typeof row.notes === "string" ? JSON.parse(row.notes) : (row.notes || {});
-                return notes.recurringGroupId === recurringGroupId;
-            } catch (e) {
-                return false;
-            }
-        }).map(row => {
-            let parsedNotes: any = {};
-            try { parsedNotes = typeof row.notes === "string" ? JSON.parse(row.notes) : (row.notes || {}); } catch (e) {}
-            return {
-                id: row.id,
-                courtId: row.court_id || parsedNotes.courtId,
-                start: row.start_at,
-                end: row.end_at,
-                status: row.status,
-                customerName: parsedNotes.clientPlayerName || row.customer_name,
-                title: parsedNotes.notes || "Rezervácia",
-                recurringGroupId,
-                phone: parsedNotes.phone || undefined,
-                user_id: parsedNotes.user_id || undefined,
-                userRole: parsedNotes.userRole || undefined,
-                source: parsedNotes.source || undefined,
-                multisportCardsCount: parsedNotes.multisportCardsCount || 0,
-                isRescheduled: parsedNotes.isRescheduled || false,
-                subSlots: Array.isArray(parsedNotes.subSlots) ? parsedNotes.subSlots : undefined,
-            };
+        const matchingRows = (data || []).filter((row) => {
+            const rowGroupId = extractValidRecurringGroupIdFromNotes(row.notes);
+            return rowGroupId === recurringGroupId;
         });
 
-        return { success: true, bookings: matching };
+        const userIds = Array.from(new Set(matchingRows.map((r) => r.user_id).filter(Boolean))) as string[];
+        const userMap = new Map<string, StaffUserMeta>();
+        if (userIds.length > 0) {
+            const { data: usersData } = await db
+                .from("booking_users")
+                .select("id, role, card_number, name")
+                .in("id", userIds);
+            if (usersData) {
+                for (const u of usersData) {
+                    userMap.set(u.id, {
+                        role: u.role,
+                        cardNumber: u.card_number || undefined,
+                        name: u.name,
+                    });
+                }
+            }
+        }
+
+        const staffItems: StaffBookingCalendarItem[] = [];
+        for (const row of matchingRows) {
+            const mapped = mapStaffBookingRowToCalendarItem(row, userMap, true);
+            if (mapped) {
+                staffItems.push(mapped);
+            }
+        }
+
+        return {
+            success: true,
+            accessMode: "staff",
+            items: staffItems,
+        };
     } catch (error: any) {
         console.error("fetchSeriesBookingsAction failed:", error);
-        return { success: false, error: error.message || "Nepodarilo sa načítať termíny série." };
+        return {
+            success: false,
+            code: "DB_ERROR",
+            error: error.message || "Nepodarilo sa načítať termíny série.",
+        };
     }
 }
 
 export async function deleteBookingAction(id: string, deleteEntireSeries = false) {
     try {
-        const session = await getSession();
-        if (!session) return { success: false, error: "Nedostatočné oprávnenia." };
+        const authResult = await getVerifiedBookingCaller();
+        if (!authResult.ok) {
+            return { success: false, error: "Nedostatočné oprávnenia." };
+        }
+
+        const { caller } = authResult;
+        const isCallerAdmin = caller.role === "admin";
 
         const db = getCoreDb();
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-        let query = db.from("bookings").select("id, user_id, start_at, end_at, tenant_id, notes, customer_name, court_id, price_eur");
+        let query = db
+            .from("bookings")
+            .select("id, user_id, start_at, end_at, tenant_id, notes, customer_name, court_id, price_eur, status")
+            .eq("tenant_id", TENANT_ID);
         query = isUuid ? query.eq("id", id) : query.eq("calendar_event_id", id);
         const { data: booking, error: selectError } = await query.maybeSingle();
 
@@ -1076,52 +1275,143 @@ export async function deleteBookingAction(id: string, deleteEntireSeries = false
         if (!booking || booking.tenant_id !== TENANT_ID) {
             return { success: false, error: "Rezervácia sa nenašla." };
         }
-        if (session.role !== "admin" && booking.user_id !== session.userId) {
+
+        // Vlastníctvo určuje výhradne `booking.user_id === caller.userId`; cudziu rezerváciu smie zrušiť iba čerstvo overený admin.
+        // Rola `ntc_team` týmto nezískava právo rušiť cudzie rezervácie ani cudzie série.
+        const isOwner = booking.user_id === caller.userId;
+        if (!isCallerAdmin && !isOwner) {
             return { success: false, error: "Nemáte oprávnenie zrušiť túto rezerváciu." };
         }
 
-        let notesObj: any = {};
+        let notesObj: Record<string, unknown> = {};
         try {
-            notesObj = typeof booking.notes === "string" ? JSON.parse(booking.notes) : (booking.notes || {});
-        } catch (e) {
+            const parsed = typeof booking.notes === "string" ? JSON.parse(booking.notes) : (booking.notes || {});
+            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+                notesObj = parsed as Record<string, unknown>;
+            }
+        } catch {
             notesObj = {};
         }
 
-        if (deleteEntireSeries && notesObj.recurringGroupId) {
-            const recurringGroupId = notesObj.recurringGroupId;
-            const { data: seriesRows, error: seriesError } = await db
+        let deadlineHours = 24;
+        if (!isCallerAdmin) {
+            const policyDb = getCoreServiceDb();
+            const { data: userPolicy, error: policyError } = await policyDb
+                .from("booking_users")
+                .select("role, role_booking_policies(cancellation_deadline_hours)")
+                .eq("id", caller.userId)
+                .maybeSingle();
+            if (policyError || !userPolicy) {
+                return { success: false, error: "Storno pravidlá sa nepodarilo overiť." };
+            }
+            const joinedPolicy = Array.isArray(userPolicy.role_booking_policies)
+                ? userPolicy.role_booking_policies[0]
+                : userPolicy.role_booking_policies;
+            deadlineHours = Number(joinedPolicy?.cancellation_deadline_hours ?? 24);
+        }
+
+        const checkNonAdminCancellationAllowed = (targetStartAt: string, targetNotesObj: Record<string, unknown>): string | null => {
+            if (Boolean(targetNotesObj.rescheduled) || Boolean(targetNotesObj.isRescheduled)) {
+                return "Presunutú rezerváciu už nie je možné zrušiť. Máte však možnosť ju opätovne presunúť na iný termín.";
+            }
+            const startMs = Date.parse(targetStartAt);
+            if (!Number.isFinite(startMs)) {
+                return "Neplatný termín rezervácie.";
+            }
+            const cancellationDeadline = startMs - deadlineHours * 60 * 60 * 1000;
+            if (Date.now() >= cancellationDeadline) {
+                return `Rezerváciu je možné zrušiť iba viac ako ${deadlineHours} hodín pred jej začiatkom.`;
+            }
+            return null;
+        };
+
+        if (deleteEntireSeries) {
+            const targetRecurringGroupId = extractValidRecurringGroupIdFromNotes(booking.notes);
+            if (!targetRecurringGroupId) {
+                return { success: false, error: "Rezervácia nie je súčasťou platnej opakovanej série." };
+            }
+
+            if (!isCallerAdmin) {
+                const targetRuleError = checkNonAdminCancellationAllowed(booking.start_at, notesObj);
+                if (targetRuleError) {
+                    return { success: false, error: targetRuleError };
+                }
+            }
+
+            let seriesQuery = db
                 .from("bookings")
-                .select("id, notes, start_at")
+                .select("id, user_id, notes, start_at, status")
                 .eq("tenant_id", TENANT_ID)
-                .like("notes", `%${recurringGroupId}%`)
                 .neq("status", "cancelled")
                 .gte("start_at", booking.start_at);
 
+            if (!isCallerAdmin) {
+                seriesQuery = seriesQuery.eq("user_id", caller.userId);
+            }
+
+            const { data: seriesRows, error: seriesError } = await seriesQuery;
             if (seriesError) throw new Error(`Chyba pri hľadaní série: ${seriesError.message}`);
 
-            const matchingIds = (seriesRows || []).filter(row => {
+            const matchingRows: Array<{ id: string; user_id: string | null; start_at: string; parsedNotes: Record<string, unknown> }> = [];
+            for (const row of seriesRows || []) {
+                const rowGroupId = extractValidRecurringGroupIdFromNotes(row.notes);
+                if (rowGroupId !== targetRecurringGroupId) continue;
+
+                let rowNotesObj: Record<string, unknown> = {};
                 try {
-                    const rowNotes = typeof row.notes === "string" ? JSON.parse(row.notes) : (row.notes || {});
-                    return rowNotes.recurringGroupId === recurringGroupId;
-                } catch (e) {
-                    return false;
+                    const parsed = typeof row.notes === "string" ? JSON.parse(row.notes) : (row.notes || {});
+                    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+                        rowNotesObj = parsed as Record<string, unknown>;
+                    }
+                } catch {
+                    continue;
                 }
-            }).map(row => row.id);
 
-            if (matchingIds.length > 0) {
-                const { error: cancelSeriesError } = await db
-                    .from("bookings")
-                    .update({ status: "cancelled" })
-                    .in("id", matchingIds);
-
-                if (cancelSeriesError) throw new Error(`Chyba pri rušení série: ${cancelSeriesError.message}`);
+                matchingRows.push({
+                    id: row.id,
+                    user_id: row.user_id,
+                    start_at: row.start_at,
+                    parsedNotes: rowNotesObj,
+                });
             }
+
+            if (matchingRows.length === 0) {
+                return { success: false, error: "V tejto sérii sa nenašli žiadne aktívne termíny na zrušenie." };
+            }
+
+            // Pre ne-admina overíme vlastníctvo, deadline a rescheduled pravidlo na VŠETKÝCH položkách, ktoré sa majú zrušiť.
+            // Ak ktorákoľvek položka neprejde, nevykoná sa žiadna čiastočná DB modifikácia.
+            if (!isCallerAdmin) {
+                for (const item of matchingRows) {
+                    if (item.user_id !== caller.userId) {
+                        return { success: false, error: "Nemáte oprávnenie zrušiť cudziu sériu." };
+                    }
+                    const ruleErr = checkNonAdminCancellationAllowed(item.start_at, item.parsedNotes);
+                    if (ruleErr) {
+                        return { success: false, error: ruleErr };
+                    }
+                }
+            }
+
+            const matchingIds = matchingRows.map((row) => row.id);
+            let updateSeriesQuery = db
+                .from("bookings")
+                .update({ status: "cancelled" })
+                .eq("tenant_id", TENANT_ID)
+                .in("id", matchingIds);
+
+            if (!isCallerAdmin) {
+                updateSeriesQuery = updateSeriesQuery.eq("user_id", caller.userId);
+            }
+
+            const { error: cancelSeriesError } = await updateSeriesQuery;
+            if (cancelSeriesError) throw new Error(`Chyba pri rušení série: ${cancelSeriesError.message}`);
 
             await logActivity({
                 action: "booking.delete_series",
                 category: "bookings",
                 entityType: "booking_series",
-                entityId: recurringGroupId,
+                entityId: targetRecurringGroupId,
                 entityName: `Séria (${matchingIds.length} termínov)`,
                 description: `Zrušená séria ${matchingIds.length} rezervácií od termínu ${booking.start_at?.slice(0, 10)}`,
                 changes: {
@@ -1129,7 +1419,7 @@ export async function deleteBookingAction(id: string, deleteEntireSeries = false
                     after: { status: "cancelled" }
                 },
                 metadata: {
-                    recurringGroupId,
+                    recurringGroupId: targetRecurringGroupId,
                     deletedCount: matchingIds.length,
                 },
                 level: "warning",
@@ -1141,23 +1431,10 @@ export async function deleteBookingAction(id: string, deleteEntireSeries = false
             return { success: true, deletedCount: matchingIds.length, cancelledSeries: true };
         }
 
-        if (session.role !== "admin") {
-            if (notesObj.rescheduled) {
-                return { success: false, error: "Presunutú rezerváciu už nie je možné zrušiť. Máte však možnosť ju opätovne presunúť na iný termín." };
-            }
-
-            const policyDb = getCoreServiceDb();
-            const { data: userPolicy, error: policyError } = await policyDb
-                .from("booking_users")
-                .select("role, role_booking_policies(cancellation_deadline_hours)")
-                .eq("id", session.userId)
-                .maybeSingle();
-            if (policyError || !userPolicy) return { success: false, error: "Storno pravidlá sa nepodarilo overiť." };
-            const joinedPolicy = Array.isArray(userPolicy.role_booking_policies) ? userPolicy.role_booking_policies[0] : userPolicy.role_booking_policies;
-            const deadlineHours = Number(joinedPolicy?.cancellation_deadline_hours ?? 24);
-            const cancellationDeadline = new Date(booking.start_at).getTime() - deadlineHours * 60 * 60 * 1000;
-            if (Date.now() >= cancellationDeadline) {
-                return { success: false, error: `Rezerváciu je možné zrušiť iba viac ako ${deadlineHours} hodín pred jej začiatkom.` };
+        if (!isCallerAdmin) {
+            const singleRuleError = checkNonAdminCancellationAllowed(booking.start_at, notesObj);
+            if (singleRuleError) {
+                return { success: false, error: singleRuleError };
             }
         }
 
