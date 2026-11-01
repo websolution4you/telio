@@ -485,9 +485,6 @@ export default function ClientDemoDashboard() {
               <h3 className="text-base sm:text-lg font-bold text-slate-950">
                 Kedy zákazníci volajú
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Rozdelenie prichádzajúcich hovorov počas dňa a mimo pracovnej doby.
-              </p>
             </div>
 
             <div className="space-y-4 pt-1">
@@ -552,9 +549,6 @@ export default function ClientDemoDashboard() {
               <h3 className="text-base sm:text-lg font-bold text-slate-950">
                 Úspešnosť zberu údajov z hovoru
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Presnosť zachytenia 7 požadovaných parametrov v konverzácii.
-              </p>
             </div>
 
             {/* Hlavné KPI */}
@@ -567,9 +561,6 @@ export default function ClientDemoDashboard() {
                   priemerná úspešnosť zberu
                 </span>
               </div>
-              <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full">
-                6,7 z 7 údajov na hovor
-              </span>
             </div>
 
             {/* Zoznam 7 parametrov s úspešnosťou */}
