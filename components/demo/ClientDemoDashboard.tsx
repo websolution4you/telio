@@ -513,7 +513,7 @@ export default function ClientDemoDashboard() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-slate-700">Mimo prac. doby (večer & ráno)</span>
-                  <span className="font-bold text-emerald-600">
+                  <span className="font-bold text-slate-900">
                     20 % <span className="font-normal text-slate-400 font-mono">(8 hovorov)</span>
                   </span>
                 </div>
@@ -524,11 +524,6 @@ export default function ClientDemoDashboard() {
                   />
                 </div>
               </div>
-            </div>
-
-            <div className="rounded-2xl bg-emerald-50/70 border border-emerald-100 p-3 text-xs text-emerald-800 flex items-center justify-between">
-              <span>Hovory vybavené mimo personálu:</span>
-              <strong className="font-bold text-emerald-900">8 hovorov (100 % vyriešených)</strong>
             </div>
           </div>
 
@@ -552,36 +547,36 @@ export default function ClientDemoDashboard() {
               </div>
             </div>
 
-            {/* Zoznam 7 parametrov s úspešnosťou */}
+            {/* Zoznam 7 parametrov s jemne sivým barom */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              <div className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 border border-slate-200/60">
-                <span className="text-slate-600 font-medium">1. Meno zákazníka</span>
-                <span className="font-bold text-emerald-600">100 %</span>
-              </div>
-              <div className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 border border-slate-200/60">
-                <span className="text-slate-600 font-medium">2. Šport / Služba</span>
-                <span className="font-bold text-emerald-600">100 %</span>
-              </div>
-              <div className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 border border-slate-200/60">
-                <span className="text-slate-600 font-medium">3. Dátum a čas</span>
-                <span className="font-bold text-emerald-600">100 %</span>
-              </div>
-              <div className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 border border-slate-200/60">
-                <span className="text-slate-600 font-medium">4. Kurt / Športovisko</span>
-                <span className="font-bold text-emerald-600">98 %</span>
-              </div>
-              <div className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 border border-slate-200/60">
-                <span className="text-slate-600 font-medium">5. Počet hráčov</span>
-                <span className="font-bold text-emerald-600">95 %</span>
-              </div>
-              <div className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 border border-slate-200/60">
-                <span className="text-slate-600 font-medium">6. Požičanie výstroja</span>
-                <span className="font-bold text-emerald-600">92 %</span>
-              </div>
-              <div className="sm:col-span-2 flex items-center justify-between rounded-xl bg-slate-50 p-2.5 border border-slate-200/60">
-                <span className="text-slate-600 font-medium">7. Doplňujúca poznámka</span>
-                <span className="font-bold text-emerald-600">88 %</span>
-              </div>
+              {[
+                { label: "1. Meno zákazníka", pct: 100 },
+                { label: "2. Šport / Služba", pct: 100 },
+                { label: "3. Dátum a čas", pct: 100 },
+                { label: "4. Kurt / Športovisko", pct: 98 },
+                { label: "5. Počet hráčov", pct: 95 },
+                { label: "6. Požičanie výstroja", pct: 92 },
+                { label: "7. Doplňujúca poznámka", pct: 88, colSpan: true },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className={`rounded-xl border border-slate-200/70 bg-white p-2.5 space-y-1.5 ${
+                    item.colSpan ? "sm:col-span-2" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-700 font-medium">{item.label}</span>
+                    <span className="font-bold text-slate-900">{item.pct} %</span>
+                  </div>
+                  {/* Jemne sivý bar zodpovedajúci percentám */}
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 border border-slate-200/50">
+                    <div
+                      className="h-full rounded-full bg-slate-400 transition-all duration-500"
+                      style={{ width: `${item.pct}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
