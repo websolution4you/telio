@@ -12,7 +12,6 @@ import {
   Play,
   Pause,
   RotateCcw,
-  Search,
   CheckCircle2,
   XCircle,
   Loader2,
@@ -116,8 +115,7 @@ export default function ClientDemoDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  // Vyhľadávanie a rozbalený riadok ("výber z hovoru")
-  const [searchQuery, setSearchQuery] = useState("");
+  // Rozbalený riadok ("výber z hovoru")
   const [expandedCallId, setExpandedCallId] = useState<string | null>(null);
 
   // Audio prehrávač
@@ -232,23 +230,7 @@ export default function ClientDemoDashboard() {
     setExpandedCallId((prev) => (prev === callId ? null : callId));
   };
 
-  // Filtrované hovory (bez telefónnych čísel)
-  const filteredCalls = useMemo(() => {
-    return calls.filter((c) => {
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const matchTitle = c.summaryTitle.toLowerCase().includes(query);
-        const matchSummary = (c.transcriptSummary || "").toLowerCase().includes(query);
-        const matchFields = c.extractedFields.some(
-          (f) =>
-            f.value.toLowerCase().includes(query) ||
-            f.label.toLowerCase().includes(query)
-        );
-        return matchTitle || matchSummary || matchFields;
-      }
-      return true;
-    });
-  }, [calls, searchQuery]);
+  const filteredCalls = calls;
 
   // Výpočty pre paušál
   const usedMinutes = planStats?.usedMinutes ?? 40;
@@ -388,38 +370,22 @@ export default function ClientDemoDashboard() {
         {/* SEKCIA 2: ELEVENLABS HOVORY */}
         <section className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
           {/* Hlavička tabuľky hovorov */}
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-950">
-                História hovorov NTC asistenta
-              </h2>
-            </div>
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-950">
+              História hovorov NTC asistenta
+            </h2>
 
-            {/* Nástroje: Hľadanie + Obnoviť */}
-            <div className="flex items-center gap-2">
-              <div className="relative flex items-center">
-                <Search className="absolute left-3 h-3.5 w-3.5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Hľadať v hovoroch..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-44 sm:w-56 rounded-2xl border border-slate-200 bg-slate-50 py-2 pl-8 pr-3 text-xs font-medium text-slate-700 placeholder-slate-400 transition-all focus:border-indigo-300 focus:bg-white focus:outline-none"
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => loadCalls(true)}
-                disabled={refreshing || loading}
-                title="Obnoviť hovory"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900 active:scale-95 disabled:opacity-50"
-              >
-                <RotateCcw
-                  className={`h-4 w-4 ${refreshing ? "animate-spin text-indigo-600" : ""}`}
-                />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => loadCalls(true)}
+              disabled={refreshing || loading}
+              title="Obnoviť hovory"
+              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900 active:scale-95 disabled:opacity-50"
+            >
+              <RotateCcw
+                className={`h-4 w-4 ${refreshing ? "animate-spin text-indigo-600" : ""}`}
+              />
+            </button>
           </div>
 
           {error && (
