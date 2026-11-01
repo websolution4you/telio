@@ -469,7 +469,7 @@ export default function ClientDemoDashboard() {
         {/* SEKCIA 3: JEDNODUCHÁ ANALYTIKA HOVOROV */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* 1. Kedy klienti volajú (3 bary pod sebou) */}
-          <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)] flex flex-col justify-between space-y-5">
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)] space-y-5">
             <div>
               <h3 className="text-base sm:text-lg font-bold text-slate-950">
                 Kedy zákazníci volajú
@@ -528,7 +528,7 @@ export default function ClientDemoDashboard() {
           </div>
 
           {/* 2. Úspešnosť zberu údajov (7 kľúčových parametrov) */}
-          <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)] flex flex-col justify-between space-y-5">
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)] space-y-5">
             <div>
               <h3 className="text-base sm:text-lg font-bold text-slate-950">
                 Úspešnosť zberu údajov z hovoru
