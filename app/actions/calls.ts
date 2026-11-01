@@ -956,11 +956,57 @@ export interface DemoPlanStats {
 
 // Vybrané NTC hovory pre /dashboard-demo
 const SELECTED_DEMO_CONVERSATION_IDS = [
+    "conv_7101m43bahj5f9xsmhr8pphmaqey",
+    "conv_1701m5y8gwqpfza8baj1qknya7cx",
     "conv_5401m3s5jh2zfadt513tbk380maa",
     "conv_9001m2qfc9a6fhprnktw4k14rk89",
 ];
 
 const DEFAULT_NTC_DEMO_CALLS: DemoCallItem[] = [
+    {
+        id: "conv_7101m43bahj5f9xsmhr8pphmaqey",
+        startedAt: new Date(Date.now() - 3600 * 1000 * 4).toISOString(), // pred 4 hodinami
+        durationSec: 46,
+        agentId: "agent_9901kv6j21rhfccr7f0nbdhew5ew",
+        agentName: "NTC Asistent",
+        status: "done",
+        callSuccessful: "success",
+        summaryTitle: "Rezervácia tenisového kurtu (Indoor)",
+        transcriptSummary: "Zákazník si telefonicky rezervoval tenisový kurt v hale na piatok od 17:00 do 18:30. Asistent overil dostupnosť v systéme a úspešne potvrdil rezerváciu kurtu 2.",
+        callerNumber: "+421 905 123 456",
+        hasAudio: true,
+        audioUrl: "/api/calls/audio?conversation_id=conv_7101m43bahj5f9xsmhr8pphmaqey&demo=1",
+        transcript: [],
+        extractedFields: [
+            { id: "court", label: "Kurt", value: "Tenis indoor • Kurt 2" },
+            { id: "date", label: "Termín", value: "Piatok, 17:00 – 18:30" },
+            { id: "service", label: "Šport", value: "Tenis (hala)" },
+            { id: "customer", label: "Zákazník", value: "Peter Kováč" },
+        ],
+        evaluationItems: [],
+    },
+    {
+        id: "conv_1701m5y8gwqpfza8baj1qknya7cx",
+        startedAt: new Date(Date.now() - 3600 * 1000 * 10).toISOString(), // pred 10 hodinami
+        durationSec: 52,
+        agentId: "agent_9901kv6j21rhfccr7f0nbdhew5ew",
+        agentName: "NTC Asistent",
+        status: "done",
+        callSuccessful: "success",
+        summaryTitle: "Rezervácia bedmintonového kurtu",
+        transcriptSummary: "Volajúci si rezervoval bedmintonový kurt na sobotu v čase 10:00 – 11:00. Asistent skontroloval voľnú kapacitu v rezervačnom systéme a potvrdil rezerváciu kurtu 3.",
+        callerNumber: "+421 911 234 567",
+        hasAudio: true,
+        audioUrl: "/api/calls/audio?conversation_id=conv_1701m5y8gwqpfza8baj1qknya7cx&demo=1",
+        transcript: [],
+        extractedFields: [
+            { id: "court", label: "Kurt", value: "Bedminton • Kurt 3" },
+            { id: "date", label: "Termín", value: "Sobota, 10:00 – 11:00" },
+            { id: "service", label: "Šport", value: "Bedminton" },
+            { id: "customer", label: "Zákazník", value: "Marek Varga" },
+        ],
+        evaluationItems: [],
+    },
     {
         id: "conv_5401m3s5jh2zfadt513tbk380maa",
         startedAt: new Date(Date.now() - 3600 * 1000 * 26).toISOString(), // včera
@@ -969,7 +1015,7 @@ const DEFAULT_NTC_DEMO_CALLS: DemoCallItem[] = [
         agentName: "NTC Asistent",
         status: "done",
         callSuccessful: "success",
-        summaryTitle: "Zmena termínu rezervácie antuky",
+        summaryTitle: "Tenisová rezervácia NTC",
         transcriptSummary: "Volajúci požiadal o presun sobotňajšej rezervácie antukového kurtu z 10:00 na 14:00 kvôli počasiu. Asistent overil obsadenosť antukových dvorcov a úspešne presunul rezerváciu na kurt 1.",
         callerNumber: "+421 908 345 678",
         hasAudio: true,
@@ -991,7 +1037,7 @@ const DEFAULT_NTC_DEMO_CALLS: DemoCallItem[] = [
         agentName: "NTC Asistent",
         status: "done",
         callSuccessful: "success",
-        summaryTitle: "Informácia o voľných kurtoch a rezervácia",
+        summaryTitle: "Rezervácia bedmintonového kurtu",
         transcriptSummary: "Zákazník sa informoval o voľných termínoch na squash a tenis na nedeľné popoludnie. Asistent ponúkol voľný squash kurt od 16:00, zákazník potvrdil rezerváciu na 60 minút.",
         callerNumber: "+421 903 789 012",
         hasAudio: true,
@@ -1036,6 +1082,16 @@ function localizeDemoCallContent(
     rawSummary?: string
 ): { title: string; summary: string } {
     const PREDEFINED: Record<string, { title: string; summary: string }> = {
+        "conv_7101m43bahj5f9xsmhr8pphmaqey": {
+            title: "Rezervácia tenisového kurtu (Indoor)",
+            summary:
+                "Zákazník si telefonicky rezervoval tenisový kurt v hale na piatok od 17:00 do 18:30. Asistent overil dostupnosť v systéme a úspešne potvrdil rezerváciu kurtu 2.",
+        },
+        "conv_1701m5y8gwqpfza8baj1qknya7cx": {
+            title: "Rezervácia bedmintonového kurtu",
+            summary:
+                "Volajúci si rezervoval bedmintonový kurt na sobotu v čase 10:00 – 11:00. Asistent skontroloval voľnú kapacitu v rezervačnom systéme a potvrdil rezerváciu kurtu 3.",
+        },
         "conv_0201m66cyvrnfyyrj32baj36z5gk": {
             title: "Rezervácia tenisového kurtu (Indoor)",
             summary:

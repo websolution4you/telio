@@ -50,14 +50,14 @@ const formatDurationVerbose = (sec: number) => {
 };
 
 const SLOVAK_SUMMARIES_BY_ID: Record<string, string> = {
-  conv_0201m66cyvrnfyyrj32baj36z5gk:
-    "Zákazník si telefonicky rezervoval tenisový kurt číslo 2 na štvrtok v čase 17:00 – 18:30. Asistent overil dostupnosť v rezervačnom systéme, potvrdil meno a poslal potvrdenie cez SMS.",
-  conv_6101m4by92fpecvtz8v3vn794r51:
-    "Používateľ požiadal o rezerváciu bedmintonového kurtu na jednu hodinu v nedeľu 1. novembra o 15:00. Asistent overil dostupnosť, navrhol kurt 01 a po potvrdení rezerváciu úspešne vytvoril. Hovor bol ukončený potvrdením rezervácie.",
+  conv_7101m43bahj5f9xsmhr8pphmaqey:
+    "Zákazník si telefonicky rezervoval tenisový kurt v hale na piatok od 17:00 do 18:30. Asistent overil dostupnosť v systéme a úspešne potvrdil rezerváciu kurtu 2.",
+  conv_1701m5y8gwqpfza8baj1qknya7cx:
+    "Volajúci si rezervoval bedmintonový kurt na sobotu v čase 10:00 – 11:00. Asistent skontroloval voľnú kapacitu v rezervačnom systéme a potvrdil rezerváciu kurtu 3.",
   conv_5401m3s5jh2zfadt513tbk380maa:
     "Volajúci požiadal o presun sobotňajšej rezervácie antukového kurtu z 10:00 na 14:00 kvôli počasiu. Asistent overil obsadenosť antukových dvorcov a úspešne presunul rezerváciu na kurt 1.",
   conv_9001m2qfc9a6fhprnktw4k14rk89:
-    "Zákazník sa informoval o voľných termínoch na squash a tenis na nedeľné popoludnie. Asistent ponúkol voľný squash kurt od 16:00, zákazník potvrdil rezerváciu na 60 minút.",
+    "Zákazník požiadal o rezerváciu bedmintonového kurtu. Asistent overil voľné kapacity, potvrdil termín a úspešne vytvoril rezerváciu v systéme.",
 };
 
 const getSlovakSummary = (call: DemoCallItem) => {
@@ -78,6 +78,8 @@ const getSlovakSummary = (call: DemoCallItem) => {
 };
 
 const getSlovakTitle = (call: DemoCallItem) => {
+  if (call.id === "conv_7101m43bahj5f9xsmhr8pphmaqey") return "Rezervácia tenisového kurtu (Indoor)";
+  if (call.id === "conv_1701m5y8gwqpfza8baj1qknya7cx") return "Rezervácia bedmintonového kurtu";
   if (call.id === "conv_5401m3s5jh2zfadt513tbk380maa") return "Tenisová rezervácia NTC";
   if (call.id === "conv_9001m2qfc9a6fhprnktw4k14rk89") return "Rezervácia bedmintonového kurtu";
   const title = call.summaryTitle || "";
