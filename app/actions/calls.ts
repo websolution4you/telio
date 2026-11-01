@@ -954,8 +954,8 @@ export interface DemoPlanStats {
     activeDaysCount: number;
 }
 
-// Presne vybrané 4 NTC hovory z agenta agent_9901kv6j21rhfccr7f0nbdhew5ew pre /dashboard-demo
-const NTC_DEMO_AGENT_ID = "agent_9901kv6j21rhfccr7f0nbdhew5ew";
+// Konkrétny ElevenLabs agent a 4 vybrané hovory pre klientsky demo dashboard (/dashboard-demo)
+const DEMO_AGENT_ID = "agent_5801krr0myjjft5tkdhtbms61ncf";
 
 const SELECTED_DEMO_CONVERSATION_IDS = [
     "conv_0201m66cyvrnfyyrj32baj36z5gk",
@@ -984,6 +984,9 @@ const DATA_FIELD_LABELS: Record<string, string> = {
     contact_phone_number: "Kontaktný telefón",
     phone_number: "Telefónne číslo",
     phone: "Telefón",
+    pizza_items: "Objednané jedlo",
+    drink_items: "Nápoje",
+    delivery_address: "Adresa doručenia",
     notes: "Poznámka",
 };
 
@@ -1001,73 +1004,86 @@ export async function fetchDemoCallHistoryAction(defaultPlanMinutes: number = 30
     error?: string;
 }> {
     try {
-        const apiKey =
-            process.env.ELEVENLABS_NTC_API_KEY ||
-            process.env.ELEVENLABS_API_KEY ||
-            process.env.ELEVEN_LABS_API_KEY;
+        const candidateKeys = Array.from(
+            new Set(
+                [
+                    process.env.ELEVENLABS_NTC_API_KEY,
+                    process.env.ELEVENLABS_API_KEY,
+                    process.env.ELEVEN_LABS_API_KEY,
+                ]
+                    .map((k) => k?.trim())
+                    .filter((k): k is string => Boolean(k))
+            )
+        );
 
-        if (!apiKey) {
+        if (candidateKeys.length === 0) {
             return {
                 success: false,
                 error: "ElevenLabs API kľúč nie je nakonfigurovaný v prostredí.",
             };
         }
 
-        const rawAgentId = (
-            process.env.ELEVENLABS_NTC_AGENT_ID ||
-            process.env.NEXT_PUBLIC_ELEVENLABS_NTC_AGENT_ID ||
-            NTC_DEMO_AGENT_ID
-        ).trim();
+        const normalizedAgentId = DEMO_AGENT_ID;
+        const strippedAgentId = DEMO_AGENT_ID.replace(/^agent_/, "");
 
-        const normalizedAgentId = rawAgentId.startsWith("agent_")
-            ? rawAgentId
-            : `agent_${rawAgentId}`;
+        let activeApiKey = candidateKeys[0];
+        let allAgentConversations: any[] = [];
+        let lastErrorStatus = 404;
+        let lastErrorMessage = "";
+        let agentFound = false;
 
-        // 1. Dopytujeme priamo ElevenLabs na konverzácie NTC agenta (agent_9901kv6j21rhfccr7f0nbdhew5ew)
-        let listRes = await fetch(
-            `https://api.elevenlabs.io/v1/convai/conversations?agent_id=${encodeURIComponent(normalizedAgentId)}&page_size=100`,
-            {
-                headers: {
-                    "xi-api-key": apiKey,
-                    "Accept": "application/json",
-                },
-                cache: "no-store",
-            }
-        );
-
-        // Ak s 'agent_' prefixom neprešlo, skúsime bez prefixu
-        if (listRes.status === 404 && normalizedAgentId.startsWith("agent_")) {
-            const strippedId = normalizedAgentId.replace(/^agent_/, "");
-            const retryRes = await fetch(
-                `https://api.elevenlabs.io/v1/convai/conversations?agent_id=${encodeURIComponent(strippedId)}&page_size=100`,
+        // 1. Prejdeme všetky dostupné ElevenLabs kľúče v prostredí a nájdeme agent_5801krr0myjjft5tkdhtbms61ncf
+        for (const keyCandidate of candidateKeys) {
+            let listRes = await fetch(
+                `https://api.elevenlabs.io/v1/convai/conversations?agent_id=${encodeURIComponent(normalizedAgentId)}&page_size=100`,
                 {
                     headers: {
-                        "xi-api-key": apiKey,
+                        "xi-api-key": keyCandidate,
                         "Accept": "application/json",
                     },
                     cache: "no-store",
                 }
             );
-            if (retryRes.ok) {
-                listRes = retryRes;
+
+            if (listRes.status === 404) {
+                const retryRes = await fetch(
+                    `https://api.elevenlabs.io/v1/convai/conversations?agent_id=${encodeURIComponent(strippedAgentId)}&page_size=100`,
+                    {
+                        headers: {
+                            "xi-api-key": keyCandidate,
+                            "Accept": "application/json",
+                        },
+                        cache: "no-store",
+                    }
+                );
+                if (retryRes.ok) {
+                    listRes = retryRes;
+                }
+            }
+
+            if (listRes.ok) {
+                const listData = await listRes.json();
+                activeApiKey = keyCandidate;
+                allAgentConversations = listData.conversations || [];
+                agentFound = true;
+                break;
+            } else {
+                lastErrorStatus = listRes.status;
+                const errJson = await listRes.json().catch(() => ({}));
+                lastErrorMessage = errJson?.detail?.message || `HTTP ${listRes.status}`;
             }
         }
 
-        if (!listRes.ok) {
-            const errJson = await listRes.json().catch(() => ({}));
-            const detailMsg = errJson?.detail?.message || `HTTP ${listRes.status}`;
+        if (!agentFound) {
             return {
                 success: false,
-                error: `ElevenLabs nenašiel NTC agenta (${normalizedAgentId}): ${detailMsg}. Skontrolujte, či ELEVENLABS_NTC_API_KEY / ELEVENLABS_API_KEY patrí k účtu, kde je tento NTC agent vytvorený.`,
+                error: `ElevenLabs nenašiel agenta (${normalizedAgentId}): ${lastErrorMessage || lastErrorStatus}. Skontrolujte, či API kľúč v prostredí patrí k účtu, kde je vytvorený agent ${normalizedAgentId}.`,
             };
         }
 
-        const listData = await listRes.json();
-        const allNtcConversations: any[] = listData.conversations || [];
-
-        // 2. Vyfiltrujeme presne 4 požadované hovory z NTC agenta
+        // 2. Vyfiltrujeme presne 4 požadované hovory z agenta agent_5801krr0myjjft5tkdhtbms61ncf
         const selectedSet = new Set(SELECTED_DEMO_CONVERSATION_IDS);
-        let selectedRawConversations = allNtcConversations.filter((conv: any) =>
+        const selectedRawConversations = allAgentConversations.filter((conv: any) =>
             selectedSet.has(conv.conversation_id)
         );
 
@@ -1082,7 +1098,7 @@ export async function fetchDemoCallHistoryAction(defaultPlanMinutes: number = 30
                         `https://api.elevenlabs.io/v1/convai/conversations/${encodeURIComponent(missingId)}`,
                         {
                             headers: {
-                                "xi-api-key": apiKey,
+                                "xi-api-key": activeApiKey,
                                 "Accept": "application/json",
                             },
                             cache: "no-store",
@@ -1093,7 +1109,7 @@ export async function fetchDemoCallHistoryAction(defaultPlanMinutes: number = 30
                         selectedRawConversations.push({
                             conversation_id: singleDetail.conversation_id || missingId,
                             agent_id: singleDetail.agent_id || normalizedAgentId,
-                            agent_name: singleDetail.agent_name || "NTC Asistent",
+                            agent_name: singleDetail.agent_name || "Hlasový Asistent",
                             start_time_unix_secs:
                                 singleDetail.metadata?.start_time_unix_secs ||
                                 singleDetail.start_time_unix_secs ||
@@ -1110,7 +1126,7 @@ export async function fetchDemoCallHistoryAction(defaultPlanMinutes: number = 30
                             call_summary_title:
                                 singleDetail.analysis?.call_summary_title ||
                                 singleDetail.call_summary_title ||
-                                "Rozhovor s NTC asistentom",
+                                "Rozhovor s AI asistentom",
                             transcript_summary:
                                 singleDetail.analysis?.transcript_summary ||
                                 singleDetail.transcript_summary ||
@@ -1124,11 +1140,11 @@ export async function fetchDemoCallHistoryAction(defaultPlanMinutes: number = 30
             }
         }
 
-        // 3. Paralelne načítame detaily pre vybrané NTC hovory (prepis, zhrnutie, vyextrahované dáta)
+        // 3. Paralelne načítame detaily pre vybrané hovory (prepis, zhrnutie, vyextrahované dáta)
         const detailedCalls = await Promise.all(
             selectedRawConversations.map(async (conv: any): Promise<DemoCallItem> => {
                 let externalNumber: string | null = null;
-                let summaryTitle = conv.call_summary_title || "Rozhovor s NTC asistentom";
+                let summaryTitle = conv.call_summary_title || "Rozhovor s AI asistentom";
                 let transcriptSummary = conv.transcript_summary || "";
                 let durationSec = conv.call_duration_secs || 0;
                 let startUnix = conv.start_time_unix_secs || 0;
@@ -1143,7 +1159,7 @@ export async function fetchDemoCallHistoryAction(defaultPlanMinutes: number = 30
                             `https://api.elevenlabs.io/v1/convai/conversations/${encodeURIComponent(conv.conversation_id)}`,
                             {
                                 headers: {
-                                    "xi-api-key": apiKey,
+                                    "xi-api-key": activeApiKey,
                                     "Accept": "application/json",
                                 },
                                 cache: "no-store",
@@ -1240,7 +1256,7 @@ export async function fetchDemoCallHistoryAction(defaultPlanMinutes: number = 30
                     startedAt: new Date(startUnix * 1000).toISOString(),
                     durationSec,
                     agentId: conv.agent_id || normalizedAgentId,
-                    agentName: conv.agent_name || "NTC Asistent",
+                    agentName: conv.agent_name || "Hlasový Asistent",
                     status: conv.status || "done",
                     callSuccessful: conv.call_successful || "success",
                     summaryTitle,
@@ -1260,9 +1276,9 @@ export async function fetchDemoCallHistoryAction(defaultPlanMinutes: number = 30
             (a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
         );
 
-        // 4. Výpočet štatistík paušálu zo všetkých konverzácií NTC agenta (agent_9901kv6j21rhfccr7f0nbdhew5ew)
+        // 4. Výpočet štatistík paušálu zo všetkých konverzácií tohto agenta (agent_5801krr0myjjft5tkdhtbms61ncf)
         const statsSource =
-            allNtcConversations.length > 0 ? allNtcConversations : selectedRawConversations;
+            allAgentConversations.length > 0 ? allAgentConversations : selectedRawConversations;
 
         const totalDurationSec = statsSource.reduce(
             (acc: number, c: any) => acc + (c.call_duration_secs || 0),
@@ -1297,13 +1313,13 @@ export async function fetchDemoCallHistoryAction(defaultPlanMinutes: number = 30
             success: true,
             calls: detailedCalls,
             planStats,
-            sourceLabel: "NTC Asistent (ElevenLabs)",
+            sourceLabel: detailedCalls[0]?.agentName || "ElevenLabs AI Asistent",
         };
     } catch (error: any) {
         console.error("fetchDemoCallHistoryAction error:", error);
         return {
             success: false,
-            error: error.message || "Nepodarilo sa načítať históriu hovorov NTC asistenta.",
+            error: error.message || "Nepodarilo sa načítať históriu hovorov.",
         };
     }
 }
