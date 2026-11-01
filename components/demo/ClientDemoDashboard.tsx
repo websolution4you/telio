@@ -390,22 +390,9 @@ export default function ClientDemoDashboard() {
           {/* Hlavička tabuľky hovorov */}
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-950">
-                  História hovorov NTC asistenta
-                </h2>
-                <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
-                  {filteredCalls.length}{" "}
-                  {filteredCalls.length === 1
-                    ? "hovor"
-                    : filteredCalls.length >= 2 && filteredCalls.length <= 4
-                    ? "hovory"
-                    : "hovorov"}
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Kliknite na riadok hovoru pre zobrazenie zhrnutia a údajov z konverzácie.
-              </p>
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-950">
+                História hovorov NTC asistenta
+              </h2>
             </div>
 
             {/* Nástroje: Hľadanie + Obnoviť */}
