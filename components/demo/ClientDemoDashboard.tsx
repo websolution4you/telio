@@ -50,6 +50,34 @@ const formatDurationVerbose = (sec: number) => {
   return `${m}m ${s < 10 ? "0" : ""}${s}s`;
 };
 
+const SLOVAK_SUMMARIES_BY_ID: Record<string, string> = {
+  conv_0201m66cyvrnfyyrj32baj36z5gk:
+    "Zákazník si telefonicky rezervoval tenisový kurt číslo 2 na štvrtok v čase 17:00 – 18:30. Asistent overil dostupnosť v rezervačnom systéme, potvrdil meno a poslal potvrdenie cez SMS.",
+  conv_6101m4by92fpecvtz8v3vn794r51:
+    "Používateľ požiadal o rezerváciu bedmintonového kurtu na jednu hodinu v nedeľu 1. novembra o 15:00. Asistent overil dostupnosť, navrhol kurt 01 a po potvrdení rezerváciu úspešne vytvoril. Hovor bol ukončený potvrdením rezervácie.",
+  conv_5401m3s5jh2zfadt513tbk380maa:
+    "Volajúci požiadal o presun sobotňajšej rezervácie antukového kurtu z 10:00 na 14:00 kvôli počasiu. Asistent overil obsadenosť antukových dvorcov a úspešne presunul rezerváciu na kurt 1.",
+  conv_9001m2qfc9a6fhprnktw4k14rk89:
+    "Zákazník sa informoval o voľných termínoch na squash a tenis na nedeľné popoludnie. Asistent ponúkol voľný squash kurt od 16:00, zákazník potvrdil rezerváciu na 60 minút.",
+};
+
+const getSlovakSummary = (call: DemoCallItem) => {
+  if (SLOVAK_SUMMARIES_BY_ID[call.id]) {
+    return SLOVAK_SUMMARIES_BY_ID[call.id];
+  }
+  const text = call.transcriptSummary || "";
+  if (/\b(the user|the caller|requested|booking|court|confirmed)\b/i.test(text)) {
+    return text
+      .replace(/The user requested to book a badminton court/gi, "Používateľ požiadal o rezerváciu bedmintonového kurtu")
+      .replace(/The user requested to book a tennis court/gi, "Používateľ požiadal o rezerváciu tenisového kurtu")
+      .replace(/The user requested to book a squash court/gi, "Používateľ požiadal o rezerváciu squash kurtu")
+      .replace(/for one hour on Sunday, November 1st, at 3 PM/gi, "na jednu hodinu v nedeľu 1. novembra o 15:00")
+      .replace(/The agent confirmed availability, suggested court (\d+), and after the user's confirmation, successfully created the booking\./gi, "Asistent overil dostupnosť, navrhol kurt $1 a po potvrdení rezerváciu úspešne vytvoril.")
+      .replace(/The call ended with the booking confirmation\./gi, "Hovor bol ukončený potvrdením rezervácie.");
+  }
+  return text || "Rezervácia športoviska bola úspešne vybavená.";
+};
+
 function TelioLogo() {
   return (
     <svg width="30" height="30" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -792,7 +820,7 @@ function CallRowWithDetail({
                   Zhrnutie konverzácie
                 </p>
                 <p className="text-sm leading-relaxed text-slate-700 bg-slate-50/80 rounded-xl p-3.5 border border-slate-100">
-                  {call.transcriptSummary}
+                  {getSlovakSummary(call)}
                 </p>
               </div>
 

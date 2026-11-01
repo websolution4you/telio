@@ -1076,6 +1076,61 @@ const DATA_FIELD_LABELS: Record<string, string> = {
     notes: "Poznámka",
 };
 
+function localizeDemoCallContent(
+    id: string,
+    rawTitle?: string,
+    rawSummary?: string
+): { title: string; summary: string } {
+    const PREDEFINED: Record<string, { title: string; summary: string }> = {
+        "conv_0201m66cyvrnfyyrj32baj36z5gk": {
+            title: "Rezervácia tenisového kurtu (Indoor)",
+            summary:
+                "Zákazník si telefonicky rezervoval tenisový kurt číslo 2 na štvrtok v čase 17:00 – 18:30. Asistent overil dostupnosť v rezervačnom systéme, potvrdil meno a poslal potvrdenie cez SMS.",
+        },
+        "conv_6101m4by92fpecvtz8v3vn794r51": {
+            title: "Rezervácia bedmintonového kurtu",
+            summary:
+                "Používateľ požiadal o rezerváciu bedmintonového kurtu na jednu hodinu v nedeľu 1. novembra o 15:00. Asistent overil dostupnosť, navrhol kurt 01 a po potvrdení rezerváciu úspešne vytvoril. Hovor bol ukončený potvrdením rezervácie.",
+        },
+        "conv_5401m3s5jh2zfadt513tbk380maa": {
+            title: "Zmena termínu rezervácie antuky",
+            summary:
+                "Volajúci požiadal o presun sobotňajšej rezervácie antukového kurtu z 10:00 na 14:00 kvôli počasiu. Asistent overil obsadenosť antukových dvorcov a úspešne presunul rezerváciu na kurt 1.",
+        },
+        "conv_9001m2qfc9a6fhprnktw4k14rk89": {
+            title: "Informácia o voľných kurtoch a rezervácia",
+            summary:
+                "Zákazník sa informoval o voľných termínoch na squash a tenis na nedeľné popoludnie. Asistent ponúkol voľný squash kurt od 16:00, zákazník potvrdil rezerváciu na 60 minút.",
+        },
+    };
+
+    if (PREDEFINED[id]) {
+        return PREDEFINED[id];
+    }
+
+    let title = (rawTitle || "Rezervácia kurtu NTC").trim();
+    let summary = (rawSummary || "Rezervácia športoviska bola úspešne vybavená.").trim();
+
+    if (/\b(the user|the caller|requested|booked|court|booking|confirmed)\b/i.test(summary)) {
+        summary = summary
+            .replace(/The user requested to book a badminton court/gi, "Používateľ požiadal o rezerváciu bedmintonového kurtu")
+            .replace(/The user requested to book a tennis court/gi, "Používateľ požiadal o rezerváciu tenisového kurtu")
+            .replace(/The user requested to book a squash court/gi, "Používateľ požiadal o rezerváciu squash kurtu")
+            .replace(/for one hour on Sunday, November 1st, at 3 PM/gi, "na jednu hodinu v nedeľu 1. novembra o 15:00")
+            .replace(/The agent confirmed availability, suggested court (\d+), and after the user's confirmation, successfully created the booking\./gi, "Asistent overil dostupnosť, navrhol kurt $1 a po potvrdení rezerváciu úspešne vytvoril.")
+            .replace(/The call ended with the booking confirmation\./gi, "Hovor bol ukončený potvrdením rezervácie.");
+    }
+
+    if (/\b(badminton court booking|tennis court booking|squash court booking)\b/i.test(title)) {
+        title = title
+            .replace(/badminton court booking/gi, "Rezervácia bedmintonového kurtu")
+            .replace(/tennis court booking/gi, "Rezervácia tenisového kurtu")
+            .replace(/squash court booking/gi, "Rezervácia squash kurtu");
+    }
+
+    return { title, summary };
+}
+
 export async function fetchDemoCallHistoryAction(defaultPlanMinutes: number = 300): Promise<{
     success: boolean;
     calls?: DemoCallItem[];
@@ -1154,14 +1209,14 @@ export async function fetchDemoCallHistoryAction(defaultPlanMinutes: number = 30
                                     agentName: "NTC Asistent",
                                     status: detail.status || "done",
                                     callSuccessful: detail.analysis?.call_successful || "success",
-                                    summaryTitle:
-                                        detail.analysis?.call_summary_title ||
-                                        detail.call_summary_title ||
-                                        "Rezervácia kurtu NTC",
-                                    transcriptSummary:
-                                        detail.analysis?.transcript_summary ||
-                                        detail.transcript_summary ||
-                                        "Rezervácia športoviska bola úspešne vybavená.",
+                                    ...(() => {
+                                        const loc = localizeDemoCallContent(
+                                            id,
+                                            detail.analysis?.call_summary_title || detail.call_summary_title,
+                                            detail.analysis?.transcript_summary || detail.transcript_summary
+                                        );
+                                        return { summaryTitle: loc.title, transcriptSummary: loc.summary };
+                                    })(),
                                     callerNumber: formatDisplayPhone(externalNumber || "Neznáme"),
                                     hasAudio: true,
                                     audioUrl: `/api/calls/audio?conversation_id=${encodeURIComponent(id)}&demo=1`,
