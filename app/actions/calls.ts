@@ -906,3 +906,355 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
     }
 }
 
+
+export interface DemoTranscriptTurn {
+    role: "agent" | "user";
+    message: string;
+    timeInCallSecs: number;
+}
+
+export interface DemoExtractedField {
+    id: string;
+    label: string;
+    value: string;
+}
+
+export interface DemoEvaluationItem {
+    id: string;
+    label: string;
+    passed: boolean;
+    rationale?: string;
+}
+
+export interface DemoCallItem {
+    id: string;
+    startedAt: string;
+    durationSec: number;
+    agentId: string;
+    agentName: string;
+    status: string;
+    callSuccessful: string;
+    summaryTitle: string;
+    transcriptSummary: string;
+    callerNumber: string;
+    hasAudio: boolean;
+    audioUrl: string;
+    transcript: DemoTranscriptTurn[];
+    extractedFields: DemoExtractedField[];
+    evaluationItems: DemoEvaluationItem[];
+}
+
+export interface DemoPlanStats {
+    planTotalMinutes: number;
+    usedMinutes: number;
+    remainingMinutes: number;
+    avgCallDurationSec: number;
+    callsPerDay: number;
+    callsPerMonth: number;
+    activeDaysCount: number;
+}
+
+// Presne vybrané 4 ElevenLabs hovory pre klientsky demo dashboard (/dashboard-demo)
+const SELECTED_DEMO_CONVERSATION_IDS = [
+    "conv_0201m66cyvrnfyyrj32baj36z5gk",
+    "conv_6101m4by92fpecvtz8v3vn794r51",
+    "conv_5401m3s5jh2zfadt513tbk380maa",
+    "conv_9001m2qfc9a6fhprnktw4k14rk89",
+];
+
+// Záložné 4 hovory z druhého ElevenLabs účtu (ak lokálne v .env.local chýba ELEVENLABS_NTC_API_KEY)
+const FALLBACK_LOCAL_CONVERSATION_IDS = [
+    "conv_6701kvmnx6x8f5gv8ct0sy45zgfk",
+    "conv_2101kvmmgtdyf3xarrd78xwbn5y2",
+    "conv_3001kvgmefa8fmvsj6yxy72p1c35",
+    "conv_4201ktysatxzf5rb6nqw0gdxvbq1",
+];
+
+const DATA_FIELD_LABELS: Record<string, string> = {
+    customer_name: "Meno zákazníka",
+    pizza_items: "Objednané jedlo",
+    drink_items: "Nápoje",
+    delivery_address: "Adresa doručenia",
+    contact_phone_number: "Kontaktný telefón",
+    appointment_date: "Termín rezervácie",
+    appointment_time: "Čas rezervácie",
+    sport_type: "Šport / Služba",
+    court_name: "Kurt",
+    notes: "Poznámka",
+};
+
+const CRITERIA_LABELS: Record<string, string> = {
+    objednvka_spene_odoslan: "Objednávka / požiadavka odoslaná",
+    doruovacia_adresa_zskan: "Overenie údajov zákazníka",
+    objednvka_sprvne_zhrnut: "Zhrnutie pred ukončením",
+    hovor_ukonen_sprvne: "Korektné ukončenie hovoru",
+};
+
+function cleanTranscriptMessage(raw: string): string {
+    if (!raw) return "";
+    // Odstráni počiatočné hlasové tagy ako [warmly], [cheerfully] a pod.
+    return raw.replace(/^\s*\[[^\]]+\]\s*/g, "").trim();
+}
+
+function cleanAgentDisplayName(rawName: string): string {
+    if (!rawName) return "Telio AI Asistent";
+    const lower = rawName.toLowerCase();
+    if (lower.includes("ntc") || lower.includes("tenis")) return "NTC Hlasový Asistent";
+    if (lower.includes("papizoo") || lower.includes("pizzeria") || lower.includes("pizza")) return "Telio Asistent • Objednávky";
+    if (lower.includes("zubna") || lower.includes("dental")) return "Telio Asistent • Recepcia";
+    return rawName;
+}
+
+async function fetchSingleConversationById(
+    conversationId: string,
+    candidateKeys: string[]
+): Promise<{ detail: any; usedKey: string } | null> {
+    for (const key of candidateKeys) {
+        try {
+            const res = await fetch(
+                `https://api.elevenlabs.io/v1/convai/conversations/${encodeURIComponent(conversationId)}`,
+                {
+                    headers: {
+                        "xi-api-key": key,
+                        "Accept": "application/json",
+                    },
+                    next: { revalidate: 30 },
+                }
+            );
+            if (res.ok) {
+                const detail = await res.json();
+                return { detail, usedKey: key };
+            }
+        } catch {
+            // Skúsime ďalší kľúč
+        }
+    }
+    return null;
+}
+
+function mapDetailToDemoCallItem(detail: any): DemoCallItem {
+    const convId = detail.conversation_id;
+    const externalNumber =
+        detail.metadata?.phone_call?.external_number ||
+        detail.metadata?.phone_call?.caller_id ||
+        detail.metadata?.phone_call?.from ||
+        detail.metadata?.phone_call?.caller_number ||
+        detail.metadata?.custom_variables?.from_number ||
+        detail.metadata?.custom_variables?.caller_phone ||
+        detail.metadata?.custom_variables?.phone ||
+        detail.conversation_initiation_client_data?.dynamic_variables?.from_number ||
+        detail.conversation_initiation_client_data?.dynamic_variables?.caller_id ||
+        detail.conversation_initiation_client_data?.dynamic_variables?.phone ||
+        detail.conversation_initiation_client_data?.dynamic_variables?.customer_phone ||
+        null;
+
+    const summaryTitle =
+        detail.analysis?.call_summary_title ||
+        detail.call_summary_title ||
+        "Hovor s AI asistentom";
+
+    const transcriptSummary =
+        detail.analysis?.transcript_summary ||
+        detail.transcript_summary ||
+        summaryTitle;
+
+    const startUnix =
+        detail.metadata?.start_time_unix_secs ||
+        detail.start_time_unix_secs ||
+        Math.floor(Date.now() / 1000);
+
+    const durationSec =
+        detail.metadata?.call_duration_secs ??
+        detail.call_duration_secs ??
+        0;
+
+    const transcriptTurns: DemoTranscriptTurn[] = [];
+    if (Array.isArray(detail.transcript)) {
+        for (const turn of detail.transcript) {
+            const cleaned = cleanTranscriptMessage(turn?.message || "");
+            if (!cleaned) continue;
+            transcriptTurns.push({
+                role: turn.role === "user" ? "user" : "agent",
+                message: cleaned,
+                timeInCallSecs: typeof turn.time_in_call_secs === "number" ? turn.time_in_call_secs : 0,
+            });
+        }
+    }
+
+    const extractedFields: DemoExtractedField[] = [];
+    const dataCollection = detail.analysis?.data_collection_results;
+    if (dataCollection && typeof dataCollection === "object") {
+        for (const [key, item] of Object.entries<any>(dataCollection)) {
+            if (!item || item.value === null || item.value === undefined || item.value === "") continue;
+            if (typeof item.value === "boolean") continue;
+            extractedFields.push({
+                id: key,
+                label: DATA_FIELD_LABELS[key] || key.replace(/_/g, " "),
+                value: String(item.value),
+            });
+        }
+    }
+
+    const evaluationItems: DemoEvaluationItem[] = [];
+    const evalCriteria = detail.analysis?.evaluation_criteria_results;
+    if (evalCriteria && typeof evalCriteria === "object") {
+        for (const [key, item] of Object.entries<any>(evalCriteria)) {
+            if (!item) continue;
+            evaluationItems.push({
+                id: key,
+                label: CRITERIA_LABELS[key] || key.replace(/_/g, " "),
+                passed: item.result === "success",
+                rationale: item.rationale || undefined,
+            });
+        }
+    }
+
+    const callSuccess =
+        detail.analysis?.call_successful ||
+        detail.call_successful ||
+        "success";
+
+    return {
+        id: convId,
+        startedAt: new Date(startUnix * 1000).toISOString(),
+        durationSec,
+        agentId: detail.agent_id || "agent_demo",
+        agentName: cleanAgentDisplayName(detail.agent_name || ""),
+        status: detail.status || "done",
+        callSuccessful: callSuccess,
+        summaryTitle,
+        transcriptSummary,
+        callerNumber: formatDisplayPhone(externalNumber || "Neznáme"),
+        hasAudio: true,
+        audioUrl: `/api/calls/audio?conversation_id=${encodeURIComponent(convId)}&demo=1`,
+        transcript: transcriptTurns,
+        extractedFields,
+        evaluationItems,
+    };
+}
+
+export async function fetchDemoCallHistoryAction(defaultPlanMinutes: number = 300): Promise<{
+    success: boolean;
+    calls?: DemoCallItem[];
+    planStats?: DemoPlanStats;
+    sourceLabel?: string;
+    error?: string;
+}> {
+    try {
+        const candidateKeys = [
+            process.env.ELEVENLABS_NTC_API_KEY,
+            process.env.ELEVENLABS_API_KEY,
+            process.env.ELEVEN_LABS_API_KEY,
+        ]
+            .map((k) => k?.trim())
+            .filter((k): k is string => Boolean(k));
+
+        if (candidateKeys.length === 0) {
+            return {
+                success: false,
+                error: "ElevenLabs API kľúč nie je nakonfigurovaný v prostredí.",
+            };
+        }
+
+        // 1. Primárne načítame presne 4 vybrané hovory podľa zadaných ID
+        const primaryResults = await Promise.all(
+            SELECTED_DEMO_CONVERSATION_IDS.map((id) => fetchSingleConversationById(id, candidateKeys))
+        );
+
+        let matchedResults = primaryResults.filter(
+            (r): r is { detail: any; usedKey: string } => r !== null
+        );
+        let sourceLabel = "NTC Hlasový Asistent (ElevenLabs)";
+
+        // 2. Ak v lokálnom prostredí chýba ELEVENLABS_NTC_API_KEY a týchto 4 ID sa nenašlo, načítame 4 záložné ID z lokálneho kľúča
+        if (matchedResults.length === 0) {
+            const fallbackResults = await Promise.all(
+                FALLBACK_LOCAL_CONVERSATION_IDS.map((id) => fetchSingleConversationById(id, candidateKeys))
+            );
+            matchedResults = fallbackResults.filter(
+                (r): r is { detail: any; usedKey: string } => r !== null
+            );
+            sourceLabel = "ElevenLabs Hlasový Asistent";
+        }
+
+        if (matchedResults.length === 0) {
+            return {
+                success: false,
+                error: "Vybrané hovory sa nepodarilo načítať. Skontrolujte prosím ELEVENLABS_NTC_API_KEY / ELEVENLABS_API_KEY.",
+            };
+        }
+
+        const detailedCalls = matchedResults.map((r) => mapDetailToDemoCallItem(r.detail));
+        detailedCalls.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+
+        // 3. Načítame celkovú mesačnú štatistiku pre paušál z rovnakého účtu/agenta, ktorému patria hovory
+        const activeKey = matchedResults[0].usedKey;
+        const activeAgentId = matchedResults[0].detail?.agent_id;
+        let allConversations: any[] = [];
+
+        try {
+            const listUrl = activeAgentId
+                ? `https://api.elevenlabs.io/v1/convai/conversations?agent_id=${encodeURIComponent(activeAgentId)}&page_size=100`
+                : "https://api.elevenlabs.io/v1/convai/conversations?page_size=100";
+            const listRes = await fetch(listUrl, {
+                headers: {
+                    "xi-api-key": activeKey,
+                    "Accept": "application/json",
+                },
+                next: { revalidate: 60 },
+            });
+            if (listRes.ok) {
+                const listData = await listRes.json();
+                allConversations = listData.conversations || [];
+            }
+        } catch {
+            // Fallback na vybrané hovory
+        }
+
+        const meaningfulAll = allConversations.filter((c: any) => (c.call_duration_secs || 0) >= 15);
+        const totalDurationSec =
+            meaningfulAll.length > 0
+                ? meaningfulAll.reduce((acc: number, c: any) => acc + (c.call_duration_secs || 0), 0)
+                : detailedCalls.reduce((acc: number, c: any) => acc + c.durationSec, 0);
+
+        const callsCountForStats = meaningfulAll.length > 0 ? meaningfulAll.length : detailedCalls.length;
+        const usedMinutes = Math.max(1, Math.round(totalDurationSec / 60));
+        const avgCallDurationSec =
+            callsCountForStats > 0 ? Math.round(totalDurationSec / callsCountForStats) : 58;
+        const callsPerMonth = callsCountForStats;
+
+        const uniqueDays = new Set(
+            (meaningfulAll.length > 0 ? meaningfulAll : detailedCalls).map((c: any) => {
+                const iso = c.start_time_unix_secs
+                    ? new Date(c.start_time_unix_secs * 1000).toISOString()
+                    : c.startedAt;
+                return String(iso).slice(0, 10);
+            })
+        );
+        const activeDaysCount = Math.max(1, uniqueDays.size);
+        const callsPerDay = Math.round((callsPerMonth / activeDaysCount) * 10) / 10;
+
+        const planStats: DemoPlanStats = {
+            planTotalMinutes: defaultPlanMinutes,
+            usedMinutes,
+            remainingMinutes: Math.max(0, defaultPlanMinutes - usedMinutes),
+            avgCallDurationSec,
+            callsPerDay,
+            callsPerMonth,
+            activeDaysCount,
+        };
+
+        return {
+            success: true,
+            calls: detailedCalls,
+            planStats,
+            sourceLabel,
+        };
+    } catch (error: any) {
+        console.error("fetchDemoCallHistoryAction error:", error);
+        return {
+            success: false,
+            error: error.message || "Nepodarilo sa načítať dáta pre demo dashboard.",
+        };
+    }
+}
