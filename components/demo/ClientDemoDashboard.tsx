@@ -536,15 +536,10 @@ export default function ClientDemoDashboard() {
             </div>
 
             {/* Hlavné KPI */}
-            <div className="flex items-baseline justify-between border-b border-slate-100 pb-3">
-              <div>
-                <strong className="text-3xl font-extrabold tracking-tight text-slate-950">
-                  96 %
-                </strong>
-                <span className="ml-2 text-xs font-semibold text-slate-500">
-                  priemerná úspešnosť zberu
-                </span>
-              </div>
+            <div className="border-b border-slate-100 pb-3">
+              <strong className="text-3xl font-extrabold tracking-tight text-slate-950">
+                96 %
+              </strong>
             </div>
 
             {/* Zoznam 7 parametrov s jemne sivou výplňou */}
@@ -562,9 +557,9 @@ export default function ClientDemoDashboard() {
                   key={item.label}
                   className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-white p-2.5"
                 >
-                  {/* Celá dlaždica vyplnená jemnou sivou podľa percent */}
+                  {/* Celá dlaždica vyplnená sivou podľa percent */}
                   <div
-                    className="absolute inset-y-0 left-0 bg-slate-100/80 transition-all duration-500 pointer-events-none"
+                    className="absolute inset-y-0 left-0 bg-slate-200/90 transition-all duration-500 pointer-events-none"
                     style={{ width: `${item.pct}%` }}
                   />
                   <div className="relative z-10 flex items-center justify-between">
