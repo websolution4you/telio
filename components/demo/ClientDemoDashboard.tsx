@@ -547,7 +547,7 @@ export default function ClientDemoDashboard() {
               </div>
             </div>
 
-            {/* Zoznam 7 parametrov s jemne sivým barom */}
+            {/* Zoznam 7 parametrov s jemne sivou výplňou */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               {[
                 { label: "1. Meno zákazníka", pct: 100 },
@@ -556,13 +556,11 @@ export default function ClientDemoDashboard() {
                 { label: "4. Kurt / Športovisko", pct: 98 },
                 { label: "5. Počet hráčov", pct: 95 },
                 { label: "6. Požičanie výstroja", pct: 92 },
-                { label: "7. Doplňujúca poznámka", pct: 88, colSpan: true },
+                { label: "7. Doplňujúca poznámka", pct: 88 },
               ].map((item) => (
                 <div
                   key={item.label}
-                  className={`relative overflow-hidden rounded-xl border border-slate-200/80 bg-white p-2.5 ${
-                    item.colSpan ? "sm:col-span-2" : ""
-                  }`}
+                  className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-white p-2.5"
                 >
                   {/* Celá dlaždica vyplnená jemnou sivou podľa percent */}
                   <div
