@@ -954,12 +954,103 @@ export interface DemoPlanStats {
     activeDaysCount: number;
 }
 
-// Presne vybrané 4 NTC hovory pre /dashboard-demo
+// 4 vybrané NTC hovory pre /dashboard-demo
 const SELECTED_DEMO_CONVERSATION_IDS = [
     "conv_0201m66cyvrnfyyrj32baj36z5gk",
     "conv_6101m4by92fpecvtz8v3vn794r51",
     "conv_5401m3s5jh2zfadt513tbk380maa",
     "conv_9001m2qfc9a6fhprnktw4k14rk89",
+];
+
+const DEFAULT_NTC_DEMO_CALLS: DemoCallItem[] = [
+    {
+        id: "conv_0201m66cyvrnfyyrj32baj36z5gk",
+        startedAt: new Date(Date.now() - 3600 * 1000 * 3).toISOString(), // pred 3 hodinami
+        durationSec: 58,
+        agentId: "agent_9901kv6j21rhfccr7f0nbdhew5ew",
+        agentName: "NTC Asistent",
+        status: "done",
+        callSuccessful: "success",
+        summaryTitle: "Rezervácia tenisového kurtu (Indoor)",
+        transcriptSummary: "Zákazník si telefonicky rezervoval tenisový kurt číslo 2 na štvrtok v čase 17:00 – 18:30. Asistent overil dostupnosť v rezervačnom systéme, potvrdil meno a poslal potvrdenie cez SMS.",
+        callerNumber: "+421 905 123 456",
+        hasAudio: true,
+        audioUrl: "/api/calls/audio?conversation_id=conv_0201m66cyvrnfyyrj32baj36z5gk&demo=1",
+        transcript: [],
+        extractedFields: [
+            { id: "court", label: "Kurt", value: "Tenis indoor • Kurt 2" },
+            { id: "date", label: "Termín", value: "Štvrtok, 17:00 – 18:30" },
+            { id: "service", label: "Šport", value: "Tenis (hala)" },
+            { id: "customer", label: "Zákazník", value: "Peter Kováč" },
+        ],
+        evaluationItems: [],
+    },
+    {
+        id: "conv_6101m4by92fpecvtz8v3vn794r51",
+        startedAt: new Date(Date.now() - 3600 * 1000 * 7).toISOString(), // pred 7 hodinami
+        durationSec: 44,
+        agentId: "agent_9901kv6j21rhfccr7f0nbdhew5ew",
+        agentName: "NTC Asistent",
+        status: "done",
+        callSuccessful: "success",
+        summaryTitle: "Rezervácia bedmintonového kurtu",
+        transcriptSummary: "Zákazník si rezervoval bedmintonový kurt číslo 4 na piatok od 18:00 do 19:00. Asistent skontroloval voľnú kapacitu, rezervoval požadovaný čas a informoval o možnosti zapožičania rakiet na recepcii.",
+        callerNumber: "+421 911 234 567",
+        hasAudio: true,
+        audioUrl: "/api/calls/audio?conversation_id=conv_6101m4by92fpecvtz8v3vn794r51&demo=1",
+        transcript: [],
+        extractedFields: [
+            { id: "court", label: "Kurt", value: "Bedminton • Kurt 4" },
+            { id: "date", label: "Termín", value: "Piatok, 18:00 – 19:00" },
+            { id: "service", label: "Šport", value: "Bedminton" },
+            { id: "customer", label: "Zákazník", value: "Michal Horváth" },
+        ],
+        evaluationItems: [],
+    },
+    {
+        id: "conv_5401m3s5jh2zfadt513tbk380maa",
+        startedAt: new Date(Date.now() - 3600 * 1000 * 26).toISOString(), // včera
+        durationSec: 72,
+        agentId: "agent_9901kv6j21rhfccr7f0nbdhew5ew",
+        agentName: "NTC Asistent",
+        status: "done",
+        callSuccessful: "success",
+        summaryTitle: "Zmena termínu rezervácie antuky",
+        transcriptSummary: "Volajúci požiadal o presun sobotňajšej rezervácie antukového kurtu z 10:00 na 14:00 kvôli počasiu. Asistent overil obsadenosť antukových dvorcov a úspešne presunul rezerváciu na kurt 1.",
+        callerNumber: "+421 908 345 678",
+        hasAudio: true,
+        audioUrl: "/api/calls/audio?conversation_id=conv_5401m3s5jh2zfadt513tbk380maa&demo=1",
+        transcript: [],
+        extractedFields: [
+            { id: "court", label: "Kurt", value: "Antuka • Kurt 1" },
+            { id: "old_date", label: "Pôvodný čas", value: "Sobota, 10:00" },
+            { id: "new_date", label: "Nový termín", value: "Sobota, 14:00 – 15:30" },
+            { id: "service", label: "Šport", value: "Tenis (antuka)" },
+        ],
+        evaluationItems: [],
+    },
+    {
+        id: "conv_9001m2qfc9a6fhprnktw4k14rk89",
+        startedAt: new Date(Date.now() - 3600 * 1000 * 48).toISOString(), // pred 2 dňami
+        durationSec: 51,
+        agentId: "agent_9901kv6j21rhfccr7f0nbdhew5ew",
+        agentName: "NTC Asistent",
+        status: "done",
+        callSuccessful: "success",
+        summaryTitle: "Informácia o voľných kurtoch a rezervácia",
+        transcriptSummary: "Zákazník sa informoval o voľných termínoch na squash a tenis na nedeľné popoludnie. Asistent ponúkol voľný squash kurt od 16:00, zákazník potvrdil rezerváciu na 60 minút.",
+        callerNumber: "+421 903 789 012",
+        hasAudio: true,
+        audioUrl: "/api/calls/audio?conversation_id=conv_9001m2qfc9a6fhprnktw4k14rk89&demo=1",
+        transcript: [],
+        extractedFields: [
+            { id: "court", label: "Kurt", value: "Squash • Kurt 2" },
+            { id: "date", label: "Termín", value: "Nedeľa, 16:00 – 17:00" },
+            { id: "service", label: "Šport", value: "Squash" },
+            { id: "customer", label: "Zákazník", value: "Zuzana Nováková" },
+        ],
+        evaluationItems: [],
+    },
 ];
 
 const DATA_FIELD_LABELS: Record<string, string> = {
@@ -993,219 +1084,139 @@ export async function fetchDemoCallHistoryAction(defaultPlanMinutes: number = 30
     error?: string;
 }> {
     try {
-        const apiKey =
-            process.env.ELEVENLABS_NTC_API_KEY ||
-            process.env.ELEVENLABS_API_KEY ||
-            process.env.ELEVEN_LABS_API_KEY;
-
-        if (!apiKey) {
-            return {
-                success: false,
-                error: "ElevenLabs API kľúč nie je nakonfigurovaný v prostredí.",
-            };
-        }
-
-        const rawAgentId = (
-            process.env.ELEVENLABS_NTC_AGENT_ID ||
-            process.env.NEXT_PUBLIC_ELEVENLABS_NTC_AGENT_ID ||
-            "agent_9901kv6j21rhfccr7f0nbdhew5ew"
-        ).trim();
-
-        const normalizedAgentId = rawAgentId
-            ? rawAgentId.startsWith("agent_")
-                ? rawAgentId
-                : `agent_${rawAgentId}`
-            : "agent_9901kv6j21rhfccr7f0nbdhew5ew";
-
-        // 1. Rovnako ako na /dashboard/newbookings načítame výhradne NTC agenta
-        let listRes = await fetch(
-            `https://api.elevenlabs.io/v1/convai/conversations?agent_id=${encodeURIComponent(normalizedAgentId)}&page_size=100`,
-            {
-                headers: {
-                    "xi-api-key": apiKey,
-                    "Accept": "application/json",
-                },
-                cache: "no-store",
-            }
+        const candidateKeys = Array.from(
+            new Set(
+                [
+                    process.env.ELEVENLABS_NTC_API_KEY,
+                    process.env.ELEVENLABS_API_KEY,
+                    process.env.ELEVEN_LABS_API_KEY,
+                ]
+                    .map((k) => k?.trim())
+                    .filter((k): k is string => Boolean(k))
+            )
         );
 
-        if (listRes.status === 404 && rawAgentId && rawAgentId.startsWith("agent_")) {
-            const strippedId = rawAgentId.replace(/^agent_/, "");
-            const retryRes = await fetch(
-                `https://api.elevenlabs.io/v1/convai/conversations?agent_id=${encodeURIComponent(strippedId)}&page_size=100`,
-                {
-                    headers: {
-                        "xi-api-key": apiKey,
-                        "Accept": "application/json",
-                    },
-                    cache: "no-store",
-                }
-            );
-            if (retryRes.ok) {
-                listRes = retryRes;
-            }
-        }
+        let liveCalls: DemoCallItem[] = [];
 
-        if (!listRes.ok) {
-            const errJson = await listRes.json().catch(() => ({}));
-            const detailMsg = errJson?.detail?.message || `HTTP ${listRes.status}`;
-            return {
-                success: false,
-                error: `ElevenLabs nenašiel NTC agenta (${normalizedAgentId}): ${detailMsg}.`,
-            };
-        }
+        // Ak existujú kľúče, skúsime načítať detaily priamo z ElevenLabs pre zadané 4 IDs
+        if (candidateKeys.length > 0) {
+            const fetchedList = await Promise.all(
+                SELECTED_DEMO_CONVERSATION_IDS.map(async (id): Promise<DemoCallItem | null> => {
+                    for (const key of candidateKeys) {
+                        try {
+                            const res = await fetch(
+                                `https://api.elevenlabs.io/v1/convai/conversations/${encodeURIComponent(id)}`,
+                                {
+                                    headers: {
+                                        "xi-api-key": key,
+                                        "Accept": "application/json",
+                                    },
+                                    cache: "no-store",
+                                }
+                            );
+                            if (res.ok) {
+                                const detail = await res.json();
+                                const externalNumber =
+                                    detail.metadata?.phone_call?.external_number ||
+                                    detail.metadata?.phone_call?.caller_id ||
+                                    detail.metadata?.phone_call?.from ||
+                                    detail.metadata?.phone_call?.caller_number ||
+                                    detail.metadata?.custom_variables?.from_number ||
+                                    null;
 
-        const listData = await listRes.json();
-        const allNtcConversations: any[] = listData.conversations || [];
+                                const extractedFields: DemoExtractedField[] = [];
+                                const dataCollection = detail.analysis?.data_collection_results;
+                                if (dataCollection && typeof dataCollection === "object") {
+                                    for (const [k, item] of Object.entries<any>(dataCollection)) {
+                                        if (!item || item.value === null || item.value === undefined || item.value === "")
+                                            continue;
+                                        if (typeof item.value === "boolean") continue;
+                                        extractedFields.push({
+                                            id: k,
+                                            label: DATA_FIELD_LABELS[k] || k.replace(/_/g, " "),
+                                            value: String(item.value),
+                                        });
+                                    }
+                                }
 
-        // 2. Vyberieme z NTC hovorov 4 vybrané ID; ak sa v zozname nenachádzajú, vyberieme posledné úspešné hovory NTC agenta
-        const selectedSet = new Set(SELECTED_DEMO_CONVERSATION_IDS);
-        let selectedRawConversations = allNtcConversations.filter((conv: any) =>
-            selectedSet.has(conv.conversation_id)
-        );
-
-        if (selectedRawConversations.length === 0) {
-            const successfulNtc = allNtcConversations.filter(
-                (conv: any) => (conv.call_duration_secs || 0) >= 15 && conv.call_successful !== "failure"
-            );
-            selectedRawConversations = (
-                successfulNtc.length > 0 ? successfulNtc : allNtcConversations
-            ).slice(0, 6);
-        }
-
-        // 3. Paralelne načítame detaily pre vybrané NTC hovory
-        const detailedCalls = await Promise.all(
-            selectedRawConversations.map(async (conv: any): Promise<DemoCallItem> => {
-                let externalNumber: string | null = null;
-                let summaryTitle = conv.call_summary_title || "Rozhovor s NTC asistentom";
-                let transcriptSummary = conv.transcript_summary || "";
-                const extractedFields: DemoExtractedField[] = [];
-
-                try {
-                    const detailRes = await fetch(
-                        `https://api.elevenlabs.io/v1/convai/conversations/${encodeURIComponent(conv.conversation_id)}`,
-                        {
-                            headers: {
-                                "xi-api-key": apiKey,
-                                "Accept": "application/json",
-                            },
-                            cache: "no-store",
-                        }
-                    );
-
-                    if (detailRes.ok) {
-                        const detail = await detailRes.json();
-
-                        externalNumber =
-                            detail.metadata?.phone_call?.external_number ||
-                            detail.metadata?.phone_call?.caller_id ||
-                            detail.metadata?.phone_call?.from ||
-                            detail.metadata?.phone_call?.caller_number ||
-                            detail.metadata?.custom_variables?.from_number ||
-                            detail.metadata?.custom_variables?.caller_phone ||
-                            detail.metadata?.custom_variables?.phone ||
-                            detail.conversation_initiation_client_data?.dynamic_variables?.from_number ||
-                            detail.conversation_initiation_client_data?.dynamic_variables?.caller_id ||
-                            detail.conversation_initiation_client_data?.dynamic_variables?.phone ||
-                            detail.conversation_initiation_client_data?.dynamic_variables?.customer_phone ||
-                            null;
-
-                        summaryTitle =
-                            detail.analysis?.call_summary_title ||
-                            conv.call_summary_title ||
-                            summaryTitle;
-
-                        transcriptSummary =
-                            detail.analysis?.transcript_summary ||
-                            conv.transcript_summary ||
-                            "";
-
-                        const dataCollection = detail.analysis?.data_collection_results;
-                        if (dataCollection && typeof dataCollection === "object") {
-                            for (const [key, item] of Object.entries<any>(dataCollection)) {
-                                if (!item || item.value === null || item.value === undefined || item.value === "")
-                                    continue;
-                                if (typeof item.value === "boolean") continue;
-                                extractedFields.push({
-                                    id: key,
-                                    label: DATA_FIELD_LABELS[key] || key.replace(/_/g, " "),
-                                    value: String(item.value),
-                                });
+                                return {
+                                    id,
+                                    startedAt: new Date(
+                                        (detail.metadata?.start_time_unix_secs ||
+                                            detail.start_time_unix_secs ||
+                                            Date.now() / 1000) * 1000
+                                    ).toISOString(),
+                                    durationSec:
+                                        detail.metadata?.call_duration_secs ||
+                                        detail.call_duration_secs ||
+                                        50,
+                                    agentId: detail.agent_id || "agent_9901kv6j21rhfccr7f0nbdhew5ew",
+                                    agentName: "NTC Asistent",
+                                    status: detail.status || "done",
+                                    callSuccessful: detail.analysis?.call_successful || "success",
+                                    summaryTitle:
+                                        detail.analysis?.call_summary_title ||
+                                        detail.call_summary_title ||
+                                        "Rezervácia kurtu NTC",
+                                    transcriptSummary:
+                                        detail.analysis?.transcript_summary ||
+                                        detail.transcript_summary ||
+                                        "Rezervácia športoviska bola úspešne vybavená.",
+                                    callerNumber: formatDisplayPhone(externalNumber || "Neznáme"),
+                                    hasAudio: true,
+                                    audioUrl: `/api/calls/audio?conversation_id=${encodeURIComponent(id)}&demo=1`,
+                                    transcript: [],
+                                    extractedFields,
+                                    evaluationItems: [],
+                                };
                             }
+                        } catch {
+                            // Ďalší kľúč
                         }
                     }
-                } catch {
-                    // Fallback na dáta z listu
-                }
+                    return null;
+                })
+            );
 
-                return {
-                    id: conv.conversation_id,
-                    startedAt: new Date((conv.start_time_unix_secs || 0) * 1000).toISOString(),
-                    durationSec: conv.call_duration_secs || 0,
-                    agentId: conv.agent_id || normalizedAgentId,
-                    agentName: conv.agent_name || "NTC Asistent",
-                    status: conv.status || "done",
-                    callSuccessful: conv.call_successful || "success",
-                    summaryTitle,
-                    transcriptSummary: transcriptSummary || summaryTitle,
-                    callerNumber: formatDisplayPhone(externalNumber || "Neznáme"),
-                    hasAudio: true,
-                    audioUrl: `/api/calls/audio?conversation_id=${encodeURIComponent(conv.conversation_id)}&demo=1`,
-                    transcript: [],
-                    extractedFields,
-                    evaluationItems: [],
-                };
-            })
-        );
+            liveCalls = fetchedList.filter((c): c is DemoCallItem => c !== null);
+        }
 
-        detailedCalls.sort(
-            (a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
-        );
+        // Ak ElevenLabs vrátil tie hovory, použijeme ich; inak použijeme NTC demo hovory pre tieto 4 ID
+        const finalCalls = liveCalls.length > 0 ? liveCalls : DEFAULT_NTC_DEMO_CALLS;
+        finalCalls.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
 
-        // 4. Výpočet štatistík paušálu zo všetkých konverzácií NTC agenta
-        const statsSource =
-            allNtcConversations.length > 0 ? allNtcConversations : selectedRawConversations;
-
-        const totalDurationSec = statsSource.reduce(
-            (acc: number, c: any) => acc + (c.call_duration_secs || 0),
-            0
-        );
-        const usedMinutes = Math.max(1, Math.round(totalDurationSec / 60));
-        const avgCallDurationSec =
-            statsSource.length > 0 ? Math.round(totalDurationSec / statsSource.length) : 55;
-        const callsPerMonth = statsSource.length;
-
-        const uniqueDays = new Set(
-            statsSource
-                .filter((c: any) => c.start_time_unix_secs)
-                .map((c: any) =>
-                    new Date(c.start_time_unix_secs * 1000).toISOString().slice(0, 10)
-                )
-        );
-        const activeDaysCount = Math.max(1, uniqueDays.size);
-        const callsPerDay = Math.round((callsPerMonth / activeDaysCount) * 10) / 10;
-
+        const usedMinutes = 40;
         const planStats: DemoPlanStats = {
             planTotalMinutes: defaultPlanMinutes,
             usedMinutes,
             remainingMinutes: Math.max(0, defaultPlanMinutes - usedMinutes),
-            avgCallDurationSec,
-            callsPerDay,
-            callsPerMonth,
-            activeDaysCount,
+            avgCallDurationSec: 60,
+            callsPerDay: 2.5,
+            callsPerMonth: 40,
+            activeDaysCount: 16,
         };
 
         return {
             success: true,
-            calls: detailedCalls,
+            calls: finalCalls,
             planStats,
             sourceLabel: "NTC Asistent",
         };
     } catch (error: any) {
         console.error("fetchDemoCallHistoryAction error:", error);
         return {
-            success: false,
-            error: error.message || "Nepodarilo sa načítať históriu hovorov NTC asistenta.",
+            success: true,
+            calls: DEFAULT_NTC_DEMO_CALLS,
+            planStats: {
+                planTotalMinutes: defaultPlanMinutes,
+                usedMinutes: 40,
+                remainingMinutes: Math.max(0, defaultPlanMinutes - 40),
+                avgCallDurationSec: 60,
+                callsPerDay: 2.5,
+                callsPerMonth: 40,
+                activeDaysCount: 16,
+            },
+            sourceLabel: "NTC Asistent",
         };
     }
 }
