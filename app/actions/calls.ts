@@ -954,59 +954,13 @@ export interface DemoPlanStats {
     activeDaysCount: number;
 }
 
-// 4 vybrané NTC hovory pre /dashboard-demo
+// Vybrané NTC hovory pre /dashboard-demo
 const SELECTED_DEMO_CONVERSATION_IDS = [
-    "conv_0201m66cyvrnfyyrj32baj36z5gk",
-    "conv_6101m4by92fpecvtz8v3vn794r51",
     "conv_5401m3s5jh2zfadt513tbk380maa",
     "conv_9001m2qfc9a6fhprnktw4k14rk89",
 ];
 
 const DEFAULT_NTC_DEMO_CALLS: DemoCallItem[] = [
-    {
-        id: "conv_0201m66cyvrnfyyrj32baj36z5gk",
-        startedAt: new Date(Date.now() - 3600 * 1000 * 3).toISOString(), // pred 3 hodinami
-        durationSec: 58,
-        agentId: "agent_9901kv6j21rhfccr7f0nbdhew5ew",
-        agentName: "NTC Asistent",
-        status: "done",
-        callSuccessful: "success",
-        summaryTitle: "Rezervácia tenisového kurtu (Indoor)",
-        transcriptSummary: "Zákazník si telefonicky rezervoval tenisový kurt číslo 2 na štvrtok v čase 17:00 – 18:30. Asistent overil dostupnosť v rezervačnom systéme, potvrdil meno a poslal potvrdenie cez SMS.",
-        callerNumber: "+421 905 123 456",
-        hasAudio: true,
-        audioUrl: "/api/calls/audio?conversation_id=conv_0201m66cyvrnfyyrj32baj36z5gk&demo=1",
-        transcript: [],
-        extractedFields: [
-            { id: "court", label: "Kurt", value: "Tenis indoor • Kurt 2" },
-            { id: "date", label: "Termín", value: "Štvrtok, 17:00 – 18:30" },
-            { id: "service", label: "Šport", value: "Tenis (hala)" },
-            { id: "customer", label: "Zákazník", value: "Peter Kováč" },
-        ],
-        evaluationItems: [],
-    },
-    {
-        id: "conv_6101m4by92fpecvtz8v3vn794r51",
-        startedAt: new Date(Date.now() - 3600 * 1000 * 7).toISOString(), // pred 7 hodinami
-        durationSec: 44,
-        agentId: "agent_9901kv6j21rhfccr7f0nbdhew5ew",
-        agentName: "NTC Asistent",
-        status: "done",
-        callSuccessful: "success",
-        summaryTitle: "Rezervácia bedmintonového kurtu",
-        transcriptSummary: "Zákazník si rezervoval bedmintonový kurt číslo 4 na piatok od 18:00 do 19:00. Asistent skontroloval voľnú kapacitu, rezervoval požadovaný čas a informoval o možnosti zapožičania rakiet na recepcii.",
-        callerNumber: "+421 911 234 567",
-        hasAudio: true,
-        audioUrl: "/api/calls/audio?conversation_id=conv_6101m4by92fpecvtz8v3vn794r51&demo=1",
-        transcript: [],
-        extractedFields: [
-            { id: "court", label: "Kurt", value: "Bedminton • Kurt 4" },
-            { id: "date", label: "Termín", value: "Piatok, 18:00 – 19:00" },
-            { id: "service", label: "Šport", value: "Bedminton" },
-            { id: "customer", label: "Zákazník", value: "Michal Horváth" },
-        ],
-        evaluationItems: [],
-    },
     {
         id: "conv_5401m3s5jh2zfadt513tbk380maa",
         startedAt: new Date(Date.now() - 3600 * 1000 * 26).toISOString(), // včera
@@ -1093,14 +1047,14 @@ function localizeDemoCallContent(
                 "Používateľ požiadal o rezerváciu bedmintonového kurtu na jednu hodinu v nedeľu 1. novembra o 15:00. Asistent overil dostupnosť, navrhol kurt 01 a po potvrdení rezerváciu úspešne vytvoril. Hovor bol ukončený potvrdením rezervácie.",
         },
         "conv_5401m3s5jh2zfadt513tbk380maa": {
-            title: "Zmena termínu rezervácie antuky",
+            title: "Tenisová rezervácia NTC",
             summary:
                 "Volajúci požiadal o presun sobotňajšej rezervácie antukového kurtu z 10:00 na 14:00 kvôli počasiu. Asistent overil obsadenosť antukových dvorcov a úspešne presunul rezerváciu na kurt 1.",
         },
         "conv_9001m2qfc9a6fhprnktw4k14rk89": {
-            title: "Informácia o voľných kurtoch a rezervácia",
+            title: "Rezervácia bedmintonového kurtu",
             summary:
-                "Zákazník sa informoval o voľných termínoch na squash a tenis na nedeľné popoludnie. Asistent ponúkol voľný squash kurt od 16:00, zákazník potvrdil rezerváciu na 60 minút.",
+                "Zákazník požiadal o rezerváciu bedmintonového kurtu. Asistent overil voľné kapacity, potvrdil termín a úspešne vytvoril rezerváciu v systéme.",
         },
     };
 

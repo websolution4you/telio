@@ -78,6 +78,17 @@ const getSlovakSummary = (call: DemoCallItem) => {
   return text || "Rezervácia športoviska bola úspešne vybavená.";
 };
 
+const getSlovakTitle = (call: DemoCallItem) => {
+  if (call.id === "conv_5401m3s5jh2zfadt513tbk380maa") return "Tenisová rezervácia NTC";
+  if (call.id === "conv_9001m2qfc9a6fhprnktw4k14rk89") return "Rezervácia bedmintonového kurtu";
+  const title = call.summaryTitle || "";
+  if (/badminton court booking/i.test(title)) return "Rezervácia bedmintonového kurtu";
+  if (/ntc services booking/i.test(title)) return "Rezervácia služieb NTC";
+  if (/tennis court booking/i.test(title)) return "Rezervácia tenisového kurtu";
+  if (/squash court booking/i.test(title)) return "Rezervácia squash kurtu";
+  return title || "Rezervácia kurtu NTC";
+};
+
 function TelioLogo() {
   return (
     <svg width="30" height="30" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -690,7 +701,7 @@ function CallRowWithDetail({
         {/* Zhrnutie hovoru */}
         <td className="px-4 py-4 max-w-[420px]">
           <span className="font-semibold text-slate-900 truncate block">
-            {call.summaryTitle}
+            {getSlovakTitle(call)}
           </span>
         </td>
 
