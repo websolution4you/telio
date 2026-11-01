@@ -560,20 +560,18 @@ export default function ClientDemoDashboard() {
               ].map((item) => (
                 <div
                   key={item.label}
-                  className={`rounded-xl border border-slate-200/70 bg-white p-2.5 space-y-1.5 ${
+                  className={`relative overflow-hidden rounded-xl border border-slate-200/80 bg-white p-2.5 ${
                     item.colSpan ? "sm:col-span-2" : ""
                   }`}
                 >
-                  <div className="flex items-center justify-between">
+                  {/* Celá dlaždica vyplnená jemnou sivou podľa percent */}
+                  <div
+                    className="absolute inset-y-0 left-0 bg-slate-100/80 transition-all duration-500 pointer-events-none"
+                    style={{ width: `${item.pct}%` }}
+                  />
+                  <div className="relative z-10 flex items-center justify-between">
                     <span className="text-slate-700 font-medium">{item.label}</span>
                     <span className="font-bold text-slate-900">{item.pct} %</span>
-                  </div>
-                  {/* Jemne sivý bar zodpovedajúci percentám */}
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 border border-slate-200/50">
-                    <div
-                      className="h-full rounded-full bg-slate-400 transition-all duration-500"
-                      style={{ width: `${item.pct}%` }}
-                    />
                   </div>
                 </div>
               ))}
