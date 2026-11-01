@@ -267,9 +267,6 @@ export default function ClientDemoDashboard() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
             Prehľad paušálu a hovorov
           </h1>
-          <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
-            Sledovanie spotreby minút v paušále a história vybraných ElevenLabs hovorov.
-          </p>
         </div>
 
         {/* SEKCIA 1: PAUŠÁL A KĽÚČOVÉ METRIKY */}
