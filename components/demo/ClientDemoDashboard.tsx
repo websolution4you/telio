@@ -476,6 +476,135 @@ export default function ClientDemoDashboard() {
             </div>
           )}
         </section>
+
+        {/* SEKCIA 3: JEDNODUCHÁ ANALYTIKA HOVOROV */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* 1. Kedy klienti volajú (3 bary pod sebou) */}
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)] flex flex-col justify-between space-y-5">
+            <div>
+              <h3 className="text-base sm:text-lg font-bold text-slate-950">
+                Kedy zákazníci volajú
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Rozdelenie prichádzajúcich hovorov počas dňa a mimo pracovnej doby.
+              </p>
+            </div>
+
+            <div className="space-y-4 pt-1">
+              {/* Doobeda */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-700">Doobeda (08:00 – 12:00)</span>
+                  <span className="font-bold text-slate-900">
+                    45 % <span className="font-normal text-slate-400 font-mono">(18 hovorov)</span>
+                  </span>
+                </div>
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100 border border-slate-200/60">
+                  <div
+                    className="h-full rounded-full bg-indigo-600 transition-all duration-500"
+                    style={{ width: "45%" }}
+                  />
+                </div>
+              </div>
+
+              {/* Poobede */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-700">Poobede (12:00 – 17:00)</span>
+                  <span className="font-bold text-slate-900">
+                    35 % <span className="font-normal text-slate-400 font-mono">(14 hovorov)</span>
+                  </span>
+                </div>
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100 border border-slate-200/60">
+                  <div
+                    className="h-full rounded-full bg-cyan-600 transition-all duration-500"
+                    style={{ width: "35%" }}
+                  />
+                </div>
+              </div>
+
+              {/* Mimo pracovnej doby */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-700">Mimo prac. doby (večer & ráno)</span>
+                  <span className="font-bold text-emerald-600">
+                    20 % <span className="font-normal text-slate-400 font-mono">(8 hovorov)</span>
+                  </span>
+                </div>
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100 border border-slate-200/60">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                    style={{ width: "20%" }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-emerald-50/70 border border-emerald-100 p-3 text-xs text-emerald-800 flex items-center justify-between">
+              <span>Hovory vybavené mimo personálu:</span>
+              <strong className="font-bold text-emerald-900">8 hovorov (100 % vyriešených)</strong>
+            </div>
+          </div>
+
+          {/* 2. Úspešnosť zberu údajov (7 kľúčových parametrov) */}
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)] flex flex-col justify-between space-y-5">
+            <div>
+              <h3 className="text-base sm:text-lg font-bold text-slate-950">
+                Úspešnosť zberu údajov z hovoru
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Presnosť zachytenia 7 požadovaných parametrov v konverzácii.
+              </p>
+            </div>
+
+            {/* Hlavné KPI */}
+            <div className="flex items-baseline justify-between border-b border-slate-100 pb-3">
+              <div>
+                <strong className="text-3xl font-extrabold tracking-tight text-slate-950">
+                  96 %
+                </strong>
+                <span className="ml-2 text-xs font-semibold text-slate-500">
+                  priemerná úspešnosť zberu
+                </span>
+              </div>
+              <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full">
+                6,7 z 7 údajov na hovor
+              </span>
+            </div>
+
+            {/* Zoznam 7 parametrov s úspešnosťou */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 border border-slate-200/60">
+                <span className="text-slate-600 font-medium">1. Meno zákazníka</span>
+                <span className="font-bold text-emerald-600">100 %</span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 border border-slate-200/60">
+                <span className="text-slate-600 font-medium">2. Šport / Služba</span>
+                <span className="font-bold text-emerald-600">100 %</span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 border border-slate-200/60">
+                <span className="text-slate-600 font-medium">3. Dátum a čas</span>
+                <span className="font-bold text-emerald-600">100 %</span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 border border-slate-200/60">
+                <span className="text-slate-600 font-medium">4. Kurt / Športovisko</span>
+                <span className="font-bold text-emerald-600">98 %</span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 border border-slate-200/60">
+                <span className="text-slate-600 font-medium">5. Počet hráčov</span>
+                <span className="font-bold text-emerald-600">95 %</span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 border border-slate-200/60">
+                <span className="text-slate-600 font-medium">6. Požičanie výstroja</span>
+                <span className="font-bold text-emerald-600">92 %</span>
+              </div>
+              <div className="sm:col-span-2 flex items-center justify-between rounded-xl bg-slate-50 p-2.5 border border-slate-200/60">
+                <span className="text-slate-600 font-medium">7. Doplňujúca poznámka</span>
+                <span className="font-bold text-emerald-600">88 %</span>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   );
