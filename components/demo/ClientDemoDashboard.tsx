@@ -50,12 +50,29 @@ const formatDurationVerbose = (sec: number) => {
   return `${m}m ${s < 10 ? "0" : ""}${s}s`;
 };
 
-const PLAN_PACKAGES = [300, 500, 1000] as const;
+function TelioLogo() {
+  return (
+    <svg width="30" height="30" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="28" height="28" rx="7" fill="url(#demo-logo-grad)" />
+      <rect x="5" y="12" width="2.5" height="4" rx="1.25" fill="rgba(5,5,8,0.9)" />
+      <rect x="9" y="9" width="2.5" height="10" rx="1.25" fill="rgba(5,5,8,0.9)" />
+      <rect x="13" y="6" width="2.5" height="16" rx="1.25" fill="rgba(5,5,8,0.9)" />
+      <rect x="17" y="9" width="2.5" height="10" rx="1.25" fill="rgba(5,5,8,0.9)" />
+      <rect x="21" y="12" width="2.5" height="4" rx="1.25" fill="rgba(5,5,8,0.9)" />
+      <defs>
+        <linearGradient id="demo-logo-grad" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#00FFD1" />
+          <stop offset="1" stopColor="#7B61FF" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
 
 export default function ClientDemoDashboard() {
   const [calls, setCalls] = useState<DemoCallItem[]>([]);
   const [planStats, setPlanStats] = useState<DemoPlanStats | null>(null);
-  const [selectedPlanMinutes, setSelectedPlanMinutes] = useState<number>(300);
+  const selectedPlanMinutes = 300;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -176,15 +193,19 @@ export default function ClientDemoDashboard() {
     setExpandedCallId((prev) => (prev === callId ? null : callId));
   };
 
-  // Filtrované hovory
+  // Filtrované hovory (bez telefónnych čísel)
   const filteredCalls = useMemo(() => {
     return calls.filter((c) => {
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
-        const matchNum = c.callerNumber.toLowerCase().includes(query);
         const matchTitle = c.summaryTitle.toLowerCase().includes(query);
         const matchSummary = (c.transcriptSummary || "").toLowerCase().includes(query);
-        return matchNum || matchTitle || matchSummary;
+        const matchFields = c.extractedFields.some(
+          (f) =>
+            f.value.toLowerCase().includes(query) ||
+            f.label.toLowerCase().includes(query)
+        );
+        return matchTitle || matchSummary || matchFields;
       }
       return true;
     });
@@ -216,72 +237,42 @@ export default function ClientDemoDashboard() {
         preload="none"
       />
 
-      {/* Čistá Telio Demo Hlavička */}
+      {/* Originálna Telio Hlavička z homepage */}
       <header
-        className="relative isolate z-40 border-b border-slate-700/80 shadow-[0_4px_24px_rgba(0,0,0,0.22)] text-white"
+        className="relative isolate z-40 border-b border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.3)] text-white"
         style={{
-          background:
-            "linear-gradient(180deg, #1C1F24 0%, #333842 35%, #505764 70%, #6E7786 100%)",
+          background: "rgba(5,5,8,0.95)",
         }}
       >
-        <div className="mx-auto flex min-h-[66px] max-w-[1440px] items-center justify-between gap-3 px-4 py-2.5 sm:min-h-[76px] sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3.5">
-            <Link
-              href="/"
-              className="flex items-center gap-2.5 transition hover:opacity-90"
-              title="Telio.sk"
+        <div className="mx-auto flex min-h-[64px] max-w-[1440px] items-center justify-between gap-3 px-4 py-2.5 sm:px-6 lg:px-8">
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 group flex-shrink-0 transition hover:opacity-90"
+            title="TELIO"
+          >
+            <TelioLogo />
+            <span
+              className="text-xl font-bold text-white tracking-tight"
+              style={{ letterSpacing: "-0.02em" }}
             >
-              <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-emerald-400 to-cyan-500 text-slate-950 font-black text-lg shadow-md shadow-emerald-950/30">
-                T
-              </div>
-              <div>
-                <span className="text-lg sm:text-xl font-extrabold tracking-tight text-white">
-                  telio<span className="text-emerald-400">.sk</span>
-                </span>
-                <span className="block text-[10px] font-semibold uppercase tracking-widest text-slate-300">
-                  Klientsky portál
-                </span>
-              </div>
-            </Link>
-          </div>
+              TELIO
+            </span>
+          </Link>
         </div>
       </header>
 
       <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8 space-y-6 sm:space-y-8">
-        {/* Nadpis stránky a prepínač paušálu */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-              Prehľad paušálu a hovorov
-            </h1>
-            <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
-              Sledovanie spotreby minút v paušále a história vybraných ElevenLabs hovorov.
-            </p>
-          </div>
-
-          {/* Prepínač veľkosti paušálu */}
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="text-xs font-semibold text-slate-500">Balík paušálu:</span>
-            <div className="flex items-center gap-1 rounded-2xl bg-white p-1 border border-slate-200/90 shadow-2xs text-xs font-bold">
-              {PLAN_PACKAGES.map((pkg) => (
-                <button
-                  key={pkg}
-                  type="button"
-                  onClick={() => setSelectedPlanMinutes(pkg)}
-                  className={`cursor-pointer px-3 py-1.5 rounded-xl transition ${
-                    selectedPlanMinutes === pkg
-                      ? "bg-slate-950 text-white shadow-xs"
-                      : "text-slate-600 hover:text-slate-950 hover:bg-slate-100"
-                  }`}
-                >
-                  {pkg} min
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* Nadpis stránky */}
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+            Prehľad paušálu a hovorov
+          </h1>
+          <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
+            Sledovanie spotreby minút v paušále a história vybraných ElevenLabs hovorov.
+          </p>
         </div>
 
-        {/* SEKCIA 1: PAUŠÁL A KĽÚČOVÉ METRIKY (Jednotný vizuál bez ikon a bez duplicitného popisu) */}
+        {/* SEKCIA 1: PAUŠÁL A KĽÚČOVÉ METRIKY */}
         <section className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)] space-y-5">
           {/* Horná lišta čerpania paušálu */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
@@ -304,7 +295,7 @@ export default function ClientDemoDashboard() {
             </div>
           </div>
 
-          {/* 5 Kľúčových kariet paušálu – zjednotený čistý dizajn bez ikon */}
+          {/* 5 Kľúčových kariet paušálu */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {/* 1. Celkové minúty */}
             <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
@@ -387,7 +378,7 @@ export default function ClientDemoDashboard() {
                 <Search className="absolute left-3 h-3.5 w-3.5 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Hľadať číslo alebo text..."
+                  placeholder="Hľadať v hovoroch..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-44 sm:w-56 rounded-2xl border border-slate-200 bg-slate-50 py-2 pl-8 pr-3 text-xs font-medium text-slate-700 placeholder-slate-400 transition-all focus:border-indigo-300 focus:bg-white focus:outline-none"
@@ -443,12 +434,11 @@ export default function ClientDemoDashboard() {
             </div>
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-slate-200/90">
-              <table className="w-full min-w-[780px] text-left text-sm border-collapse">
+              <table className="w-full min-w-[680px] text-left text-sm border-collapse">
                 <thead className="border-b border-slate-200/90 bg-slate-50/90 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   <tr>
                     <th className="w-10 px-3 py-3.5 text-center"></th>
                     <th className="px-4 py-3.5 whitespace-nowrap">Čas hovoru</th>
-                    <th className="px-4 py-3.5 whitespace-nowrap">Telefónne číslo</th>
                     <th className="px-4 py-3.5">Zhrnutie hovoru</th>
                     <th className="px-4 py-3.5 text-center whitespace-nowrap">Dĺžka</th>
                     <th className="px-4 py-3.5 text-center whitespace-nowrap">Stav</th>
@@ -552,15 +542,8 @@ function CallRowWithDetail({
           {formatDate(call.startedAt)}
         </td>
 
-        {/* Telefónne číslo volajúceho */}
-        <td className="px-4 py-4 whitespace-nowrap">
-          <span className="font-mono text-xs font-semibold text-slate-800">
-            {call.callerNumber}
-          </span>
-        </td>
-
         {/* Zhrnutie hovoru */}
-        <td className="px-4 py-4 max-w-[340px]">
+        <td className="px-4 py-4 max-w-[420px]">
           <span className="font-semibold text-slate-900 truncate block">
             {call.summaryTitle}
           </span>
@@ -668,16 +651,13 @@ function CallRowWithDetail({
         </td>
       </tr>
 
-      {/* Rozbalený detail po kliknutí na riadok – čistý zjednotený blok */}
+      {/* Rozbalený detail po kliknutí na riadok – spojené riadky pod sebou bez zbytočných nadpisov */}
       {isExpanded && (
         <tr className="bg-slate-50/60">
-          <td colSpan={8} className="px-4 py-4 sm:px-6">
+          <td colSpan={7} className="px-4 py-4 sm:px-6">
             <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                <h3 className="text-base font-bold text-slate-950">
-                  {call.summaryTitle}
-                </h3>
-
+              {/* Horná lišta detailu: len neaktívne tlačidlo zmazania bez duplikovaného nadpisu */}
+              <div className="flex items-center justify-end">
                 <button
                   type="button"
                   disabled
@@ -689,6 +669,7 @@ function CallRowWithDetail({
                 </button>
               </div>
 
+              {/* Zhrnutie konverzácie */}
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                   Zhrnutie konverzácie
@@ -698,23 +679,24 @@ function CallRowWithDetail({
                 </p>
               </div>
 
+              {/* Údaje spojené do jednej dlaždice v riadkoch pod sebou (kurt, termín, šport, zákazník) */}
               {call.extractedFields.length > 0 && (
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                     Zachytené údaje z hovoru
                   </p>
-                  <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3">
+                  <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 px-4 py-1 divide-y divide-slate-200/60">
                     {call.extractedFields.map((field) => (
                       <div
                         key={field.id}
-                        className="rounded-xl border border-slate-200/80 bg-slate-50/70 px-3.5 py-2.5"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between py-2.5 gap-1 sm:gap-4 text-xs sm:text-sm"
                       >
-                        <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <span className="font-semibold text-slate-500 uppercase tracking-wider text-[11px] sm:text-xs">
                           {field.label}
                         </span>
-                        <strong className="mt-0.5 block text-xs sm:text-sm font-bold text-slate-900">
+                        <span className="font-bold text-slate-900">
                           {field.value}
-                        </strong>
+                        </span>
                       </div>
                     ))}
                   </div>
