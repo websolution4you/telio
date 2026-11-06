@@ -80,7 +80,11 @@ export async function createSession(user: BookingUser): Promise<string> {
 export async function verifySession(token: string): Promise<SessionPayload | null> {
     try {
         const verified = await jwtVerify(token, JWT_SECRET);
-                return verified.payload as unknown as SessionPayload;
+        const payload = verified.payload as any;
+        if (payload?.purpose || !payload?.userId || !payload?.email) {
+            return null;
+        }
+        return payload as SessionPayload;
     } catch {
         return null;
     }
@@ -152,6 +156,35 @@ export function normalizePhone(rawPhone?: string): string | null {
     return clean;
 }
 
+export const UNVERIFIED_HASH_PREFIX = "UNVERIFIED:";
+
+/**
+ * Check whether a stored password_hash indicates an unverified email account
+ */
+export function isUserHashUnverified(passwordHash?: string | null): boolean {
+    if (!passwordHash) return false;
+    return passwordHash.startsWith(UNVERIFIED_HASH_PREFIX);
+}
+
+/**
+ * Strip the UNVERIFIED: prefix to obtain the raw 64-char SHA-256 hex hash
+ */
+export function stripUnverifiedPrefix(passwordHash?: string | null): string {
+    if (!passwordHash) return "";
+    if (passwordHash.startsWith(UNVERIFIED_HASH_PREFIX)) {
+        return passwordHash.slice(UNVERIFIED_HASH_PREFIX.length);
+    }
+    return passwordHash;
+}
+
+/**
+ * Mark a raw password hash as unverified until email confirmation is completed
+ */
+export function markHashUnverified(rawPasswordHash: string): string {
+    const clean = stripUnverifiedPrefix(rawPasswordHash);
+    return `${UNVERIFIED_HASH_PREFIX}${clean}`;
+}
+
 /**
  * Create a secure time-limited token for password reset (valid for 1 hour)
  */
@@ -160,10 +193,11 @@ export async function createPasswordResetToken(
     email: string,
     passwordHash: string
 ): Promise<string> {
+    const rawHash = stripUnverifiedPrefix(passwordHash);
     const payload = {
         userId,
-        email,
-        passHashFragment: passwordHash.slice(0, 16),
+        email: email.toLowerCase().trim(),
+        passHashFragment: rawHash.slice(0, 16),
         purpose: "password_reset",
     };
 
@@ -182,13 +216,57 @@ export async function verifyPasswordResetToken(
     try {
         const verified = await jwtVerify(token, JWT_SECRET);
         const payload = verified.payload as any;
-        if (payload?.purpose !== "password_reset" || !payload.userId || !payload.email) {
+        if (payload?.purpose !== "password_reset" || !payload.userId || !payload.email || !payload.passHashFragment) {
             return null;
         }
         return {
-            userId: payload.userId,
-            email: payload.email,
-            passHashFragment: payload.passHashFragment,
+            userId: String(payload.userId),
+            email: String(payload.email).toLowerCase().trim(),
+            passHashFragment: String(payload.passHashFragment),
+        };
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Create a secure time-limited token for email verification on registration (valid for 24 hours)
+ */
+export async function createEmailVerificationToken(
+    userId: string,
+    email: string,
+    passwordHash: string
+): Promise<string> {
+    const rawHash = stripUnverifiedPrefix(passwordHash);
+    const payload = {
+        userId,
+        email: email.toLowerCase().trim(),
+        passHashFragment: rawHash.slice(0, 16),
+        purpose: "email_verification",
+    };
+
+    return await new SignJWT(payload)
+        .setProtectedHeader({ alg: "HS256" })
+        .setExpirationTime("24h")
+        .sign(JWT_SECRET);
+}
+
+/**
+ * Verify email verification token (strictly checks purpose === "email_verification")
+ */
+export async function verifyEmailVerificationToken(
+    token: string
+): Promise<{ userId: string; email: string; passHashFragment: string } | null> {
+    try {
+        const verified = await jwtVerify(token, JWT_SECRET);
+        const payload = verified.payload as any;
+        if (payload?.purpose !== "email_verification" || !payload.userId || !payload.email || !payload.passHashFragment) {
+            return null;
+        }
+        return {
+            userId: String(payload.userId),
+            email: String(payload.email).toLowerCase().trim(),
+            passHashFragment: String(payload.passHashFragment),
         };
     } catch {
         return null;

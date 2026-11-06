@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { loginAction } from "@/app/actions/auth";
+import { loginAction, resendVerificationEmailAction } from "@/app/actions/auth";
 import { LogIn } from "lucide-react";
 
 type LoginFormProps = {
@@ -13,19 +13,48 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormPr
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [notice, setNotice] = useState("");
+    const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
+    const [resending, setResending] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    const handleResend = async () => {
+        const targetEmail = (pendingVerificationEmail || email).trim();
+        if (!targetEmail) return;
+        setResending(true);
+        setError("");
+        setNotice("");
+        try {
+            const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+            const res = await resendVerificationEmailAction(targetEmail, origin);
+            if (res.success) {
+                setNotice(res.message || "Nový overovací odkaz sme odoslali na váš e-mail.");
+            } else {
+                setError(res.error || "Nepodarilo sa odoslať overovací e-mail.");
+            }
+        } catch {
+            setError("Nepodarilo sa odoslať overovací e-mail.");
+        } finally {
+            setResending(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
+        setNotice("");
         setLoading(true);
 
         try {
             const result = await loginAction(email, password);
 
             if (result.success) {
+                setPendingVerificationEmail(null);
                 onSuccess();
             } else {
+                if ((result as any).requiresEmailVerification) {
+                    setPendingVerificationEmail((result as any).email || email.trim());
+                }
                 setError(result.error || "Chyba pri prihlasovaní");
             }
         } catch (err) {
@@ -51,10 +80,29 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormPr
 
             {error && (
                 <div
-                    className="rounded-lg p-3 text-sm text-red-400 border border-red-500/30"
+                    className="rounded-lg p-3 text-sm text-red-400 border border-red-500/30 space-y-2"
                     style={{ background: "rgba(239, 68, 68, 0.1)" }}
                 >
-                    {error}
+                    <div>{error}</div>
+                    {pendingVerificationEmail && (
+                        <button
+                            type="button"
+                            onClick={handleResend}
+                            disabled={resending}
+                            className="inline-block rounded-md border border-red-400/50 bg-red-950/40 px-3 py-1 text-xs font-semibold text-red-200 hover:bg-red-900/50 disabled:opacity-50"
+                        >
+                            {resending ? "Odosielam..." : "Znova odoslať overovací e-mail"}
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {notice && (
+                <div
+                    className="rounded-lg p-3 text-sm text-emerald-300 border border-emerald-500/30"
+                    style={{ background: "rgba(16, 185, 129, 0.15)" }}
+                >
+                    {notice}
                 </div>
             )}
 

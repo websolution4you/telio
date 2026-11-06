@@ -1,18 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Eye, EyeOff, KeyRound, Lock, LogIn, UserPlus, X } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, KeyRound, Lock, LogIn, MailCheck, RefreshCw, UserPlus, X } from "lucide-react";
 import {
   loginAction,
   registerAction,
   requestPasswordResetAction,
   resetPasswordWithTokenAction,
+  resendVerificationEmailAction,
 } from "@/app/actions/auth";
 import type { BookingUser } from "@/lib/auth/bookingAuth";
 
 type NewBookingAuthProps = {
   mode: "login" | "register" | "forgot" | "reset";
   resetToken?: string;
+  initialEmail?: string;
+  initialNotice?: string;
+  initialError?: string;
   onClose: () => void;
   onSuccess: (user?: BookingUser) => void;
 };
@@ -26,19 +30,29 @@ const PREFIX_OPTIONS = [
   { code: "+", flag: "🌐", label: "+ Iné" },
 ];
 
-export default function NewBookingAuth({ mode: initialMode, resetToken, onClose, onSuccess }: NewBookingAuthProps) {
+export default function NewBookingAuth({
+  mode: initialMode,
+  resetToken,
+  initialEmail,
+  initialNotice,
+  initialError,
+  onClose,
+  onSuccess,
+}: NewBookingAuthProps) {
   const [mode, setMode] = useState<"login" | "register" | "forgot" | "reset">(initialMode);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail || "");
   const [phonePrefix, setPhonePrefix] = useState("+421");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [error, setError] = useState(initialError || "");
+  const [successMessage, setSuccessMessage] = useState(initialNotice || "");
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
+  const [resendingEmail, setResendingEmail] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -46,6 +60,39 @@ export default function NewBookingAuth({ mode: initialMode, resetToken, onClose,
       setMode(initialMode);
     }
   }, [initialMode]);
+
+  useEffect(() => {
+    if (initialEmail) setEmail(initialEmail);
+  }, [initialEmail]);
+
+  useEffect(() => {
+    if (initialNotice) setSuccessMessage(initialNotice);
+  }, [initialNotice]);
+
+  useEffect(() => {
+    if (initialError) setError(initialError);
+  }, [initialError]);
+
+  const handleResendVerification = async () => {
+    const targetEmail = (pendingVerificationEmail || email).trim();
+    if (!targetEmail) return;
+    setResendingEmail(true);
+    setError("");
+    setSuccessMessage("");
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+      const res = await resendVerificationEmailAction(targetEmail, origin);
+      if (res.success) {
+        setSuccessMessage(res.message || "Nový overovací odkaz sme odoslali na váš e-mail.");
+      } else {
+        setError(res.error || "Nepodarilo sa odoslať overovací e-mail.");
+      }
+    } catch {
+      setError("Nepodarilo sa odoslať overovací e-mail.");
+    } finally {
+      setResendingEmail(false);
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -84,8 +131,9 @@ export default function NewBookingAuth({ mode: initialMode, resetToken, onClose,
 
     setLoading(true);
     try {
+      const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+
       if (mode === "forgot") {
-        const origin = typeof window !== "undefined" ? window.location.origin : undefined;
         const res = await requestPasswordResetAction(email, origin);
         if (res.success) {
           setSuccessMessage(res.message || "Inštrukcie na obnovu hesla sme odoslali na váš email.");
@@ -125,15 +173,42 @@ export default function NewBookingAuth({ mode: initialMode, resetToken, onClose,
 
       const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
 
-      const result = mode === "login"
-        ? await loginAction(email, password)
-        : await registerAction(fullName, email, password, undefined, fullPhone);
-
-      if (!result.success) {
-        setError(result.error || "Požiadavku sa nepodarilo spracovať.");
+      if (mode === "register") {
+        const regResult = await registerAction(fullName, email, password, undefined, fullPhone, origin);
+        if (!regResult.success) {
+          if ((regResult as any).requiresEmailVerification) {
+            setPendingVerificationEmail((regResult as any).email || email.trim());
+          }
+          setError(regResult.error || "Požiadavku sa nepodarilo spracovať.");
+          return;
+        }
+        if ((regResult as any).requiresEmailVerification) {
+          const registeredEmail = (regResult as any).email || email.trim();
+          setPendingVerificationEmail(registeredEmail);
+          setMode("login");
+          setEmail(registeredEmail);
+          setPassword("");
+          setConfirmPassword("");
+          setSuccessMessage(
+            (regResult as any).message ||
+              `Registrácia prebehla úspešne! Na adresu ${registeredEmail} sme odoslali overovací odkaz. Pre aktiváciu účtu kliknite na odkaz v e-maile.`
+          );
+          return;
+        }
+        onSuccess((regResult as any).user);
         return;
       }
-      onSuccess(result.user);
+
+      const loginResult = await loginAction(email, password);
+      if (!loginResult.success) {
+        if ((loginResult as any).requiresEmailVerification) {
+          setPendingVerificationEmail((loginResult as any).email || email.trim());
+        }
+        setError(loginResult.error || "Požiadavku sa nepodarilo spracovať.");
+        return;
+      }
+      setPendingVerificationEmail(null);
+      onSuccess(loginResult.user);
     } catch (err: any) {
       console.error("NewBookingAuth submit error:", err);
       setError(err?.message || "Požiadavku sa nepodarilo spracovať.");
@@ -157,9 +232,13 @@ export default function NewBookingAuth({ mode: initialMode, resetToken, onClose,
       setPassword("");
       setConfirmPassword("");
       setPhone("");
+      setError("");
+      setSuccessMessage("");
+      setPendingVerificationEmail(null);
+    } else if (mode === "forgot") {
+      setError("");
+      setSuccessMessage("");
     }
-    setError("");
-    setSuccessMessage("");
   }, [mode]);
 
   return (
@@ -192,11 +271,45 @@ export default function NewBookingAuth({ mode: initialMode, resetToken, onClose,
           </button>
         </div>
 
-        {error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700 animate-in fade-in">{error}</div>}
+        {error && (
+          <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700 animate-in fade-in">
+            <p>{error}</p>
+            {pendingVerificationEmail && (
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resendingEmail}
+                className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-bold text-red-800 shadow-2xs transition hover:bg-red-100 disabled:opacity-50 cursor-pointer"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${resendingEmail ? "animate-spin" : ""}`} />
+                <span>{resendingEmail ? "Odosielam..." : "Znova odoslať overovací e-mail"}</span>
+              </button>
+            )}
+          </div>
+        )}
         {successMessage && (
-          <div className="mb-5 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800 animate-in fade-in">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-            <span>{successMessage}</span>
+          <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-sm font-semibold text-emerald-800 animate-in fade-in">
+            <div className="flex items-start gap-2.5">
+              {pendingVerificationEmail ? (
+                <MailCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+              ) : (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+              )}
+              <div className="space-y-2">
+                <p className="leading-relaxed">{successMessage}</p>
+                {pendingVerificationEmail && (
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resendingEmail}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-2xs transition hover:bg-emerald-100 disabled:opacity-50 cursor-pointer"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${resendingEmail ? "animate-spin" : ""}`} />
+                    <span>{resendingEmail ? "Odosielam..." : "Neprišiel e-mail? Odoslať znova"}</span>
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         )}
 

@@ -7,7 +7,7 @@ import {
     listCalendarEvents 
 } from "@/lib/server/calendarAdapter";
 import { revalidatePath } from "next/cache";
-import { getSession, type BookingRole } from "@/lib/auth/bookingAuth";
+import { getSession, isUserHashUnverified, type BookingRole } from "@/lib/auth/bookingAuth";
 import { walletEnabledForUser } from "@/lib/server/wallet";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import { getActivePricelist } from "@/app/actions/pricelists";
@@ -65,15 +65,15 @@ async function getVerifiedBookingCaller(): Promise<
     const serviceDb = getCoreServiceDb();
     const { data: userRow, error: userError } = await serviceDb
         .from("booking_users")
-        .select("id, role, name")
+        .select("id, role, name, password_hash")
         .eq("id", session.userId)
         .maybeSingle();
 
-    if (userError || !userRow || !userRow.id) {
+    if (userError || !userRow || !userRow.id || isUserHashUnverified(userRow.password_hash)) {
         return {
             ok: false,
             code: "UNAUTHORIZED",
-            error: "Používateľský účet sa nepodarilo overiť.",
+            error: "Používateľský účet sa nepodarilo overiť alebo e-mailová adresa ešte nebola potvrdená.",
         };
     }
 
@@ -436,19 +436,22 @@ export async function createBookingAction(payload: {
         const serviceDb = getCoreServiceDb();
         let { data: bookingUser, error: userError } = await serviceDb
             .from("booking_users")
-            .select("role, card_number, discount_tier_id")
+            .select("role, card_number, discount_tier_id, password_hash")
             .eq("id", session.userId)
             .maybeSingle();
         if (userError && (userError.message?.includes("discount_tier_id") || (userError as any).code === "PGRST204")) {
             const fallback = await serviceDb
                 .from("booking_users")
-                .select("role, card_number")
+                .select("role, card_number, password_hash")
                 .eq("id", session.userId)
                 .maybeSingle();
             bookingUser = fallback.data ? { ...fallback.data, discount_tier_id: "tier-base" } : null;
             userError = fallback.error;
         }
         if (userError || !bookingUser) return { success: false, error: "Používateľský účet sa nepodarilo overiť." };
+        if (isUserHashUnverified((bookingUser as any).password_hash)) {
+            return { success: false, error: "Pre vytvorenie rezervácie musíte najprv potvrdiť vašu e-mailovú adresu." };
+        }
         if (payload.source === "admin" && bookingUser.role !== "admin") {
             return { success: false, error: "Nemáte oprávnenie blokovať kurt." };
         }

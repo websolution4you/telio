@@ -12,6 +12,11 @@ import {
     normalizePhone,
     createPasswordResetToken,
     verifyPasswordResetToken,
+    createEmailVerificationToken,
+    verifyEmailVerificationToken,
+    isUserHashUnverified,
+    stripUnverifiedPrefix,
+    markHashUnverified,
 } from "@/lib/auth/bookingAuth";
 import { Resend } from "resend";
 import { redirect } from "next/navigation";
@@ -24,6 +29,176 @@ const TENANT_ID = "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes lockout
 const ATTEMPT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes attempt window
+
+// Email verification & password reset rate-limiting constants
+const MAX_EMAIL_DISPATCH_ATTEMPTS = 3;
+const EMAIL_DISPATCH_WINDOW_MS = 15 * 60 * 1000; // 15 minutes window
+
+interface EmailDispatchRecord {
+    count: number;
+    windowStartAt: number;
+}
+
+const emailDispatchStore: Map<string, EmailDispatchRecord> =
+    (globalThis as any).__telioEmailDispatchLimits ||
+    ((globalThis as any).__telioEmailDispatchLimits = new Map<string, EmailDispatchRecord>());
+
+function checkAndRecordEmailDispatch(key: string): { allowed: boolean; retryAfterMs: number } {
+    const now = Date.now();
+    const existing = emailDispatchStore.get(key);
+
+    if (!existing || now - existing.windowStartAt > EMAIL_DISPATCH_WINDOW_MS) {
+        emailDispatchStore.set(key, { count: 1, windowStartAt: now });
+        return { allowed: true, retryAfterMs: 0 };
+    }
+
+    if (existing.count >= MAX_EMAIL_DISPATCH_ATTEMPTS) {
+        const retryAfterMs = Math.max(1000, EMAIL_DISPATCH_WINDOW_MS - (now - existing.windowStartAt));
+        return { allowed: false, retryAfterMs };
+    }
+
+    existing.count += 1;
+    emailDispatchStore.set(key, existing);
+    return { allowed: true, retryAfterMs: 0 };
+}
+
+/**
+ * Escape HTML special characters to prevent HTML/XSS injection in transactional emails
+ */
+function escapeHtml(value: string): string {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+/**
+ * Strictly validate email format (RFC-safe subset, no HTML/control characters, max 254 chars)
+ */
+function isValidEmailFormat(email: string): boolean {
+    if (!email || email.length > 254) return false;
+    if (/[\r\n<>"'`\s]/.test(email)) return false;
+    return /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(email);
+}
+
+/**
+ * Prevent Host Header / clientOrigin Phishing & Open Redirect attacks when constructing email links.
+ * Only allows canonical NEXT_PUBLIC_APP_URL, official telio.sk domains, or localhost in non-production.
+ */
+function getSafeAppBaseUrl(clientOrigin?: string): string {
+    const envUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+    let canonicalOrigin = "https://www.telio.sk";
+
+    if (envUrl) {
+        try {
+            canonicalOrigin = new URL(envUrl).origin;
+        } catch {
+            // Keep default canonical origin if env var is malformed
+        }
+    } else if (process.env.NODE_ENV !== "production") {
+        canonicalOrigin = "http://localhost:3000";
+    }
+
+    if (!clientOrigin) {
+        return canonicalOrigin;
+    }
+
+    try {
+        const parsed = new URL(clientOrigin);
+        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+            return canonicalOrigin;
+        }
+
+        const host = parsed.hostname.toLowerCase();
+        const isTrustedProdHost =
+            host === "telio.sk" ||
+            host === "www.telio.sk" ||
+            host.endsWith(".telio.sk");
+
+        const isLocalDevHost =
+            process.env.NODE_ENV !== "production" &&
+            (host === "localhost" || host === "127.0.0.1");
+
+        let matchesEnvHost = false;
+        if (envUrl) {
+            try {
+                matchesEnvHost = new URL(envUrl).origin === parsed.origin;
+            } catch {
+                matchesEnvHost = false;
+            }
+        }
+
+        if (isTrustedProdHost || isLocalDevHost || matchesEnvHost) {
+            return parsed.origin;
+        }
+    } catch {
+        // Ignore malformed clientOrigin and return canonicalOrigin
+    }
+
+    return canonicalOrigin;
+}
+
+async function sendEmailVerificationMessage(params: {
+    userId: string;
+    name: string;
+    email: string;
+    passwordHash: string;
+    clientOrigin?: string;
+}): Promise<{ sent: boolean; verifyUrl: string }> {
+    const token = await createEmailVerificationToken(params.userId, params.email, params.passwordHash);
+    const baseUrl = getSafeAppBaseUrl(params.clientOrigin);
+    const verifyUrl = `${baseUrl}/newbookings?verify_email_token=${encodeURIComponent(token)}`;
+    const safeName = escapeHtml(params.name);
+
+    console.log("==========================================");
+    console.log(`[EMAIL VERIFICATION] For: ${params.email}`);
+    console.log(`[VERIFY URL]: ${verifyUrl}`);
+    console.log("==========================================");
+
+    const resend = getResendClient();
+    if (!resend) {
+        console.warn("[EMAIL VERIFICATION] RESEND_API_KEY is not configured in environment variables!");
+        return { sent: false, verifyUrl };
+    }
+
+    try {
+        const fromEmail = process.env.RESEND_FROM || "NTC Rezervácie <rezervacie@telio.sk>";
+        const { data: resData, error: sendError } = await resend.emails.send({
+            from: fromEmail,
+            to: params.email,
+            subject: "Overenie e-mailovej adresy - NTC Rezervácie",
+            html: `
+                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;">
+                    <div style="margin-bottom: 24px;">
+                        <span style="font-size: 18px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">NTC Rezervačný systém</span>
+                    </div>
+                    <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">Potvrdenie registrácie účtu</h2>
+                    <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 12px;">Dobrý deň <strong>${safeName}</strong>,</p>
+                    <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">ďakujeme za registráciu v rezervačnom systéme NTC Košice. Pre aktiváciu vášho účtu a overenie platnosti e-mailovej adresy kliknite na tlačidlo nižšie:</p>
+                    <div style="margin: 28px 0;">
+                        <a href="${verifyUrl}" style="background-color: #10b981; color: #ffffff; padding: 13px 28px; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 10px; display: inline-block;">Overiť e-mail a aktivovať účet</a>
+                    </div>
+                    <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin-bottom: 24px;">Overovací odkaz je platný <strong>24 hodín</strong>. Ak ste si účet nevytvárali vy, tento e-mail môžete bez obáv ignorovať.</p>
+                    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+                    <p style="color: #94a3b8; font-size: 12px; line-height: 1.5;">Ak tlačidlo nefunguje, skopírujte tento odkaz do prehliadača:<br /><a href="${verifyUrl}" style="color: #0284c7; word-break: break-all;">${verifyUrl}</a></p>
+                </div>
+            `,
+            text: `Dobrý deň ${params.name},\n\nĎakujeme za registráciu v rezervačnom systéme NTC Košice.\nPre overenie e-mailovej adresy a aktiváciu účtu kliknite na nasledujúci odkaz (platný 24 hodín):\n${verifyUrl}\n\nAk ste sa neregistrovali vy, tento e-mail ignorujte.`,
+        });
+
+        if (sendError) {
+            console.error("[EMAIL VERIFICATION] Resend send error:", sendError);
+            return { sent: false, verifyUrl };
+        }
+        console.log("[EMAIL VERIFICATION] Resend email dispatched successfully, id:", resData?.id);
+        return { sent: true, verifyUrl };
+    } catch (emailErr) {
+        console.error("[EMAIL VERIFICATION] Exception while calling Resend:", emailErr);
+        return { sent: false, verifyUrl };
+    }
+}
 
 interface FailedLoginRecord {
     count: number;
@@ -218,8 +393,9 @@ export async function loginAction(email: string, password: string) {
             };
         }
 
-        // Verify password
-        const isValid = await verifyPassword(password, user.password_hash);
+        // Verify password against raw hash (even if account is still unverified, we verify password first to prevent user enumeration)
+        const rawStoredHash = stripUnverifiedPrefix(user.password_hash);
+        const isValid = await verifyPassword(password, rawStoredHash);
 
         if (!isValid) {
             const fail = recordFailedLogin(normalizedEmail);
@@ -266,6 +442,36 @@ export async function loginAction(email: string, password: string) {
             return {
                 success: false,
                 error: `Nesprávny email alebo heslo. Zostávajúce pokusy pred zablokovaním: ${fail.remainingAttempts}.`,
+            };
+        }
+
+        // Password is valid — enforce mandatory email verification before issuing a session
+        if (isUserHashUnverified(user.password_hash) || (user as any).email_verified === false) {
+            await logActivity({
+                action: "auth.login_blocked_unverified",
+                category: "auth",
+                entityType: "user",
+                entityId: user.id,
+                entityName: user.name,
+                description: `Pokus o prihlásenie neovereného účtu "${user.name}" (${user.email})`,
+                actor: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                },
+                metadata: {
+                    userId: user.id,
+                    email: user.email,
+                },
+                level: "warning",
+            });
+
+            return {
+                success: false,
+                requiresEmailVerification: true,
+                email: user.email,
+                error: "Váš e-mail ešte nebol overený. Potvrďte prosím registráciu kliknutím na overovací odkaz v e-maile (skontrolujte aj priečinok Spam / Nevyžiadaná pošta).",
             };
         }
 
@@ -324,11 +530,17 @@ export async function registerAction(
     email: string,
     password: string,
     cardNumber?: string,
-    phone?: string
+    phone?: string,
+    clientOrigin?: string
 ) {
     try {
         if (!name || !email || !password) {
             return { success: false, error: "Meno, email a heslo sú povinné" };
+        }
+
+        const cleanName = name.trim();
+        if (cleanName.length < 2 || cleanName.length > 120) {
+            return { success: false, error: "Meno a priezvisko musí mať 2 až 120 znakov" };
         }
 
         if (password.length < 8) {
@@ -340,6 +552,10 @@ export async function registerAction(
         }
 
         const cleanEmail = email.toLowerCase().trim();
+        if (!isValidEmailFormat(cleanEmail)) {
+            return { success: false, error: "Zadajte platnú e-mailovú adresu" };
+        }
+
         const cleanPhone = normalizePhone(phone);
         const cleanCard = cardNumber?.trim() || null;
 
@@ -348,11 +564,30 @@ export async function registerAction(
         // Check if user already exists by email
         const { data: existingEmail } = await db
             .from("booking_users")
-            .select("id")
+            .select("id, name, email, password_hash")
             .eq("email", cleanEmail)
             .maybeSingle();
 
         if (existingEmail) {
+            // If the existing account is still unverified, offer a clear message and resend verification if within rate limit
+            if (isUserHashUnverified(existingEmail.password_hash)) {
+                const rateCheck = checkAndRecordEmailDispatch(`verify:${cleanEmail}`);
+                if (rateCheck.allowed) {
+                    await sendEmailVerificationMessage({
+                        userId: existingEmail.id,
+                        name: existingEmail.name || cleanName,
+                        email: existingEmail.email,
+                        passwordHash: existingEmail.password_hash,
+                        clientOrigin,
+                    });
+                }
+                return {
+                    success: false,
+                    requiresEmailVerification: true,
+                    email: cleanEmail,
+                    error: "Účet s týmto e-mailom už bol vytvorený, ale ešte nie je aktivovaný. Na váš e-mail sme znova odoslali overovací odkaz.",
+                };
+            }
             return { success: false, error: "Používateľ s týmto emailom už existuje" };
         }
 
@@ -369,8 +604,19 @@ export async function registerAction(
             }
         }
 
-        // Hash password
-        const passwordHash = await hashPassword(password);
+        // Rate limit verification email dispatch for this address
+        const rateCheck = checkAndRecordEmailDispatch(`verify:${cleanEmail}`);
+        if (!rateCheck.allowed) {
+            const waitText = formatRemainingTime(rateCheck.retryAfterMs);
+            return {
+                success: false,
+                error: `Príliš veľa pokusov o odoslanie overovacieho e-mailu. Skúste to prosím znova o ${waitText}.`,
+            };
+        }
+
+        // Hash password and mark as UNVERIFIED until the user clicks the email verification link
+        const rawPasswordHash = await hashPassword(password);
+        const unverifiedPasswordHash = markHashUnverified(rawPasswordHash);
 
         // If no card number provided (e.g. self-registration), auto-assign the next unique PIN
         let finalCardNumber = cleanCard;
@@ -407,19 +653,37 @@ export async function registerAction(
             finalCardNumber = candidate;
         }
 
-        // Create user
-        const { data: user, error: dbError } = await db
+        // Create user in unverified state (supports optional email_verified column with automatic fallback)
+        let { data: user, error: dbError } = await db
             .from("booking_users")
             .insert({
-                name: name.trim(),
+                name: cleanName,
                 email: cleanEmail,
-                password_hash: passwordHash,
+                password_hash: unverifiedPasswordHash,
                 card_number: finalCardNumber,
                 phone: cleanPhone,
                 role: "user",
-            })
+                email_verified: false,
+            } as any)
             .select("id, name, email, card_number, phone, role")
             .single();
+
+        if (dbError && (dbError.message?.includes("email_verified") || (dbError as any).code === "PGRST204")) {
+            const fallbackInsert = await db
+                .from("booking_users")
+                .insert({
+                    name: cleanName,
+                    email: cleanEmail,
+                    password_hash: unverifiedPasswordHash,
+                    card_number: finalCardNumber,
+                    phone: cleanPhone,
+                    role: "user",
+                })
+                .select("id, name, email, card_number, phone, role")
+                .single();
+            user = fallbackInsert.data;
+            dbError = fallbackInsert.error;
+        }
 
         if (dbError || !user) {
             console.error("Registration DB error:", dbError);
@@ -437,19 +701,14 @@ export async function registerAction(
             console.warn("Could not create initial wallet for user:", walletErr);
         }
 
-        // Create session
-        const bookingUser: BookingUser = {
-            id: user.id,
+        // Send verification email via Resend (do NOT set session cookie until email is verified)
+        await sendEmailVerificationMessage({
+            userId: user.id,
             name: user.name,
             email: user.email,
-            cardNumber: user.card_number,
-            phone: user.phone,
-            role: user.role,
-            hasMultisport: false,
-        };
-
-        const token = await createSession(bookingUser);
-        await setSessionCookie(token);
+            passwordHash: rawPasswordHash,
+            clientOrigin,
+        });
 
         await logActivity({
             action: "auth.register",
@@ -457,7 +716,7 @@ export async function registerAction(
             entityType: "user",
             entityId: user.id,
             entityName: user.name,
-            description: `Nová registrácia používateľa "${user.name}" (${user.email})`,
+            description: `Nová registrácia používateľa "${user.name}" (${user.email}) – čaká na overenie e-mailu`,
             actor: {
                 id: user.id,
                 name: user.name,
@@ -469,11 +728,17 @@ export async function registerAction(
                 email: user.email,
                 role: user.role,
                 cardNumber: cleanCard,
+                emailVerified: false,
             },
             level: "info",
         });
 
-        return { success: true, user: bookingUser };
+        return {
+            success: true,
+            requiresEmailVerification: true,
+            email: user.email,
+            message: `Registrácia prebehla úspešne! Na adresu ${user.email} sme odoslali overovací odkaz. Pre dokončenie registrácie a prihlásenie kliknite na odkaz v e-maile.`,
+        };
     } catch (error: any) {
         console.error("Registration error:", error);
         return { success: false, error: "Chyba pri registrácii" };
@@ -521,21 +786,21 @@ export async function getCurrentUserAction() {
 
         let { data: user, error: dbError } = await db
             .from("booking_users")
-            .select("id, name, email, card_number, phone, role, has_multisport, discount_tier_id")
+            .select("id, name, email, password_hash, card_number, phone, role, has_multisport, discount_tier_id")
             .eq("id", session.userId)
             .single();
 
         if (dbError && (dbError.message?.includes("has_multisport") || dbError.message?.includes("discount_tier_id") || (dbError as any).code === "PGRST204")) {
             const fallback = await db
                 .from("booking_users")
-                .select("id, name, email, card_number, phone, role")
+                .select("id, name, email, password_hash, card_number, phone, role")
                 .eq("id", session.userId)
                 .single();
             user = fallback.data ? { ...fallback.data, has_multisport: false, discount_tier_id: "tier-base" } : null;
             dbError = fallback.error;
         }
 
-        if (dbError || !user) {
+        if (dbError || !user || isUserHashUnverified(user.password_hash) || (user as any).email_verified === false) {
             await clearSession();
             return { success: false, user: null };
         }
@@ -696,6 +961,19 @@ export async function requestPasswordResetAction(email: string, clientOrigin?: s
         }
 
         const cleanEmail = email.toLowerCase().trim();
+        if (!isValidEmailFormat(cleanEmail)) {
+            return { success: false, error: "Zadajte platnú e-mailovú adresu" };
+        }
+
+        const rateCheck = checkAndRecordEmailDispatch(`reset:${cleanEmail}`);
+        if (!rateCheck.allowed) {
+            const waitText = formatRemainingTime(rateCheck.retryAfterMs);
+            return {
+                success: false,
+                error: `Príliš veľa žiadostí o obnovu hesla. Skúste to prosím znova o ${waitText}.`,
+            };
+        }
+
         const db = getCoreDb();
 
         const { data: user } = await db
@@ -708,8 +986,9 @@ export async function requestPasswordResetAction(email: string, clientOrigin?: s
 
         if (user) {
             const token = await createPasswordResetToken(user.id, user.email, user.password_hash);
-            const baseUrl = clientOrigin || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+            const baseUrl = getSafeAppBaseUrl(clientOrigin);
             resetUrl = `${baseUrl}/newbookings?reset_token=${encodeURIComponent(token)}`;
+            const safeName = escapeHtml(user.name);
 
             console.log("==========================================");
             console.log(`[PASSWORD RESET] For: ${user.email}`);
@@ -730,7 +1009,7 @@ export async function requestPasswordResetAction(email: string, clientOrigin?: s
                                     <span style="font-size: 18px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">NTC Rezervačný systém</span>
                                 </div>
                                 <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">Žiadosť o obnovu hesla</h2>
-                                <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 12px;">Dobrý deň <strong>${user.name}</strong>,</p>
+                                <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 12px;">Dobrý deň <strong>${safeName}</strong>,</p>
                                 <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">obdržali sme žiadosť o obnovu hesla k vášmu účtu. Kliknite na tlačidlo nižšie pre nastavenie nového hesla:</p>
                                 <div style="margin: 28px 0;">
                                     <a href="${resetUrl}" style="background-color: #10b981; color: #ffffff; padding: 13px 28px; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 10px; display: inline-block;">Nastaviť nové heslo</a>
@@ -787,7 +1066,7 @@ export async function resetPasswordWithTokenAction(token: string, newPassword: s
         const db = getCoreDb();
         const { data: user, error: dbError } = await db
             .from("booking_users")
-            .select("id, password_hash")
+            .select("id, name, email, role, password_hash")
             .eq("id", tokenData.userId)
             .single();
 
@@ -795,27 +1074,196 @@ export async function resetPasswordWithTokenAction(token: string, newPassword: s
             return { success: false, error: "Používateľ nebol nájdený" };
         }
 
-        // Verify that the token's hash fragment matches the user's current password hash
-        if (user.password_hash.slice(0, 16) !== tokenData.passHashFragment) {
+        // Verify that the token's hash fragment matches the user's current raw password hash
+        const rawStoredHash = stripUnverifiedPrefix(user.password_hash);
+        if (rawStoredHash.slice(0, 16) !== tokenData.passHashFragment) {
             return { success: false, error: "Tento odkaz na obnovu hesla už bol v minulosti použitý. Požiadajte o nový." };
         }
 
         const newHash = await hashPassword(newPassword);
 
-        const { error: updateError } = await db
+        // Completing password reset via email link also proves ownership of the email address
+        let { error: updateError } = await db
             .from("booking_users")
-            .update({ password_hash: newHash })
+            .update({
+                password_hash: newHash,
+                email_verified: true,
+                email_verified_at: new Date().toISOString(),
+            } as any)
             .eq("id", user.id);
+
+        if (updateError && (updateError.message?.includes("email_verified") || (updateError as any).code === "PGRST204")) {
+            const fallbackUpdate = await db
+                .from("booking_users")
+                .update({ password_hash: newHash })
+                .eq("id", user.id);
+            updateError = fallbackUpdate.error;
+        }
 
         if (updateError) {
             console.error("Reset password DB error:", updateError);
             return { success: false, error: "Chyba pri ukladaní nového hesla" };
         }
 
+        clearFailedLogins(user.email.toLowerCase().trim());
+
         return { success: true, message: "Heslo bolo úspešne zmenené! Teraz sa môžete prihlásiť novým heslom." };
     } catch (error: any) {
         console.error("Reset password with token error:", error);
         return { success: false, error: "Nepodarilo sa obnoviť heslo" };
+    }
+}
+
+/**
+ * Verify email ownership using a signed email verification token sent during registration
+ */
+export async function verifyEmailWithTokenAction(token: string) {
+    try {
+        if (!token || typeof token !== "string") {
+            return { success: false, error: "Chýba overovací token." };
+        }
+
+        const tokenData = await verifyEmailVerificationToken(token);
+        if (!tokenData) {
+            return {
+                success: false,
+                error: "Overovací odkaz je neplatný alebo jeho platnosť (24 hodín) vypršala. Prihláste sa a nechajte si zaslať nový overovací e-mail.",
+            };
+        }
+
+        const db = getCoreDb();
+        const { data: user, error: dbError } = await db
+            .from("booking_users")
+            .select("id, name, email, role, password_hash")
+            .eq("id", tokenData.userId)
+            .maybeSingle();
+
+        if (dbError || !user) {
+            return { success: false, error: "Používateľský účet nebol nájdený." };
+        }
+
+        if (user.email.toLowerCase().trim() !== tokenData.email) {
+            return { success: false, error: "Overovací odkaz nezodpovedá e-mailovej adrese účtu." };
+        }
+
+        // If account is already verified, return a friendly idempotent success message
+        if (!isUserHashUnverified(user.password_hash) && (user as any).email_verified !== false) {
+            return {
+                success: true,
+                alreadyVerified: true,
+                email: user.email,
+                message: "Váš e-mail bol už v minulosti úspešne overený. Môžete sa prihlásiť.",
+            };
+        }
+
+        const rawHash = stripUnverifiedPrefix(user.password_hash);
+        if (rawHash.slice(0, 16) !== tokenData.passHashFragment) {
+            return {
+                success: false,
+                error: "Tento overovací odkaz už nie je platný. Požiadajte o zaslanie nového.",
+            };
+        }
+
+        let { error: updateError } = await db
+            .from("booking_users")
+            .update({
+                password_hash: rawHash,
+                email_verified: true,
+                email_verified_at: new Date().toISOString(),
+            } as any)
+            .eq("id", user.id);
+
+        if (updateError && (updateError.message?.includes("email_verified") || (updateError as any).code === "PGRST204")) {
+            const fallbackUpdate = await db
+                .from("booking_users")
+                .update({ password_hash: rawHash })
+                .eq("id", user.id);
+            updateError = fallbackUpdate.error;
+        }
+
+        if (updateError) {
+            console.error("Verify email DB error:", updateError);
+            return { success: false, error: "Chyba pri aktivácii účtu. Skúste to prosím znova." };
+        }
+
+        await logActivity({
+            action: "auth.email_verified",
+            category: "auth",
+            entityType: "user",
+            entityId: user.id,
+            entityName: user.name,
+            description: `Úspešné overenie e-mailovej adresy používateľa "${user.name}" (${user.email})`,
+            actor: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+            },
+            metadata: {
+                userId: user.id,
+                email: user.email,
+            },
+            level: "info",
+        });
+
+        return {
+            success: true,
+            email: user.email,
+            message: "Váš e-mail bol úspešne overený a účet je aktivovaný! Teraz sa môžete prihlásiť.",
+        };
+    } catch (error: any) {
+        console.error("Verify email with token error:", error);
+        return { success: false, error: "Nepodarilo sa overiť e-mailovú adresu." };
+    }
+}
+
+/**
+ * Resend verification email for an unverified account (rate-limited, safe against enumeration)
+ */
+export async function resendVerificationEmailAction(email: string, clientOrigin?: string) {
+    try {
+        if (!email) {
+            return { success: false, error: "Zadajte vašu e-mailovú adresu." };
+        }
+
+        const cleanEmail = email.toLowerCase().trim();
+        if (!isValidEmailFormat(cleanEmail)) {
+            return { success: false, error: "Zadajte platnú e-mailovú adresu." };
+        }
+
+        const rateCheck = checkAndRecordEmailDispatch(`verify:${cleanEmail}`);
+        if (!rateCheck.allowed) {
+            const waitText = formatRemainingTime(rateCheck.retryAfterMs);
+            return {
+                success: false,
+                error: `Nový overovací e-mail môžete vyžiadať až o ${waitText}. Skontrolujte prosím aj priečinok Spam.`,
+            };
+        }
+
+        const db = getCoreDb();
+        const { data: user } = await db
+            .from("booking_users")
+            .select("id, name, email, password_hash")
+            .eq("email", cleanEmail)
+            .maybeSingle();
+
+        if (user && (isUserHashUnverified(user.password_hash) || (user as any).email_verified === false)) {
+            await sendEmailVerificationMessage({
+                userId: user.id,
+                name: user.name,
+                email: user.email,
+                passwordHash: user.password_hash,
+                clientOrigin,
+            });
+        }
+
+        return {
+            success: true,
+            message: "Ak účet čaká na aktiváciu, nový overovací odkaz sme odoslali na váš e-mail.",
+        };
+    } catch (error: any) {
+        console.error("Resend verification email error:", error);
+        return { success: false, error: "Nepodarilo sa odoslať overovací e-mail." };
     }
 }
 

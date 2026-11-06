@@ -17,11 +17,13 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
     const [confirmPassword, setConfirmPassword] = useState("");
     const [phone, setPhone] = useState("");
     const [error, setError] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
+        setSuccessMessage("");
 
         if (!firstName.trim() || !lastName.trim()) {
             setError("Meno a priezvisko sú povinné");
@@ -47,10 +49,20 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
 
         try {
             const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-            const result = await registerAction(fullName, email, password, undefined, phone);
+            const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+            const result = await registerAction(fullName, email, password, undefined, phone, origin);
 
             if (result.success) {
-                onSuccess();
+                if ((result as any).requiresEmailVerification) {
+                    setSuccessMessage(
+                        (result as any).message ||
+                            `Registrácia prebehla úspešne! Na adresu ${email.trim()} sme odoslali overovací odkaz. Pre aktiváciu účtu kliknite na odkaz v e-maile.`
+                    );
+                    setPassword("");
+                    setConfirmPassword("");
+                } else {
+                    onSuccess();
+                }
             } else {
                 setError(result.error || "Chyba pri registrácii");
             }
@@ -81,6 +93,15 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
                     style={{ background: "rgba(239, 68, 68, 0.1)" }}
                 >
                     {error}
+                </div>
+            )}
+
+            {successMessage && (
+                <div
+                    className="rounded-lg p-3 text-sm text-emerald-300 border border-emerald-500/30"
+                    style={{ background: "rgba(16, 185, 129, 0.15)" }}
+                >
+                    {successMessage}
                 </div>
             )}
 

@@ -8,7 +8,7 @@ import { ArrowUpRight, CalendarDays, CalendarSync, ChevronDown, ChevronLeft, Che
 import TennisBallAvatar from "@/components/icons/TennisBallAvatar";
 import { ThreeDChartIcon, ThreeDSettingsIcon, ThreeDUserAvatarIcon } from "@/components/icons/ThreeDNavIcons";
 import { createBookingAction, createRecurringBookingAction, deleteBookingAction, fetchAuthorizedCalendarItemsAction, fetchPublicAvailabilityAction, rescheduleBookingAction } from "@/app/actions/bookings";
-import { logoutAction } from "@/app/actions/auth";
+import { logoutAction, verifyEmailWithTokenAction } from "@/app/actions/auth";
 import { createWalletCardPayAction, createWalletCheckoutAction, getWalletAction, reconcileWalletCardPayAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
 
 import { supabase } from "@/lib/supabase";
@@ -348,17 +348,37 @@ export default function NewBookingsCalendar({
   }, [date]);
   const [auth, setAuth] = useState<"login" | "register" | "forgot" | "reset" | null>(null);
   const [resetToken, setResetToken] = useState<string | undefined>(undefined);
+  const [authInitialEmail, setAuthInitialEmail] = useState<string | undefined>(undefined);
+  const [authInitialNotice, setAuthInitialNotice] = useState<string | undefined>(undefined);
+  const [authInitialError, setAuthInitialError] = useState<string | undefined>(undefined);
 
-  // Check URL query parameters for password reset token on mount
+  // Check URL query parameters for password reset token or email verification token on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get("reset_token");
+      const verifyToken = urlParams.get("verify_email_token");
+
       if (token) {
         setResetToken(token);
         setAuth("reset");
         const cleanUrl = window.location.pathname;
         window.history.replaceState({}, document.title, cleanUrl);
+      } else if (verifyToken) {
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+        void (async () => {
+          const res = await verifyEmailWithTokenAction(verifyToken);
+          if (res.success) {
+            setAuthInitialEmail((res as any).email || undefined);
+            setAuthInitialNotice(res.message || "Váš e-mail bol úspešne overený! Teraz sa môžete prihlásiť.");
+            setAuthInitialError(undefined);
+          } else {
+            setAuthInitialNotice(undefined);
+            setAuthInitialError(res.error || "Overovací odkaz je neplatný alebo vypršal.");
+          }
+          setAuth("login");
+        })();
       }
     }
   }, []);
@@ -2609,9 +2629,15 @@ export default function NewBookingsCalendar({
         <NewBookingAuth
           mode={auth}
           resetToken={resetToken}
+          initialEmail={authInitialEmail}
+          initialNotice={authInitialNotice}
+          initialError={authInitialError}
           onClose={() => {
             setAuth(null);
             setResetToken(undefined);
+            setAuthInitialEmail(undefined);
+            setAuthInitialNotice(undefined);
+            setAuthInitialError(undefined);
             setPendingSlot(null);
           }}
           onSuccess={(user) => handleAuthSuccess(user)}
