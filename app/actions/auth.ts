@@ -176,7 +176,7 @@ async function sendEmailVerificationMessage(params: {
                     </div>
                     <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">Potvrdenie registrácie účtu</h2>
                     <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 12px;">Dobrý deň <strong>${safeName}</strong>,</p>
-                    <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">ďakujeme za registráciu v rezervačnom systéme NTC Košice. Pre aktiváciu vášho účtu a overenie platnosti e-mailovej adresy kliknite na tlačidlo nižšie:</p>
+                    <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">ďakujeme za registráciu v rezervačnom systéme NTC Bratislava. Pre aktiváciu vášho účtu a overenie platnosti e-mailovej adresy kliknite na tlačidlo nižšie:</p>
                     <div style="margin: 28px 0;">
                         <a href="${verifyUrl}" style="background-color: #10b981; color: #ffffff; padding: 13px 28px; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 10px; display: inline-block;">Overiť e-mail a aktivovať účet</a>
                     </div>
@@ -185,7 +185,7 @@ async function sendEmailVerificationMessage(params: {
                     <p style="color: #94a3b8; font-size: 12px; line-height: 1.5;">Ak tlačidlo nefunguje, skopírujte tento odkaz do prehliadača:<br /><a href="${verifyUrl}" style="color: #0284c7; word-break: break-all;">${verifyUrl}</a></p>
                 </div>
             `,
-            text: `Dobrý deň ${params.name},\n\nĎakujeme za registráciu v rezervačnom systéme NTC Košice.\nPre overenie e-mailovej adresy a aktiváciu účtu kliknite na nasledujúci odkaz (platný 24 hodín):\n${verifyUrl}\n\nAk ste sa neregistrovali vy, tento e-mail ignorujte.`,
+            text: `Dobrý deň ${params.name},\n\nĎakujeme za registráciu v rezervačnom systéme NTC Bratislava.\nPre overenie e-mailovej adresy a aktiváciu účtu kliknite na nasledujúci odkaz (platný 24 hodín):\n${verifyUrl}\n\nAk ste sa neregistrovali vy, tento e-mail ignorujte.`,
         });
 
         if (sendError) {
