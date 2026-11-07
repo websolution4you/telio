@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getSession, type BookingRole, hashPassword, normalizePhone, verifyPassword } from "@/lib/auth/bookingAuth";
+import { getSession, type BookingRole, hashPassword, normalizePhone, verifyPassword, stripUnverifiedPrefix } from "@/lib/auth/bookingAuth";
 import { getCoreServiceDb } from "@/lib/server/supabase";
 import { isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
 import { logActivity } from "@/lib/server/auditLog";
@@ -302,6 +302,7 @@ export type AdminUserDirectoryItem = {
   bookingsCount: number;
   hasMultisport: boolean;
   discountTierId: string;
+  emailVerified: boolean;
 };
 
 export async function fetchAdminUsersDirectoryAction(
@@ -328,10 +329,12 @@ export async function fetchAdminUsersDirectoryAction(
     created_at: string;
     has_multisport?: boolean | null;
     discount_tier_id?: string | null;
+    password_hash?: string | null;
+    email_verified?: boolean | null;
   };
 
   const buildQuery = (withTier: boolean, withMultisport: boolean) => {
-    let selectCols = "id, name, email, phone, card_number, role, created_at";
+    let selectCols = "id, name, email, phone, card_number, role, created_at, password_hash, email_verified";
     if (withMultisport) selectCols += ", has_multisport";
     if (withTier) selectCols += ", discount_tier_id";
 
@@ -420,6 +423,7 @@ export async function fetchAdminUsersDirectoryAction(
     bookingsCount: bookingCountMap.get(u.id) ?? 0,
     hasMultisport: Boolean((u as any).has_multisport),
     discountTierId: ((u as any).discount_tier_id as string) || "tier-base",
+    emailVerified: (u as any).email_verified !== false && !String((u as any).password_hash || "").startsWith("UNVERIFIED:"),
   }));
 
   return {
@@ -632,6 +636,7 @@ export type AdminUserDetailData = {
     walletBalanceEur: number;
     hasMultisport: boolean;
     discountTierId: string;
+    emailVerified: boolean;
   };
   bookings: Array<{
     id: string;
@@ -659,14 +664,14 @@ export async function fetchAdminUserDetailAction(userId: string) {
 
   let { data: user, error: userError } = await context.db
     .from("booking_users")
-    .select("id, name, email, phone, card_number, role, created_at, has_multisport, discount_tier_id")
+    .select("id, name, email, phone, card_number, role, created_at, has_multisport, discount_tier_id, password_hash, email_verified")
     .eq("id", userId)
     .maybeSingle();
 
   if (userError && (userError.message?.includes("discount_tier_id") || (userError as any).code === "PGRST204")) {
     const fallback = await context.db
       .from("booking_users")
-      .select("id, name, email, phone, card_number, role, created_at, has_multisport")
+      .select("id, name, email, phone, card_number, role, created_at, has_multisport, password_hash, email_verified")
       .eq("id", userId)
       .maybeSingle();
     user = fallback.data ? { ...fallback.data, discount_tier_id: "tier-base" } : null;
@@ -676,7 +681,7 @@ export async function fetchAdminUserDetailAction(userId: string) {
   if (userError && userError.message?.includes("has_multisport")) {
     const fallback = await context.db
       .from("booking_users")
-      .select("id, name, email, phone, card_number, role, created_at")
+      .select("id, name, email, phone, card_number, role, created_at, password_hash, email_verified")
       .eq("id", userId)
       .maybeSingle();
     user = fallback.data ? { ...fallback.data, has_multisport: false, discount_tier_id: "tier-base" } : null;
@@ -723,6 +728,7 @@ export async function fetchAdminUserDetailAction(userId: string) {
       walletBalanceEur: wallet ? Number(wallet.balance_eur || 0) : 0,
       hasMultisport: Boolean((user as any).has_multisport),
       discountTierId: ((user as any).discount_tier_id as string) || "tier-base",
+      emailVerified: (user as any).email_verified !== false && !String((user as any).password_hash || "").startsWith("UNVERIFIED:"),
     },
     bookings: (bookings || []).map((b) => ({
       id: b.id,
@@ -786,18 +792,6 @@ export async function createBookingUserByAdminAction(input: CreateAdminUserInput
 
   if (existingUser) {
     return { success: false as const, error: "Používateľ s týmto emailom už existuje." };
-  }
-
-  if (cleanPhone) {
-    const { data: existingPhone } = await context.db
-      .from("booking_users")
-      .select("id")
-      .eq("phone", cleanPhone)
-      .maybeSingle();
-
-    if (existingPhone) {
-      return { success: false as const, error: "Používateľ s týmto telefónnym číslom už existuje." };
-    }
   }
 
   const passwordHash = await hashPassword(initialPassword);
@@ -1180,4 +1174,64 @@ export async function deleteBookingUserByAdminAction(
 
   return { success: true as const };
 }
+
+export async function verifyBookingUserByAdminAction(targetUserId: string) {
+  const context = await requireCurrentAdmin();
+  if (!context) return { success: false as const, error: "Nemáte oprávnenie spravovať používateľov." };
+
+  const { data: user, error: userError } = await context.db
+    .from("booking_users")
+    .select("id, name, email, password_hash")
+    .eq("id", targetUserId)
+    .maybeSingle();
+
+  if (userError || !user) {
+    return { success: false as const, error: "Používateľ nebol nájdený." };
+  }
+
+  const rawHash = stripUnverifiedPrefix(user.password_hash);
+  let { error: updateError } = await context.db
+    .from("booking_users")
+    .update({
+      password_hash: rawHash,
+      email_verified: true,
+      email_verified_at: new Date().toISOString(),
+    } as any)
+    .eq("id", targetUserId);
+
+  if (updateError && (updateError.message?.includes("email_verified") || (updateError as any).code === "PGRST204")) {
+    const fallback = await context.db
+      .from("booking_users")
+      .update({ password_hash: rawHash })
+      .eq("id", targetUserId);
+    updateError = fallback.error;
+  }
+
+  if (updateError) {
+    return { success: false as const, error: "Nepodarilo sa aktivovať účet: " + updateError.message };
+  }
+
+  await logActivity({
+    action: "auth.email_verified_by_admin",
+    category: "users",
+    entityType: "user",
+    entityId: targetUserId,
+    entityName: user.name,
+    description: `Administrátor manuálne overil a aktivoval účet "${user.name}" (${user.email})`,
+    actor: {
+      id: context.session.userId,
+      name: context.session.name,
+      email: context.session.email,
+      role: "admin",
+    },
+    metadata: { targetUserId, email: user.email },
+    level: "info",
+  });
+
+  revalidatePath("/dashboard/users");
+  revalidatePath("/dashboard/newbookings");
+
+  return { success: true as const, message: `Účet používateľa "${user.name}" bol úspešne aktivovaný.` };
+}
+
 

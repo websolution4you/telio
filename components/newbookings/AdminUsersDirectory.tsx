@@ -46,6 +46,7 @@ import {
   updateBookingUserCardAction,
   updateBookingUserProfileByAdminAction,
   deleteBookingUserByAdminAction,
+  verifyBookingUserByAdminAction,
   updateBookingUserDiscountTierAction,
   exportAdminUsersCsvAction,
   type AdminUserDirectoryItem,
@@ -252,6 +253,31 @@ export default function AdminUsersDirectory() {
   const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [verifyingUser, setVerifyingUser] = useState(false);
+
+  const handleVerifyUserByAdmin = async (userId: string) => {
+    if (!confirm("Naozaj chcete manuálne aktivovať tento používateľský účet? Používateľ sa bude môcť ihneď prihlásiť bez kliknutia na overovací e-mail.")) return;
+    setVerifyingUser(true);
+    try {
+      const res = await verifyBookingUserByAdminAction(userId);
+      if (res.success) {
+        if (detailData && detailData.user.id === userId) {
+          setDetailData({
+            ...detailData,
+            user: { ...detailData.user, emailVerified: true },
+          });
+        }
+        await loadUsers(page, query, roleFilter);
+        alert(res.message || "Účet bol úspešne aktivovaný.");
+      } else {
+        alert(res.error || "Nepodarilo sa aktivovať účet.");
+      }
+    } catch (err: any) {
+      alert("Chyba pri aktivácii: " + (err?.message || err));
+    } finally {
+      setVerifyingUser(false);
+    }
+  };
 
   const [isPending, startTransition] = useTransition();
 
@@ -736,9 +762,16 @@ export default function AdminUsersDirectory() {
                       <TennisBallAvatar name={user.name} className="h-10 w-10 rounded-2xl shadow-xs" textSize="text-xs" />
                     </div>
                     <div>
-                      <strong className="block font-bold text-slate-900 group-hover:text-emerald-700 transition">
-                        {user.name}
-                      </strong>
+                      <div className="flex items-center gap-2">
+                        <strong className="block font-bold text-slate-900 group-hover:text-emerald-700 transition">
+                          {user.name}
+                        </strong>
+                        {!user.emailVerified && (
+                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800" title="E-mail ešte nebol overený">
+                            Neoverený
+                          </span>
+                        )}
+                      </div>
                       <span className="text-xs text-slate-400">
                         Reg. {formatDate(user.createdAt)}
                       </span>
@@ -867,7 +900,14 @@ export default function AdminUsersDirectory() {
               <div className="flex items-center gap-3">
                 <TennisBallAvatar name={user.name} className="h-10 w-10 rounded-2xl shadow-xs" textSize="text-xs" />
                 <div>
-                  <strong className="block text-sm font-bold text-slate-900">{user.name}</strong>
+                  <div className="flex items-center gap-1.5">
+                    <strong className="block text-sm font-bold text-slate-900">{user.name}</strong>
+                    {!user.emailVerified && (
+                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800">
+                        Neoverený
+                      </span>
+                    )}
+                  </div>
                   <span className="text-xs text-slate-400">{user.email}</span>
                 </div>
               </div>
@@ -1029,8 +1069,20 @@ export default function AdminUsersDirectory() {
                   </button>
                 </div>
 
-                {/* Action buttons (Zmazať, Upraviť profil) + desktop close button */}
+                {/* Action buttons (Zmazať, Upraviť profil, Aktivovať) + desktop close button */}
                 <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  {detailData && !detailData.user.emailVerified && (
+                    <button
+                      type="button"
+                      disabled={verifyingUser}
+                      onClick={() => handleVerifyUserByAdmin(detailData.user.id)}
+                      className="flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-emerald-700 cursor-pointer transition active:scale-[0.98] disabled:opacity-50"
+                      title="Ručne aktivovať používateľský účet"
+                    >
+                      {verifyingUser ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserCheck className="h-3.5 w-3.5" />}
+                      <span>Aktivovať účet</span>
+                    </button>
+                  )}
                   {detailData && currentUserId !== detailData.user.id && (
                     <button
                       type="button"
@@ -1076,6 +1128,12 @@ export default function AdminUsersDirectory() {
               {detailData && (
                 <div className="mt-4 space-y-3">
                   <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                    {!detailData.user.emailVerified && (
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800 shadow-2xs">
+                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                        <span>Čaká na overenie e-mailu</span>
+                      </span>
+                    )}
                     <span
                       className={`rounded-lg border px-2.5 py-1 font-bold shadow-2xs ${
                         roleLabels[detailData.user.role]?.badge || "bg-slate-100 text-slate-800"

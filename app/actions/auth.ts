@@ -146,7 +146,7 @@ async function sendEmailVerificationMessage(params: {
     email: string;
     passwordHash: string;
     clientOrigin?: string;
-}): Promise<{ sent: boolean; verifyUrl: string }> {
+}): Promise<{ sent: boolean; verifyUrl: string; errorReason?: string }> {
     const token = await createEmailVerificationToken(params.userId, params.email, params.passwordHash);
     const baseUrl = getSafeAppBaseUrl(params.clientOrigin);
     const verifyUrl = `${baseUrl}/newbookings?verify_email_token=${encodeURIComponent(token)}`;
@@ -160,15 +160,15 @@ async function sendEmailVerificationMessage(params: {
     const resend = getResendClient();
     if (!resend) {
         console.warn("[EMAIL VERIFICATION] RESEND_API_KEY is not configured in environment variables!");
-        return { sent: false, verifyUrl };
+        return { sent: false, verifyUrl, errorReason: "RESEND_API_KEY nie je nakonfigurovaný v prostredí" };
     }
 
     try {
-        const fromEmail = process.env.RESEND_FROM || "NTC Rezervácie <rezervacie@telio.sk>";
+        const fromEmail = process.env.RESEND_FROM || "NTC Rezervacie <rezervacie@telio.sk>";
         const { data: resData, error: sendError } = await resend.emails.send({
             from: fromEmail,
             to: params.email,
-            subject: "Overenie e-mailovej adresy - NTC Rezervácie",
+            subject: "Overenie e-mailovej adresy - NTC Rezervacie",
             html: `
                 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;">
                     <div style="margin-bottom: 24px;">
@@ -190,13 +190,13 @@ async function sendEmailVerificationMessage(params: {
 
         if (sendError) {
             console.error("[EMAIL VERIFICATION] Resend send error:", sendError);
-            return { sent: false, verifyUrl };
+            return { sent: false, verifyUrl, errorReason: sendError.message || "Chyba Resend servera" };
         }
         console.log("[EMAIL VERIFICATION] Resend email dispatched successfully, id:", resData?.id);
         return { sent: true, verifyUrl };
-    } catch (emailErr) {
+    } catch (emailErr: any) {
         console.error("[EMAIL VERIFICATION] Exception while calling Resend:", emailErr);
-        return { sent: false, verifyUrl };
+        return { sent: false, verifyUrl, errorReason: emailErr?.message || "Zlyhalo volanie Resend API" };
     }
 }
 
@@ -296,15 +296,22 @@ export async function loginAction(email: string, password: string) {
 
         const normalizedEmail = email.toLowerCase().trim();
 
-        // 1. Check client cookie lock (persists across serverless container restarts)
+        // 1. Check client cookie lock (persists across serverless container restarts for this specific email)
         let cookieLockUntil: number | null = null;
         try {
             const cookieStore = await cookies();
             const lockVal = cookieStore.get("telio_login_lock")?.value;
             if (lockVal) {
-                const parsed = parseInt(lockVal, 10);
-                if (!isNaN(parsed) && parsed > Date.now()) {
-                    cookieLockUntil = parsed;
+                try {
+                    const parsed = JSON.parse(lockVal);
+                    if (parsed?.email === normalizedEmail && typeof parsed?.lockedUntil === "number" && parsed.lockedUntil > Date.now()) {
+                        cookieLockUntil = parsed.lockedUntil;
+                    }
+                } catch {
+                    // Legacy plain-timestamp cookie: delete it so it does not block different accounts
+                    try {
+                        cookieStore.delete("telio_login_lock");
+                    } catch {}
                 }
             }
         } catch {
@@ -374,13 +381,17 @@ export async function loginAction(email: string, password: string) {
             if (fail.isNowLocked) {
                 try {
                     const cookieStore = await cookies();
-                    cookieStore.set("telio_login_lock", String(Date.now() + LOGIN_LOCKOUT_MS), {
-                        httpOnly: true,
-                        secure: process.env.NODE_ENV === "production",
-                        sameSite: "lax",
-                        maxAge: Math.floor(LOGIN_LOCKOUT_MS / 1000),
-                        path: "/",
-                    });
+                    cookieStore.set(
+                        "telio_login_lock",
+                        JSON.stringify({ email: normalizedEmail, lockedUntil: Date.now() + LOGIN_LOCKOUT_MS }),
+                        {
+                            httpOnly: true,
+                            secure: process.env.NODE_ENV === "production",
+                            sameSite: "lax",
+                            maxAge: Math.floor(LOGIN_LOCKOUT_MS / 1000),
+                            path: "/",
+                        }
+                    );
                 } catch {}
                 return {
                     success: false,
@@ -389,7 +400,8 @@ export async function loginAction(email: string, password: string) {
             }
             return {
                 success: false,
-                error: `Nesprávny email alebo heslo. Zostávajúce pokusy pred zablokovaním: ${fail.remainingAttempts}.`,
+                userNotFound: true,
+                error: `Používateľ s e-mailom "${normalizedEmail}" neexistuje. Skontrolujte prosím správnosť e-mailu, alebo sa zaregistrujte.`,
             };
         }
 
@@ -426,13 +438,17 @@ export async function loginAction(email: string, password: string) {
             if (fail.isNowLocked) {
                 try {
                     const cookieStore = await cookies();
-                    cookieStore.set("telio_login_lock", String(Date.now() + LOGIN_LOCKOUT_MS), {
-                        httpOnly: true,
-                        secure: process.env.NODE_ENV === "production",
-                        sameSite: "lax",
-                        maxAge: Math.floor(LOGIN_LOCKOUT_MS / 1000),
-                        path: "/",
-                    });
+                    cookieStore.set(
+                        "telio_login_lock",
+                        JSON.stringify({ email: normalizedEmail, lockedUntil: Date.now() + LOGIN_LOCKOUT_MS }),
+                        {
+                            httpOnly: true,
+                            secure: process.env.NODE_ENV === "production",
+                            sameSite: "lax",
+                            maxAge: Math.floor(LOGIN_LOCKOUT_MS / 1000),
+                            path: "/",
+                        }
+                    );
                 } catch {}
                 return {
                     success: false,
@@ -441,7 +457,7 @@ export async function loginAction(email: string, password: string) {
             }
             return {
                 success: false,
-                error: `Nesprávny email alebo heslo. Zostávajúce pokusy pred zablokovaním: ${fail.remainingAttempts}.`,
+                error: `Nesprávne heslo. Zostávajúce pokusy pred zablokovaním: ${fail.remainingAttempts}.`,
             };
         }
 
@@ -475,11 +491,21 @@ export async function loginAction(email: string, password: string) {
             };
         }
 
-        // Successful login: Clear failed login attempts and cookie
+        // Successful login: Clear failed login attempts and cookie (only if matching this email)
         clearFailedLogins(normalizedEmail);
         try {
             const cookieStore = await cookies();
-            cookieStore.delete("telio_login_lock");
+            const lockVal = cookieStore.get("telio_login_lock")?.value;
+            if (lockVal) {
+                try {
+                    const parsed = JSON.parse(lockVal);
+                    if (parsed?.email === normalizedEmail) {
+                        cookieStore.delete("telio_login_lock");
+                    }
+                } catch {
+                    cookieStore.delete("telio_login_lock");
+                }
+            }
         } catch {}
 
         // Create session
@@ -591,19 +617,6 @@ export async function registerAction(
             return { success: false, error: "Používateľ s týmto emailom už existuje" };
         }
 
-        // Check if user already exists by phone
-        if (cleanPhone) {
-            const { data: existingPhone } = await db
-                .from("booking_users")
-                .select("id")
-                .eq("phone", cleanPhone)
-                .maybeSingle();
-                
-            if (existingPhone) {
-                return { success: false, error: "Používateľ s týmto telefónnym číslom už existuje" };
-            }
-        }
-
         // Rate limit verification email dispatch for this address
         const rateCheck = checkAndRecordEmailDispatch(`verify:${cleanEmail}`);
         if (!rateCheck.allowed) {
@@ -702,13 +715,36 @@ export async function registerAction(
         }
 
         // Send verification email via Resend (do NOT set session cookie until email is verified)
-        await sendEmailVerificationMessage({
+        const sendResult = await sendEmailVerificationMessage({
             userId: user.id,
             name: user.name,
             email: user.email,
             passwordHash: rawPasswordHash,
             clientOrigin,
         });
+
+        if (!sendResult.sent) {
+            await logActivity({
+                action: "auth.email_verification_failed",
+                category: "auth",
+                entityType: "user",
+                entityId: user.id,
+                entityName: user.name,
+                description: `Zlyhalo odoslanie overovacieho e-mailu pre nový účet "${user.name}" (${user.email}): ${sendResult.errorReason || "neznáma chyba"}`,
+                actor: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                },
+                metadata: {
+                    userId: user.id,
+                    email: user.email,
+                    error: sendResult.errorReason,
+                },
+                level: "warning",
+            });
+        }
 
         await logActivity({
             action: "auth.register",
@@ -729,15 +765,20 @@ export async function registerAction(
                 role: user.role,
                 cardNumber: cleanCard,
                 emailVerified: false,
+                emailSent: sendResult.sent,
             },
             level: "info",
         });
+
+        const successNotice = sendResult.sent
+            ? `Registrácia prebehla úspešne! Na adresu ${user.email} sme odoslali overovací odkaz. Pre dokončenie registrácie a prihlásenie kliknite na odkaz v e-maile.`
+            : `Registrácia prebehla, ale overovací e-mail sa nepodarilo odoslať (${sendResult.errorReason || "chyba odosielania"}). Účet vám môže na počkanie aktivovať recepcia NTC.`;
 
         return {
             success: true,
             requiresEmailVerification: true,
             email: user.email,
-            message: `Registrácia prebehla úspešne! Na adresu ${user.email} sme odoslali overovací odkaz. Pre dokončenie registrácie a prihlásenie kliknite na odkaz v e-maile.`,
+            message: successNotice,
         };
     } catch (error: any) {
         console.error("Registration error:", error);
@@ -840,20 +881,6 @@ export async function updateProfileDetailsAction(name: string, phone?: string) {
 
         const cleanPhone = normalizePhone(phone);
         const db = getCoreDb();
-
-        // Check if new phone is already used by someone else
-        if (cleanPhone) {
-            const { data: existingPhone } = await db
-                .from("booking_users")
-                .select("id")
-                .eq("phone", cleanPhone)
-                .neq("id", session.userId)
-                .maybeSingle();
-
-            if (existingPhone) {
-                return { success: false, error: "Toto telefónne číslo je už priradené k inému účtu" };
-            }
-        }
 
         // Update booking_users table
         const { error: updateError } = await db
@@ -982,62 +1009,97 @@ export async function requestPasswordResetAction(email: string, clientOrigin?: s
             .eq("email", cleanEmail)
             .maybeSingle();
 
-        let resetUrl: string | undefined = undefined;
+        if (!user) {
+            return {
+                success: false,
+                notFound: true,
+                error: `Účet s e-mailovou adresou "${cleanEmail}" u nás neexistuje. Skontrolujte prosím prípadný preklep, alebo sa zaregistrujte.`,
+            };
+        }
 
-        if (user) {
-            const token = await createPasswordResetToken(user.id, user.email, user.password_hash);
-            const baseUrl = getSafeAppBaseUrl(clientOrigin);
-            resetUrl = `${baseUrl}/newbookings?reset_token=${encodeURIComponent(token)}`;
-            const safeName = escapeHtml(user.name);
+        const token = await createPasswordResetToken(user.id, user.email, user.password_hash);
+        const baseUrl = getSafeAppBaseUrl(clientOrigin);
+        const resetUrl = `${baseUrl}/newbookings?reset_token=${encodeURIComponent(token)}`;
+        const safeName = escapeHtml(user.name);
 
-            console.log("==========================================");
-            console.log(`[PASSWORD RESET] For: ${user.email}`);
-            console.log(`[RESET URL]: ${resetUrl}`);
-            console.log("==========================================");
+        console.log("==========================================");
+        console.log(`[PASSWORD RESET] For: ${user.email}`);
+        console.log(`[RESET URL]: ${resetUrl}`);
+        console.log("==========================================");
 
-            const resend = getResendClient();
-            if (resend) {
-                try {
-                    const fromEmail = process.env.RESEND_FROM || "NTC Rezervácie <rezervacie@telio.sk>";
-                    const { data: resData, error: sendError } = await resend.emails.send({
-                        from: fromEmail,
-                        to: user.email,
-                        subject: "Obnova hesla - NTC Rezervácie",
-                        html: `
-                            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;">
-                                <div style="margin-bottom: 24px;">
-                                    <span style="font-size: 18px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">NTC Rezervačný systém</span>
-                                </div>
-                                <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">Žiadosť o obnovu hesla</h2>
-                                <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 12px;">Dobrý deň <strong>${safeName}</strong>,</p>
-                                <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">obdržali sme žiadosť o obnovu hesla k vášmu účtu. Kliknite na tlačidlo nižšie pre nastavenie nového hesla:</p>
-                                <div style="margin: 28px 0;">
-                                    <a href="${resetUrl}" style="background-color: #10b981; color: #ffffff; padding: 13px 28px; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 10px; display: inline-block;">Nastaviť nové heslo</a>
-                                </div>
-                                <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin-bottom: 24px;">Odkaz je platný <strong>1 hodinu</strong>. Ak ste o obnovu hesla nežiadali, tento email môžete bez obáv ignorovať, vaše existujúce heslo zostane nezmenené.</p>
-                                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-                                <p style="color: #94a3b8; font-size: 12px; line-height: 1.5;">Ak tlačidlo nefunguje, skopírujte tento odkaz do prehliadača:<br /><a href="${resetUrl}" style="color: #0284c7; word-break: break-all;">${resetUrl}</a></p>
-                            </div>
-                        `,
-                        text: `Dobrý deň ${user.name},\n\nPre obnovu hesla kliknite na nasledujúci odkaz (platný 1 hodinu):\n${resetUrl}\n\nAk ste o zmenu nežiadali, tento email ignorujte.`
-                    });
+        const resend = getResendClient();
+        if (!resend) {
+            console.warn("[PASSWORD RESET] RESEND_API_KEY is not configured in environment variables!");
+            await logActivity({
+                action: "auth.password_reset_failed",
+                category: "auth",
+                entityType: "user",
+                entityId: user.id,
+                entityName: user.name,
+                description: `Zlyhalo odoslanie e-mailu na obnovu hesla pre "${user.name}" (${user.email}) – chýba RESEND_API_KEY`,
+                level: "warning",
+            });
+            return {
+                success: false,
+                error: "E-mailový systém nie je momentálne nakonfigurovaný (chýba RESEND_API_KEY). Kontaktujte prosím recepciu.",
+            };
+        }
 
-                    if (sendError) {
-                        console.error("[PASSWORD RESET] Resend send error:", sendError);
-                    } else {
-                        console.log("[PASSWORD RESET] Resend email dispatched successfully, id:", resData?.id);
-                    }
-                } catch (emailErr) {
-                    console.error("[PASSWORD RESET] Exception while calling Resend:", emailErr);
-                }
-            } else {
-                console.warn("[PASSWORD RESET] RESEND_API_KEY is not configured in environment variables!");
+        try {
+            const fromEmail = process.env.RESEND_FROM || "NTC Rezervacie <rezervacie@telio.sk>";
+            const { data: resData, error: sendError } = await resend.emails.send({
+                from: fromEmail,
+                to: user.email,
+                subject: "Obnova hesla - NTC Rezervacie",
+                html: `
+                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;">
+                        <div style="margin-bottom: 24px;">
+                            <span style="font-size: 18px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">NTC Rezervačný systém</span>
+                        </div>
+                        <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">Žiadosť o obnovu hesla</h2>
+                        <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 12px;">Dobrý deň <strong>${safeName}</strong>,</p>
+                        <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">obdržali sme žiadosť o obnovu hesla k vášmu účtu. Kliknite na tlačidlo nižšie pre nastavenie nového hesla:</p>
+                        <div style="margin: 28px 0;">
+                            <a href="${resetUrl}" style="background-color: #10b981; color: #ffffff; padding: 13px 28px; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 10px; display: inline-block;">Nastaviť nové heslo</a>
+                        </div>
+                        <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin-bottom: 24px;">Odkaz je platný <strong>1 hodinu</strong>. Ak ste o obnovu hesla nežiadali, tento email môžete bez obáv ignorovať, vaše existujúce heslo zostane nezmenené.</p>
+                        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+                        <p style="color: #94a3b8; font-size: 12px; line-height: 1.5;">Ak tlačidlo nefunguje, skopírujte tento odkaz do prehliadača:<br /><a href="${resetUrl}" style="color: #0284c7; word-break: break-all;">${resetUrl}</a></p>
+                    </div>
+                `,
+                text: `Dobrý deň ${user.name},\n\nPre obnovu hesla kliknite na nasledujúci odkaz (platný 1 hodinu):\n${resetUrl}\n\nAk ste o zmenu nežiadali, tento email ignorujte.`
+            });
+
+            if (sendError) {
+                console.error("[PASSWORD RESET] Resend send error:", sendError);
+                await logActivity({
+                    action: "auth.password_reset_failed",
+                    category: "auth",
+                    entityType: "user",
+                    entityId: user.id,
+                    entityName: user.name,
+                    description: `Zlyhalo odoslanie e-mailu na obnovu hesla pre "${user.name}" (${user.email}): ${sendError.message}`,
+                    metadata: { error: sendError },
+                    level: "warning",
+                });
+                return {
+                    success: false,
+                    error: `Nepodarilo sa odoslať resetovací e-mail (${sendError.message || "chyba poštového servera"}). Skúste to prosím znova neskôr.`,
+                };
             }
+
+            console.log("[PASSWORD RESET] Resend email dispatched successfully, id:", resData?.id);
+        } catch (emailErr: any) {
+            console.error("[PASSWORD RESET] Exception while calling Resend:", emailErr);
+            return {
+                success: false,
+                error: "Vyskytla sa neočakávaná chyba pri odosielaní e-mailu. Skúste to prosím znova neskôr.",
+            };
         }
 
         return {
             success: true,
-            message: "Ak účet s týmto emailom existuje, inštrukcie na obnovu hesla sme vám odoslali na email.",
+            message: "Inštrukcie na obnovu hesla sme vám úspešne odoslali na váš e-mail.",
         };
     } catch (error: any) {
         console.error("Request password reset error:", error);
@@ -1247,19 +1309,40 @@ export async function resendVerificationEmailAction(email: string, clientOrigin?
             .eq("email", cleanEmail)
             .maybeSingle();
 
-        if (user && (isUserHashUnverified(user.password_hash) || (user as any).email_verified === false)) {
-            await sendEmailVerificationMessage({
-                userId: user.id,
-                name: user.name,
-                email: user.email,
-                passwordHash: user.password_hash,
-                clientOrigin,
-            });
+        if (!user) {
+            return {
+                success: false,
+                error: `Účet s e-mailom "${cleanEmail}" u nás neexistuje. Môžete sa zaregistrovať.`,
+            };
+        }
+
+        const isUnverified = isUserHashUnverified(user.password_hash) || (user as any).email_verified === false;
+        if (!isUnverified) {
+            return {
+                success: false,
+                alreadyVerified: true,
+                error: "Váš účet je už aktivovaný. Môžete sa prihlásiť.",
+            };
+        }
+
+        const sendResult = await sendEmailVerificationMessage({
+            userId: user.id,
+            name: user.name,
+            email: user.email,
+            passwordHash: user.password_hash,
+            clientOrigin,
+        });
+
+        if (!sendResult.sent) {
+            return {
+                success: false,
+                error: `Nepodarilo sa odoslať overovací e-mail (${sendResult.errorReason || "chyba poštového servera"}). Skúste to znova neskôr.`,
+            };
         }
 
         return {
             success: true,
-            message: "Ak účet čaká na aktiváciu, nový overovací odkaz sme odoslali na váš e-mail.",
+            message: "Nový overovací odkaz sme úspešne odoslali na váš e-mail.",
         };
     } catch (error: any) {
         console.error("Resend verification email error:", error);
