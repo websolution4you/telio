@@ -28,6 +28,7 @@ import {
   type OwnBookingCalendarItem,
   type OwnBookingDto,
   type StaffBookingCalendarItem,
+  isAdminReservationBlockRow,
   isPrivilegedReadRole,
   mapCreatedBookingToOwnBookingDto,
   toOwnBookingCalendarItem,
@@ -313,12 +314,25 @@ export default function NewBookingsCalendar({
 
     if (!isPrivilegedReadRole(currentUser.role)) {
       setAccessMode("restricted");
+      const allowNtcTeamAdminBlocks = currentUser.role === "ntc_team";
+      const isAllowedForCaller = (item: CalendarItem) => {
+        if (item.kind !== "staff-booking") return true;
+        return (
+          allowNtcTeamAdminBlocks &&
+          isAdminReservationBlockRow({
+            adminBlockType: item.booking.adminBlockType,
+            customerName: item.booking.customerName,
+            title: item.booking.title,
+          })
+        );
+      };
+
       setItems((prev) => {
-        const hasStaff = prev.some((i) => i.kind === "staff-booking");
-        if (!hasStaff) return prev;
-        return prev.filter((i) => i.kind !== "staff-booking");
+        const hasDisallowedStaff = prev.some((i) => !isAllowedForCaller(i));
+        if (!hasDisallowedStaff) return prev;
+        return prev.filter(isAllowedForCaller);
       });
-      setDetail((prev) => (prev?.kind === "staff-booking" ? null : prev));
+      setDetail((prev) => (prev && !isAllowedForCaller(prev) ? null : prev));
       setDeleting((prev) => (prev?.kind === "staff-booking" ? null : prev));
       setReschedulingBooking((prev) => (prev?.kind === "staff-booking" ? null : prev));
     }
@@ -728,10 +742,23 @@ export default function NewBookingsCalendar({
       if (result.success) {
         setAccessMode(result.accessMode);
         if (result.accessMode === "restricted") {
-          setDetail((prev) => (prev?.kind === "staff-booking" ? null : prev));
+          const allowNtcTeamAdminBlocks = currentUser?.role === "ntc_team";
+          const isAllowedForCaller = (item: CalendarItem) => {
+            if (item.kind !== "staff-booking") return true;
+            return (
+              allowNtcTeamAdminBlocks &&
+              isAdminReservationBlockRow({
+                adminBlockType: item.booking.adminBlockType,
+                customerName: item.booking.customerName,
+                title: item.booking.title,
+              })
+            );
+          };
+
+          setDetail((prev) => (prev && !isAllowedForCaller(prev) ? null : prev));
           setDeleting((prev) => (prev?.kind === "staff-booking" ? null : prev));
           setReschedulingBooking((prev) => (prev?.kind === "staff-booking" ? null : prev));
-          setItems(result.items.filter((i) => i.kind !== "staff-booking"));
+          setItems(result.items.filter(isAllowedForCaller));
         } else {
           for (const item of result.items) {
             if (item.kind === "staff-booking") {
@@ -769,10 +796,10 @@ export default function NewBookingsCalendar({
     const timers = voiceHighlightTimers.current;
     const isStaffUser =
       accessMode === "staff" &&
-      (currentUser.role === "admin" || currentUser.role === "ntc_team");
+      currentUser.role === "admin";
 
-    // 1. Supabase Realtime WebSocket listener IBA pre privilegované staff roly (admin / ntc_team)
-    // Pre restricted roly (user / trainer) sa channel vôbec nevytvára ani neprihlasuje na odber.
+    // 1. Supabase Realtime WebSocket listener IBA pre administrátora (admin)
+    // Pre restricted roly (user / trainer / ntc_team) sa channel vôbec nevytvára ani neprihlasuje na odber.
     const channel = isStaffUser
       ? supabase.channel("newbookings-realtime").on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, (payload) => {
           if (!active) return;
@@ -901,12 +928,25 @@ export default function NewBookingsCalendar({
       setAccessMode(result.accessMode);
 
       if (result.accessMode === "restricted") {
-        setDetail((prev) => (prev?.kind === "staff-booking" ? null : prev));
+        const allowNtcTeamAdminBlocks = currentUser?.role === "ntc_team";
+        const isAllowedForCaller = (item: CalendarItem) => {
+          if (item.kind !== "staff-booking") return true;
+          return (
+            allowNtcTeamAdminBlocks &&
+            isAdminReservationBlockRow({
+              adminBlockType: item.booking.adminBlockType,
+              customerName: item.booking.customerName,
+              title: item.booking.title,
+            })
+          );
+        };
+
+        setDetail((prev) => (prev && !isAllowedForCaller(prev) ? null : prev));
         setDeleting((prev) => (prev?.kind === "staff-booking" ? null : prev));
         setReschedulingBooking((prev) => (prev?.kind === "staff-booking" ? null : prev));
 
         for (const item of result.items) {
-          if (item.kind === "own-booking") {
+          if (item.kind === "own-booking" || (item.kind === "staff-booking" && isAllowedForCaller(item))) {
             knownBookingIds.current.add(item.booking.id);
           }
         }
@@ -914,15 +954,15 @@ export default function NewBookingsCalendar({
         if (!active) return;
         setItems((prevItems) => {
           if (!active) return prevItems;
-          // Zachováme položky mimo dotazovaného okna a nahradíme položky v okne autorizovaným výsledkom (bez akýchkoľvek staff-booking položiek)
+          // Zachováme položky mimo dotazovaného okna a nahradíme položky v okne autorizovaným výsledkom
           const outsideWindow = prevItems.filter((item) => {
-            if (item.kind === "staff-booking") return false;
+            if (!isAllowedForCaller(item)) return false;
             const iStartMs = new Date(item.kind === "public-occupied" ? item.start : item.booking.start).getTime();
             const iEndMs = new Date(item.kind === "public-occupied" ? item.end : item.booking.end).getTime();
             const overlaps = iEndMs > startMs && iStartMs < endMs;
             return !overlaps;
           });
-          return [...outsideWindow, ...result.items.filter((i) => i.kind !== "staff-booking")];
+          return [...outsideWindow, ...result.items.filter(isAllowedForCaller)];
         });
       } else {
         const freshStaffItems = result.items.filter(
@@ -2039,7 +2079,15 @@ export default function NewBookingsCalendar({
                     const isAdmin = currentUser?.role === "admin";
                     const isNtcTeam = currentUser?.role === "ntc_team";
                     const own = !!currentUser && currentUser.id === booking.user_id;
-                    const canManage = own || isAdmin || isNtcTeam;
+                    const canManage =
+                      own ||
+                      isAdmin ||
+                      (isNtcTeam &&
+                        isAdminReservationBlockRow({
+                          adminBlockType: booking.adminBlockType,
+                          customerName: booking.customerName,
+                          title: booking.title,
+                        }));
                     const voiceHighlight = highlightedVoiceBookings.includes(booking.id);
                     const isTrainer = booking.userRole === "trainer";
 
@@ -2587,10 +2635,12 @@ export default function NewBookingsCalendar({
                   <i className="h-3.5 w-3.5 rounded-md border border-slate-300 bg-[#CBD5E1] shadow-xs" />
                   Obsadené
                 </span>
-                <span className="flex items-center gap-2">
-                  <i className="h-3.5 w-3.5 rounded-md border border-slate-500 bg-slate-500 shadow-xs" />
-                  Údržba
-                </span>
+                {currentUser?.role === "ntc_team" && (
+                  <span className="flex items-center gap-2">
+                    <i className="h-3.5 w-3.5 rounded-md border border-[#FACC15] bg-[#FEF08A] shadow-xs" />
+                    Rezervácia Admin
+                  </span>
+                )}
               </>
             )}
             {loading && <span className="text-slate-500 font-normal">Aktualizujem...</span>}
@@ -2776,6 +2826,12 @@ export default function NewBookingsCalendar({
           recurringGroupId={seriesOverviewGroupId}
           courtName={detail ? formatCourtDisplayName(courts.find((c) => c.id === detail.booking.courtId)) : undefined}
           courts={courts}
+          canManageSeries={
+            Boolean(currentUser) &&
+            (currentUser?.role === "admin" ||
+              detail?.kind === "own-booking" ||
+              (detail ? currentUser?.id === detail.booking.user_id : false))
+          }
           onClose={() => setSeriesOverviewGroupId(null)}
           onSelectDate={(targetDate) => {
             setDate(targetDate);

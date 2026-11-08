@@ -181,18 +181,98 @@ const ALLOWED_COURT_IDS = new Set<string>([
     "tennis-clay-1", "tennis-clay-2", "tennis-clay-10", "tennis-clay-11",
 ]);
 
-export function isPrivilegedReadRole(role: unknown): role is "admin" | "ntc_team" {
-    return role === "admin" || role === "ntc_team";
+export function isPrivilegedReadRole(role: unknown): role is "admin" {
+    return role === "admin";
 }
 
-export function isRestrictedReadRole(role: unknown): role is "user" | "trainer" {
-    return role === "user" || role === "trainer";
+export function isRestrictedReadRole(role: unknown): role is "user" | "trainer" | "ntc_team" {
+    return role === "user" || role === "trainer" || role === "ntc_team";
 }
 
 export function resolveServerAccessMode(role: unknown): CalendarAccessMode | null {
     if (isPrivilegedReadRole(role)) return "staff";
     if (isRestrictedReadRole(role)) return "restricted";
     return null;
+}
+
+/**
+ * Striktná serverová aj klientska kontrola, či daný záznam rezervácie je
+ * administrátorská rezervácia s dôvodom "Rezervácia Admin" (`admin_reservation`).
+ * Netýka sa "Údržba kurtov", "Tréningy" ani bežných klientskych rezervácií.
+ */
+export function isAdminReservationBlockRow(input: {
+    adminBlockType?: string | null;
+    customerName?: string | null;
+    title?: string | null;
+    notes?: unknown;
+}): boolean {
+    let blockType = typeof input.adminBlockType === "string" ? input.adminBlockType.trim().toLowerCase() : "";
+    let noteText = typeof input.title === "string" ? input.title.trim().toLowerCase() : "";
+
+    if (input.notes !== undefined && input.notes !== null) {
+        try {
+            const parsed =
+                typeof input.notes === "string"
+                    ? JSON.parse(input.notes)
+                    : typeof input.notes === "object"
+                        ? input.notes
+                        : null;
+            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+                const obj = parsed as Record<string, unknown>;
+                if (!blockType && typeof obj.adminBlockType === "string") {
+                    blockType = obj.adminBlockType.trim().toLowerCase();
+                }
+                if (!noteText && typeof obj.notes === "string") {
+                    noteText = obj.notes.trim().toLowerCase();
+                }
+            }
+        } catch {
+            // ignore malformed JSON
+        }
+    }
+
+    if (blockType) {
+        return (
+            blockType === "rezervácia admin" ||
+            blockType === "rezervacia admin" ||
+            blockType === "admin_reservation"
+        );
+    }
+
+    const nameLower = typeof input.customerName === "string" ? input.customerName.trim().toLowerCase() : "";
+    if (nameLower === "rezervácia admin" || nameLower === "rezervacia admin") {
+        return true;
+    }
+    if (noteText === "rezervácia admin" || noteText === "rezervacia admin") {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Mapuje výhradne záznam typu "Rezervácia Admin" pre rolu `ntc_team` na bezpečný
+ * `StaffBookingCalendarItem` (bez telefónu, user_id alebo card_number), aby člen
+ * NTC tímu mohol na týchto vyhradených blokoch upravovať rozpis svojich hráčov (`subSlots`),
+ * pričom nemá prístup k žiadnym iným cudzím rezerváciám ani k údržbe/tréningom.
+ */
+export function mapNtcTeamEditableAdminRowToCalendarItem(
+    row: StaffBookingRowInput | null | undefined,
+    includeCancelled = false
+): StaffBookingCalendarItem | null {
+    if (!row || !isAdminReservationBlockRow({ customerName: row.customer_name, notes: row.notes })) {
+        return null;
+    }
+    const item = mapStaffBookingRowToCalendarItem(row, undefined, includeCancelled);
+    if (!item) return null;
+
+    // Redact any sensitive metadata not needed by ntc_team
+    delete item.booking.phone;
+    delete item.booking.user_id;
+    delete item.booking.userCardNumber;
+    item.booking.adminBlockType = "Rezervácia Admin";
+
+    return item;
 }
 
 export function validatePublicAvailabilityRange(
@@ -696,19 +776,30 @@ export function mapStaffBookingRowToCalendarItem(
 }
 
 /**
- * Spojí anonymnú obsadenosť (`PublicCalendarItem[]`) a vlastné rezervácie (`OwnBookingCalendarItem[]`)
- * pre restricted roly (`user`, `trainer`).
+ * Spojí anonymnú obsadenosť (`PublicCalendarItem[]`), vlastné rezervácie (`OwnBookingCalendarItem[]`)
+ * a voliteľne (iba pre rolu `ntc_team`) vyhradené bloky "Rezervácia Admin" (`StaffBookingCalendarItem[]`).
  * Deduplikácia používa výhradne normalizovaný časovo-kurtový kľúč `${courtId}:${startIso}:${endIso}`,
- * takže vlastná rezervácia sa nikdy nevráti súčasne ako `public-occupied` slot a nepoužije sa žiadne cudzie booking ID.
+ * takže vlastná rezervácia ani blok "Rezervácia Admin" sa nikdy nevráti súčasne ako `public-occupied` slot.
  */
 export function mergeRestrictedCalendarItems(
     publicItems: PublicCalendarItem[],
-    ownItems: OwnBookingCalendarItem[]
-): Array<PublicCalendarItem | OwnBookingCalendarItem> {
-    const ownSlotKeys = new Set<string>();
+    ownItems: OwnBookingCalendarItem[],
+    editableAdminItems: StaffBookingCalendarItem[] = []
+): Array<PublicCalendarItem | OwnBookingCalendarItem | StaffBookingCalendarItem> {
+    const detailedSlotKeys = new Set<string>();
     for (const ownItem of ownItems) {
         const key = `${ownItem.booking.courtId}:${new Date(ownItem.booking.start).toISOString()}:${new Date(ownItem.booking.end).toISOString()}`;
-        ownSlotKeys.add(key);
+        detailedSlotKeys.add(key);
+    }
+
+    const dedupedAdminItems: StaffBookingCalendarItem[] = [];
+    for (const adminItem of editableAdminItems) {
+        const key = `${adminItem.booking.courtId}:${new Date(adminItem.booking.start).toISOString()}:${new Date(adminItem.booking.end).toISOString()}`;
+        if (detailedSlotKeys.has(key)) {
+            continue;
+        }
+        detailedSlotKeys.add(key);
+        dedupedAdminItems.push(adminItem);
     }
 
     const seenPublicKeys = new Set<string>();
@@ -716,7 +807,7 @@ export function mergeRestrictedCalendarItems(
 
     for (const pub of publicItems) {
         const slotKey = `${pub.courtId}:${new Date(pub.start).toISOString()}:${new Date(pub.end).toISOString()}`;
-        if (ownSlotKeys.has(slotKey)) {
+        if (detailedSlotKeys.has(slotKey)) {
             continue;
         }
         if (seenPublicKeys.has(slotKey)) {
@@ -726,5 +817,5 @@ export function mergeRestrictedCalendarItems(
         filteredPublic.push(pub);
     }
 
-    return [...filteredPublic, ...ownItems];
+    return [...filteredPublic, ...ownItems, ...dedupedAdminItems];
 }

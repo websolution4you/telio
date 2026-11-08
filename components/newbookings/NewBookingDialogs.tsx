@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Calendar, CalendarSync, Check, ChevronDown, ChevronLeft, ChevronRight, Clock3, Coins, CreditCard, List, Loader2, MessageSquare, Phone, Plus, Repeat, Sparkles, Trash2, User, Users, X } from "lucide-react";
 import type { Booking, BookingSubSlot, Court } from "@/lib/bookings/mockBookings";
-import type {
-  CalendarAccessMode,
-  OwnBookingCalendarItem,
-  OwnBookingDto,
-  StaffBookingCalendarItem,
+import {
+  type CalendarAccessMode,
+  isAdminReservationBlockRow,
+  type OwnBookingCalendarItem,
+  type OwnBookingDto,
+  type StaffBookingCalendarItem,
 } from "@/lib/bookings/publicAvailability";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import type { NtcPricelist } from "@/lib/bookings/pricingTypes";
@@ -913,8 +914,13 @@ export function BookingDetailDialog({
   const isStaffDetail = activeItem.kind === "staff-booking";
   const canEditSubSlots =
     isStaffDetail &&
-    accessMode === "staff" &&
-    (currentRole === "admin" || currentRole === "ntc_team");
+    ((accessMode === "staff" && currentRole === "admin") ||
+      (currentRole === "ntc_team" &&
+        isAdminReservationBlockRow({
+          adminBlockType: activeItem.booking.adminBlockType,
+          customerName: activeItem.booking.customerName,
+          title: activeItem.booking.title,
+        })));
 
   const isMaintenanceOrAdmin =
     (activeItem.kind === "staff-booking" && (
@@ -1678,6 +1684,7 @@ export function SeriesOverviewDialog({
   recurringGroupId,
   courtName,
   courts,
+  canManageSeries = true,
   onClose,
   onSelectDate,
   onCancelSingleBooking,
@@ -1686,6 +1693,7 @@ export function SeriesOverviewDialog({
   recurringGroupId: string;
   courtName?: string;
   courts?: Court[];
+  canManageSeries?: boolean;
   onClose: () => void;
   onSelectDate: (date: Date) => void;
   onCancelSingleBooking: (bookingId: string) => Promise<void>;
@@ -1985,7 +1993,7 @@ export function SeriesOverviewDialog({
                       Prejsť v kalendári ↗
                     </button>
 
-                    {selectedSlot.status !== "cancelled" && new Date(selectedSlot.start).getTime() > Date.now() && (
+                    {canManageSeries && selectedSlot.status !== "cancelled" && new Date(selectedSlot.start).getTime() > Date.now() && (
                       <button
                         type="button"
                         disabled={actionLoadingId === selectedSlot.id}
@@ -2080,7 +2088,7 @@ export function SeriesOverviewDialog({
                         Prejsť v kalendári ↗
                       </button>
 
-                      {!isCancelled && !isPast && (
+                      {canManageSeries && !isCancelled && !isPast && (
                         <button
                           type="button"
                           disabled={isLoading}
@@ -2101,7 +2109,9 @@ export function SeriesOverviewDialog({
 
         {/* Footer Actions */}
         <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2.5">
-          {confirmDeleteSeries ? (
+          {!canManageSeries ? (
+            <div />
+          ) : confirmDeleteSeries ? (
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="text-xs text-red-700 font-bold">Naozaj zrušiť celú sériu?</span>
               <button

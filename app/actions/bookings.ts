@@ -29,6 +29,8 @@ import {
     mapRestrictedOccupancyRowsToPublicItems,
     mapOwnBookingRowToCalendarItem,
     mapStaffBookingRowToCalendarItem,
+    mapNtcTeamEditableAdminRowToCalendarItem,
+    isAdminReservationBlockRow,
     mergeRestrictedCalendarItems,
     isValidRecurringGroupId,
     extractValidRecurringGroupIdFromNotes,
@@ -266,10 +268,12 @@ export async function fetchAuthorizedCalendarItemsAction(
             };
         }
 
-        // Restricted vetva (`user`, `trainer`):
+        // Restricted vetva (`user`, `trainer`, `ntc_team`):
         // 1. Bezpečná obsadenosť všetkých aktívnych rezervácií v intervale (s Q.1 výnimkou pre serverovú extrakciu courtId z notes)
+        // 2. Vlastné rezervácie prihláseného používateľa
+        // 3. Pre rolu `ntc_team` navyše VÝHRADNE bloky s dôvodom "Rezervácia Admin" (`admin_reservation`), kde môžu upravovať rozpis svojich hráčov (`subSlots`), zatiaľ čo Údržba, Tréningy a bežné klientske rezervácie zostávajú anonymné "Obsadené"
         const db = getCoreServiceDb();
-        const [occupancyRes, ownRes] = await Promise.all([
+        const [occupancyRes, ownRes, ntcTeamAdminRes] = await Promise.all([
             db
                 .from("bookings")
                 .select("court_id,start_at,end_at,status,notes")
@@ -286,9 +290,19 @@ export async function fetchAuthorizedCalendarItemsAction(
                 .gt("end_at", validation.start)
                 .lt("start_at", validation.end)
                 .order("start_at", { ascending: true }),
+            caller.role === "ntc_team"
+                ? db
+                    .from("bookings")
+                    .select("id,court_id,start_at,end_at,status,customer_name,notes")
+                    .eq("tenant_id", TENANT_ID)
+                    .eq("status", "blocked")
+                    .gt("end_at", validation.start)
+                    .lt("start_at", validation.end)
+                    .order("start_at", { ascending: true })
+                : Promise.resolve({ data: null, error: null }),
         ]);
 
-        if (occupancyRes.error || ownRes.error) {
+        if (occupancyRes.error || ownRes.error || ntcTeamAdminRes.error) {
             console.error("[fetchAuthorizedCalendarItemsAction] Restricted DB query failed");
             return {
                 success: false,
@@ -306,7 +320,17 @@ export async function fetchAuthorizedCalendarItemsAction(
             }
         }
 
-        const mergedItems = mergeRestrictedCalendarItems(publicItems, ownItems);
+        const editableAdminItems: StaffBookingCalendarItem[] = [];
+        if (caller.role === "ntc_team" && ntcTeamAdminRes.data) {
+            for (const row of ntcTeamAdminRes.data) {
+                const mappedAdminBlock = mapNtcTeamEditableAdminRowToCalendarItem(row, false);
+                if (mappedAdminBlock) {
+                    editableAdminItems.push(mappedAdminBlock);
+                }
+            }
+        }
+
+        const mergedItems = mergeRestrictedCalendarItems(publicItems, ownItems, editableAdminItems);
         return {
             success: true,
             accessMode: "restricted",
@@ -1183,13 +1207,34 @@ export async function fetchSeriesBookingsAction(recurringGroupId: string): Promi
 
             if (error) throw error;
 
-            const ownItems: OwnBookingCalendarItem[] = [];
+            const ownItems: Array<OwnBookingCalendarItem | StaffBookingCalendarItem> = [];
             for (const row of data || []) {
                 const rowGroupId = extractValidRecurringGroupIdFromNotes(row.notes);
                 if (rowGroupId !== recurringGroupId) continue;
                 const mapped = mapOwnBookingRowToCalendarItem(row, caller.name, true);
                 if (mapped) {
                     ownItems.push(mapped);
+                }
+            }
+
+            // Ak ide o člena NTC tímu a séria nepatrí priamo jemu, overíme, či nejde o sériu typu "Rezervácia Admin"
+            if (ownItems.length === 0 && caller.role === "ntc_team") {
+                const { data: adminBlockRows, error: adminBlockErr } = await db
+                    .from("bookings")
+                    .select("id, court_id, start_at, end_at, status, customer_name, notes")
+                    .eq("tenant_id", TENANT_ID)
+                    .eq("status", "blocked")
+                    .order("start_at", { ascending: true });
+
+                if (adminBlockErr) throw adminBlockErr;
+
+                for (const row of adminBlockRows || []) {
+                    const rowGroupId = extractValidRecurringGroupIdFromNotes(row.notes);
+                    if (rowGroupId !== recurringGroupId) continue;
+                    const mappedAdmin = mapNtcTeamEditableAdminRowToCalendarItem(row, true);
+                    if (mappedAdmin) {
+                        ownItems.push(mappedAdmin);
+                    }
                 }
             }
 
@@ -1200,7 +1245,7 @@ export async function fetchSeriesBookingsAction(recurringGroupId: string): Promi
             };
         }
 
-        // Privileged read vetva (`admin`, `ntc_team`):
+        // Privileged read vetva (výhradne `admin`):
         const { data, error } = await db
             .from("bookings")
             .select("id, court_id, start_at, end_at, status, customer_name, customer_phone, user_id, price_eur, notes")
@@ -2331,24 +2376,43 @@ export async function updateBookingSubSlotsAction(
     subSlots: BookingSubSlot[]
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        const session = await getSession();
-        if (!session) {
-            return { success: false, error: "Neprihlásený používateľ." };
+        const authResult = await getVerifiedBookingCaller();
+        if (!authResult.ok) {
+            return { success: false, error: authResult.error };
         }
 
-        const allowedRoles = ["admin", "superadmin", "ntc_team", "reception"];
-        if (!allowedRoles.includes(session.role || "")) {
+        const { caller } = authResult;
+        const isCallerAdmin = caller.role === "admin";
+        const isCallerNtcTeam = caller.role === "ntc_team";
+
+        if (!isCallerAdmin && !isCallerNtcTeam) {
             return { success: false, error: "Nemáte oprávnenie upravovať rozpis hráčov tejto rezervácie." };
         }
 
         const db = getCoreDb();
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bookingId);
-        let query = db.from("bookings").select("id, court_id, notes, tenant_id, customer_name, start_at, end_at");
+        let query = db
+            .from("bookings")
+            .select("id, court_id, notes, tenant_id, customer_name, start_at, end_at, status")
+            .eq("tenant_id", TENANT_ID);
         query = isUuid ? query.eq("id", bookingId) : query.eq("calendar_event_id", bookingId);
         const { data: booking, error: findError } = await query.single();
 
-        if (findError || !booking) {
+        if (findError || !booking || booking.tenant_id !== TENANT_ID) {
             return { success: false, error: "Rezervácia nebola nájdená." };
+        }
+
+        // Striktné obmedzenie pre rolu ntc_team: môže upravovať rozpis hráčov VÝHRADNE na rezerváciách vytvorených adminom ako "Rezervácia Admin"
+        if (isCallerNtcTeam && !isCallerAdmin) {
+            if (
+                booking.status !== "blocked" ||
+                !isAdminReservationBlockRow({ customerName: booking.customer_name, notes: booking.notes })
+            ) {
+                return {
+                    success: false,
+                    error: "Člen NTC tímu môže upravovať rozpis hráčov iba na termínoch vyhradených ako Rezervácia Admin.",
+                };
+            }
         }
 
         let parsedNotes: Record<string, any> = {};
@@ -2384,7 +2448,8 @@ export async function updateBookingSubSlotsAction(
         const { error: updateError } = await db
             .from("bookings")
             .update({ notes: JSON.stringify(parsedNotes) })
-            .eq("id", booking.id);
+            .eq("id", booking.id)
+            .eq("tenant_id", TENANT_ID);
 
         if (updateError) {
             console.error("updateBookingSubSlotsAction update error:", updateError);
@@ -2406,7 +2471,8 @@ export async function updateBookingSubSlotsAction(
                     },
                 },
                 metadata: {
-                    updated_by: session.email || session.userId || "",
+                    updated_by: caller.userId,
+                    updated_by_role: caller.role,
                     sub_slots_count: sanitizedSubSlots.length,
                     customer_name: booking.customer_name,
                 },
