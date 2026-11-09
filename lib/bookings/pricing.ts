@@ -27,6 +27,7 @@ export function getPricelistForDate(
 export type NtcPricingResult = {
   totalPriceEur: number;
   originalPriceEur: number;
+  priceBeforeMultisportEur: number;
   isMemberRate: boolean;
   baseHourlyRate: number;
   roleDiscountEur: number;
@@ -234,9 +235,8 @@ export function calculateNtcBookingPrice(
 
   const validCards = Math.min(2, Math.max(0, Math.floor(multisportCardsCount || 0)));
   if (validCards === 1) {
-    // 1 MultiSport karta: najprv 10% zľava zo základnej ceny, a následne 50% zľava
-    const priceAfter10Percent = roundedBeforeMultisport * 0.9;
-    finalTotal = Math.max(0, priceAfter10Percent * 0.5);
+    // 1 MultiSport karta: 50% zľava (polovica z ceny)
+    finalTotal = Math.max(0, roundedBeforeMultisport * 0.5);
     multisportDiscountEur = Math.round((roundedBeforeMultisport - finalTotal) * 100) / 100;
   } else if (validCards >= 2) {
     // 2 MultiSport karty = 100% zľava (zadarmo)
@@ -250,6 +250,7 @@ export function calculateNtcBookingPrice(
   return {
     totalPriceEur: roundedTotal,
     originalPriceEur: roundedOriginal,
+    priceBeforeMultisportEur: roundedBeforeMultisport,
     isMemberRate: isRegistered,
     baseHourlyRate: firstHourlyRate,
     roleDiscountEur,
