@@ -208,12 +208,23 @@ function UserDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
     <div className="min-h-screen bg-[#f4f7f5] text-slate-900" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
       <NewBookingsHeader currentUser={currentUser} activeTab="stats" />
       <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:py-8 font-sans">
-        <div className="mb-8">
-          <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-800">
-            <LayoutDashboard className="h-3.5 w-3.5 text-slate-950" /> Moje rezervácie a štatistika
-          </span>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Vitaj, {currentUser.name}</h1>
-          <p className="mt-1.5 text-sm text-slate-500">Tvoje rezervácie a osobná športová štatistika.</p>
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-800">
+              <LayoutDashboard className="h-3.5 w-3.5 text-slate-950" /> Moje rezervácie a štatistika
+            </span>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Vitaj, {currentUser.name}</h1>
+            <p className="mt-1.5 text-sm text-slate-500">Tvoje rezervácie a osobná športová štatistika.</p>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <Link
+              href="/newbookings"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 self-start sm:self-auto cursor-pointer"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Späť na kalendár
+            </Link>
+          </div>
         </div>
         {error && <button onClick={() => setError("")} className="mb-6 w-full rounded-2xl border border-red-200 bg-red-50 p-4 text-left text-sm font-semibold text-red-700">{error}</button>}
         {loading && !bookings.length ? (

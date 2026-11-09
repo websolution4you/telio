@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, Coins, Loader2 } from "lucide-react";
+import { ArrowDownLeft, ArrowLeft, ArrowUpRight, CheckCircle2, Clock, Coins, Loader2 } from "lucide-react";
 import { getWalletHistoryAction, reconcileWalletCardPayAction, reconcileWalletCheckoutAction } from "@/app/actions/wallet";
 import type { SessionPayload } from "@/lib/auth/bookingAuth";
 import NewBookingsHeader from "./NewBookingsHeader";
@@ -139,14 +140,25 @@ export default function NewBookingsTransactions({ currentUser }: { currentUser: 
       />
 
       <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:py-8">
-        <div className="mb-8">
-          <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700">
-            <Coins className="h-3.5 w-3.5" /> Moje transakcie
-          </span>
-          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-4xl" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>
-            Vitaj, {currentUser.name}
-          </h1>
-          <p className="mt-2 text-sm text-slate-500">Prehľad tvojej peňaženky, dobitia a pohybov kreditu.</p>
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700">
+              <Coins className="h-3.5 w-3.5" /> Moje transakcie
+            </span>
+            <h1 className="text-3xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-4xl" style={{ fontFamily: "var(--font-poppins), sans-serif" }}>
+              Vitaj, {currentUser.name}
+            </h1>
+            <p className="mt-2 text-sm text-slate-500">Prehľad tvojej peňaženky, dobitia a pohybov kreditu.</p>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <Link
+              href="/newbookings"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 self-start sm:self-auto cursor-pointer"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Späť na kalendár
+            </Link>
+          </div>
         </div>
 
         {walletNotice && (

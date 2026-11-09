@@ -612,6 +612,23 @@ export default function NewBookingsHeader({
                         </div>
                       </div>
 
+                      {/* 0. Kalendár rezervácií (ak používateľ nie je priamo na kalendári) */}
+                      {activeTab && (
+                        <Link
+                          href="/newbookings"
+                          onClick={() => setClientMenuOpen(false)}
+                          className="flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 text-xs font-medium text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
+                        >
+                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                            <CalendarDays className="h-4 w-4" />
+                          </span>
+                          <div className="flex flex-col text-left">
+                            <span className="text-xs font-semibold text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Kalendár rezervácií</span>
+                            <span className="text-[10px] font-normal text-slate-400">Prejsť späť na kurty</span>
+                          </div>
+                        </Link>
+                      )}
+
                       {/* 1. Moje rezervácie (predtým Štatistiky) */}
                       <Link
                         href="/dashboard/newbookings"
@@ -952,6 +969,23 @@ export default function NewBookingsHeader({
                 ) : (
                   <>
                     {/* Non-admin klient: zhodné s desktopovým menu */}
+                    {/* 0. Kalendár rezervácií (ak používateľ nie je priamo na kalendári) */}
+                    {activeTab && (
+                      <Link
+                        href="/newbookings"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 text-xs font-medium text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/90 hover:text-slate-950 transition-colors duration-150 group"
+                      >
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-150 shadow-2xs">
+                          <CalendarDays className="h-4 w-4" />
+                        </span>
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-semibold text-slate-800 group-hover:text-slate-950 transition-colors duration-150">Kalendár rezervácií</span>
+                          <span className="text-[10px] font-normal text-slate-400">Prejsť späť na kurty</span>
+                        </div>
+                      </Link>
+                    )}
+
                     {/* 1. Moje rezervácie */}
                     <Link
                       href="/dashboard/newbookings"
