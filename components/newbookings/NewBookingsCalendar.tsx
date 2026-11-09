@@ -1604,8 +1604,8 @@ export default function NewBookingsCalendar({
     if (isRecurring && canUserMakeRecurring) {
       const result = await createRecurringBookingAction({
         courtId: slot.courtId,
-        title: customNote || (currentUser.role === "admin" ? effectiveBlockType : (isNtcTeam ? "NTC Tím" : (sports.find((item) => item.id === sport)?.label || "Rezervácia"))),
-        customerName: effectivePlayerName || (currentUser.role === "admin" ? effectiveBlockType : (isNtcTeam ? "NTC Tím" : currentUser.name)),
+        title: customNote || (currentUser.role === "admin" ? (effectiveBlockType || "Rezervácia Admin") : (isNtcTeam ? "NTC Tím" : (sports.find((item) => item.id === sport)?.label || "Rezervácia"))),
+        customerName: effectivePlayerName || (currentUser.role === "admin" ? (effectiveBlockType || "Rezervácia Admin") : (isNtcTeam ? "NTC Tím" : currentUser.name)),
         phone: phone || undefined,
         start: startIso,
         end: endIso,
@@ -1676,9 +1676,9 @@ export default function NewBookingsCalendar({
     const result = await createBookingAction({
       courtId: slot.courtId,
       title: currentUser.role === "admin"
-        ? (customNote || effectiveBlockType)
+        ? (customNote || effectiveBlockType || "Rezervácia Admin")
         : (customNote || (isNtcTeam ? "NTC Tím" : (sports.find((item) => item.id === sport)?.label || "Rezervácia"))),
-      customerName: effectivePlayerName || (currentUser.role === "admin" ? effectiveBlockType : (isNtcTeam ? "NTC Tím" : currentUser.name)),
+      customerName: effectivePlayerName || (currentUser.role === "admin" ? (effectiveBlockType || "Rezervácia Admin") : (isNtcTeam ? "NTC Tím" : currentUser.name)),
       phone: phone || undefined,
       start: startIso,
       end: endIso,

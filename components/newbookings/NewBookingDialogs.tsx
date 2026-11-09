@@ -817,12 +817,12 @@ export function CreateBookingDialog(props: CreateDialogProps) {
             type="submit"
             disabled={props.loading || isInsufficientCredit}
             className={`mt-2 w-full rounded-xl px-4 py-3 text-xs font-bold text-white transition sm:px-5 sm:py-3.5 sm:text-sm shadow-xs ${isInsufficientCredit
-              ? "bg-slate-400 cursor-not-allowed opacity-80"
-              : props.isRecurring
-                ? "bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
-                : props.isAdmin || props.isNtcTeam
-                  ? "bg-slate-950 hover:bg-slate-800 disabled:opacity-50 cursor-pointer"
-                  : "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
+                ? "bg-slate-400 cursor-not-allowed opacity-80"
+                : props.isRecurring
+                  ? "bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
+                  : props.isAdmin || props.isNtcTeam
+                    ? "bg-slate-950 hover:bg-slate-800 disabled:opacity-50 cursor-pointer"
+                    : "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
               }`}
           >
             {props.loading

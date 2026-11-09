@@ -168,7 +168,6 @@ test("4. mergeRestrictedCalendarItems uprednostňuje NTC Tím editableAdminItems
 
   const ownItem: OwnBookingCalendarItem = {
     kind: "own-booking",
-    source: "calendar",
     booking: {
       id: "booking-ntc-100",
       courtId: "badminton-1",

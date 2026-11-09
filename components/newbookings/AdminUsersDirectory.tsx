@@ -571,14 +571,14 @@ export default function AdminUsersDirectory() {
         prev.map((u) =>
           u.id === detailData.user.id
             ? {
-              ...u,
-              name: editProfileForm.name,
-              email: editProfileForm.email,
-              phone: editProfileForm.phone || null,
-              role: editProfileForm.role,
-              hasMultisport: editProfileForm.hasMultisport,
-              discountTierId: editProfileForm.discountTierId,
-            }
+                ...u,
+                name: editProfileForm.name,
+                email: editProfileForm.email,
+                phone: editProfileForm.phone || null,
+                role: editProfileForm.role,
+                hasMultisport: editProfileForm.hasMultisport,
+                discountTierId: editProfileForm.discountTierId,
+              }
             : u
         )
       );
@@ -702,10 +702,11 @@ export default function AdminUsersDirectory() {
                     setRoleFilter(filter.id);
                     setPage(1);
                   }}
-                  className={`cursor-pointer rounded-xl px-3 py-1.5 text-xs font-bold transition ${active
+                  className={`cursor-pointer rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                    active
                       ? "bg-slate-950 text-white shadow-xs"
                       : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                    }`}
+                  }`}
                 >
                   {filter.label}
                 </button>
@@ -798,8 +799,9 @@ export default function AdminUsersDirectory() {
                 </td>
                 <td className="px-6 py-4">
                   <span
-                    className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-bold shadow-2xs ${roleLabels[user.role]?.badge || "bg-slate-100 text-slate-800"
-                      }`}
+                    className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-bold shadow-2xs ${
+                      roleLabels[user.role]?.badge || "bg-slate-100 text-slate-800"
+                    }`}
                   >
                     {roleLabels[user.role]?.label || user.role}
                   </span>
@@ -840,8 +842,9 @@ export default function AdminUsersDirectory() {
                     <span className="font-mono text-slate-400 font-bold">—</span>
                   ) : (
                     <strong
-                      className={`text-sm font-bold ${user.walletBalanceEur > 0 ? "text-emerald-600" : "text-slate-600"
-                        }`}
+                      className={`text-sm font-bold ${
+                        user.walletBalanceEur > 0 ? "text-emerald-600" : "text-slate-600"
+                      }`}
                     >
                       {formatEur(user.walletBalanceEur)}
                     </strong>
@@ -919,8 +922,9 @@ export default function AdminUsersDirectory() {
               </div>
               <div className="flex items-center gap-1.5">
                 <span
-                  className={`rounded-lg border px-2 py-0.5 text-[11px] font-bold shadow-2xs ${roleLabels[user.role]?.badge || "bg-slate-100 text-slate-800"
-                    }`}
+                  className={`rounded-lg border px-2 py-0.5 text-[11px] font-bold shadow-2xs ${
+                    roleLabels[user.role]?.badge || "bg-slate-100 text-slate-800"
+                  }`}
                 >
                   {roleLabels[user.role]?.label || user.role}
                 </span>
@@ -989,8 +993,9 @@ export default function AdminUsersDirectory() {
                   <span className="font-mono text-slate-400 font-bold text-xs">—</span>
                 ) : (
                   <span
-                    className={`font-bold ${user.walletBalanceEur > 0 ? "text-emerald-600" : "text-slate-700"
-                      }`}
+                    className={`font-bold ${
+                      user.walletBalanceEur > 0 ? "text-emerald-600" : "text-slate-700"
+                    }`}
                   >
                     {formatEur(user.walletBalanceEur)}
                   </span>
@@ -1147,8 +1152,9 @@ export default function AdminUsersDirectory() {
                       </span>
                     )}
                     <span
-                      className={`rounded-lg border px-2.5 py-1 font-bold shadow-2xs ${roleLabels[detailData.user.role]?.badge || "bg-slate-100 text-slate-800"
-                        }`}
+                      className={`rounded-lg border px-2.5 py-1 font-bold shadow-2xs ${
+                        roleLabels[detailData.user.role]?.badge || "bg-slate-100 text-slate-800"
+                      }`}
                     >
                       {roleLabels[detailData.user.role]?.label || detailData.user.role}
                     </span>
@@ -1248,10 +1254,11 @@ export default function AdminUsersDirectory() {
               <button
                 type="button"
                 onClick={() => setActiveTab("bookings")}
-                className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition ${activeTab === "bookings"
+                className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition ${
+                  activeTab === "bookings"
                     ? "border-emerald-600 text-emerald-700"
                     : "border-transparent text-slate-500 hover:text-slate-800"
-                  }`}
+                }`}
               >
                 <CalendarDays className="h-4 w-4" />
                 Rezervácie ({detailData?.bookings.length || 0})
@@ -1259,10 +1266,11 @@ export default function AdminUsersDirectory() {
               <button
                 type="button"
                 onClick={() => setActiveTab("wallet")}
-                className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition ${activeTab === "wallet"
+                className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition ${
+                  activeTab === "wallet"
                     ? "border-emerald-600 text-emerald-700"
                     : "border-transparent text-slate-500 hover:text-slate-800"
-                  }`}
+                }`}
               >
                 <Coins className="h-4 w-4" />
                 Pohyby kreditu ({detailData?.transactions.length || 0})
@@ -1297,10 +1305,11 @@ export default function AdminUsersDirectory() {
                       return (
                         <div
                           key={booking.id}
-                          className={`rounded-2xl border p-4 transition ${isCancelled
+                          className={`rounded-2xl border p-4 transition ${
+                            isCancelled
                               ? "border-slate-200 bg-slate-50/50 opacity-60"
                               : "border-slate-200 bg-white shadow-2xs hover:border-emerald-300"
-                            }`}
+                          }`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div>
@@ -1309,10 +1318,11 @@ export default function AdminUsersDirectory() {
                                   {courtLabel(booking.courtId)}
                                 </strong>
                                 <span
-                                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${isCancelled
+                                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                                    isCancelled
                                       ? "bg-red-50 text-red-700 border border-red-200"
                                       : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                    }`}
+                                  }`}
                                 >
                                   {isCancelled ? "Zrušená" : "Potvrdená"}
                                 </span>
@@ -1392,10 +1402,11 @@ export default function AdminUsersDirectory() {
                         >
                           <div className="flex items-center gap-3">
                             <span
-                              className={`grid h-9 w-9 place-items-center rounded-xl ${isPositive
+                              className={`grid h-9 w-9 place-items-center rounded-xl ${
+                                isPositive
                                   ? "bg-emerald-50 text-emerald-600"
                                   : "bg-red-50 text-red-600"
-                                }`}
+                              }`}
                             >
                               {isPositive ? (
                                 <ArrowDownLeft className="h-4 w-4" />
@@ -1414,8 +1425,9 @@ export default function AdminUsersDirectory() {
                           </div>
                           <div className="text-right">
                             <strong
-                              className={`text-sm font-bold ${isPositive ? "text-emerald-600" : "text-slate-900"
-                                }`}
+                              className={`text-sm font-bold ${
+                                isPositive ? "text-emerald-600" : "text-slate-900"
+                              }`}
                             >
                               {isPositive ? "+" : ""}
                               {formatEur(tx.amountEur)}
@@ -1817,12 +1829,13 @@ export default function AdminUsersDirectory() {
                   <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
                   <span>
                     {userToDelete.bookingsCount > 0
-                      ? `Používateľ má ${userToDelete.bookingsCount} ${userToDelete.bookingsCount === 1
-                        ? "aktívnu/evidovanú rezerváciu"
-                        : userToDelete.bookingsCount >= 2 && userToDelete.bookingsCount <= 4
-                          ? "aktívne/evidované rezervácie"
-                          : "aktívnych/evidovaných rezervácií"
-                      }`
+                      ? `Používateľ má ${userToDelete.bookingsCount} ${
+                          userToDelete.bookingsCount === 1
+                            ? "aktívnu/evidovanú rezerváciu"
+                            : userToDelete.bookingsCount >= 2 && userToDelete.bookingsCount <= 4
+                            ? "aktívne/evidované rezervácie"
+                            : "aktívnych/evidovaných rezervácií"
+                        }`
                       : "Používateľ nemá žiadne rezervácie"}
                   </span>
                 </div>
