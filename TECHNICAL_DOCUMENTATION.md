@@ -160,6 +160,28 @@ V bežných e-shopoch by peniaze zostali „visieť“ a zákazník by sa musel 
 
 ---
 
+### 3.3. Testovací Sandbox Tatra banky (Ako prebieha testovanie a prechod do ostrej prevádzky)
+
+Pred spustením do reálnej prevádzky s ostrými peniazmi sa platobný tok overuje v oficiálnom testovacom prostredí **TatraPayPlus Developer Sandbox (špecifikácia OpenAPI v1.6.0)**.
+
+- **Čo je to Sandbox:**
+  - Ide o vernú kópiu bankového portálu Tatra banky, ktorá reaguje na volania systému presne tak ako skutočná banka, ale nepracuje s reálnymi peniazmi.
+  - Využíva samostatné testovacie adresy:
+    - *Sandbox API:* `https://api.tatrabanka.sk/tatrapayplus/sandbox/v1`
+    - *Sandbox OAuth2 Token:* `https://api.tatrabanka.sk/tatrapayplus/sandbox/auth/oauth/v2/token`
+- **Čo sa v Sandboxe simuluje a testuje:**
+  - **Úspešná platba:** Simulácia schválenia transakcie cez bankový prevod (`BANK_TRANSFER`) alebo platobnú kartu (`CARD_PAY`), overenie automatického dobitia kreditu v NTC peňaženke.
+  - **Chybové scenáre:** Simulácia odmietnutia platby, nedostatku zostatku na testovacom účte alebo vypršania časového limitu na zadanie autorizačného SMS/PIN kódu (stavy `FAIL`, `REJECTED`, `EXPIRED`).
+  - **Testovanie poistky (Cron overenie):** Overenie, že systém správne zistí stav platby aj v prípade, ak tester po schválení simulácie zatvorí prehliadač.
+- **Ako sa systém prepne zo Sandboxu do Ostrej prevádzky?**
+  - Zdrojový kód systému je 100 % identický pre testovacie aj ostré prostredie.
+  - Prepnutie z testu do produkcie sa realizuje **výlučne zmenou konfiguračných kľúčov v `.env` súbore**:
+    1. Zmení sa adresa API z testovacej `/sandbox/v1` na produkčnú `https://api.tatrabanka.sk/tatrapayplus/v1`.
+    2. Namiesto testovacích údajov sa zadajú produkčné kľúče (`TATRABANKA_CLIENT_ID` a `TATRABANKA_SHARED_SECRET`), ktoré Tatra banka vygeneruje NTC po podpise zmluvy o akceptácii platieb.
+  - Tento prístup vylučuje riziko, že by sa pri prechode do produkcie v kóde čokoľvek pokazilo.
+
+---
+
 ## 🎾 4. Hlavné funkcie rezervačného systému a telefónie
 
 ### 4.1. Rezervačný kalendár a ochrana súkromia
@@ -222,6 +244,64 @@ Všetky balíčky používané projektom sú presne evidované a zabezpečené:
 | **`tailwindcss`** & **`@tailwindcss/postcss`** | `^4` | CSS framework pre moderný, čistý a responzívny dizajn stránok. |
 | **`eslint`** & **`eslint-config-next`** | `^9` / `16.1.6` | Nástroje na kontrolu kvality, čistoty a správnych praktík v Next.js kóde. |
 | **`@types/node`**, **`@types/react`**, **`@types/react-dom`** | `^20` / `^19` | Typové definície pre Node.js a React komponenty. |
+
+---
+
+### 5.3. Životný cyklus závislostí: Ako vieme, kedy ich aktualizovať a ako to prebieha?
+
+Balíčky v systéme nezostávajú fixné navždy. Tu je presný popis, ako sa sleduje ich stav a akým spôsobom sa vykonávajú aktualizácie:
+
+#### A. Ako vieme, že je čas balíčky aktualizovať?
+Systém a vývojári využívajú tri hlavné indikátory:
+
+1. **Automatické bezpečnostné hlásenia (GitHub Dependabot & Security Advisories):**
+   - Repozitár kódu je napojený na globálnu databázu bezpečnostných zraniteľností (CVE).
+   - Ak niektorá knižnica obsahuje bezpečnostnú chybu, GitHub okamžite pošle notifikáciu a navrhne bezpečnú verziu.
+   - Správca systému môže kedykoľvek spustiť príkaz:
+     ```bash
+     npm audit
+     ```
+     Tento príkaz preverí všetky balíčky a v priebehu sekundy oznámi, či existujú známe riziká a na akú verziu ich treba povýšiť.
+
+2. **Pravidelná kontrola nových verzií (`npm outdated`):**
+   - Spustením príkazu:
+     ```bash
+     npm outdated
+     ```
+     systém vypíše prehľadnú tabuľku: *aktuálna verzia vs. najnovšia dostupná verzia* pre každý balíček.
+   - Používa sa medzinárodný štandard sémantického číslovania verzií (`MAJOR.MINOR.PATCH`):
+     - **Patch (napr. 16.1.6 ➔ 16.1.7):** Rýchle opravy drobných chýb a vylepšenia stability. Aktualizujú sa priebežne bez rizika.
+     - **Minor (napr. 16.1.6 ➔ 16.2.0):** Nové funkcie, ktoré zachovávajú spätnú kompatibilitu. Aktualizujú sa po bežnom otestovaní.
+     - **Major (napr. 16.0.0 ➔ 17.0.0):** Veľké generačné skoky. Vyžadujú plánovanú kontrolu, či nová verzia nemení spôsob volania funkcií.
+
+3. **Oznámenia od partnerov (Tatra banka / Telnyx API):**
+   - Ak Tatra banka alebo Telnyx pripravuje novú verziu svojho API a plánuje vypnúť staršiu verziu, NTC a vývojári dostávajú technické oznámenie s predstihom (zvyčajne 6 až 12 mesiacov vopred).
+
+---
+
+#### B. Ako sa aktualizácia závislostí realizuje v praxi?
+Aktualizácie sa nikdy nerobia „naslepo“ priamo na produkcii. Postupuje sa podľa osvedčeného štandardu:
+
+1. **Lokálna aktualizácia a overenie integrity:**
+   - Vývojár spustí bezpečné povýšenie kompatibilných balíčkov príkazom:
+     ```bash
+     npm update
+     ```
+     (alebo pre konkrétny balíček napr. `npm install @supabase/supabase-js@latest`).
+   - Súbor `package-lock.json` automaticky zaznamená presné kontrolné súčty (checksums) nových verzií, aby sa zaručilo, že na serveri pobeží presne ten istý kód ako pri vývoji.
+
+2. **Automatická kontrola a test kompilácie:**
+   - Spustí sa test zostavenia aplikácie:
+     ```bash
+     npm run build
+     ```
+   - TypeScript a Next.js preveria celý kód. Ak by aktualizovaný balíček zmenil nejaký názov parametra alebo funkciu, systém chybu odhalí okamžite v termináli a nedovolí kód nasadiť.
+
+3. **Overenie kľúčových funkcií:**
+   - Otestuje sa vytvorenie rezervácie kurtu, prihlásenie, peňaženka a história hovorov na testovacom prostredí.
+
+4. **Nasadenie do cloudu bez výpadku:**
+   - Po schválení sa aktualizácia zapíše do Gitu a Google Cloud Run ju nasadí plynulým prepnutím prevádzky (Zero-Downtime Traffic Migration, popísané v sekcii 7). Hráči ani personál nepocítia žiadne prerušenie.
 
 ---
 

@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: [
+    "@azure/monitor-opentelemetry",
+    "@azure/monitor-opentelemetry-exporter",
+    "@opentelemetry/sdk-node",
+    "@opentelemetry/api",
+  ],
   async headers() {
     return [
       {
