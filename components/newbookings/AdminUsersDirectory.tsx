@@ -1264,10 +1264,11 @@ export default function AdminUsersDirectory() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("wallet")}
-                  className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition ${activeTab === "wallet"
+                  className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition ${
+                    activeTab === "wallet"
                       ? "border-emerald-600 text-emerald-700"
                       : "border-transparent text-slate-500 hover:text-slate-800"
-                    }`}
+                  }`}
                 >
                   <Coins className="h-4 w-4" />
                   Pohyby kreditu ({detailData?.transactions.length || 0})
