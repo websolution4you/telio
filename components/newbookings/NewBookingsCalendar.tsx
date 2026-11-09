@@ -320,7 +320,7 @@ export default function NewBookingsCalendar({
         if (item.kind !== "staff-booking") return true;
         return (
           allowNtcTeamAdminBlocks &&
-          isAdminReservationBlockRow({
+          isNtcTeamReservationBlockRow({
             adminBlockType: item.booking.adminBlockType,
             customerName: item.booking.customerName,
             title: item.booking.title,
@@ -748,7 +748,7 @@ export default function NewBookingsCalendar({
             if (item.kind !== "staff-booking") return true;
             return (
               allowNtcTeamAdminBlocks &&
-              isAdminReservationBlockRow({
+              isNtcTeamReservationBlockRow({
                 adminBlockType: item.booking.adminBlockType,
                 customerName: item.booking.customerName,
                 title: item.booking.title,
@@ -934,7 +934,7 @@ export default function NewBookingsCalendar({
           if (item.kind !== "staff-booking") return true;
           return (
             allowNtcTeamAdminBlocks &&
-            isAdminReservationBlockRow({
+            isNtcTeamReservationBlockRow({
               adminBlockType: item.booking.adminBlockType,
               customerName: item.booking.customerName,
               title: item.booking.title,
@@ -2127,7 +2127,14 @@ export default function NewBookingsCalendar({
                       matchedCategory = categories.find((cat) => {
                         const cName = cat.name.toLowerCase();
                         const cId = cat.id.toLowerCase();
-                        return blockType === cName || blockType === cId;
+                        if (blockType === cName || blockType === cId) return true;
+                        if (
+                          cId === "training" &&
+                          (blockType === "ntc tím" || blockType === "ntc tim" || blockType === "ntc_team" || blockType === "tréningy" || blockType === "treningy")
+                        ) {
+                          return true;
+                        }
+                        return false;
                       });
                     }
 
@@ -2135,6 +2142,8 @@ export default function NewBookingsCalendar({
                     if (!matchedCategory) {
                       if (
                         isTrainer ||
+                        nameLower === "ntc tím" ||
+                        nameLower === "ntc tim" ||
                         nameLower === "tréningy" ||
                         nameLower === "treningy" ||
                         nameLower === "tréning" ||
@@ -2456,11 +2465,15 @@ export default function NewBookingsCalendar({
                           Režim presunu rezervácie
                         </span>
                         <span className="text-xs font-bold text-emerald-950">
-                          {reschedDurationMin} min. | {reschedOriginalPrice.toFixed(2)} €
+                          {reschedDurationMin} min.{currentUser?.role !== "admin" && currentUser?.role !== "ntc_team" ? ` | ${reschedOriginalPrice.toFixed(2)} €` : ""}
                         </span>
                       </div>
                       <p className="mt-0.5 text-xs text-slate-700">
-                        Vyberte zelené okienko <b>Presunúť sem</b>. Ostatné okienka s inou cenou alebo obsadené termíny sú vyblokované.
+                        {currentUser?.role === "admin" || currentUser?.role === "ntc_team" ? (
+                          <>Vyberte zelené okienko <b>Presunúť sem</b>. Obsadené termíny sú vyblokované.</>
+                        ) : (
+                          <>Vyberte zelené okienko <b>Presunúť sem</b>. Ostatné okienka s inou cenou alebo obsadené termíny sú vyblokované.</>
+                        )}
                       </p>
                     </div>
                   </div>

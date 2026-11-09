@@ -295,7 +295,7 @@ export async function fetchAuthorizedCalendarItemsAction(
             caller.role === "ntc_team"
                 ? db
                     .from("bookings")
-                    .select("id,court_id,start_at,end_at,status,customer_name,notes")
+                    .select("id,court_id,start_at,end_at,status,customer_name,user_id,notes")
                     .eq("tenant_id", TENANT_ID)
                     .eq("status", "blocked")
                     .gt("end_at", validation.start)
@@ -493,12 +493,15 @@ export async function createBookingAction(payload: {
         }
 
         let roleDiscountEurPerHour = 0;
-        if (payload.source !== "admin") {
-            const { data: policy, error: policyError } = await serviceDb
+        if (!isCallerAdmin) {
+            const { data: rawPolicy, error: policyError } = await serviceDb
                 .from("role_booking_policies")
                 .select("max_booking_duration_minutes, booking_horizon_days, discount_eur_per_hour, is_active")
                 .eq("role", bookingUser.role)
                 .maybeSingle();
+            const policy = rawPolicy || (isCallerNtcTeam
+                ? { max_booking_duration_minutes: 480, booking_horizon_days: 180, discount_eur_per_hour: 0, is_active: true }
+                : null);
             if (policyError || !policy) return { success: false, error: "Pravidlá vašej roly sa nepodarilo načítať." };
             if (!policy.is_active) return { success: false, error: "Rezervácie sú pre vašu rolu momentálne deaktivované." };
 
@@ -508,7 +511,7 @@ export async function createBookingAction(payload: {
             }
             if (durationMinutes > getCourtOperatingLimitMinutes(payload.courtId, bookingStart)) {
                 return { success: false, error: "Rezervácia presahuje údržbu alebo otváracie hodiny kurtu." };
-                        }
+            }
 
             const now = new Date();
             const todayKey = getBratislavaDateKey(now);
@@ -1824,7 +1827,7 @@ export async function fetchUserDashboardDataAction() {
         const now = new Date();
         const nowIso = now.toISOString();
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        const currentMonthBookings = bookings.filter(b => b.start >= firstDayOfMonth && b.status === "confirmed");
+        const currentMonthBookings = bookings.filter(b => b.start >= firstDayOfMonth && b.status !== "cancelled");
         
         let pastHoursThisMonth = 0;
         let futureHoursThisMonth = 0;
@@ -1841,9 +1844,29 @@ export async function fetchUserDashboardDataAction() {
             }
         });
 
+        let cancellationDeadlineHours = session.role === "admin" || session.role === "ntc_team" ? 0 : 24;
+        const serviceDb = getCoreServiceDb();
+        const { data: userRow } = await serviceDb
+            .from("booking_users")
+            .select("role")
+            .eq("id", session.userId)
+            .maybeSingle();
+        const activeRole = userRow?.role || session.role;
+        const { data: policyRow } = await serviceDb
+            .from("role_booking_policies")
+            .select("cancellation_deadline_hours")
+            .eq("role", activeRole)
+            .maybeSingle();
+        if (policyRow && policyRow.cancellation_deadline_hours != null) {
+            cancellationDeadlineHours = Number(policyRow.cancellation_deadline_hours);
+        } else if (activeRole === "admin" || activeRole === "ntc_team") {
+            cancellationDeadlineHours = 0;
+        }
+
         return { 
             success: true, 
-            bookings, 
+            bookings,
+            cancellationDeadlineHours,
             stats: { 
                 pastHoursThisMonth,
                 futureHoursThisMonth, 

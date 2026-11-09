@@ -106,7 +106,7 @@ const roleLabels: Record<BookingRole, { label: string; badge: string }> = {
     badge: "bg-[#FFF3B0] text-slate-950 border-[#EAD77B] font-bold",
   },
   ntc_team: {
-    label: "NTC Team",
+    label: "NTC Tím",
     badge: "bg-blue-100 text-blue-950 border-blue-300 font-bold",
   },
 };
@@ -689,7 +689,7 @@ export default function AdminUsersDirectory() {
                 { id: "all", label: "Všetci" },
                 { id: "user", label: "Používatelia" },
                 { id: "trainer", label: "Tréneri" },
-                { id: "ntc_team", label: "NTC Team" },
+                { id: "ntc_team", label: "NTC Tím" },
                 { id: "admin", label: "Administrátori" },
               ] as const
             ).map((filter) => {
@@ -1158,12 +1158,16 @@ export default function AdminUsersDirectory() {
                     >
                       {roleLabels[detailData.user.role]?.label || detailData.user.role}
                     </span>
-                    <span className="rounded-lg bg-indigo-50 px-2.5 py-1 font-bold text-indigo-800 border border-indigo-200">
-                      Zľava: {getTierLabel(detailData.user.discountTierId)}
-                    </span>
-                    <span className="rounded-lg bg-emerald-50 px-2.5 py-1 font-bold text-emerald-700 border border-emerald-200">
-                      Kredit: {formatEur(detailData.user.walletBalanceEur)}
-                    </span>
+                    {detailData.user.role !== "ntc_team" && detailData.user.role !== "admin" && (
+                      <>
+                        <span className="rounded-lg bg-indigo-50 px-2.5 py-1 font-bold text-indigo-800 border border-indigo-200">
+                          Zľava: {getTierLabel(detailData.user.discountTierId)}
+                        </span>
+                        <span className="rounded-lg bg-emerald-50 px-2.5 py-1 font-bold text-emerald-700 border border-emerald-200">
+                          Kredit: {formatEur(detailData.user.walletBalanceEur)}
+                        </span>
+                      </>
+                    )}
                     <span className="text-slate-400 text-xs">
                       Registrovaný: {formatDate(detailData.user.createdAt)}
                     </span>
@@ -1263,18 +1267,20 @@ export default function AdminUsersDirectory() {
                 <CalendarDays className="h-4 w-4" />
                 Rezervácie ({detailData?.bookings.length || 0})
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("wallet")}
-                className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition ${
-                  activeTab === "wallet"
-                    ? "border-emerald-600 text-emerald-700"
-                    : "border-transparent text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                <Coins className="h-4 w-4" />
-                Pohyby kreditu ({detailData?.transactions.length || 0})
-              </button>
+              {detailData?.user.role !== "ntc_team" && detailData?.user.role !== "admin" && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("wallet")}
+                  className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition ${
+                    activeTab === "wallet"
+                      ? "border-emerald-600 text-emerald-700"
+                      : "border-transparent text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  <Coins className="h-4 w-4" />
+                  Pohyby kreditu ({detailData?.transactions.length || 0})
+                </button>
+              )}
             </div>
 
             {/* Modal Body */}
@@ -1577,7 +1583,7 @@ export default function AdminUsersDirectory() {
                   >
                     <option value="user">Používateľ (Klient)</option>
                     <option value="trainer">Tréner</option>
-                    <option value="ntc_team">NTC Team</option>
+                    <option value="ntc_team">NTC Tím</option>
                     <option value="admin">Administrátor</option>
                   </select>
                 </div>
@@ -1721,7 +1727,7 @@ export default function AdminUsersDirectory() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
+                <div className={editProfileForm.role === "ntc_team" || editProfileForm.role === "admin" ? "sm:col-span-2" : ""}>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Rola</label>
                   <select
                     value={editProfileForm.role}
@@ -1730,24 +1736,26 @@ export default function AdminUsersDirectory() {
                   >
                     <option value="user">Používateľ (Klient)</option>
                     <option value="trainer">Tréner</option>
-                    <option value="ntc_team">NTC Team</option>
+                    <option value="ntc_team">NTC Tím</option>
                     <option value="admin">Administrátor</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Pridelená zľava (cenník)</label>
-                  <select
-                    value={editProfileForm.discountTierId}
-                    onChange={(e) => setEditProfileForm({ ...editProfileForm, discountTierId: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 cursor-pointer"
-                  >
-                    {discountTiers.map((tier) => (
-                      <option key={tier.id} value={tier.id}>
-                        {tier.name} {tier.isPercentual ? (tier.discountPercent > 0 ? `(-${tier.discountPercent} %)` : "(0 %)") : (tier.price60 ? `(${tier.price60} €/h)` : "")}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {editProfileForm.role !== "ntc_team" && editProfileForm.role !== "admin" && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Pridelená zľava (cenník)</label>
+                    <select
+                      value={editProfileForm.discountTierId}
+                      onChange={(e) => setEditProfileForm({ ...editProfileForm, discountTierId: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 cursor-pointer"
+                    >
+                      {discountTiers.map((tier) => (
+                        <option key={tier.id} value={tier.id}>
+                          {tier.name} {tier.isPercentual ? (tier.discountPercent > 0 ? `(-${tier.discountPercent} %)` : "(0 %)") : (tier.price60 ? `(${tier.price60} €/h)` : "")}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">

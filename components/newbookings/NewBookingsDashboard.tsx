@@ -60,10 +60,10 @@ function StatCard({ icon: Icon, label, value }: { icon: typeof Clock3; label: st
   );
 }
 
-function BookingRow({ booking, future, now, onAction }: { booking: BookingItem; future: boolean; now: number; onAction: (value: PendingAction) => void }) {
+function BookingRow({ booking, future, now, cancellationDeadlineHours, onAction }: { booking: BookingItem; future: boolean; now: number; cancellationDeadlineHours: number; onAction: (value: PendingAction) => void }) {
   const cancelled = booking.status === "cancelled";
   const isRescheduled = Boolean(booking.isRescheduled);
-  const canCancel = future && !cancelled && !isRescheduled && new Date(booking.start).getTime() > now + 86_400_000;
+  const canCancel = future && !cancelled && !isRescheduled && new Date(booking.start).getTime() > now + cancellationDeadlineHours * 3_600_000;
   return (
     <div className={`flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between ${cancelled ? "border-red-100 bg-red-50/60" : "border-slate-100 bg-slate-50/80"}`}>
       <div>
@@ -75,7 +75,7 @@ function BookingRow({ booking, future, now, onAction }: { booking: BookingItem; 
         </div>
         <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-500">{courtName(booking.courtId)}</p>
         {future && !cancelled && isRescheduled && <p className="mt-1 text-[10px] font-medium text-blue-700">Presunutú rezerváciu nie je možné zrušiť</p>}
-        {future && !cancelled && !isRescheduled && !canCancel && <p className="mt-1 text-[10px] font-medium text-amber-700">Menej ako 24 hodín do začiatku</p>}
+        {future && !cancelled && !isRescheduled && !canCancel && <p className="mt-1 text-[10px] font-medium text-amber-700">Menej ako {cancellationDeadlineHours} hodín do začiatku</p>}
       </div>
       <div className="flex items-center justify-between gap-3 sm:justify-end">
         <b className={`whitespace-nowrap text-sm ${cancelled ? "text-slate-400 line-through" : "text-slate-800"}`}>{formatTime(booking.start)} – {formatTime(booking.end)}</b>
@@ -86,8 +86,8 @@ function BookingRow({ booking, future, now, onAction }: { booking: BookingItem; 
   );
 }
 
-function BookingSection({ title, empty, bookings, future = false, now, onAction }: { title: string; empty: string; bookings: BookingItem[]; future?: boolean; now: number; onAction: (value: PendingAction) => void }) {
-  return <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_15px_45px_rgba(15,23,42,0.06)] sm:p-6"><h2 className="mb-5 text-xl font-bold text-slate-950">{title}</h2>{bookings.length ? <div className="space-y-3">{bookings.map((booking) => <BookingRow key={booking.id} booking={booking} future={future} now={now} onAction={onAction} />)}</div> : <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">{empty}</div>}</section>;
+function BookingSection({ title, empty, bookings, future = false, now, cancellationDeadlineHours, onAction }: { title: string; empty: string; bookings: BookingItem[]; future?: boolean; now: number; cancellationDeadlineHours: number; onAction: (value: PendingAction) => void }) {
+  return <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_15px_45px_rgba(15,23,42,0.06)] sm:p-6"><h2 className="mb-5 text-xl font-bold text-slate-950">{title}</h2>{bookings.length ? <div className="space-y-3">{bookings.map((booking) => <BookingRow key={booking.id} booking={booking} future={future} now={now} cancellationDeadlineHours={cancellationDeadlineHours} onAction={onAction} />)}</div> : <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">{empty}</div>}</section>;
 }
 
 function WalletHistory({ balanceEur, transactions }: { balanceEur: number; transactions: WalletTransaction[] }) {
@@ -167,6 +167,7 @@ function AdminDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
 function UserDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [stats, setStats] = useState<Stats>({});
+  const [cancellationDeadlineHours, setCancellationDeadlineHours] = useState<number>(currentUser.role === "ntc_team" ? 0 : 24);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [pending, setPending] = useState<PendingAction>(null);
@@ -178,6 +179,9 @@ function UserDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
     if (bookingResult.success) {
       setBookings((bookingResult.bookings || []) as BookingItem[]);
       setStats((bookingResult.stats || {}) as Stats);
+      if (typeof (bookingResult as any).cancellationDeadlineHours === "number") {
+        setCancellationDeadlineHours((bookingResult as any).cancellationDeadlineHours);
+      }
     } else {
       setError(bookingResult.error || "Dáta sa nepodarilo načítať.");
     }
@@ -222,8 +226,8 @@ function UserDashboardPage({ currentUser }: { currentUser: SessionPayload }) {
               <StatCard icon={Activity} label="Počet rezervácií tento mesiac" value={String(stats.totalBookings || 0)} tone="emerald" />
             </div>
             <div className="grid gap-6 lg:grid-cols-2">
-              <BookingSection title="Nadchádzajúce termíny" empty="Nemáš žiadne aktívne rezervácie." bookings={future} future now={now} onAction={setPending} />
-              <BookingSection title="História rezervácií" empty="Zatiaľ nemáš históriu rezervácií." bookings={past} now={now} onAction={setPending} />
+              <BookingSection title="Nadchádzajúce termíny" empty="Nemáš žiadne aktívne rezervácie." bookings={future} future now={now} cancellationDeadlineHours={cancellationDeadlineHours} onAction={setPending} />
+              <BookingSection title="História rezervácií" empty="Zatiaľ nemáš históriu rezervácií." bookings={past} now={now} cancellationDeadlineHours={cancellationDeadlineHours} onAction={setPending} />
             </div>
           </div>
         )}
