@@ -12,18 +12,24 @@ const JWT_SECRET_HEX_64_RE = /^[0-9a-f]{64}$/;
 /**
  * Lazy fail-closed načítanie a validácia `JWT_SECRET`.
  * - Bez akéhokoľvek hardcoded fallbacku.
- * - Bez `.trim()`.
- * - Vyžaduje presne 64 malých hex znakov (`/^[0-9a-f]{64}$/`).
+ * - Odstráni prípadný koncový riadok / whitespace z viacriadkového poľa vo Vercel UI (`.trim()`).
+ * - Vyžaduje presne 64 hex znakov (`/^[0-9a-f]{64}$/`).
  * - Zachováva UTF-8 TextEncoder reprezentáciu kľúča pre kompatibilitu so SignJWT / jwtVerify.
  */
 export function getJwtSecretKey(): Uint8Array {
     const rawSecret = process.env.JWT_SECRET;
-    if (typeof rawSecret !== "string" || !JWT_SECRET_HEX_64_RE.test(rawSecret)) {
+    if (typeof rawSecret !== "string" || rawSecret.trim().length === 0) {
         throw new Error(
-            "CRITICAL_AUTH_CONFIG: Missing or invalid JWT_SECRET. Expected an untrimmed 64-character lowercase hex string."
+            "CRITICAL_AUTH_CONFIG: Missing JWT_SECRET environment variable (not loaded in current deployment)."
         );
     }
-    return new TextEncoder().encode(rawSecret);
+    const cleanSecret = rawSecret.trim().toLowerCase();
+    if (!JWT_SECRET_HEX_64_RE.test(cleanSecret)) {
+        throw new Error(
+            `CRITICAL_AUTH_CONFIG: Invalid JWT_SECRET format (trimmed length=${cleanSecret.length}, expected 64 hex characters).`
+        );
+    }
+    return new TextEncoder().encode(cleanSecret);
 }
 
 function canonicalizeEmailClaim(rawEmail: unknown): string | null {
