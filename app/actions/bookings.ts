@@ -1353,19 +1353,23 @@ export async function deleteBookingAction(id: string, deleteEntireSeries = false
 
         let deadlineHours = 24;
         if (!isCallerAdmin) {
-            const policyDb = getCoreServiceDb();
-            const { data: userPolicy, error: policyError } = await policyDb
-                .from("booking_users")
-                .select("role, role_booking_policies(cancellation_deadline_hours)")
-                .eq("id", caller.userId)
-                .maybeSingle();
-            if (policyError || !userPolicy) {
-                return { success: false, error: "Storno pravidlá sa nepodarilo overiť." };
+            if (caller.role === "ntc_team") {
+                deadlineHours = 0;
+            } else {
+                const policyDb = getCoreServiceDb();
+                const { data: userPolicy, error: policyError } = await policyDb
+                    .from("booking_users")
+                    .select("role, role_booking_policies(cancellation_deadline_hours)")
+                    .eq("id", caller.userId)
+                    .maybeSingle();
+                if (policyError || !userPolicy) {
+                    return { success: false, error: "Storno pravidlá sa nepodarilo overiť." };
+                }
+                const joinedPolicy = Array.isArray(userPolicy.role_booking_policies)
+                    ? userPolicy.role_booking_policies[0]
+                    : userPolicy.role_booking_policies;
+                deadlineHours = Number(joinedPolicy?.cancellation_deadline_hours ?? 24);
             }
-            const joinedPolicy = Array.isArray(userPolicy.role_booking_policies)
-                ? userPolicy.role_booking_policies[0]
-                : userPolicy.role_booking_policies;
-            deadlineHours = Number(joinedPolicy?.cancellation_deadline_hours ?? 24);
         }
 
         const checkNonAdminCancellationAllowed = (targetStartAt: string, targetNotesObj: Record<string, unknown>): string | null => {

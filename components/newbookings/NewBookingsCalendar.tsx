@@ -334,8 +334,8 @@ export default function NewBookingsCalendar({
         return prev.filter(isAllowedForCaller);
       });
       setDetail((prev) => (prev && !isAllowedForCaller(prev) ? null : prev));
-      setDeleting((prev) => (prev?.kind === "staff-booking" ? null : prev));
-      setReschedulingBooking((prev) => (prev?.kind === "staff-booking" ? null : prev));
+      setDeleting((prev) => (prev && !isAllowedForCaller(prev) ? null : prev));
+      setReschedulingBooking((prev) => (prev && !isAllowedForCaller(prev) ? null : prev));
     }
   }, [currentUser]);
 
@@ -757,8 +757,8 @@ export default function NewBookingsCalendar({
           };
 
           setDetail((prev) => (prev && !isAllowedForCaller(prev) ? null : prev));
-          setDeleting((prev) => (prev?.kind === "staff-booking" ? null : prev));
-          setReschedulingBooking((prev) => (prev?.kind === "staff-booking" ? null : prev));
+          setDeleting((prev) => (prev && !isAllowedForCaller(prev) ? null : prev));
+          setReschedulingBooking((prev) => (prev && !isAllowedForCaller(prev) ? null : prev));
           setItems(result.items.filter(isAllowedForCaller));
         } else {
           for (const item of result.items) {
@@ -943,8 +943,8 @@ export default function NewBookingsCalendar({
         };
 
         setDetail((prev) => (prev && !isAllowedForCaller(prev) ? null : prev));
-        setDeleting((prev) => (prev?.kind === "staff-booking" ? null : prev));
-        setReschedulingBooking((prev) => (prev?.kind === "staff-booking" ? null : prev));
+        setDeleting((prev) => (prev && !isAllowedForCaller(prev) ? null : prev));
+        setReschedulingBooking((prev) => (prev && !isAllowedForCaller(prev) ? null : prev));
 
         for (const item of result.items) {
           if (item.kind === "own-booking" || (item.kind === "staff-booking" && isAllowedForCaller(item))) {
