@@ -466,7 +466,7 @@ export default function AdminAuditLogs() {
                 <th className="py-3 pl-4 pr-2 sm:pl-5">Čas</th>
                 <th className="py-3 px-3">Kto vykonal</th>
                 <th className="py-3 px-3">Typ akcie</th>
-                <th className="py-3 px-3">Popis & Entita</th>
+                <th className="py-3 px-3">Popis</th>
                 <th className="py-3 px-3 text-right pr-4 sm:pr-5">Detaily</th>
               </tr>
             </thead>
@@ -534,17 +534,11 @@ export default function AdminAuditLogs() {
                         </div>
                       </td>
 
-                      {/* Popis & Entita */}
+                      {/* Popis */}
                       <td className="py-3.5 px-3 max-w-[280px] sm:max-w-md">
                         <div className="text-xs sm:text-[13px] font-medium text-slate-900 line-clamp-2">
                           {log.description}
                         </div>
-                        {log.entity_name && (
-                          <div className="mt-1 flex items-center gap-1 text-[11px] text-slate-500">
-                            <span className="font-semibold text-slate-600">Entita:</span>
-                            <span className="truncate">{log.entity_name}</span>
-                          </div>
-                        )}
                       </td>
 
                       {/* Detaily tlačidlo */}
@@ -623,8 +617,8 @@ export default function AdminAuditLogs() {
               </button>
             </div>
 
-            {/* Informácie o aktérovi a entite */}
-            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Informácie o aktérovi */}
+            <div className="mt-5">
               <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Kto akciu vykonal</div>
                 <div className="mt-1 font-semibold text-slate-900 text-sm">
@@ -636,19 +630,6 @@ export default function AdminAuditLogs() {
                 <div className="mt-1.5">
                   {getRoleBadge(selectedLog.actor_role)}
                 </div>
-              </div>
-
-              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Dotknutá entita</div>
-                <div className="mt-1 font-semibold text-slate-900 text-sm">
-                  {selectedLog.entity_name || selectedLog.entity_type}
-                </div>
-                <div className="text-xs text-slate-500">Typ: {selectedLog.entity_type}</div>
-                {selectedLog.entity_id && (
-                  <div className="mt-1 font-mono text-[10.5px] text-slate-400 truncate">
-                    ID: {selectedLog.entity_id}
-                  </div>
-                )}
               </div>
             </div>
 

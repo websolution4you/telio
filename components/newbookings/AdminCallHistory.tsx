@@ -1,21 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { 
   fetchDashboardCallHistoryAction, 
   type DashboardCallItem 
 } from "@/app/actions/calls";
 import { 
   PhoneCall, 
-  Play, 
-  Pause, 
   RotateCcw, 
   Search, 
   CheckCircle2, 
   XCircle, 
   Loader2, 
-  Volume2, 
-  VolumeX, 
   Info, 
   Sparkles,
   AlertCircle
@@ -52,17 +48,8 @@ export default function AdminCallHistory() {
   // Vyhľadávanie
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Audio Prehrávač
-  const [activeCallId, setActiveCallId] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioProgress, setAudioProgress] = useState(0); // 0 až 100
-  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
-  const [audioDuration, setAudioDuration] = useState(0);
-  const [audioLoading, setAudioLoading] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  // Modál so zhrnutím hovoru
   const [activeSummaryModal, setActiveSummaryModal] = useState<DashboardCallItem | null>(null);
-
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const loadCalls = useCallback(async (isManualRefresh = false) => {
     if (isManualRefresh) setRefreshing(true);
@@ -91,68 +78,6 @@ export default function AdminCallHistory() {
     loadCalls();
   }, [loadCalls]);
 
-  // Ovládanie audia
-  const handlePlayToggle = (call: DashboardCallItem) => {
-    if (!audioRef.current) return;
-
-    if (activeCallId === call.id) {
-      if (isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        audioRef.current.play().then(() => setIsPlaying(true)).catch((e) => {
-          console.error("Audio play error:", e);
-          setError("Prehrávanie zlyhalo. Skúste znova.");
-        });
-      }
-    } else {
-      // Zmena hovoru
-      setActiveCallId(call.id);
-      setAudioLoading(true);
-      setAudioProgress(0);
-      setAudioCurrentTime(0);
-      audioRef.current.src = call.audioUrl;
-      audioRef.current.load();
-      audioRef.current.play().then(() => {
-        setIsPlaying(true);
-        setAudioLoading(false);
-      }).catch((e) => {
-        console.error("Audio switch error:", e);
-        setAudioLoading(false);
-        setError("Audio nahrávku sa nepodarilo načítať.");
-      });
-    }
-  };
-
-  const handleTimeUpdate = () => {
-    if (!audioRef.current) return;
-    const cur = audioRef.current.currentTime;
-    const dur = audioRef.current.duration || 1;
-    setAudioCurrentTime(cur);
-    setAudioDuration(dur);
-    setAudioProgress((cur / dur) * 100);
-  };
-
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!audioRef.current) return;
-    const newPercent = parseFloat(e.target.value);
-    const newTime = (newPercent / 100) * (audioRef.current.duration || 1);
-    audioRef.current.currentTime = newTime;
-    setAudioProgress(newPercent);
-    setAudioCurrentTime(newTime);
-  };
-
-  const handleToggleMute = () => {
-    if (!audioRef.current) return;
-    audioRef.current.muted = !audioRef.current.muted;
-    setIsMuted(audioRef.current.muted);
-  };
-
-  const handleAudioEnded = () => {
-    setIsPlaying(false);
-    setAudioProgress(100);
-  };
-
   // Filtrované hovory
   const filteredCalls = useMemo(() => {
     return calls.filter((c) => {
@@ -169,19 +94,6 @@ export default function AdminCallHistory() {
 
   return (
     <section className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)] font-sans">
-      {/* Skrytý audio element */}
-      <audio
-        ref={audioRef}
-        onTimeUpdate={handleTimeUpdate}
-        onEnded={handleAudioEnded}
-        onError={() => {
-          setAudioLoading(false);
-          setIsPlaying(false);
-          setError("Chyba pri prehrávaní audio nahrávky.");
-        }}
-        preload="none"
-      />
-
       {/* Hlavička sekcie */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -197,7 +109,7 @@ export default function AdminCallHistory() {
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Záznamy hovorov hlasového asistenta NTC s možnosťou priameho vypočutia a zhrnutia.
+                Záznamy hovorov hlasového asistenta NTC a ich zhrnutia.
               </p>
             </div>
           </div>
@@ -222,7 +134,7 @@ export default function AdminCallHistory() {
             onClick={() => loadCalls(true)}
             disabled={refreshing || loading}
             title="Obnoviť hovory NTC"
-            className="flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900 active:scale-95 disabled:opacity-50"
+            className="flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900 active:scale-95 disabled:opacity-50 cursor-pointer"
           >
             <RotateCcw className={`h-4 w-4 ${refreshing ? "animate-spin text-indigo-600" : ""}`} />
           </button>
@@ -232,7 +144,7 @@ export default function AdminCallHistory() {
       {error && (
         <div className="mb-4 flex items-center justify-between rounded-2xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">
           <span>{error}</span>
-          <button onClick={() => setError("")} className="text-red-500 hover:text-red-700 font-bold ml-2">
+          <button onClick={() => setError("")} className="text-red-500 hover:text-red-700 font-bold ml-2 cursor-pointer">
             ✕
           </button>
         </div>
@@ -266,19 +178,18 @@ export default function AdminCallHistory() {
                 <th className="px-5 py-3.5 min-w-[220px]">Zhrnutie hovoru</th>
                 <th className="px-4 py-3.5 text-center whitespace-nowrap min-w-[75px]">Dĺžka</th>
                 <th className="px-4 py-3.5 text-center whitespace-nowrap min-w-[65px]">Stav</th>
-                <th className="px-5 py-3.5 text-right whitespace-nowrap min-w-[130px]">Nahrávka</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap min-w-[90px]">Detail</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredCalls.map((call) => {
-                const isActive = activeCallId === call.id;
-                const isCallPlaying = isActive && isPlaying;
+                const isSelected = activeSummaryModal?.id === call.id;
 
                 return (
                   <tr
                     key={call.id}
                     className={`transition-colors ${
-                      isActive ? "bg-indigo-50/40" : "hover:bg-slate-50/70"
+                      isSelected ? "bg-indigo-50/40" : "hover:bg-slate-50/70"
                     }`}
                   >
                     {/* Dátum a čas */}
@@ -334,54 +245,17 @@ export default function AdminCallHistory() {
                       </span>
                     </td>
 
-                    {/* Prehrávač hovoru */}
+                    {/* Detail zhrnutia hovoru */}
                     <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-2">
-                        {isActive && (
-                          <div className="flex items-center gap-2 rounded-2xl bg-white border border-indigo-200 px-3 py-1.5 shadow-sm">
-                            {/* Scrubber / Progress bar */}
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={audioProgress}
-                              onChange={handleSeek}
-                              className="h-1.5 w-24 cursor-pointer appearance-none rounded-lg bg-indigo-100 accent-indigo-600 sm:w-32"
-                            />
-                            {/* Čas prehrávania */}
-                            <span className="font-mono text-[11px] text-slate-600 whitespace-nowrap">
-                              {formatSeconds(audioCurrentTime)} / {formatSeconds(audioDuration || call.durationSec)}
-                            </span>
-                            {/* Mute */}
-                            <button
-                              onClick={handleToggleMute}
-                              className="text-slate-400 hover:text-slate-700"
-                              title={isMuted ? "Zapnúť zvuk" : "Stlmiť"}
-                            >
-                              {isMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Play / Pause tlačidlo */}
-                        <button
-                          onClick={() => handlePlayToggle(call)}
-                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl font-bold shadow-sm transition-all active:scale-95 ${
-                            isCallPlaying
-                              ? "bg-indigo-600 text-white shadow-indigo-200"
-                              : "border border-slate-200 bg-white text-slate-800 hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-600"
-                          }`}
-                          title={isCallPlaying ? "Pozastaviť nahrávku" : "Prehrať nahrávku hovoru"}
-                        >
-                          {isActive && audioLoading ? (
-                            <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
-                          ) : isCallPlaying ? (
-                            <Pause className="h-4 w-4 fill-current" />
-                          ) : (
-                            <Play className="h-4 w-4 fill-current ml-0.5" />
-                          )}
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveSummaryModal(call)}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-600 transition cursor-pointer"
+                        title="Zobraziť detail a zhrnutie hovoru"
+                      >
+                        <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+                        <span>Detail</span>
+                      </button>
                     </td>
                   </tr>
                 );

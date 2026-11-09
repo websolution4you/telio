@@ -162,7 +162,7 @@ export async function updateBookingUserRoleAction(userId: string, role: BookingR
 export async function updateBookingUserDiscountTierAction(userId: string, discountTierId: string) {
   const context = await requireCurrentAdmin();
   if (!context) return { success: false as const, error: "Nemáte oprávnenie meniť zľavovú hladinu." };
-  
+
   const cleanTierId = (discountTierId || "tier-base").trim();
 
   const { data: user, error } = await context.db
