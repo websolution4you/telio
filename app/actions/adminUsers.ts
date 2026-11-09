@@ -1,7 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getSession, type BookingRole, hashPassword, normalizePhone, verifyPassword, stripUnverifiedPrefix } from "@/lib/auth/bookingAuth";
+import { getSession, type BookingRole, normalizePhone } from "@/lib/auth/bookingAuth";
+import {
+  hashPassword,
+  verifyPassword,
+  isUserHashUnverified,
+  stripUnverifiedPrefix,
+  parseInnerCredential,
+  validateNewPasswordBounds,
+  computeNextPasswordVersion,
+  CryptoInternalError,
+} from "@/lib/auth/passwordHash";
 import { getCoreServiceDb } from "@/lib/server/supabase";
 import { isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
 import { logActivity } from "@/lib/server/auditLog";
@@ -10,6 +20,10 @@ import { logActivity } from "@/lib/server/auditLog";
 const ALLOWED_ROLES: BookingRole[] = ["admin", "user", "trainer", "ntc_team"];
 const USERS_PAGE_SIZE = 7;
 const TENANT_ID = "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
+
+function logAdminCryptoInternalFailure(context: string, err: CryptoInternalError): void {
+  console.error(`[ADMIN_AUTH_CRYPTO_INTERNAL_ERROR] context=${context} operation=${err.operation} code=${err.errorCode || "none"}`);
+}
 
 export type RoleBookingPolicyInput = {
   role: BookingRole;
@@ -423,7 +437,7 @@ export async function fetchAdminUsersDirectoryAction(
     bookingsCount: bookingCountMap.get(u.id) ?? 0,
     hasMultisport: Boolean((u as any).has_multisport),
     discountTierId: ((u as any).discount_tier_id as string) || "tier-base",
-    emailVerified: (u as any).email_verified !== false && !String((u as any).password_hash || "").startsWith("UNVERIFIED:"),
+    emailVerified: (u as any).email_verified !== false && !isUserHashUnverified((u as any).password_hash),
   }));
 
   return {
@@ -728,7 +742,7 @@ export async function fetchAdminUserDetailAction(userId: string) {
       walletBalanceEur: wallet ? Number(wallet.balance_eur || 0) : 0,
       hasMultisport: Boolean((user as any).has_multisport),
       discountTierId: ((user as any).discount_tier_id as string) || "tier-base",
-      emailVerified: (user as any).email_verified !== false && !String((user as any).password_hash || "").startsWith("UNVERIFIED:"),
+      emailVerified: (user as any).email_verified !== false && !isUserHashUnverified((user as any).password_hash),
     },
     bookings: (bookings || []).map((b) => ({
       id: b.id,
@@ -779,8 +793,12 @@ export async function createBookingUserByAdminAction(input: CreateAdminUserInput
   const cleanCard = input.cardNumber?.trim() ? input.cardNumber.trim().slice(0, 50) : null;
   const initialPassword = input.password?.trim() || "0000";
 
-  if (initialPassword.length < 4) {
-    return { success: false as const, error: "Heslo musí mať aspoň 4 znaky." };
+  const passwordBounds = validateNewPasswordBounds(initialPassword, 4);
+  if (!passwordBounds.valid) {
+    if (passwordBounds.reason === "too_short" || passwordBounds.reason === "empty") {
+      return { success: false as const, error: "Heslo musí mať aspoň 4 znaky." };
+    }
+    return { success: false as const, error: passwordBounds.error };
   }
 
   // Check email conflict
@@ -794,7 +812,16 @@ export async function createBookingUserByAdminAction(input: CreateAdminUserInput
     return { success: false as const, error: "Používateľ s týmto emailom už existuje." };
   }
 
-  const passwordHash = await hashPassword(initialPassword);
+  let passwordHash: string;
+  try {
+    passwordHash = await hashPassword(initialPassword);
+  } catch (hashErr) {
+    if (hashErr instanceof CryptoInternalError) {
+      logAdminCryptoInternalFailure("createBookingUserByAdminAction.hashPassword", hashErr);
+      return { success: false as const, error: "Používateľa sa nepodarilo vytvoriť." };
+    }
+    throw hashErr;
+  }
 
   let user: any = null;
   let insertError: any = null;
@@ -851,7 +878,7 @@ export async function createBookingUserByAdminAction(input: CreateAdminUserInput
   }
 
   if (insertError || !user) {
-    console.error("createBookingUserByAdminAction failed:", insertError);
+    console.error("createBookingUserByAdminAction failed:", insertError?.message || "insert_failed");
     return { success: false as const, error: "Používateľa sa nepodarilo vytvoriť." };
   }
 
@@ -1080,15 +1107,26 @@ export async function deleteBookingUserByAdminAction(
     return { success: false as const, error: "Pre zmazanie používateľa musíte zadať vaše prihlasovacie heslo." };
   }
 
-  const isPasswordValid = await verifyPassword(adminPassword, actor.password_hash);
+  const rawActorHash = stripUnverifiedPrefix(actor.password_hash);
+  let isPasswordValid = false;
+  try {
+    isPasswordValid = await verifyPassword(adminPassword, rawActorHash);
+  } catch (verifyErr) {
+    if (verifyErr instanceof CryptoInternalError) {
+      logAdminCryptoInternalFailure("deleteBookingUserByAdminAction.verifyPassword", verifyErr);
+      return { success: false as const, error: "Overenie administrátorského hesla zlyhalo. Skúste to znova." };
+    }
+    throw verifyErr;
+  }
+
   if (!isPasswordValid) {
     return { success: false as const, error: "Nesprávne administrátorské heslo." };
   }
 
-  // Check target user exists
+  // Check target user exists (including password_version for soft-delete CAS fallback)
   const { data: targetUser, error: targetError } = await db
     .from("booking_users")
-    .select("id, name, email")
+    .select("id, name, email, password_version")
     .eq("id", targetUserId)
     .maybeSingle();
 
@@ -1125,8 +1163,15 @@ export async function deleteBookingUserByAdminAction(
     console.warn("Hard delete attempt failed, archiving user instead:", err);
   }
 
-  // 3. Fallback: if database constraints (e.g. accounting ledger on wallet_transactions) prevent hard deletion
+  // 3. Fallback: if database constraints (e.g. accounting ledger on wallet_transactions) prevent hard deletion,
+  // perform atomic CAS soft-delete incrementing password_version to invalidate any outstanding reset/verification tokens.
   if (!hardDeleteSuccess) {
+    const versionStep = computeNextPasswordVersion((targetUser as any).password_version);
+    if (!versionStep) {
+      console.error("Failed to archive user: missing or non-incrementable password_version");
+      return { success: false as const, error: "Používateľa sa nepodarilo odstrániť." };
+    }
+
     // Zero out wallet balance
     try {
       await db.from("wallets").update({ balance_eur: 0 }).eq("user_id", targetUserId);
@@ -1134,9 +1179,9 @@ export async function deleteBookingUserByAdminAction(
       console.warn("Could not zero out wallet balance:", err);
     }
 
-    // Free up email, phone, card_number and invalidate credentials
+    // Free up email, phone, card_number and invalidate credentials + increment password_version via CAS
     const cleanDeletedEmail = `deleted_${targetUserId}@deleted.local`;
-    const { error: archiveError } = await db
+    const { data: archivedRow, error: archiveError } = await db
       .from("booking_users")
       .update({
         name: "[Zmazaný používateľ]",
@@ -1144,13 +1189,24 @@ export async function deleteBookingUserByAdminAction(
         phone: null,
         card_number: null,
         password_hash: "deleted_" + crypto.randomUUID(),
+        password_version: versionStep.nextVersion,
         updated_at: new Date().toISOString(),
-      })
-      .eq("id", targetUserId);
+      } as any)
+      .eq("id", targetUserId)
+      .eq("password_version", versionStep.currentVersion)
+      .select("id, password_version")
+      .maybeSingle();
 
     if (archiveError) {
-      console.error("Failed to delete/archive user:", archiveError);
+      console.error("Failed to delete/archive user:", archiveError.message || "db_error");
       return { success: false as const, error: "Používateľa sa nepodarilo odstrániť: " + archiveError.message };
+    }
+
+    if (!archivedRow) {
+      return {
+        success: false as const,
+        error: "Účet používateľa bol medzičasom zmenený inou operáciou. Obnovte zoznam a skúste to znova.",
+      };
     }
   }
 
@@ -1181,7 +1237,7 @@ export async function verifyBookingUserByAdminAction(targetUserId: string) {
 
   const { data: user, error: userError } = await context.db
     .from("booking_users")
-    .select("id, name, email, password_hash")
+    .select("id, name, email, password_hash, password_version")
     .eq("id", targetUserId)
     .maybeSingle();
 
@@ -1189,26 +1245,64 @@ export async function verifyBookingUserByAdminAction(targetUserId: string) {
     return { success: false as const, error: "Používateľ nebol nájdený." };
   }
 
+  if (!isUserHashUnverified(user.password_hash) && (user as any).email_verified !== false) {
+    return { success: true as const, message: `Účet používateľa "${user.name}" je už aktivovaný.` };
+  }
+
+  const versionStep = computeNextPasswordVersion((user as any).password_version);
+  if (!versionStep) {
+    console.error("verifyBookingUserByAdminAction error: missing or non-incrementable password_version");
+    return { success: false as const, error: "Nepodarilo sa aktivovať účet: neplatná verzia credentialu." };
+  }
+
   const rawHash = stripUnverifiedPrefix(user.password_hash);
-  let { error: updateError } = await context.db
+  const parsedInner = parseInnerCredential(rawHash);
+  if (parsedInner.kind === "invalid") {
+    console.error("verifyBookingUserByAdminAction error: invalid inner credential");
+    return { success: false as const, error: "Nepodarilo sa aktivovať účet: neplatný formát uloženého hesla." };
+  }
+
+  let { data: updatedRow, error: updateError } = await context.db
     .from("booking_users")
     .update({
       password_hash: rawHash,
+      password_version: versionStep.nextVersion,
       email_verified: true,
       email_verified_at: new Date().toISOString(),
     } as any)
-    .eq("id", targetUserId);
+    .eq("id", targetUserId)
+    .eq("password_version", versionStep.currentVersion)
+    .select("id, password_version")
+    .maybeSingle();
 
-  if (updateError && (updateError.message?.includes("email_verified") || (updateError as any).code === "PGRST204")) {
+  if (
+    updateError &&
+    !updateError.message?.includes("password_version") &&
+    (updateError.message?.includes("email_verified") || (updateError as any).code === "PGRST204")
+  ) {
     const fallback = await context.db
       .from("booking_users")
-      .update({ password_hash: rawHash })
-      .eq("id", targetUserId);
+      .update({
+        password_hash: rawHash,
+        password_version: versionStep.nextVersion,
+      } as any)
+      .eq("id", targetUserId)
+      .eq("password_version", versionStep.currentVersion)
+      .select("id, password_version")
+      .maybeSingle();
+    updatedRow = fallback.data;
     updateError = fallback.error;
   }
 
   if (updateError) {
     return { success: false as const, error: "Nepodarilo sa aktivovať účet: " + updateError.message };
+  }
+
+  if (!updatedRow) {
+    return {
+      success: false as const,
+      error: "Účet používateľa bol medzičasom zmenený inou operáciou. Obnovte stránku a skúste to znova.",
+    };
   }
 
   await logActivity({
@@ -1233,5 +1327,3 @@ export async function verifyBookingUserByAdminAction(targetUserId: string) {
 
   return { success: true as const, message: `Účet používateľa "${user.name}" bol úspešne aktivovaný.` };
 }
-
-

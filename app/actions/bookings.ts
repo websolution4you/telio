@@ -7,7 +7,8 @@ import {
     listCalendarEvents 
 } from "@/lib/server/calendarAdapter";
 import { revalidatePath } from "next/cache";
-import { getSession, isUserHashUnverified, type BookingRole } from "@/lib/auth/bookingAuth";
+import { getSession, type BookingRole } from "@/lib/auth/bookingAuth";
+import { isUserHashUnverified } from "@/lib/auth/passwordHash";
 import { walletEnabledForUser } from "@/lib/server/wallet";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import { getActivePricelist } from "@/app/actions/pricelists";
