@@ -4,6 +4,7 @@ import "./globals.css";
 import { LangProvider } from "@/lib/i18n";
 import CookieConsent from "@/components/CookieConsent";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
+import AzureAppInsights from "@/components/AzureAppInsights";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -103,6 +104,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body className={`${inter.variable} ${poppins.variable} antialiased`}>
         <GoogleAnalytics />
+        <AzureAppInsights />
         <LangProvider>
           {children}
           {/* <ChatWidget /> */}
