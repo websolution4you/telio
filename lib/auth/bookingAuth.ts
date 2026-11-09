@@ -25,10 +25,16 @@ export function getJwtSecretKey(): Uint8Array {
     }
     const cleanSecret = rawSecret
         .trim()
+        .replace(/^JWT_SECRET\s*=\s*/i, "")
         .replace(/^["']|["']$/g, "")
+        .replace(/^0x/i, "")
         .trim()
         .toLowerCase();
     if (!JWT_SECRET_HEX_64_RE.test(cleanSecret)) {
+        const hexMatches = cleanSecret.match(/[0-9a-f]{64}/);
+        if (hexMatches && cleanSecret.length <= 80) {
+            return new TextEncoder().encode(hexMatches[0]);
+        }
         throw new Error(
             `CRITICAL_AUTH_CONFIG: Invalid JWT_SECRET format (trimmed length=${cleanSecret.length}, expected 64 hex characters).`
         );
