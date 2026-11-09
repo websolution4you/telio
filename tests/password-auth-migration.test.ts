@@ -301,12 +301,18 @@ test("18-19 & 28. tokeny obsahujú iba passwordVersion (žiadny passHashFragment
     await withJwtSecret("short", async () => {
         assert.throws(() => getJwtSecretKey(), /CRITICAL_AUTH_CONFIG/);
     });
-    // Uppercase hex alebo koncový riadok / whitespace z viacriadkového poľa vo Verceli sa bezpečne normalizuje
+    // Uppercase hex, koncový riadok / whitespace alebo úvodzovky z .env / Vercel UI sa bezpečne normalizujú
     const expectedKeyBytes = new TextEncoder().encode(SYNTHETIC_JWT_SECRET);
     await withJwtSecret(SYNTHETIC_JWT_SECRET.toUpperCase(), async () => {
         assert.deepEqual(getJwtSecretKey(), expectedKeyBytes);
     });
     await withJwtSecret(`  ${SYNTHETIC_JWT_SECRET}\r\n`, async () => {
+        assert.deepEqual(getJwtSecretKey(), expectedKeyBytes);
+    });
+    await withJwtSecret(`"${SYNTHETIC_JWT_SECRET}"`, async () => {
+        assert.deepEqual(getJwtSecretKey(), expectedKeyBytes);
+    });
+    await withJwtSecret(`'${SYNTHETIC_JWT_SECRET}'`, async () => {
         assert.deepEqual(getJwtSecretKey(), expectedKeyBytes);
     });
 

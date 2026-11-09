@@ -23,7 +23,11 @@ export function getJwtSecretKey(): Uint8Array {
             "CRITICAL_AUTH_CONFIG: Missing JWT_SECRET environment variable (not loaded in current deployment)."
         );
     }
-    const cleanSecret = rawSecret.trim().toLowerCase();
+    const cleanSecret = rawSecret
+        .trim()
+        .replace(/^["']|["']$/g, "")
+        .trim()
+        .toLowerCase();
     if (!JWT_SECRET_HEX_64_RE.test(cleanSecret)) {
         throw new Error(
             `CRITICAL_AUTH_CONFIG: Invalid JWT_SECRET format (trimmed length=${cleanSecret.length}, expected 64 hex characters).`
