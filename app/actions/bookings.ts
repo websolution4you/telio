@@ -672,47 +672,8 @@ export async function createBookingAction(payload: {
                                 currentBalCents = Math.round(Number(freshWallet.balance_eur) * 100);
                             }
                         }
-
-                        if (currentBalCents < requiredPriceCents) {
-                            // Check for pending CardPay payment and credit it optimistically so client can book
-                            const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-                            const { data: pendingPay } = await walletDb
-                                .from("payments")
-                                .select("id, provider_payment_id, amount_eur")
-                                .eq("tenant_id", TENANT_ID)
-                                .eq("user_id", session.userId)
-                                .eq("provider", "tatrabanka")
-                                .in("status", ["processing", "pending"])
-                                .gte("created_at", fifteenMinAgo)
-                                .order("created_at", { ascending: false })
-                                .limit(1)
-                                .maybeSingle();
-
-                            if (pendingPay) {
-                                await walletDb.rpc("wallet_process_successful_payment", {
-                                    p_payment_id: pendingPay.id,
-                                    p_provider_payment_id: pendingPay.provider_payment_id || `cardpay-${pendingPay.id}`,
-                                    p_provider_metadata: {
-                                        provider: "tatrabanka",
-                                        payment_method: "CARD_PAY",
-                                        source: "optimistic_booking_credit",
-                                        verified_by_bank: false,
-                                        pending_bank_confirmation: true,
-                                    },
-                                });
-                                const { data: freshWallet } = await walletDb
-                                    .from("wallets")
-                                    .select("id, balance_eur")
-                                    .eq("user_id", session.userId)
-                                    .maybeSingle();
-                                if (freshWallet) {
-                                    userWallet = freshWallet;
-                                    currentBalCents = Math.round(Number(freshWallet.balance_eur) * 100);
-                                }
-                            }
-                        }
                     } catch (cardPayErr) {
-                        console.error("CardPay optimistic booking credit failed:", cardPayErr);
+                        console.error("CardPay booking reconciliation check failed:", cardPayErr);
                     }
 
                     if (currentBalCents < requiredPriceCents) {

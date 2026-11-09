@@ -284,7 +284,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                   {props.topUpLoading === missingEur ? (
                     <>
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span>Presmerovávam...</span>
+                      <span>Dobíjam...</span>
                     </>
                   ) : (
                     <>

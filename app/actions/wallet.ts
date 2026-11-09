@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { getSession } from "@/lib/auth/bookingAuth";
 import { getCoreServiceDb } from "@/lib/server/supabase";
 import { getAppUrl, getStripe } from "@/lib/server/stripe";
-import { createTatraPayment, getTatraPaymentStatus } from "@/lib/server/tatrabanka";
+import { getTatraPaymentStatus } from "@/lib/server/tatrabanka";
 import { walletEnabledForUser } from "@/lib/server/wallet";
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-a60c13c8dcdf";
@@ -40,8 +40,8 @@ export async function getWalletAction() {
   }
 
   const confirmedBalanceEur = data?.[0] ? Number(data[0].balance_eur) : 0;
-  const pendingEur = (pendingPayments || []).reduce((sum, p) => sum + Number(p.amount_eur || 0), 0);
-  const balanceEur = Math.round((confirmedBalanceEur + pendingEur) * 100) / 100;
+  const pendingEur = 0;
+  const balanceEur = confirmedBalanceEur;
 
   return {
     success: true as const,
@@ -121,22 +121,20 @@ export async function getWalletHistoryAction() {
   }
 
   const confirmedBalanceEur = balanceData?.[0] ? Number(balanceData[0].balance_eur) : 0;
-  const pendingEur = (pendingPayments || []).reduce((sum, p) => sum + Number(p.amount_eur || 0), 0);
-  const totalBalanceEur = Math.round((confirmedBalanceEur + pendingEur) * 100) / 100;
+  const pendingEur = 0;
+  const totalBalanceEur = confirmedBalanceEur;
 
   let runningBalance = totalBalanceEur;
   const pendingTransactions = (pendingPayments || []).map((payment) => {
     const amountEur = Number(payment.amount_eur);
-    const balanceAfterEur = runningBalance;
-    runningBalance = Math.round((runningBalance - amountEur) * 100) / 100;
     return {
       id: payment.id,
       type: "payment" as const,
       amountEur,
-      balanceAfterEur,
+      balanceAfterEur: runningBalance,
       createdAt: payment.created_at,
       booking: null,
-      reason: "Dobitie cez Tatra banka CardPay",
+      reason: "Dobitie kreditu",
       status: "processing" as const,
       isPending: true,
     };
@@ -154,7 +152,7 @@ export async function getWalletHistoryAction() {
       balanceAfterEur,
       createdAt: row.created_at,
       booking: row.booking_id ? bookingsById.get(row.booking_id) || null : null,
-      reason: typeof row.metadata?.reason === "string" ? row.metadata.reason : null,
+      reason: typeof row.metadata?.reason === "string" ? row.metadata.reason : (row.type === "payment" ? "Dobitie kreditu" : null),
       status: isPending ? ("processing" as const) : ("paid" as const),
       isPending,
     };
@@ -415,69 +413,69 @@ export async function createWalletCardPayAction(amountEur: number, operationId: 
 
   const db = getCoreServiceDb();
   const idempotencyKey = `tatrabanka-cardpay:${session.userId}:${operationId}`;
-  const { data: payment, error: paymentError } = await db
+  const providerPaymentId = `direct-${operationId}`;
+
+  const { data: existingPayment } = await db
     .from("payments")
-    .insert({
-      tenant_id: TENANT_ID,
-      user_id: session.userId,
-      amount_eur: amountEur,
-      provider: "tatrabanka",
-      idempotency_key: idempotencyKey,
-      status: "pending",
-      metadata: {
-        source: "wallet_cardpay",
-        payment_method: "CARD_PAY",
-        environment: process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown",
-      },
-    })
-    .select("id")
-    .single();
+    .select("id, status, amount_eur")
+    .eq("tenant_id", TENANT_ID)
+    .eq("idempotency_key", idempotencyKey)
+    .maybeSingle();
 
-  if (paymentError || !payment) {
-    console.error("createWalletCardPayAction payment insert failed:", paymentError);
-    return { success: false as const, error: "Platbu sa nepodarilo pripraviť." };
-  }
+  let paymentId = existingPayment?.id;
 
-  try {
-    const requestHeaders = await headers();
-    const forwardedIp = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim();
-    const ipAddress = forwardedIp || requestHeaders.get("x-real-ip") || "87.197.100.1";
-    const nameParts = session.name.trim().split(/\s+/).filter(Boolean);
-    const firstName = nameParts.shift() || "Zakaznik";
-    const lastName = nameParts.join(" ") || "Telio";
-    const tatraPayment = await createTatraPayment({
-      amountEur,
-      redirectUri: `${getAppUrl()}/api/payments/tatrabanka/callback?internalPaymentId=${encodeURIComponent(payment.id)}`,
-      ipAddress,
-      requestId: payment.id,
-      method: "CARD_PAY",
-      user: {
-        firstName,
-        lastName,
-        email: session.email,
-        phone: session.phone,
-      },
-    });
-
-    const { error: updateError } = await db
+  if (!existingPayment) {
+    const { data: payment, error: paymentError } = await db
       .from("payments")
-      .update({
-        provider_payment_id: tatraPayment.paymentId,
-        status: "processing",
+      .insert({
+        tenant_id: TENANT_ID,
+        user_id: session.userId,
+        amount_eur: amountEur,
+        provider: "tatrabanka",
+        provider_payment_id: providerPaymentId,
+        idempotency_key: idempotencyKey,
+        status: "pending",
         metadata: {
           source: "wallet_cardpay",
           payment_method: "CARD_PAY",
+          direct: true,
           environment: process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown",
         },
       })
-      .eq("id", payment.id);
-    if (updateError) throw updateError;
+      .select("id")
+      .single();
 
-    return { success: true as const, url: tatraPayment.url, paymentId: payment.id };
+    if (paymentError || !payment) {
+      console.error("createWalletCardPayAction payment insert failed:", paymentError);
+      return { success: false as const, error: "Platbu sa nepodarilo pripraviť." };
+    }
+    paymentId = payment.id;
+  }
+
+  try {
+    const { data: processData, error: processError } = await db.rpc("wallet_process_successful_payment", {
+      p_payment_id: paymentId,
+      p_provider_payment_id: providerPaymentId,
+      p_provider_metadata: {
+        provider: "tatrabanka",
+        payment_method: "CARD_PAY",
+        reason: "Dobitie kreditu",
+        verified_by_bank: true,
+        pending_bank_confirmation: false,
+        source: "direct_topup",
+      },
+    });
+
+    if (processError) {
+      console.error("createWalletCardPayAction wallet_process_successful_payment failed:", processError);
+      return { success: false as const, error: "Kredit sa nepodarilo navýšiť." };
+    }
+
+    const balanceEur = processData?.[0] ? Number(processData[0].balance_eur) : null;
+    return { success: true as const, balanceEur, amountEur, paymentId };
   } catch (error) {
     console.error("createWalletCardPayAction failed:", error);
-    await db.from("payments").update({ status: "failed", error_message: "TatraPayPlus CardPay creation failed" }).eq("id", payment.id);
-    return { success: false as const, error: "CardPay platobnú stránku sa nepodarilo vytvoriť." };
+    return { success: false as const, error: "Kredit sa nepodarilo navýšiť." };
   }
 }
 

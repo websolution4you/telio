@@ -80,6 +80,7 @@ export default function NewBookingsHeader({
   const [internalLoadingAmount, setInternalLoadingAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState<string>("");
   const [topUpError, setTopUpError] = useState<string | null>(null);
+  const [localHighlight, setLocalHighlight] = useState(false);
 
   const adminMenuRef = useRef<HTMLDivElement>(null);
   const clientMenuRef = useRef<HTMLDivElement>(null);
@@ -136,14 +137,34 @@ export default function NewBookingsHeader({
     try {
       if (onTopUp) {
         await onTopUp(amount, "cardpay");
+        setInternalLoadingAmount(null);
+        setWalletMenuOpen(false);
+        setMobileWalletMenuOpen(false);
       } else {
         const operationId = crypto.randomUUID();
         const res = await createWalletCardPayAction(amount, operationId);
-        if (res.success && res.url) {
-          window.location.href = res.url;
+        if (res.success) {
+          if ("url" in res && (res as any).url) {
+            window.location.href = (res as any).url;
+            return;
+          }
+          const newBal = "balanceEur" in res && res.balanceEur !== undefined && res.balanceEur !== null
+            ? res.balanceEur
+            : Math.round(((walletBalance ?? 0) + amount) * 100) / 100;
+          setWalletBalance(newBal);
+          setLocalHighlight(true);
+          setTimeout(() => setLocalHighlight(false), 3500);
+          setWalletMenuOpen(false);
+          setMobileWalletMenuOpen(false);
+          setInternalLoadingAmount(null);
+          getWalletAction().then((fresh) => {
+            if (fresh.success && fresh.enabled && fresh.balanceEur !== null) {
+              setWalletBalance(fresh.balanceEur);
+            }
+          });
           return;
         }
-        setTopUpError(res.error || "Nepodarilo sa vytvoriť platbu.");
+        setTopUpError(res.error || "Nepodarilo sa navýšiť kredit.");
         setInternalLoadingAmount(null);
       }
     } catch (err: any) {
@@ -184,14 +205,14 @@ export default function NewBookingsHeader({
         <div className="mb-1.5 flex items-center justify-between gap-2">
           <p className="flex items-center gap-2 text-sm font-bold text-slate-800">
             <CreditCard className="h-4 w-4 text-sky-700 shrink-0" />
-            Dobiť cez Tatra banka CardPay
+            Dobiť kredit
           </p>
           <span className="text-[10px] font-semibold uppercase tracking-wide text-sky-700">
-            Sandbox
+            Okamžité dobitie
           </span>
         </div>
         <p className="mb-3 text-xs text-slate-500 leading-relaxed">
-          Budete presmerovaný na zabezpečenú testovaciu platobnú stránku Tatra banky.
+          Kredit bude okamžite pripísaný na váš účet.
         </p>
         <div className="grid grid-cols-3 gap-2">
           {[10, 20, 50].map((amount) => (
@@ -205,7 +226,7 @@ export default function NewBookingsHeader({
               {isLoading(amount) ? (
                 <span className="inline-flex items-center justify-center gap-1">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  <span>Otváram...</span>
+                  <span>Dobíjam...</span>
                 </span>
               ) : (
                 `${amount} €`
@@ -254,7 +275,7 @@ export default function NewBookingsHeader({
               {isCustomLoading ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>Otváram...</span>
+                  <span>Dobíjam...</span>
                 </>
               ) : (
                 "Dobiť"
@@ -514,7 +535,7 @@ export default function NewBookingsHeader({
                     className={`group relative flex h-[58px] w-[86px] shrink-0 flex-col items-center justify-center rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer ${
                       walletMenuOpen
                         ? "border-emerald-400/50 bg-white/15 ring-2 ring-emerald-400/30 text-white shadow-inner"
-                        : walletHighlight
+                        : (walletHighlight || localHighlight)
                         ? "border-emerald-500 bg-emerald-500/20 ring-4 ring-emerald-400/50 scale-105"
                         : "border-transparent bg-transparent text-slate-300 hover:border-white/10 hover:bg-white/10 hover:text-white"
                     }`}
@@ -722,7 +743,7 @@ export default function NewBookingsHeader({
                   className={`group relative flex h-[54px] w-[76px] xs:w-[84px] shrink-0 flex-col items-center justify-center rounded-xl border transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer ${
                     mobileWalletMenuOpen
                       ? "border-emerald-400/50 bg-white/15 ring-2 ring-emerald-400/30 text-white shadow-inner"
-                      : walletHighlight
+                      : (walletHighlight || localHighlight)
                       ? "border-emerald-500 bg-emerald-500/20 ring-4 ring-emerald-400/50 scale-105"
                       : "border-transparent bg-transparent text-slate-300 hover:border-white/10 hover:bg-white/10 hover:text-white"
                   }`}

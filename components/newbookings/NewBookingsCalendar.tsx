@@ -1765,33 +1765,54 @@ export default function NewBookingsCalendar({
   const startTopUp = async (amountEur: number, provider: "stripe" | "cardpay") => {
     setTopUpLoading(amountEur);
     setNotice("");
-    if (slot && typeof window !== "undefined") {
-      try {
-        sessionStorage.setItem(
-          "ntc_pending_booking_after_topup",
-          JSON.stringify({
-            courtId: slot.courtId,
-            date: slot.date instanceof Date ? slot.date.toISOString() : new Date(slot.date).toISOString(),
-            hour: slot.hour,
-            duration,
-            phone,
-            title,
-          })
-        );
-      } catch (e) {
-        console.warn("Could not save pending booking slot:", e);
-      }
-    }
     const operationId = crypto.randomUUID();
     const result = provider === "cardpay"
       ? await createWalletCardPayAction(amountEur, operationId)
       : await createWalletCheckoutAction(amountEur, operationId);
-    if (!result.success || !result.url) {
+
+    if (!result.success) {
       setTopUpLoading(null);
-      setNotice(result.error || "Platobnú stránku sa nepodarilo otvoriť.");
+      setNotice(result.error || "Kredit sa nepodarilo navýšiť.");
       return;
     }
-    window.location.replace(result.url);
+
+    if ("url" in result && (result as any).url) {
+      if (slot && typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem(
+            "ntc_pending_booking_after_topup",
+            JSON.stringify({
+              courtId: slot.courtId,
+              date: slot.date instanceof Date ? slot.date.toISOString() : new Date(slot.date).toISOString(),
+              hour: slot.hour,
+              duration,
+              phone,
+              title,
+            })
+          );
+        } catch (e) {
+          console.warn("Could not save pending booking slot:", e);
+        }
+      }
+      window.location.replace((result as any).url);
+      return;
+    }
+
+    const newBal = "balanceEur" in result && result.balanceEur !== undefined && result.balanceEur !== null
+      ? result.balanceEur
+      : Math.round(((walletBalance ?? 0) + amountEur) * 100) / 100;
+
+    setWalletBalance(newBal);
+    setTopUpLoading(null);
+    setNotice(`Kredit bol úspešne navýšený o ${amountEur.toFixed(2)} €.`);
+    setWalletHighlight(true);
+    setTimeout(() => setWalletHighlight(false), 3500);
+
+    getWalletAction().then((fresh) => {
+      if (fresh.success && fresh.enabled && fresh.balanceEur !== null) {
+        setWalletBalance(fresh.balanceEur);
+      }
+    });
   };
 
   const getBratislavaMinutes = (dateStr: string) => {
