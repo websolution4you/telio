@@ -13,7 +13,7 @@ import { walletEnabledForUser } from "@/lib/server/wallet";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import { getActivePricelist } from "@/app/actions/pricelists";
 import { createBratislavaIso, getBratislavaDateKey, getBratislavaDateParts, getCourtOperatingLimitMinutes, isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
-import { courts as ntcCourts, type SportType, type BookingSubSlot } from "@/lib/bookings/mockBookings";
+import { courts as ntcCourts, type SportType, type BookingSubSlot, type Booking, type BookingStatus } from "@/lib/bookings/mockBookings";
 import { logActivity } from "@/lib/server/auditLog";
 import {
     type PublicAvailabilityResult,
@@ -31,6 +31,7 @@ import {
     mapOwnBookingRowToCalendarItem,
     mapStaffBookingRowToCalendarItem,
     mapNtcTeamEditableAdminRowToCalendarItem,
+    isNtcTeamReservationBlockRow,
     isAdminReservationBlockRow,
     mergeRestrictedCalendarItems,
     isValidRecurringGroupId,
@@ -324,7 +325,7 @@ export async function fetchAuthorizedCalendarItemsAction(
         const editableAdminItems: StaffBookingCalendarItem[] = [];
         if (caller.role === "ntc_team" && ntcTeamAdminRes.data) {
             for (const row of ntcTeamAdminRes.data) {
-                const mappedAdminBlock = mapNtcTeamEditableAdminRowToCalendarItem(row, false);
+                const mappedAdminBlock = mapNtcTeamEditableAdminRowToCalendarItem(row, false, caller.userId);
                 if (mappedAdminBlock) {
                     editableAdminItems.push(mappedAdminBlock);
                 }
@@ -477,7 +478,9 @@ export async function createBookingAction(payload: {
         if (isUserHashUnverified((bookingUser as any).password_hash)) {
             return { success: false, error: "Pre vytvorenie rezervácie musíte najprv potvrdiť vašu e-mailovú adresu." };
         }
-        if (payload.source === "admin" && bookingUser.role !== "admin") {
+        const isCallerAdmin = bookingUser.role === "admin";
+        const isCallerNtcTeam = bookingUser.role === "ntc_team";
+        if (payload.source === "admin" && !isCallerAdmin && !isCallerNtcTeam) {
             return { success: false, error: "Nemáte oprávnenie blokovať kurt." };
         }
 
@@ -573,18 +576,41 @@ export async function createBookingAction(payload: {
             activePricelist,
             (bookingUser as any)?.discount_tier_id
         );
-        const calculatedPrice = session.role === "admin" ? 0.00 : pricingResult.totalPriceEur;
+        let calculatedPrice = 0.00;
+        let effectiveBlockType = payload.adminBlockType;
+        let effectiveStatus = payload.status;
+        let effectiveSource = payload.source;
+        let effectiveCustomerName = payload.customerName;
+
+        if (isCallerAdmin) {
+            calculatedPrice = 0.00;
+            effectiveStatus = "blocked";
+            effectiveSource = "admin";
+            effectiveCustomerName = (payload.customerName && payload.customerName !== "Admin User")
+                ? payload.customerName
+                : (effectiveBlockType || "Rezervácia Admin");
+        } else if (isCallerNtcTeam) {
+            // Člen NTC tímu vytvára bezkreditovú rezerváciu VÝHRADNE ako "NTC Tím", 0.00 €
+            calculatedPrice = 0.00;
+            effectiveBlockType = "NTC Tím";
+            effectiveStatus = "blocked";
+            effectiveSource = "admin";
+            effectiveCustomerName = payload.clientPlayerName?.trim() || "NTC Tím";
+        } else {
+            calculatedPrice = pricingResult.totalPriceEur;
+            effectiveBlockType = undefined;
+        }
 
         const notesObj = {
             courtId: payload.courtId,
-            source: payload.source,
+            source: effectiveSource,
             notes: payload.title,
-            multisportCardsCount: multisportCount,
+            multisportCardsCount: isCallerAdmin || isCallerNtcTeam ? 0 : multisportCount,
             priceEur: calculatedPrice,
-            adminBlockType: payload.adminBlockType,
-            clientPlayerName: payload.clientPlayerName
+            adminBlockType: effectiveBlockType,
+            clientPlayerName: payload.clientPlayerName?.trim() || undefined
         };
-        const useWallet = session.role !== "admin" && payload.source !== "admin" && walletEnabledForUser(session.userId);
+        const useWallet = !isCallerAdmin && !isCallerNtcTeam && payload.source !== "admin" && walletEnabledForUser(session.userId);
 
         let bookingId: string;
         let wallet: { chargedEur: number; balanceEur: number; created: boolean } | undefined;
@@ -740,13 +766,6 @@ export async function createBookingAction(payload: {
                 };
             }
         } else {
-            const adminCustomerName = (payload.customerName && payload.customerName !== "Admin User")
-                ? payload.customerName
-                : "Údržba kurtov";
-            const effectiveCustomerName = (session.role === "admin" || payload.source === "admin")
-                ? adminCustomerName
-                : payload.customerName;
-
             const { data: dbBooking, error: dbError } = await db
                 .from("bookings")
                 .insert({
@@ -757,7 +776,7 @@ export async function createBookingAction(payload: {
                     customer_phone: payload.phone || null,
                     start_at: payload.start,
                     end_at: payload.end,
-                    status: payload.status,
+                    status: effectiveStatus,
                     notes: JSON.stringify(notesObj),
                     user_id: session.userId,
                     price_eur: calculatedPrice
@@ -802,7 +821,12 @@ export async function createBookingAction(payload: {
             booking: {
                 id: bookingId,
                 user_id: session.userId,
-                ...payload
+                ...payload,
+                customerName: effectiveCustomerName,
+                status: effectiveStatus,
+                source: effectiveSource,
+                adminBlockType: effectiveBlockType,
+                priceEur: calculatedPrice,
             },
             wallet,
         };
@@ -838,12 +862,16 @@ export async function createRecurringBookingAction(payload: CreateRecurringBooki
         const serviceDb = getCoreServiceDb();
         const { data: bookingUser, error: userError } = await serviceDb
             .from("booking_users")
-            .select("role, card_number")
+            .select("role, card_number, password_hash")
             .eq("id", session.userId)
             .maybeSingle();
 
         if (userError || !bookingUser) {
             return { success: false, error: "Používateľský účet sa nepodarilo overiť." };
+        }
+
+        if (isUserHashUnverified((bookingUser as any).password_hash)) {
+            return { success: false, error: "Pre vytvorenie rezervácie musíte najprv potvrdiť vašu e-mailovú adresu." };
         }
 
         const userRole = bookingUser.role as BookingRole;
@@ -1041,12 +1069,28 @@ export async function createRecurringBookingAction(payload: CreateRecurringBooki
         }
 
         const recurringGroupId = `rec_${crypto.randomUUID()}`;
-        const effectiveBlockType = payload.adminBlockType || "Údržba kurtov";
-        const finalCustomerName = payload.clientPlayerName
-            ? payload.clientPlayerName
-            : (session.role === "admin" ? effectiveBlockType : (payload.customerName || session.name));
+        const isCallerAdmin = userRole === "admin";
+        const isCallerNtcTeam = userRole === "ntc_team";
 
-        const baseTitle = payload.title?.trim() || (session.role === "admin" ? effectiveBlockType : "Rezervácia");
+        let effectiveBlockType: string | undefined = undefined;
+        let effectiveStatus: BookingStatus = "confirmed";
+        let effectiveSource = "web";
+        let finalCustomerName = payload.customerName || session.name;
+        let baseTitle = payload.title?.trim() || "Rezervácia";
+
+        if (isCallerAdmin) {
+            effectiveBlockType = payload.adminBlockType || "Rezervácia Admin";
+            effectiveStatus = "blocked";
+            effectiveSource = "admin";
+            finalCustomerName = payload.clientPlayerName || (payload.customerName && payload.customerName !== "Admin User" ? payload.customerName : effectiveBlockType);
+            baseTitle = payload.title?.trim() || effectiveBlockType;
+        } else if (isCallerNtcTeam) {
+            effectiveBlockType = "NTC Tím";
+            effectiveStatus = "blocked";
+            effectiveSource = "admin";
+            finalCustomerName = payload.clientPlayerName?.trim() || "NTC Tím";
+            baseTitle = payload.title?.trim() || "NTC Tím";
+        }
 
         const rowsToInsert = validSlots.map(slot => ({
             tenant_id: TENANT_ID,
@@ -1056,14 +1100,14 @@ export async function createRecurringBookingAction(payload: CreateRecurringBooki
             customer_phone: payload.phone || null,
             start_at: slot.start.toISOString(),
             end_at: slot.end.toISOString(),
-            status: session.role === "admin" ? "blocked" : "confirmed",
+            status: effectiveStatus,
             notes: JSON.stringify({
                 courtId: payload.courtId,
-                source: session.role === "admin" ? "admin" : "web",
+                source: effectiveSource,
                 notes: baseTitle,
                 recurringGroupId,
                 clientPlayerName: payload.clientPlayerName || undefined,
-                adminBlockType: payload.adminBlockType || undefined,
+                adminBlockType: effectiveBlockType,
                 repeatWeeks: candidateSlots.length,
             }),
             user_id: session.userId,
@@ -1125,10 +1169,11 @@ export async function createRecurringBookingAction(payload: CreateRecurringBooki
                 start: b.start_at,
                 end: b.end_at,
                 status: b.status,
-                source: session.role === "admin" ? "admin" : "web",
+                source: (effectiveSource === "admin" ? "admin" : "web") as Booking["source"],
                 user_id: session.userId,
                 recurringGroupId,
                 clientPlayerName: payload.clientPlayerName || undefined,
+                adminBlockType: effectiveBlockType,
             }))
         };
     } catch (error: any) {
@@ -1623,7 +1668,8 @@ export async function rescheduleBookingAction(payload: {
                 userDiscountTierId
             );
 
-            if (Math.abs(newPriceResult.totalPriceEur - originalPrice) > 0.05) {
+            const isNtcTeamUser = policyData?.role === "ntc_team";
+            if (!isNtcTeamUser && Math.abs(newPriceResult.totalPriceEur - originalPrice) > 0.05) {
                 return {
                     success: false,
                     error: `Termín je možné presunúť iba na čas s rovnakou cenou (${originalPrice.toFixed(2)} €). Nový termín má cenu ${newPriceResult.totalPriceEur.toFixed(2)} €.`
@@ -2364,15 +2410,15 @@ export async function updateBookingSubSlotsAction(
             return { success: false, error: "Rezervácia nebola nájdená." };
         }
 
-        // Striktné obmedzenie pre rolu ntc_team: môže upravovať rozpis hráčov VÝHRADNE na rezerváciách vytvorených adminom ako "Rezervácia Admin"
+        // Striktné obmedzenie pre rolu ntc_team: môže upravovať rozpis hráčov VÝHRADNE na rezerváciách s dôvodom "NTC Tím"
         if (isCallerNtcTeam && !isCallerAdmin) {
             if (
                 booking.status !== "blocked" ||
-                !isAdminReservationBlockRow({ customerName: booking.customer_name, notes: booking.notes })
+                !isNtcTeamReservationBlockRow({ customerName: booking.customer_name, notes: booking.notes })
             ) {
                 return {
                     success: false,
-                    error: "Člen NTC tímu môže upravovať rozpis hráčov iba na termínoch vyhradených ako Rezervácia Admin.",
+                    error: "Člen NTC tímu môže upravovať rozpis hráčov iba na termínoch vyhradených ako NTC Tím.",
                 };
             }
         }

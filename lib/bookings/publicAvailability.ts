@@ -196,17 +196,98 @@ export function resolveServerAccessMode(role: unknown): CalendarAccessMode | nul
 }
 
 /**
+ * Overí, či riadok rezervácie (alebo objekt rezervácie) predstavuje
+ * rezerváciu s dôvodom "NTC Tím" (pôvodne "Tréningy" / `training`).
+ * Výhradne tieto rezervácie môže člen s rolou `ntc_team` vytvárať, vidieť a upravovať na nich rozpis hráčov (`subSlots`).
+ */
+export function isNtcTeamReservationBlockRow(input: {
+    adminBlockType?: string | null;
+    admin_block_type?: string | null;
+    customerName?: string | null;
+    customer_name?: string | null;
+    title?: string | null;
+    notes?: unknown;
+}): boolean {
+    const rawType = input.adminBlockType || input.admin_block_type;
+    let blockType = typeof rawType === "string" ? rawType.trim().toLowerCase() : "";
+    let noteText = typeof input.title === "string" ? input.title.trim().toLowerCase() : "";
+
+    if (input.notes !== undefined && input.notes !== null) {
+        try {
+            const parsed =
+                typeof input.notes === "string"
+                    ? JSON.parse(input.notes)
+                    : typeof input.notes === "object"
+                        ? input.notes
+                        : null;
+            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+                const obj = parsed as Record<string, unknown>;
+                if (!blockType && typeof obj.adminBlockType === "string") {
+                    blockType = obj.adminBlockType.trim().toLowerCase();
+                }
+                if (!noteText && typeof obj.notes === "string") {
+                    noteText = obj.notes.trim().toLowerCase();
+                }
+            }
+        } catch {
+            // ignore malformed JSON
+        }
+    }
+
+    if (blockType) {
+        return (
+            blockType === "ntc tím" ||
+            blockType === "ntc tim" ||
+            blockType === "ntc_team" ||
+            blockType === "training" ||
+            blockType === "tréningy" ||
+            blockType === "treningy" ||
+            blockType === "tréning" ||
+            blockType === "trening"
+        );
+    }
+
+    const rawName = input.customerName || input.customer_name;
+    const nameLower = typeof rawName === "string" ? rawName.trim().toLowerCase() : "";
+    if (
+        nameLower === "ntc tím" ||
+        nameLower === "ntc tim" ||
+        nameLower === "tréningy" ||
+        nameLower === "treningy" ||
+        nameLower === "tréning" ||
+        nameLower === "trening"
+    ) {
+        return true;
+    }
+    if (
+        noteText === "ntc tím" ||
+        noteText === "ntc tim" ||
+        noteText === "tréningy" ||
+        noteText === "treningy" ||
+        noteText === "tréning" ||
+        noteText === "trening"
+    ) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
  * Striktná serverová aj klientska kontrola, či daný záznam rezervácie je
  * administrátorská rezervácia s dôvodom "Rezervácia Admin" (`admin_reservation`).
  * Netýka sa "Údržba kurtov", "Tréningy" ani bežných klientskych rezervácií.
  */
 export function isAdminReservationBlockRow(input: {
     adminBlockType?: string | null;
+    admin_block_type?: string | null;
     customerName?: string | null;
+    customer_name?: string | null;
     title?: string | null;
     notes?: unknown;
 }): boolean {
-    let blockType = typeof input.adminBlockType === "string" ? input.adminBlockType.trim().toLowerCase() : "";
+    const rawType = input.adminBlockType || input.admin_block_type;
+    let blockType = typeof rawType === "string" ? rawType.trim().toLowerCase() : "";
     let noteText = typeof input.title === "string" ? input.title.trim().toLowerCase() : "";
 
     if (input.notes !== undefined && input.notes !== null) {
@@ -235,11 +316,12 @@ export function isAdminReservationBlockRow(input: {
         return (
             blockType === "rezervácia admin" ||
             blockType === "rezervacia admin" ||
-            blockType === "admin_reservation"
+            blockType === "admin_reservation" || blockType === "admin"
         );
     }
 
-    const nameLower = typeof input.customerName === "string" ? input.customerName.trim().toLowerCase() : "";
+    const rawName = input.customerName || input.customer_name;
+    const nameLower = typeof rawName === "string" ? rawName.trim().toLowerCase() : "";
     if (nameLower === "rezervácia admin" || nameLower === "rezervacia admin") {
         return true;
     }
@@ -251,26 +333,35 @@ export function isAdminReservationBlockRow(input: {
 }
 
 /**
- * Mapuje výhradne záznam typu "Rezervácia Admin" pre rolu `ntc_team` na bezpečný
- * `StaffBookingCalendarItem` (bez telefónu, user_id alebo card_number), aby člen
+ * Mapuje výhradne záznam typu "NTC Tím" pre rolu `ntc_team` na bezpečný
+ * `StaffBookingCalendarItem` (bez telefónu alebo card_number), aby člen
  * NTC tímu mohol na týchto vyhradených blokoch upravovať rozpis svojich hráčov (`subSlots`),
- * pričom nemá prístup k žiadnym iným cudzím rezerváciám ani k údržbe/tréningom.
+ * pričom nemá prístup k žiadnym iným cudzím rezerváciám ani k údržbe / rezervácii admin.
+ * Ak rezerváciu vytvoril prihlásený tréner (`callerUserId === row.user_id`),
+ * ponechá sa `user_id`, aby mohol spravovať svoju vlastnú rezerváciu. Cudzie `user_id` je vždy vymazané.
  */
 export function mapNtcTeamEditableAdminRowToCalendarItem(
     row: StaffBookingRowInput | null | undefined,
-    includeCancelled = false
+    includeCancelled = false,
+    callerUserId?: string
 ): StaffBookingCalendarItem | null {
-    if (!row || !isAdminReservationBlockRow({ customerName: row.customer_name, notes: row.notes })) {
+    if (!row || !isNtcTeamReservationBlockRow({ adminBlockType: (row as any).admin_block_type || (row as any).adminBlockType, customerName: row.customer_name, notes: row.notes })) {
         return null;
     }
     const item = mapStaffBookingRowToCalendarItem(row, undefined, includeCancelled);
     if (!item) return null;
 
-    // Redact any sensitive metadata not needed by ntc_team
+    // Redact sensitive contact info not needed by ntc_team
     delete item.booking.phone;
-    delete item.booking.user_id;
     delete item.booking.userCardNumber;
-    item.booking.adminBlockType = "Rezervácia Admin";
+
+    if (callerUserId && row.user_id === callerUserId) {
+        item.booking.user_id = callerUserId;
+    } else {
+        delete item.booking.user_id;
+    }
+
+    item.booking.adminBlockType = "NTC Tím";
 
     return item;
 }
@@ -777,9 +868,11 @@ export function mapStaffBookingRowToCalendarItem(
 
 /**
  * Spojí anonymnú obsadenosť (`PublicCalendarItem[]`), vlastné rezervácie (`OwnBookingCalendarItem[]`)
- * a voliteľne (iba pre rolu `ntc_team`) vyhradené bloky "Rezervácia Admin" (`StaffBookingCalendarItem[]`).
+ * a voliteľne (iba pre rolu `ntc_team`) vyhradené bloky "NTC Tím" (`StaffBookingCalendarItem[]`).
  * Deduplikácia používa výhradne normalizovaný časovo-kurtový kľúč `${courtId}:${startIso}:${endIso}`,
- * takže vlastná rezervácia ani blok "Rezervácia Admin" sa nikdy nevráti súčasne ako `public-occupied` slot.
+ * takže vlastná rezervácia ani blok "NTC Tím" sa nikdy nevráti súčasne ako `public-occupied` slot.
+ * Ak vlastná rezervácia zodpovedá bloku "NTC Tím", uprednostní sa `editableAdminItems`,
+ * aby obsahovala rozpis hráčov `subSlots` a farbu kategórie NTC Tím.
  */
 export function mergeRestrictedCalendarItems(
     publicItems: PublicCalendarItem[],
@@ -787,19 +880,25 @@ export function mergeRestrictedCalendarItems(
     editableAdminItems: StaffBookingCalendarItem[] = []
 ): Array<PublicCalendarItem | OwnBookingCalendarItem | StaffBookingCalendarItem> {
     const detailedSlotKeys = new Set<string>();
-    for (const ownItem of ownItems) {
-        const key = `${ownItem.booking.courtId}:${new Date(ownItem.booking.start).toISOString()}:${new Date(ownItem.booking.end).toISOString()}`;
-        detailedSlotKeys.add(key);
-    }
+    const adminSlotKeys = new Set<string>();
 
     const dedupedAdminItems: StaffBookingCalendarItem[] = [];
     for (const adminItem of editableAdminItems) {
         const key = `${adminItem.booking.courtId}:${new Date(adminItem.booking.start).toISOString()}:${new Date(adminItem.booking.end).toISOString()}`;
-        if (detailedSlotKeys.has(key)) {
-            continue;
+        if (!adminSlotKeys.has(key)) {
+            adminSlotKeys.add(key);
+            detailedSlotKeys.add(key);
+            dedupedAdminItems.push(adminItem);
         }
-        detailedSlotKeys.add(key);
-        dedupedAdminItems.push(adminItem);
+    }
+
+    const filteredOwnItems: OwnBookingCalendarItem[] = [];
+    for (const ownItem of ownItems) {
+        const key = `${ownItem.booking.courtId}:${new Date(ownItem.booking.start).toISOString()}:${new Date(ownItem.booking.end).toISOString()}`;
+        if (!adminSlotKeys.has(key)) {
+            detailedSlotKeys.add(key);
+            filteredOwnItems.push(ownItem);
+        }
     }
 
     const seenPublicKeys = new Set<string>();
@@ -817,5 +916,5 @@ export function mergeRestrictedCalendarItems(
         filteredPublic.push(pub);
     }
 
-    return [...filteredPublic, ...ownItems, ...dedupedAdminItems];
+    return [...filteredPublic, ...filteredOwnItems, ...dedupedAdminItems];
 }

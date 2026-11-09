@@ -835,6 +835,7 @@ export async function createBookingUserByAdminAction(input: CreateAdminUserInput
     password_hash: passwordHash,
     has_multisport: Boolean(input.hasMultisport),
     discount_tier_id: (input.discountTierId || "tier-base").trim(),
+    email_verified: true,
   };
 
   const firstAttempt = await context.db
@@ -882,7 +883,9 @@ export async function createBookingUserByAdminAction(input: CreateAdminUserInput
     return { success: false as const, error: "Používateľa sa nepodarilo vytvoriť." };
   }
 
-  const initialCredit = Math.max(0, Number(input.initialCreditEur || 0));
+  const initialCredit = (role === "admin" || role === "ntc_team")
+    ? 0
+    : Math.max(0, Number(input.initialCreditEur || 0));
 
   // Initialize wallet
   const { data: wallet } = await context.db

@@ -571,14 +571,14 @@ export default function AdminUsersDirectory() {
         prev.map((u) =>
           u.id === detailData.user.id
             ? {
-                ...u,
-                name: editProfileForm.name,
-                email: editProfileForm.email,
-                phone: editProfileForm.phone || null,
-                role: editProfileForm.role,
-                hasMultisport: editProfileForm.hasMultisport,
-                discountTierId: editProfileForm.discountTierId,
-              }
+              ...u,
+              name: editProfileForm.name,
+              email: editProfileForm.email,
+              phone: editProfileForm.phone || null,
+              role: editProfileForm.role,
+              hasMultisport: editProfileForm.hasMultisport,
+              discountTierId: editProfileForm.discountTierId,
+            }
             : u
         )
       );
@@ -689,6 +689,7 @@ export default function AdminUsersDirectory() {
                 { id: "all", label: "Všetci" },
                 { id: "user", label: "Používatelia" },
                 { id: "trainer", label: "Tréneri" },
+                { id: "ntc_team", label: "NTC Team" },
                 { id: "admin", label: "Administrátori" },
               ] as const
             ).map((filter) => {
@@ -701,11 +702,10 @@ export default function AdminUsersDirectory() {
                     setRoleFilter(filter.id);
                     setPage(1);
                   }}
-                  className={`cursor-pointer rounded-xl px-3 py-1.5 text-xs font-bold transition ${
-                    active
+                  className={`cursor-pointer rounded-xl px-3 py-1.5 text-xs font-bold transition ${active
                       ? "bg-slate-950 text-white shadow-xs"
                       : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                  }`}
+                    }`}
                 >
                   {filter.label}
                 </button>
@@ -798,48 +798,54 @@ export default function AdminUsersDirectory() {
                 </td>
                 <td className="px-6 py-4">
                   <span
-                    className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-bold shadow-2xs ${
-                      roleLabels[user.role]?.badge || "bg-slate-100 text-slate-800"
-                    }`}
+                    className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-bold shadow-2xs ${roleLabels[user.role]?.badge || "bg-slate-100 text-slate-800"
+                      }`}
                   >
                     {roleLabels[user.role]?.label || user.role}
                   </span>
                 </td>
                 <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={pendingTiers[user.id] || user.discountTierId || "tier-base"}
-                      disabled={savingTierUserId === user.id}
-                      onChange={(event) => selectTier(user.id, event.target.value)}
-                      className="min-w-44 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-slate-300 focus:border-emerald-500 focus:outline-hidden disabled:cursor-not-allowed disabled:bg-slate-100 cursor-pointer"
-                    >
-                      {discountTiers.map((tier) => (
-                        <option key={tier.id} value={tier.id}>
-                          {tier.name} {tier.isPercentual ? (tier.discountPercent > 0 ? `(-${tier.discountPercent} %)` : "(0 %)") : (tier.price60 ? `(${tier.price60} €/h)` : "")}
-                        </option>
-                      ))}
-                    </select>
-                    {pendingTiers[user.id] && (
-                      <button
-                        type="button"
+                  {user.role === "admin" || user.role === "ntc_team" ? (
+                    <span className="font-mono text-slate-400 font-bold">—</span>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={pendingTiers[user.id] || user.discountTierId || "tier-base"}
                         disabled={savingTierUserId === user.id}
-                        onClick={() => void saveUserTier(user)}
-                        className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-50 cursor-pointer active:scale-[0.98] shrink-0"
+                        onChange={(event) => selectTier(user.id, event.target.value)}
+                        className="min-w-44 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-slate-300 focus:border-emerald-500 focus:outline-hidden disabled:cursor-not-allowed disabled:bg-slate-100 cursor-pointer"
                       >
-                        {savingTierUserId === user.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                        Uložiť
-                      </button>
-                    )}
-                  </div>
+                        {discountTiers.map((tier) => (
+                          <option key={tier.id} value={tier.id}>
+                            {tier.name} {tier.isPercentual ? (tier.discountPercent > 0 ? `(-${tier.discountPercent} %)` : "(0 %)") : (tier.price60 ? `(${tier.price60} €/h)` : "")}
+                          </option>
+                        ))}
+                      </select>
+                      {pendingTiers[user.id] && (
+                        <button
+                          type="button"
+                          disabled={savingTierUserId === user.id}
+                          onClick={() => void saveUserTier(user)}
+                          className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-50 cursor-pointer active:scale-[0.98] shrink-0"
+                        >
+                          {savingTierUserId === user.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                          Uložiť
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </td>
                 <td className="px-6 py-4">
-                  <strong
-                    className={`text-sm font-bold ${
-                      user.walletBalanceEur > 0 ? "text-emerald-600" : "text-slate-600"
-                    }`}
-                  >
-                    {formatEur(user.walletBalanceEur)}
-                  </strong>
+                  {user.role === "admin" || user.role === "ntc_team" ? (
+                    <span className="font-mono text-slate-400 font-bold">—</span>
+                  ) : (
+                    <strong
+                      className={`text-sm font-bold ${user.walletBalanceEur > 0 ? "text-emerald-600" : "text-slate-600"
+                        }`}
+                    >
+                      {formatEur(user.walletBalanceEur)}
+                    </strong>
+                  )}
                 </td>
                 <td className="px-6 py-4">
                   <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600">
@@ -913,9 +919,8 @@ export default function AdminUsersDirectory() {
               </div>
               <div className="flex items-center gap-1.5">
                 <span
-                  className={`rounded-lg border px-2 py-0.5 text-[11px] font-bold shadow-2xs ${
-                    roleLabels[user.role]?.badge || "bg-slate-100 text-slate-800"
-                  }`}
+                  className={`rounded-lg border px-2 py-0.5 text-[11px] font-bold shadow-2xs ${roleLabels[user.role]?.badge || "bg-slate-100 text-slate-800"
+                    }`}
                 >
                   {roleLabels[user.role]?.label || user.role}
                 </span>
@@ -949,40 +954,47 @@ export default function AdminUsersDirectory() {
               </div>
               <div onClick={(e) => e.stopPropagation()}>
                 <span className="block text-[10px] text-slate-400 mb-1">Zľava (cenník)</span>
-                <div className="flex items-center gap-1.5">
-                  <select
-                    value={pendingTiers[user.id] || user.discountTierId || "tier-base"}
-                    disabled={savingTierUserId === user.id}
-                    onChange={(event) => selectTier(user.id, event.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-xs font-bold text-slate-700 shadow-2xs focus:border-emerald-500 focus:bg-white focus:outline-hidden disabled:cursor-not-allowed disabled:bg-slate-100 cursor-pointer"
-                  >
-                    {discountTiers.map((tier) => (
-                      <option key={tier.id} value={tier.id}>
-                        {tier.name} {tier.isPercentual ? (tier.discountPercent > 0 ? `(-${tier.discountPercent} %)` : "(0 %)") : (tier.price60 ? `(${tier.price60} €/h)` : "")}
-                      </option>
-                    ))}
-                  </select>
-                  {pendingTiers[user.id] && (
-                    <button
-                      type="button"
+                {user.role === "admin" || user.role === "ntc_team" ? (
+                  <span className="font-mono text-slate-400 font-bold text-xs">—</span>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      value={pendingTiers[user.id] || user.discountTierId || "tier-base"}
                       disabled={savingTierUserId === user.id}
-                      onClick={() => void saveUserTier(user)}
-                      className="rounded-xl bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 shrink-0 cursor-pointer"
+                      onChange={(event) => selectTier(user.id, event.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-xs font-bold text-slate-700 shadow-2xs focus:border-emerald-500 focus:bg-white focus:outline-hidden disabled:cursor-not-allowed disabled:bg-slate-100 cursor-pointer"
                     >
-                      {savingTierUserId === user.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Uložiť"}
-                    </button>
-                  )}
-                </div>
+                      {discountTiers.map((tier) => (
+                        <option key={tier.id} value={tier.id}>
+                          {tier.name} {tier.isPercentual ? (tier.discountPercent > 0 ? `(-${tier.discountPercent} %)` : "(0 %)") : (tier.price60 ? `(${tier.price60} €/h)` : "")}
+                        </option>
+                      ))}
+                    </select>
+                    {pendingTiers[user.id] && (
+                      <button
+                        type="button"
+                        disabled={savingTierUserId === user.id}
+                        onClick={() => void saveUserTier(user)}
+                        className="rounded-xl bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 shrink-0 cursor-pointer"
+                      >
+                        {savingTierUserId === user.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Uložiť"}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
               <div>
                 <span className="block text-[10px] text-slate-400">Zostatok</span>
-                <span
-                  className={`font-bold ${
-                    user.walletBalanceEur > 0 ? "text-emerald-600" : "text-slate-700"
-                  }`}
-                >
-                  {formatEur(user.walletBalanceEur)}
-                </span>
+                {user.role === "admin" || user.role === "ntc_team" ? (
+                  <span className="font-mono text-slate-400 font-bold text-xs">—</span>
+                ) : (
+                  <span
+                    className={`font-bold ${user.walletBalanceEur > 0 ? "text-emerald-600" : "text-slate-700"
+                      }`}
+                  >
+                    {formatEur(user.walletBalanceEur)}
+                  </span>
+                )}
               </div>
               <div className="text-right sm:text-left">
                 <span className="block text-[10px] text-slate-400">Rezervácie</span>
@@ -1135,9 +1147,8 @@ export default function AdminUsersDirectory() {
                       </span>
                     )}
                     <span
-                      className={`rounded-lg border px-2.5 py-1 font-bold shadow-2xs ${
-                        roleLabels[detailData.user.role]?.badge || "bg-slate-100 text-slate-800"
-                      }`}
+                      className={`rounded-lg border px-2.5 py-1 font-bold shadow-2xs ${roleLabels[detailData.user.role]?.badge || "bg-slate-100 text-slate-800"
+                        }`}
                     >
                       {roleLabels[detailData.user.role]?.label || detailData.user.role}
                     </span>
@@ -1237,11 +1248,10 @@ export default function AdminUsersDirectory() {
               <button
                 type="button"
                 onClick={() => setActiveTab("bookings")}
-                className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition ${
-                  activeTab === "bookings"
+                className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition ${activeTab === "bookings"
                     ? "border-emerald-600 text-emerald-700"
                     : "border-transparent text-slate-500 hover:text-slate-800"
-                }`}
+                  }`}
               >
                 <CalendarDays className="h-4 w-4" />
                 Rezervácie ({detailData?.bookings.length || 0})
@@ -1249,11 +1259,10 @@ export default function AdminUsersDirectory() {
               <button
                 type="button"
                 onClick={() => setActiveTab("wallet")}
-                className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition ${
-                  activeTab === "wallet"
+                className={`flex items-center gap-2 border-b-2 py-3 px-4 text-xs font-bold transition ${activeTab === "wallet"
                     ? "border-emerald-600 text-emerald-700"
                     : "border-transparent text-slate-500 hover:text-slate-800"
-                }`}
+                  }`}
               >
                 <Coins className="h-4 w-4" />
                 Pohyby kreditu ({detailData?.transactions.length || 0})
@@ -1288,11 +1297,10 @@ export default function AdminUsersDirectory() {
                       return (
                         <div
                           key={booking.id}
-                          className={`rounded-2xl border p-4 transition ${
-                            isCancelled
+                          className={`rounded-2xl border p-4 transition ${isCancelled
                               ? "border-slate-200 bg-slate-50/50 opacity-60"
                               : "border-slate-200 bg-white shadow-2xs hover:border-emerald-300"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div>
@@ -1301,11 +1309,10 @@ export default function AdminUsersDirectory() {
                                   {courtLabel(booking.courtId)}
                                 </strong>
                                 <span
-                                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
-                                    isCancelled
+                                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${isCancelled
                                       ? "bg-red-50 text-red-700 border border-red-200"
                                       : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                  }`}
+                                    }`}
                                 >
                                   {isCancelled ? "Zrušená" : "Potvrdená"}
                                 </span>
@@ -1385,11 +1392,10 @@ export default function AdminUsersDirectory() {
                         >
                           <div className="flex items-center gap-3">
                             <span
-                              className={`grid h-9 w-9 place-items-center rounded-xl ${
-                                isPositive
+                              className={`grid h-9 w-9 place-items-center rounded-xl ${isPositive
                                   ? "bg-emerald-50 text-emerald-600"
                                   : "bg-red-50 text-red-600"
-                              }`}
+                                }`}
                             >
                               {isPositive ? (
                                 <ArrowDownLeft className="h-4 w-4" />
@@ -1408,9 +1414,8 @@ export default function AdminUsersDirectory() {
                           </div>
                           <div className="text-right">
                             <strong
-                              className={`text-sm font-bold ${
-                                isPositive ? "text-emerald-600" : "text-slate-900"
-                              }`}
+                              className={`text-sm font-bold ${isPositive ? "text-emerald-600" : "text-slate-900"
+                                }`}
                             >
                               {isPositive ? "+" : ""}
                               {formatEur(tx.amountEur)}
@@ -1551,7 +1556,7 @@ export default function AdminUsersDirectory() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
+                <div className={createForm.role === "ntc_team" || createForm.role === "admin" ? "sm:col-span-2" : ""}>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Rola</label>
                   <select
                     value={createForm.role}
@@ -1564,20 +1569,22 @@ export default function AdminUsersDirectory() {
                     <option value="admin">Administrátor</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Pridelená zľava (cenník)</label>
-                  <select
-                    value={createForm.discountTierId}
-                    onChange={(e) => setCreateForm({ ...createForm, discountTierId: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 cursor-pointer"
-                  >
-                    {discountTiers.map((tier) => (
-                      <option key={tier.id} value={tier.id}>
-                        {tier.name} {tier.isPercentual ? (tier.discountPercent > 0 ? `(-${tier.discountPercent} %)` : "(0 %)") : (tier.price60 ? `(${tier.price60} €/h)` : "")}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {createForm.role !== "ntc_team" && createForm.role !== "admin" && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Pridelená zľava (cenník)</label>
+                    <select
+                      value={createForm.discountTierId}
+                      onChange={(e) => setCreateForm({ ...createForm, discountTierId: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 cursor-pointer"
+                    >
+                      {discountTiers.map((tier) => (
+                        <option key={tier.id} value={tier.id}>
+                          {tier.name} {tier.isPercentual ? (tier.discountPercent > 0 ? `(-${tier.discountPercent} %)` : "(0 %)") : (tier.price60 ? `(${tier.price60} €/h)` : "")}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -1592,19 +1599,21 @@ export default function AdminUsersDirectory() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Počiatočný kredit (€)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={createForm.initialCreditEur}
-                    onChange={(e) => setCreateForm({ ...createForm, initialCreditEur: Number(e.target.value) })}
-                    placeholder="0"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm font-bold text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                  />
-                </div>
+              <div className={`grid grid-cols-1 ${createForm.role === "ntc_team" || createForm.role === "admin" ? "" : "sm:grid-cols-2"} gap-3 pt-1`}>
+                {createForm.role !== "ntc_team" && createForm.role !== "admin" && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Počiatočný kredit (€)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={createForm.initialCreditEur}
+                      onChange={(e) => setCreateForm({ ...createForm, initialCreditEur: Number(e.target.value) })}
+                      placeholder="0"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm font-bold text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Počiatočné heslo</label>
                   <input
@@ -1808,13 +1817,12 @@ export default function AdminUsersDirectory() {
                   <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
                   <span>
                     {userToDelete.bookingsCount > 0
-                      ? `Používateľ má ${userToDelete.bookingsCount} ${
-                          userToDelete.bookingsCount === 1
-                            ? "aktívnu/evidovanú rezerváciu"
-                            : userToDelete.bookingsCount >= 2 && userToDelete.bookingsCount <= 4
-                            ? "aktívne/evidované rezervácie"
-                            : "aktívnych/evidovaných rezervácií"
-                        }`
+                      ? `Používateľ má ${userToDelete.bookingsCount} ${userToDelete.bookingsCount === 1
+                        ? "aktívnu/evidovanú rezerváciu"
+                        : userToDelete.bookingsCount >= 2 && userToDelete.bookingsCount <= 4
+                          ? "aktívne/evidované rezervácie"
+                          : "aktívnych/evidovaných rezervácií"
+                      }`
                       : "Používateľ nemá žiadne rezervácie"}
                   </span>
                 </div>

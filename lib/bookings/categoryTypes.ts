@@ -10,30 +10,30 @@ export type AdminReservationCategory = {
 
 export const DEFAULT_ADMIN_CATEGORIES: AdminReservationCategory[] = [
   {
-    id: "maintenance",
-    name: "Údržba kurtov",
-    color: "#FFC9C9",
-    border: "#F29E9E",
-    isSystem: true,
-    hasPlayerField: false,
-    sortOrder: 1,
-  },
-  {
     id: "admin_reservation",
     name: "Rezervácia Admin",
     color: "#FFFF33",
     border: "#E6E600",
     isSystem: true,
     hasPlayerField: true,
-    sortOrder: 2,
+    sortOrder: 1,
   },
   {
     id: "training",
-    name: "Tréningy",
+    name: "NTC Tím",
     color: "#F4CDE4",
     border: "#EAAECF",
     isSystem: true,
     hasPlayerField: true,
+    sortOrder: 2,
+  },
+  {
+    id: "maintenance",
+    name: "Údržba kurtov",
+    color: "#FFC9C9",
+    border: "#F29E9E",
+    isSystem: true,
+    hasPlayerField: false,
     sortOrder: 3,
   },
 ];

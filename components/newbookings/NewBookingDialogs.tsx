@@ -6,6 +6,7 @@ import type { Booking, BookingSubSlot, Court } from "@/lib/bookings/mockBookings
 import {
   type CalendarAccessMode,
   isAdminReservationBlockRow,
+  isNtcTeamReservationBlockRow,
   type OwnBookingCalendarItem,
   type OwnBookingDto,
   type StaffBookingCalendarItem,
@@ -114,6 +115,7 @@ type CreateDialogProps = {
   onAdminBlockType?: (value: string) => void;
   hasCard?: boolean;
   isAdmin?: boolean;
+  isNtcTeam?: boolean;
   canMakeRecurring?: boolean;
   isRecurring?: boolean;
   onIsRecurring?: (value: boolean) => void;
@@ -225,9 +227,22 @@ export function CreateBookingDialog(props: CreateDialogProps) {
   const userBalanceCents = typeof props.walletBalance === "number" ? Math.round(props.walletBalance * 100) : null;
   const totalPriceCents = Math.round(pricing.totalPriceEur * 100);
 
+  const ntcTeamCategory = useMemo(() => {
+    return (
+      availableCategories.find(
+        (c) =>
+          c.id === "training" ||
+          c.id === "ntc_team" ||
+          c.name.toLowerCase() === "ntc tím" ||
+          c.name.toLowerCase() === "ntc tim"
+      ) || availableCategories[1] || availableCategories[0]
+    );
+  }, [availableCategories]);
+
   // Používateľ má nedostatočný kredit LEN vtedy, ak má na účte skutočne menej centov ako je cena
   const isInsufficientCredit =
     !props.isAdmin &&
+    !props.isNtcTeam &&
     pricing.totalPriceEur > 0 &&
     userBalanceCents !== null &&
     userBalanceCents < totalPriceCents;
@@ -284,7 +299,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                   {props.topUpLoading === missingEur ? (
                     <>
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span>Dobíjam...</span>
+                      <span>Presmerovávam...</span>
                     </>
                   ) : (
                     <>
@@ -456,11 +471,10 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                         }
                         setAdminBlockTypeOpen(false);
                       }}
-                      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold transition text-left cursor-pointer ${
-                        currentBlockType.toLowerCase() === opt.name.toLowerCase() || currentBlockType === opt.id
-                          ? "bg-slate-100 text-slate-950"
-                          : "hover:bg-slate-50 text-slate-700"
-                      }`}
+                      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold transition text-left cursor-pointer ${currentBlockType.toLowerCase() === opt.name.toLowerCase() || currentBlockType === opt.id
+                        ? "bg-slate-100 text-slate-950"
+                        : "hover:bg-slate-50 text-slate-700"
+                        }`}
                     >
                       <span
                         className="h-4 w-4 rounded-md border shadow-2xs shrink-0"
@@ -475,17 +489,35 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                 </div>
               )}
             </div>
+          ) : props.isNtcTeam ? (
+            <div>
+              <span className="mb-1.5 block text-xs font-semibold text-slate-700 sm:mb-2 sm:text-sm">
+                Dôvod rezervácie
+              </span>
+              <div className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 sm:px-4 sm:py-3 shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className="h-4 w-4 rounded-md border shadow-2xs shrink-0"
+                    style={{
+                      backgroundColor: ntcTeamCategory?.color || "#F4CDE4",
+                      borderColor: ntcTeamCategory?.border || "#EAAECF",
+                    }}
+                  />
+                  <span className="text-xs sm:text-sm font-bold text-slate-900">NTC Tím</span>
+                </div>
+              </div>
+            </div>
           ) : (
             <Field icon={Phone} label="Telefón" value={props.phone} onChange={props.onPhone} type="tel" />
           )}
 
-          {/* MultiSport karty (len pre klientov/ne-adminov) */}
-          {!props.isAdmin && (
+          {/* MultiSport karty (len pre bežných klientov) */}
+          {!props.isAdmin && !props.isNtcTeam && (
             <div className="grid grid-cols-2 gap-2.5">
               {/* Karta č. 1 */}
               <label className={`flex items-center gap-2.5 rounded-2xl border p-3 cursor-pointer transition select-none ${props.multisportCardsCount >= 1
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold shadow-2xs"
-                  : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100/70"
+                ? "border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold shadow-2xs"
+                : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100/70"
                 }`}>
                 <input
                   type="checkbox"
@@ -504,8 +536,8 @@ export function CreateBookingDialog(props: CreateDialogProps) {
 
               {/* Karta č. 2 - 100% zľava iba ak sú zaškrtnuté obe karty */}
               <label className={`flex items-center gap-2.5 rounded-2xl border p-3 cursor-pointer transition select-none ${props.multisportCardsCount === 2
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold shadow-2xs"
-                  : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100/70"
+                ? "border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold shadow-2xs"
+                : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100/70"
                 }`}>
                 <input
                   type="checkbox"
@@ -526,7 +558,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
             </div>
           )}
 
-          {((props.isAdmin && Boolean(selectedOption?.hasPlayerField)) || (!props.isAdmin && props.canMakeRecurring)) && (
+          {((props.isAdmin && Boolean(selectedOption?.hasPlayerField)) || props.isNtcTeam || (!props.isAdmin && props.canMakeRecurring)) && (
             <Field
               icon={User}
               label="Meno hráča / zverenca (voliteľné)"
@@ -640,11 +672,10 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                                 }
                                 props.onDaysOfWeek?.(next);
                               }}
-                              className={`flex flex-col items-center justify-center py-2 rounded-xl text-xs font-bold transition cursor-pointer border select-none ${
-                                isSelected
-                                  ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs scale-[1.02]"
-                                  : "bg-white text-slate-700 border-slate-200 hover:bg-indigo-50 hover:border-indigo-300"
-                              }`}
+                              className={`flex flex-col items-center justify-center py-2 rounded-xl text-xs font-bold transition cursor-pointer border select-none ${isSelected
+                                ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs scale-[1.02]"
+                                : "bg-white text-slate-700 border-slate-200 hover:bg-indigo-50 hover:border-indigo-300"
+                                }`}
                               title={d.full}
                             >
                               <span>{d.label}</span>
@@ -723,73 +754,75 @@ export function CreateBookingDialog(props: CreateDialogProps) {
             <Info label="Dátum" value={new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(props.date)} />
             <Info label="Začiatok" value={`${String(props.hour).padStart(2, "0")}:00`} />
             <Info label="Trvanie" value={`${props.duration} min.`} />
-            <div className="col-span-2 flex items-baseline gap-2 flex-wrap pt-0.5">
-              <span className="font-semibold text-slate-600">{props.isAdmin ? "Platba / Kredit:" : "Cena rezervácie:"}</span>
-              <div className="flex items-baseline gap-1.5 flex-wrap">
-                {props.isAdmin ? (
-                  <span className="rounded-md border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-bold text-violet-700">
-                    Admin rezervácia (bez kreditu)
-                  </span>
-                ) : (
-                  <>
-                    {pricing.multisportCardsCount > 0 ? (
-                      <>
-                        {/* Pri MultiSport cenu kurtu nemenme - zobrazujeme základnú cenu a do zátvorky výslednú cenu */}
-                        <span className="text-base font-black text-slate-950 sm:text-lg">
-                          {(pricing.priceBeforeMultisportEur ?? pricing.originalPriceEur).toFixed(2)} €
-                        </span>
-                        <span className="text-xs sm:text-sm font-semibold text-emerald-700">
-                          (výsledná cena: {pricing.totalPriceEur.toFixed(2)} €)
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        {pricing.originalPriceEur > pricing.totalPriceEur && (
-                          <span className="text-xs sm:text-sm text-slate-400 line-through mr-1 font-semibold">
-                            {pricing.originalPriceEur.toFixed(2)} €
+            {!props.isNtcTeam && (
+              <div className="col-span-2 flex items-baseline gap-2 flex-wrap pt-0.5">
+                <span className="font-semibold text-slate-600">{props.isAdmin ? "Platba / Kredit:" : "Cena rezervácie:"}</span>
+                <div className="flex items-baseline gap-1.5 flex-wrap">
+                  {props.isAdmin ? (
+                    <span className="rounded-md border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-bold text-violet-700">
+                      Admin rezervácia (bez kreditu)
+                    </span>
+                  ) : (
+                    <>
+                      {pricing.multisportCardsCount > 0 ? (
+                        <>
+                          {/* Pri MultiSport cenu kurtu nemenme - zobrazujeme základnú cenu a do zátvorky výslednú cenu */}
+                          <span className="text-base font-black text-slate-950 sm:text-lg">
+                            {(pricing.priceBeforeMultisportEur ?? pricing.originalPriceEur).toFixed(2)} €
                           </span>
-                        )}
-                        <span className="text-base font-black text-slate-950 sm:text-lg">
-                          {pricing.formattedPrice}
+                          <span className="text-xs sm:text-sm font-semibold text-emerald-700">
+                            (výsledná cena: {pricing.totalPriceEur.toFixed(2)} €)
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          {pricing.originalPriceEur > pricing.totalPriceEur && (
+                            <span className="text-xs sm:text-sm text-slate-400 line-through mr-1 font-semibold">
+                              {pricing.originalPriceEur.toFixed(2)} €
+                            </span>
+                          )}
+                          <span className="text-base font-black text-slate-950 sm:text-lg">
+                            {pricing.formattedPrice}
+                          </span>
+                        </>
+                      )}
+                      {Boolean(pricing.userDiscountEur && pricing.userDiscountEur > 0) && (
+                        <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shadow-2xs">
+                          {pricing.userDiscountTierName || "Zľava"}: -{(pricing.userDiscountEur || 0).toFixed(2)} €
                         </span>
-                      </>
-                    )}
-                    {Boolean(pricing.userDiscountEur && pricing.userDiscountEur > 0) && (
-                      <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shadow-2xs">
-                        {pricing.userDiscountTierName || "Zľava"}: -{(pricing.userDiscountEur || 0).toFixed(2)} €
-                      </span>
-                    )}
-                    {Boolean(pricing.nonMemberSurchargeEur && pricing.nonMemberSurchargeEur > 0) && (
-                      <span className="rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-850 shadow-2xs">
-                        +{(pricing.nonMemberSurchargeEur || 2).toFixed(2)} € bez registrácie
-                      </span>
-                    )}
-                    {pricing.multisportCardsCount === 1 && (
-                      <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shadow-2xs">
-                        MultiSport 1x
-                      </span>
-                    )}
-                    {pricing.multisportCardsCount === 2 && (
-                      <span className="rounded-md border border-emerald-500 bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-2xs">
-                        MultiSport 2x (Zdarma)
-                      </span>
-                    )}
-                  </>
-                )}
+                      )}
+                      {Boolean(pricing.nonMemberSurchargeEur && pricing.nonMemberSurchargeEur > 0) && (
+                        <span className="rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-850 shadow-2xs">
+                          +{(pricing.nonMemberSurchargeEur || 2).toFixed(2)} € bez registrácie
+                        </span>
+                      )}
+                      {pricing.multisportCardsCount === 1 && (
+                        <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shadow-2xs">
+                          MultiSport 1x
+                        </span>
+                      )}
+                      {pricing.multisportCardsCount === 2 && (
+                        <span className="rounded-md border border-emerald-500 bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-2xs">
+                          MultiSport 2x (Zdarma)
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <button
             type="submit"
             disabled={props.loading || isInsufficientCredit}
             className={`mt-2 w-full rounded-xl px-4 py-3 text-xs font-bold text-white transition sm:px-5 sm:py-3.5 sm:text-sm shadow-xs ${isInsufficientCredit
-                ? "bg-slate-400 cursor-not-allowed opacity-80"
-                : props.isRecurring
-                  ? "bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
-                  : props.isAdmin
-                    ? "bg-slate-950 hover:bg-slate-800 disabled:opacity-50 cursor-pointer"
-                    : "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
+              ? "bg-slate-400 cursor-not-allowed opacity-80"
+              : props.isRecurring
+                ? "bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
+                : props.isAdmin || props.isNtcTeam
+                  ? "bg-slate-950 hover:bg-slate-800 disabled:opacity-50 cursor-pointer"
+                  : "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
               }`}
           >
             {props.loading
@@ -800,7 +833,9 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                   ? `Vytvoriť opakovanú sériu (${occurrencesCount} ${occurrencesCount === 1 ? "termín" : occurrencesCount < 5 ? "termíny" : "termínov"})`
                   : props.isAdmin
                     ? `Rezervovať (${selectedOption.name})`
-                    : "Vytvoriť rezerváciu"}
+                    : props.isNtcTeam
+                      ? "Rezervovať (NTC Tím)"
+                      : "Vytvoriť rezerváciu"}
           </button>
         </form>
       </div>
@@ -930,7 +965,7 @@ export function BookingDetailDialog({
     isStaffDetail &&
     ((accessMode === "staff" && currentRole === "admin") ||
       (currentRole === "ntc_team" &&
-        isAdminReservationBlockRow({
+        isNtcTeamReservationBlockRow({
           adminBlockType: activeItem.booking.adminBlockType,
           customerName: activeItem.booking.customerName,
           title: activeItem.booking.title,
@@ -968,9 +1003,8 @@ export function BookingDetailDialog({
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4">
       <button aria-label="Zavrieť" className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative max-h-[92vh] w-full overflow-y-auto overscroll-contain rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl transition-all sm:p-6 ${
-        detailItem.booking.recurringGroupId ? "max-w-xl sm:max-w-2xl" : "max-w-md sm:p-8"
-      }`}>
+      <div className={`relative max-h-[92vh] w-full overflow-y-auto overscroll-contain rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl transition-all sm:p-6 ${detailItem.booking.recurringGroupId ? "max-w-xl sm:max-w-2xl" : "max-w-md sm:p-8"
+        }`}>
         <DialogHeader
           title={isMaintenanceOrAdmin ? "Detail rezervácie kurtu" : "Detail rezervácie"}
           subtitle={formatCourtDisplayName(court) || "Rezervované športovisko"}
@@ -1069,31 +1103,29 @@ export function BookingDetailDialog({
                             );
                           }
                         }}
-                        className={`relative min-h-[46px] sm:min-h-[50px] p-1 rounded-xl flex flex-col justify-between transition border text-left ${
-                          !isCurrentMonth
-                            ? "opacity-25 bg-slate-50 border-slate-100 cursor-default"
-                            : hasSlot
+                        className={`relative min-h-[46px] sm:min-h-[50px] p-1 rounded-xl flex flex-col justify-between transition border text-left ${!isCurrentMonth
+                          ? "opacity-25 bg-slate-50 border-slate-100 cursor-default"
+                          : hasSlot
                             ? isSlotCancelled
                               ? "bg-red-50/70 border-red-200 cursor-pointer"
                               : isSelected
-                              ? "bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500 shadow-xs cursor-pointer"
-                              : "bg-emerald-50/70 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-100/50 cursor-pointer shadow-2xs"
+                                ? "bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500 shadow-xs cursor-pointer"
+                                : "bg-emerald-50/70 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-100/50 cursor-pointer shadow-2xs"
                             : "border-slate-100 bg-white cursor-default"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center justify-between w-full">
                           <span
-                            className={`text-[10px] sm:text-[11px] font-bold leading-none ${
-                              hasSlot
-                                ? isSlotCancelled
-                                  ? "text-red-700"
-                                  : isSelected
+                            className={`text-[10px] sm:text-[11px] font-bold leading-none ${hasSlot
+                              ? isSlotCancelled
+                                ? "text-red-700"
+                                : isSelected
                                   ? "text-emerald-950 font-extrabold"
                                   : "text-emerald-900"
-                                : isToday
+                              : isToday
                                 ? "text-blue-600 font-extrabold"
                                 : "text-slate-400"
-                            }`}
+                              }`}
                           >
                             {cellDate.getDate()}
                           </span>
@@ -1109,9 +1141,8 @@ export function BookingDetailDialog({
                                 Uvoľnené
                               </span>
                             ) : (
-                              <div className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[8.5px] font-extrabold text-center shadow-2xs flex items-center justify-center gap-0.5 ${
-                                isSelected ? "bg-emerald-700 text-white" : "bg-emerald-600 text-white"
-                              }`}>
+                              <div className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[8.5px] font-extrabold text-center shadow-2xs flex items-center justify-center gap-0.5 ${isSelected ? "bg-emerald-700 text-white" : "bg-emerald-600 text-white"
+                                }`}>
                                 <span className="truncate">{formatTime(slotItem.booking.start)}</span>
                               </div>
                             )}
@@ -1838,11 +1869,10 @@ export function SeriesOverviewDialog({
             <button
               type="button"
               onClick={() => setViewMode("calendar")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
-                viewMode === "calendar"
-                  ? "bg-white text-indigo-950 shadow-2xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${viewMode === "calendar"
+                ? "bg-white text-indigo-950 shadow-2xs"
+                : "text-slate-600 hover:text-slate-900"
+                }`}
             >
               <Calendar className="h-3.5 w-3.5 text-indigo-600" />
               <span>Mesačný kalendár</span>
@@ -1850,11 +1880,10 @@ export function SeriesOverviewDialog({
             <button
               type="button"
               onClick={() => setViewMode("list")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
-                viewMode === "list"
-                  ? "bg-white text-indigo-950 shadow-2xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${viewMode === "list"
+                ? "bg-white text-indigo-950 shadow-2xs"
+                : "text-slate-600 hover:text-slate-900"
+                }`}
             >
               <List className="h-3.5 w-3.5 text-indigo-600" />
               <span>Zoznam termínov ({seriesBookings.length})</span>
@@ -1926,25 +1955,23 @@ export function SeriesOverviewDialog({
                       type="button"
                       disabled={!hasSlot}
                       onClick={() => hasSlot && setSelectedSlot(firstSlot)}
-                      className={`relative min-h-[52px] sm:min-h-[58px] p-1 rounded-xl flex flex-col justify-between transition border text-left ${
-                        !isCurrentMonth
-                          ? "opacity-30 bg-slate-50 border-slate-100"
-                          : hasSlot
+                      className={`relative min-h-[52px] sm:min-h-[58px] p-1 rounded-xl flex flex-col justify-between transition border text-left ${!isCurrentMonth
+                        ? "opacity-30 bg-slate-50 border-slate-100"
+                        : hasSlot
                           ? isCancelled
                             ? "bg-red-50/70 border-red-200 cursor-pointer"
                             : isSelected
-                            ? "bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500 shadow-xs cursor-pointer"
-                            : "bg-emerald-50/60 border-emerald-300 hover:border-emerald-500 hover:bg-emerald-100/50 cursor-pointer shadow-2xs"
+                              ? "bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500 shadow-xs cursor-pointer"
+                              : "bg-emerald-50/60 border-emerald-300 hover:border-emerald-500 hover:bg-emerald-100/50 cursor-pointer shadow-2xs"
                           : "border-slate-100 bg-white cursor-default"
-                      }`}
+                        }`}
                     >
-                      <span className={`text-[11px] font-bold leading-none ${
-                        hasSlot
-                          ? isCancelled
-                            ? "text-red-700"
-                            : "text-emerald-950 font-extrabold"
-                          : "text-slate-500"
-                      }`}>
+                      <span className={`text-[11px] font-bold leading-none ${hasSlot
+                        ? isCancelled
+                          ? "text-red-700"
+                          : "text-emerald-950 font-extrabold"
+                        : "text-slate-500"
+                        }`}>
                         {cellDate.getDate()}
                       </span>
 
@@ -2050,13 +2077,12 @@ export function SeriesOverviewDialog({
                 return (
                   <div
                     key={b.id || idx}
-                    className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 gap-2.5 transition ${
-                      isCancelled
-                        ? "bg-slate-50/80 opacity-60"
-                        : isPast
+                    className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 gap-2.5 transition ${isCancelled
+                      ? "bg-slate-50/80 opacity-60"
+                      : isPast
                         ? "bg-slate-50/40"
                         : "hover:bg-indigo-50/30"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">

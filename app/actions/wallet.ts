@@ -12,6 +12,9 @@ const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "595cbb6c-1019-41ae-b1c2-
 export async function getWalletAction() {
   const session = await getSession();
   if (!session) return { success: false as const, enabled: false, error: "Not logged in" };
+  if (session.role === "admin" || session.role === "ntc_team") {
+    return { success: true as const, enabled: false, balanceEur: null };
+  }
 
   const enabled = walletEnabledForUser(session.userId);
   if (!enabled) return { success: true as const, enabled: false, balanceEur: null };
@@ -56,6 +59,9 @@ export async function getWalletAction() {
 export async function getWalletHistoryAction() {
   const session = await getSession();
   if (!session) return { success: false as const, enabled: false, error: "Not logged in" };
+  if (session.role === "admin" || session.role === "ntc_team") {
+    return { success: true as const, enabled: false, balanceEur: null, transactions: [] };
+  }
   if (!walletEnabledForUser(session.userId)) {
     return { success: true as const, enabled: false, balanceEur: null, transactions: [] };
   }
@@ -335,7 +341,7 @@ export async function reconcileWalletCheckoutAction(checkoutSessionId: string) {
 export async function createWalletCheckoutAction(amountEur: number, operationId: string) {
   const session = await getSession();
   if (!session) return { success: false as const, error: "Pre dobitie sa musíte prihlásiť." };
-  if (!walletEnabledForUser(session.userId)) {
+  if (session.role === "admin" || session.role === "ntc_team" || !walletEnabledForUser(session.userId)) {
     return { success: false as const, error: "Dobíjanie kreditu nie je pre tento účet povolené." };
   }
   if (typeof amountEur !== "number" || isNaN(amountEur) || amountEur < 0.50 || amountEur > 1000) {
@@ -401,7 +407,7 @@ export async function createWalletCheckoutAction(amountEur: number, operationId:
 export async function createWalletCardPayAction(amountEur: number, operationId: string) {
   const session = await getSession();
   if (!session) return { success: false as const, error: "Pre dobitie sa musíte prihlásiť." };
-  if (!walletEnabledForUser(session.userId)) {
+  if (session.role === "admin" || session.role === "ntc_team" || !walletEnabledForUser(session.userId)) {
     return { success: false as const, error: "Dobíjanie kreditu nie je pre tento účet povolené." };
   }
   if (typeof amountEur !== "number" || isNaN(amountEur) || amountEur < 0.50 || amountEur > 1000) {

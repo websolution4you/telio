@@ -40,7 +40,7 @@ const roleLabels: Record<BookingRole, string> = {
   admin: "Administrátor",
   user: "Používateľ",
   trainer: "Tréner",
-  ntc_team: "NTC Team",
+  ntc_team: "NTC Tím",
 };
 const roles: BookingRole[] = ["admin", "user", "trainer", "ntc_team"];
 const durationLimits = [30, 60, 90, 120, ...Array.from({ length: 22 }, (_, index) => (index + 3) * 60)];
@@ -540,6 +540,8 @@ export default function AdminUsersAndRoles() {
                         className={`shrink-0 rounded-lg px-2.5 py-0.5 text-[11px] font-bold border ${
                           activeRole === "admin"
                             ? "bg-slate-900 text-white border-slate-800"
+                            : activeRole === "ntc_team"
+                            ? "bg-blue-100 text-blue-950 border-blue-300"
                             : activeRole === "trainer"
                             ? "bg-[#DCC7F0] text-slate-950 border-[#C0A0E0]"
                             : "bg-[#FFF3B0] text-slate-950 border-[#EAD77B]"

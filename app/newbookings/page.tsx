@@ -107,7 +107,7 @@ export default async function NewBookingsPage() {
   }
 
   let initialWalletBalance: number | null = null;
-  if (session && currentUser && currentUser.role !== "admin") {
+  if (session && currentUser && currentUser.role !== "admin" && currentUser.role !== "ntc_team") {
     const serviceDb = getCoreServiceDb();
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     const [{ data: walletData }, { data: pendingPayments }] = await Promise.all([

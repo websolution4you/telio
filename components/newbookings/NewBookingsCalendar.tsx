@@ -29,6 +29,7 @@ import {
   type OwnBookingDto,
   type StaffBookingCalendarItem,
   isAdminReservationBlockRow,
+  isNtcTeamReservationBlockRow,
   isPrivilegedReadRole,
   mapCreatedBookingToOwnBookingDto,
   toOwnBookingCalendarItem,
@@ -802,113 +803,113 @@ export default function NewBookingsCalendar({
     // Pre restricted roly (user / trainer / ntc_team) sa channel vôbec nevytvára ani neprihlasuje na odber.
     const channel = isStaffUser
       ? supabase.channel("newbookings-realtime").on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, (payload) => {
-          if (!active) return;
+        if (!active) return;
 
-          if (currentUser && currentUser.role !== "admin") {
-            getWalletAction().then((res) => {
-              if (!active) return;
-              if (res.success && res.enabled) {
-                setWalletBalance(res.balanceEur);
-              }
-            });
-          }
+        if (currentUser && currentUser.role !== "admin") {
+          getWalletAction().then((res) => {
+            if (!active) return;
+            if (res.success && res.enabled) {
+              setWalletBalance(res.balanceEur);
+            }
+          });
+        }
 
-          if (payload.eventType === "INSERT") {
-            const raw = payload.new as Record<string, unknown> | null;
-            if (!raw || typeof raw.id !== "string") return;
+        if (payload.eventType === "INSERT") {
+          const raw = payload.new as Record<string, unknown> | null;
+          if (!raw || typeof raw.id !== "string") return;
 
-            const bookingId = raw.id;
-            const alreadyKnown = knownBookingIds.current.has(bookingId);
-            knownBookingIds.current.add(bookingId);
+          const bookingId = raw.id;
+          const alreadyKnown = knownBookingIds.current.has(bookingId);
+          knownBookingIds.current.add(bookingId);
 
-            let notesObj: Record<string, unknown> = {};
-            try {
-              notesObj = typeof raw.notes === "string" ? JSON.parse(raw.notes) : (raw.notes && typeof raw.notes === "object" ? (raw.notes as Record<string, unknown>) : {});
-            } catch { }
+          let notesObj: Record<string, unknown> = {};
+          try {
+            notesObj = typeof raw.notes === "string" ? JSON.parse(raw.notes) : (raw.notes && typeof raw.notes === "object" ? (raw.notes as Record<string, unknown>) : {});
+          } catch { }
 
-            const resolvedCourtId =
-              (typeof notesObj.courtId === "string" && notesObj.courtId) ||
-              (typeof raw.court_id === "string" && raw.court_id) ||
-              (typeof raw.courtId === "string" && raw.courtId) ||
-              "badminton-1";
-            const startIso = typeof raw.start_at === "string" ? raw.start_at : "";
-            const endIso = typeof raw.end_at === "string" ? raw.end_at : "";
-            if (!startIso || !endIso) return;
+          const resolvedCourtId =
+            (typeof notesObj.courtId === "string" && notesObj.courtId) ||
+            (typeof raw.court_id === "string" && raw.court_id) ||
+            (typeof raw.courtId === "string" && raw.courtId) ||
+            "badminton-1";
+          const startIso = typeof raw.start_at === "string" ? raw.start_at : "";
+          const endIso = typeof raw.end_at === "string" ? raw.end_at : "";
+          if (!startIso || !endIso) return;
 
-            const mappedBooking: Booking = {
-              id: bookingId,
-              courtId: resolvedCourtId,
-              title: (typeof notesObj.notes === "string" && notesObj.notes) || (typeof raw.customer_name === "string" && raw.customer_name) || "Rezervácia",
-              customerName: (typeof raw.customer_name === "string" && raw.customer_name) || "Rezervácia",
-              phone: typeof raw.customer_phone === "string" ? raw.customer_phone : undefined,
-              start: startIso,
-              end: endIso,
-              status: (raw.status === "blocked" || raw.status === "cancelled" || raw.status === "pending" ? raw.status : "confirmed"),
-              source: (notesObj.source === "admin" || notesObj.source === "web" ? notesObj.source : "voice-assistant"),
-              user_id: typeof raw.user_id === "string" ? raw.user_id : undefined,
-              userRole: "user",
-            };
+          const mappedBooking: Booking = {
+            id: bookingId,
+            courtId: resolvedCourtId,
+            title: (typeof notesObj.notes === "string" && notesObj.notes) || (typeof raw.customer_name === "string" && raw.customer_name) || "Rezervácia",
+            customerName: (typeof raw.customer_name === "string" && raw.customer_name) || "Rezervácia",
+            phone: typeof raw.customer_phone === "string" ? raw.customer_phone : undefined,
+            start: startIso,
+            end: endIso,
+            status: (raw.status === "blocked" || raw.status === "cancelled" || raw.status === "pending" ? raw.status : "confirmed"),
+            source: (notesObj.source === "admin" || notesObj.source === "web" ? notesObj.source : "voice-assistant"),
+            user_id: typeof raw.user_id === "string" ? raw.user_id : undefined,
+            userRole: "user",
+          };
 
-            setItems((current) => {
-              const filtered = current.filter((item) => (item.kind === "staff-booking" ? item.booking.id !== mappedBooking.id : true));
-              return [...filtered, toStaffBookingCalendarItem(mappedBooking)];
-            });
+          setItems((current) => {
+            const filtered = current.filter((item) => (item.kind === "staff-booking" ? item.booking.id !== mappedBooking.id : true));
+            return [...filtered, toStaffBookingCalendarItem(mappedBooking)];
+          });
 
-            // If booking was already handled by our own submit action, skip sound and re-animation
-            if (alreadyKnown) return;
+          // If booking was already handled by our own submit action, skip sound and re-animation
+          if (alreadyKnown) return;
 
-            const recurringId = typeof notesObj.recurringGroupId === "string" ? notesObj.recurringGroupId : undefined;
-            if (recurringId) {
-              if (!handledRecurringSoundGroups.current.has(recurringId)) {
-                handledRecurringSoundGroups.current.add(recurringId);
-                playTennisHitSound();
-              }
-            } else {
+          const recurringId = typeof notesObj.recurringGroupId === "string" ? notesObj.recurringGroupId : undefined;
+          if (recurringId) {
+            if (!handledRecurringSoundGroups.current.has(recurringId)) {
+              handledRecurringSoundGroups.current.add(recurringId);
               playTennisHitSound();
             }
+          } else {
+            playTennisHitSound();
+          }
 
-            // Only animate if this booking falls on the currently viewed date / week
-            const bStart = new Date(startIso);
-            const bKey = dateKey(bStart);
-            const isVisibleNow = viewMode === "week"
-              ? bKey >= dateKey(date) && bKey <= dateKey(weekEndDate)
-              : bKey === dateKey(date);
+          // Only animate if this booking falls on the currently viewed date / week
+          const bStart = new Date(startIso);
+          const bKey = dateKey(bStart);
+          const isVisibleNow = viewMode === "week"
+            ? bKey >= dateKey(date) && bKey <= dateKey(weekEndDate)
+            : bKey === dateKey(date);
 
-            if (isVisibleNow) {
-              setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
-              const existingTimer = timers.get(bookingId);
-              if (existingTimer) window.clearTimeout(existingTimer);
-              const timer = window.setTimeout(() => {
-                if (!active) return;
-                setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
-                timers.delete(bookingId);
-              }, 4500);
-              timers.set(bookingId, timer);
-            }
-          } else if (payload.eventType === "DELETE") {
-            const oldRaw = payload.old as Record<string, unknown> | null;
-            const oldId = typeof oldRaw?.id === "string" ? oldRaw.id : null;
-            if (oldId) {
-              setItems((current) => current.filter((item) => (item.kind === "staff-booking" ? item.booking.id !== oldId : true)));
-            }
-          } else if (payload.eventType === "UPDATE") {
-            const updated = payload.new as Record<string, unknown> | null;
-            const updatedId = typeof updated?.id === "string" ? updated.id : null;
-            if (updatedId) {
-              if (updated?.status === "cancelled") {
-                setItems((current) => current.filter((item) => (item.kind === "staff-booking" ? item.booking.id !== updatedId : true)));
-              } else if (updated?.status === "confirmed" || updated?.status === "blocked" || updated?.status === "pending") {
-                const nextStatus = updated.status;
-                setItems((current) => current.map((item) => {
-                  if (item.kind === "staff-booking" && item.booking.id === updatedId) {
-                    return { kind: "staff-booking", booking: { ...item.booking, status: nextStatus } };
-                  }
-                  return item;
-                }));
-              }
+          if (isVisibleNow) {
+            setHighlightedVoiceBookings((current) => current.includes(bookingId) ? current : [...current, bookingId]);
+            const existingTimer = timers.get(bookingId);
+            if (existingTimer) window.clearTimeout(existingTimer);
+            const timer = window.setTimeout(() => {
+              if (!active) return;
+              setHighlightedVoiceBookings((current) => current.filter((id) => id !== bookingId));
+              timers.delete(bookingId);
+            }, 4500);
+            timers.set(bookingId, timer);
+          }
+        } else if (payload.eventType === "DELETE") {
+          const oldRaw = payload.old as Record<string, unknown> | null;
+          const oldId = typeof oldRaw?.id === "string" ? oldRaw.id : null;
+          if (oldId) {
+            setItems((current) => current.filter((item) => (item.kind === "staff-booking" ? item.booking.id !== oldId : true)));
+          }
+        } else if (payload.eventType === "UPDATE") {
+          const updated = payload.new as Record<string, unknown> | null;
+          const updatedId = typeof updated?.id === "string" ? updated.id : null;
+          if (updatedId) {
+            if (updated?.status === "cancelled") {
+              setItems((current) => current.filter((item) => (item.kind === "staff-booking" ? item.booking.id !== updatedId : true)));
+            } else if (updated?.status === "confirmed" || updated?.status === "blocked" || updated?.status === "pending") {
+              const nextStatus = updated.status;
+              setItems((current) => current.map((item) => {
+                if (item.kind === "staff-booking" && item.booking.id === updatedId) {
+                  return { kind: "staff-booking", booking: { ...item.booking, status: nextStatus } };
+                }
+                return item;
+              }));
             }
           }
-        }).subscribe()
+        }
+      }).subscribe()
       : null;
 
     // 2. Background Polling from Google Cloud SQL every 3.5s for logged-in users via role-aware action
@@ -1436,12 +1437,12 @@ export default function NewBookingsCalendar({
     });
 
   const toCurrentAccessBookingItem = useCallback((b: Omit<Booking, "source"> & { source: string }): DetailCalendarItem => {
-    if (accessMode === "staff") {
+    if (accessMode === "staff" || (currentUser?.role === "ntc_team" && (b.adminBlockType === "NTC Tím" || b.status === "blocked"))) {
       const normalizedSource: Booking["source"] = b.source === "admin" || b.source === "voice-assistant" || b.source === "google-calendar" ? b.source : "web";
-      return toStaffBookingCalendarItem({ ...b, source: normalizedSource });
+      return toStaffBookingCalendarItem({ ...b, source: normalizedSource, adminBlockType: "NTC Tím", user_id: currentUser?.id });
     }
     return toOwnBookingCalendarItem(mapCreatedBookingToOwnBookingDto(b));
-  }, [accessMode]);
+  }, [accessMode, currentUser?.role, currentUser?.id]);
 
   const getRescheduleSlotStatus = useCallback((courtId: string, hour: number, targetDate: Date = date) => {
     if (!reschedulingBooking) return null;
@@ -1503,7 +1504,7 @@ export default function NewBookingsCalendar({
         targetPricelist,
         currentUser?.discountTierId
       );
-      if (Math.abs(calc.totalPriceEur - reschedOriginalPrice) > 0.05) {
+      if (currentUser?.role !== "ntc_team" && Math.abs(calc.totalPriceEur - reschedOriginalPrice) > 0.05) {
         return { eligible: false, reason: "price_mismatch" as const, targetPrice: calc.totalPriceEur };
       }
     }
@@ -1592,7 +1593,10 @@ export default function NewBookingsCalendar({
     if (hasConflict(slot.courtId, start, end)) return setNotice("Vybraný kurt je v tomto čase obsadený.");
 
     setLoading(true);
-    const effectiveBlockType = adminBlockType || "Údržba kurtov";
+    const isNtcTeam = currentUser.role === "ntc_team";
+    const effectiveBlockType = currentUser.role === "admin"
+      ? (adminBlockType || categories[0]?.name || "Rezervácia Admin")
+      : (isNtcTeam ? "NTC Tím" : undefined);
     const isMaintenanceBlock = currentUser.role === "admin" && effectiveBlockType === "Údržba kurtov";
     const customNote = title.trim();
     const effectivePlayerName = isMaintenanceBlock ? "" : clientPlayerName.trim();
@@ -1600,8 +1604,8 @@ export default function NewBookingsCalendar({
     if (isRecurring && canUserMakeRecurring) {
       const result = await createRecurringBookingAction({
         courtId: slot.courtId,
-        title: customNote || (currentUser.role === "admin" ? effectiveBlockType : (sports.find((item) => item.id === sport)?.label || "Rezervácia")),
-        customerName: effectivePlayerName || (currentUser.role === "admin" ? effectiveBlockType : currentUser.name),
+        title: customNote || (currentUser.role === "admin" ? effectiveBlockType : (isNtcTeam ? "NTC Tím" : (sports.find((item) => item.id === sport)?.label || "Rezervácia"))),
+        customerName: effectivePlayerName || (currentUser.role === "admin" ? effectiveBlockType : (isNtcTeam ? "NTC Tím" : currentUser.name)),
         phone: phone || undefined,
         start: startIso,
         end: endIso,
@@ -1610,7 +1614,7 @@ export default function NewBookingsCalendar({
         daysOfWeek,
         untilDate: untilDate || undefined,
         repeatWeeks,
-        adminBlockType: currentUser.role === "admin" ? effectiveBlockType : undefined,
+        adminBlockType: currentUser.role === "admin" ? effectiveBlockType : (isNtcTeam ? "NTC Tím" : undefined),
         clientPlayerName: effectivePlayerName || undefined,
       });
 
@@ -1673,24 +1677,24 @@ export default function NewBookingsCalendar({
       courtId: slot.courtId,
       title: currentUser.role === "admin"
         ? (customNote || effectiveBlockType)
-        : (customNote || (sports.find((item) => item.id === sport)?.label || "Rezervácia")),
-      customerName: effectivePlayerName || (currentUser.role === "admin" ? effectiveBlockType : currentUser.name),
+        : (customNote || (isNtcTeam ? "NTC Tím" : (sports.find((item) => item.id === sport)?.label || "Rezervácia"))),
+      customerName: effectivePlayerName || (currentUser.role === "admin" ? effectiveBlockType : (isNtcTeam ? "NTC Tím" : currentUser.name)),
       phone: phone || undefined,
       start: startIso,
       end: endIso,
-      status: currentUser.role === "admin" ? "blocked" : "confirmed",
-      source: currentUser.role === "admin" ? "admin" : "web",
+      status: currentUser.role === "admin" || isNtcTeam ? "blocked" : "confirmed",
+      source: currentUser.role === "admin" || isNtcTeam ? "admin" : "web",
       operationId: crypto.randomUUID(),
-      multisportCardsCount,
-      adminBlockType: currentUser.role === "admin" ? effectiveBlockType : undefined,
+      multisportCardsCount: isNtcTeam ? 0 : multisportCardsCount,
+      adminBlockType: currentUser.role === "admin" ? effectiveBlockType : (isNtcTeam ? "NTC Tím" : undefined),
       clientPlayerName: effectivePlayerName || undefined,
     });
     setLoading(false);
     if (!result.success || !result.booking) return setNotice(result.error || "Rezerváciu sa nepodarilo vytvoriť.");
-    if (result.wallet && currentUser.role !== "admin") setWalletBalance(result.wallet.balanceEur);
+    if (result.wallet && currentUser.role !== "admin" && !isNtcTeam) setWalletBalance(result.wallet.balanceEur);
     const newBooking: Booking = {
       ...result.booking,
-      adminBlockType: currentUser.role === "admin" ? effectiveBlockType : undefined,
+      adminBlockType: currentUser.role === "admin" ? effectiveBlockType : (isNtcTeam ? "NTC Tím" : undefined),
       clientPlayerName: effectivePlayerName || undefined,
     };
     knownBookingIds.current.add(newBooking.id);
@@ -1715,7 +1719,9 @@ export default function NewBookingsCalendar({
         ? `Rezervácia bola vytvorená. Odpočítané: ${result.wallet.chargedEur.toFixed(2)} €.`
         : (multisportCardsCount === 2
           ? "Rezervácia bola úspešne vytvorená so 100% zľavou (2x MultiSport karta zdarma)."
-          : (currentUser.role === "admin" ? `Kurt bol úspešne zablokovaný (${effectiveBlockType}).` : "Rezervácia bola úspešne vytvorená."))
+          : (currentUser.role === "admin"
+            ? `Kurt bol úspešne zablokovaný (${effectiveBlockType}).`
+            : (isNtcTeam ? "Rezervácia NTC Tím bola úspešne vytvorená." : "Rezervácia bola úspešne vytvorená.")))
     );
   };
 
@@ -2070,9 +2076,8 @@ export default function NewBookingsCalendar({
                               }
                               setDetail(item);
                             }}
-                            className={`pointer-events-auto h-full w-full overflow-hidden rounded-2xl border px-1.5 py-1 text-center transition duration-150 hover:scale-[1.01] flex flex-col items-center justify-center cursor-pointer ${
-                              voiceHighlight ? "booking-magnify-drop" : ""
-                            } ${ownBookingClasses}`}
+                            className={`pointer-events-auto h-full w-full overflow-hidden rounded-2xl border px-1.5 py-1 text-center transition duration-150 hover:scale-[1.01] flex flex-col items-center justify-center cursor-pointer ${voiceHighlight ? "booking-magnify-drop" : ""
+                              } ${ownBookingClasses}`}
                             title={`Detail: ${ownLabelText}`}
                           >
                             <div className="relative z-[1] flex flex-col items-center justify-center w-full px-0.5 text-center font-sans select-none pointer-events-none text-emerald-950">
@@ -2104,7 +2109,7 @@ export default function NewBookingsCalendar({
                       own ||
                       isAdmin ||
                       (isNtcTeam &&
-                        isAdminReservationBlockRow({
+                        isNtcTeamReservationBlockRow({
                           adminBlockType: booking.adminBlockType,
                           customerName: booking.customerName,
                           title: booking.title,
@@ -2732,6 +2737,7 @@ export default function NewBookingsCalendar({
           adminBlockType={adminBlockType}
           onAdminBlockType={setAdminBlockType}
           isAdmin={currentUser?.role === "admin"}
+          isNtcTeam={currentUser?.role === "ntc_team"}
           canMakeRecurring={canUserMakeRecurring}
           isRecurring={isRecurring}
           onIsRecurring={setIsRecurring}

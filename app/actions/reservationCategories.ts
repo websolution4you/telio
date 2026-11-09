@@ -41,15 +41,30 @@ export async function fetchReservationCategoriesAction(): Promise<{
       return { success: true, categories: DEFAULT_ADMIN_CATEGORIES };
     }
 
-    const mapped: AdminReservationCategory[] = data.map((row) => ({
-      id: row.id,
-      name: row.name,
-      color: row.color,
-      border: row.border || calculateBorderColor(row.color),
-      isSystem: Boolean(row.is_system),
-      hasPlayerField: row.has_player_field != null ? Boolean(row.has_player_field) : true,
-      sortOrder: Number(row.sort_order ?? 0),
-    }));
+    const mapped: AdminReservationCategory[] = data.map((row) => {
+      let name = row.name;
+      let sortOrder = Number(row.sort_order ?? 0);
+      if (row.id === "training" && (name.toLowerCase() === "tréningy" || name.toLowerCase() === "treningy")) {
+        name = "NTC Tím";
+      }
+      // Zaistenie nového preferovaného poradia systémových kategórií:
+      // 1. Rezervácia Admin, 2. NTC Tím, 3. Údržba kurtov
+      if (row.id === "admin_reservation" && sortOrder === 2) sortOrder = 1;
+      else if (row.id === "training" && sortOrder === 3) sortOrder = 2;
+      else if (row.id === "maintenance" && sortOrder === 1) sortOrder = 3;
+
+      return {
+        id: row.id,
+        name,
+        color: row.color,
+        border: row.border || calculateBorderColor(row.color),
+        isSystem: Boolean(row.is_system),
+        hasPlayerField: row.has_player_field != null ? Boolean(row.has_player_field) : true,
+        sortOrder,
+      };
+    });
+
+    mapped.sort((a, b) => a.sortOrder - b.sortOrder);
 
     return { success: true, categories: mapped };
   } catch (e: any) {
