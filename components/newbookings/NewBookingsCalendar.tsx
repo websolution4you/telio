@@ -2788,6 +2788,7 @@ export default function NewBookingsCalendar({
           detailItem={detail}
           accessMode={accessMode}
           court={courts.find((court) => court.id === detail.booking.courtId)}
+          categories={categories}
           canManage={
             Boolean(currentUser) &&
             (detail.kind === "own-booking" ||

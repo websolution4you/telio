@@ -852,6 +852,7 @@ type DetailProps = {
   canCancel: boolean;
   cancellationDeadlineHours: number;
   currentRole?: string;
+  categories?: AdminReservationCategory[];
   onClose: () => void;
   onDelete: (target?: DetailCalendarItem) => void;
   onStartReschedule?: (target?: DetailCalendarItem) => void;
@@ -868,6 +869,7 @@ export function BookingDetailDialog({
   canCancel,
   cancellationDeadlineHours,
   currentRole,
+  categories,
   onClose,
   onDelete,
   onStartReschedule,
@@ -976,17 +978,28 @@ export function BookingDetailDialog({
     ));
 
   const isStaffDetail = activeItem.kind === "staff-booking";
-  // Rozpis hráčov (subSlots) patrí VÝHRADNE admin blokovaniam a NTC tímu, NIKDY nie bežným rezerváciám klientov
+  const staffBooking = isStaffDetail ? activeItem.booking : undefined;
+
+  // Rozpis hráčov (subSlots) patrí VÝHRADNE tréningom NTC Tímu (alebo kategóriám s povoleným hasPlayerField), NIKDY nie "Rezervácia Admin", "Údržba" ani bežným rezerváciám klientov
+  const isNtcTeamBooking = isNtcTeamReservationBlockRow({
+    adminBlockType: staffBooking?.adminBlockType,
+    customerName: activeBooking.customerName,
+    title: activeBooking.title,
+  });
+
+  const activeCategory = (categories || DEFAULT_ADMIN_CATEGORIES).find((c) => {
+    const rawType = (staffBooking?.adminBlockType || activeBooking.customerName || activeBooking.title || "").toLowerCase();
+    return c.name.toLowerCase() === rawType || c.id.toLowerCase() === rawType;
+  });
+
+  const categoryAllowsSubSlots = activeCategory ? Boolean(activeCategory.hasPlayerField) : isNtcTeamBooking;
+
   const canEditSubSlots =
     isStaffDetail &&
     isMaintenanceOrAdmin &&
+    categoryAllowsSubSlots &&
     ((accessMode === "staff" && currentRole === "admin") ||
-      (currentRole === "ntc_team" &&
-        isNtcTeamReservationBlockRow({
-          adminBlockType: activeItem.booking.adminBlockType,
-          customerName: activeItem.booking.customerName,
-          title: activeItem.booking.title,
-        })));
+      (currentRole === "ntc_team" && isNtcTeamBooking));
 
   const isMaintenanceBlock =
     (activeItem.kind === "staff-booking" && (

@@ -15,7 +15,7 @@ export const DEFAULT_ADMIN_CATEGORIES: AdminReservationCategory[] = [
     color: "#FFFF33",
     border: "#E6E600",
     isSystem: true,
-    hasPlayerField: true,
+    hasPlayerField: false,
     sortOrder: 1,
   },
   {

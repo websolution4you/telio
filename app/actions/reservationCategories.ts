@@ -53,13 +53,17 @@ export async function fetchReservationCategoriesAction(): Promise<{
       else if (row.id === "training" && sortOrder === 3) sortOrder = 2;
       else if (row.id === "maintenance" && sortOrder === 1) sortOrder = 3;
 
+      // Pre Rezervácia Admin a Údržba kurtov je hasPlayerField predvolene false (rozpis hráčov je určený pre NTC Tím / tréningy)
+      const defaultHasPlayer = row.id === "admin_reservation" || row.id === "maintenance" ? false : true;
+      const hasPlayerField = row.has_player_field != null ? Boolean(row.has_player_field) : defaultHasPlayer;
+
       return {
         id: row.id,
         name,
         color: row.color,
         border: row.border || calculateBorderColor(row.color),
         isSystem: Boolean(row.is_system),
-        hasPlayerField: row.has_player_field != null ? Boolean(row.has_player_field) : true,
+        hasPlayerField,
         sortOrder,
       };
     });
