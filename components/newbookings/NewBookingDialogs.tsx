@@ -567,16 +567,6 @@ export function CreateBookingDialog(props: CreateDialogProps) {
             </div>
           )}
 
-          {((props.isAdmin && Boolean(selectedOption?.hasPlayerField)) || props.isNtcTeam || (!props.isAdmin && props.canMakeRecurring)) && (
-            <Field
-              icon={User}
-              label="Meno hráča / zverenca (voliteľné)"
-              value={props.clientPlayerName || ""}
-              onChange={(val) => props.onClientPlayerName?.(val)}
-              placeholder="napr. Peter Novák (zobrazí sa v kalendári)"
-            />
-          )}
-
           <Field
             icon={MessageSquare}
             label="Poznámka"

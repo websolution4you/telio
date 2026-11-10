@@ -2177,6 +2177,7 @@ export default function NewBookingsCalendar({
 
                     if (isAdmin || isNtcTeam) {
                       const rawPlayer = (booking.clientPlayerName?.trim() || booking.customerName?.trim() || "");
+                      const rawTitle = (booking.title || "").trim();
                       const allKnownNames = [
                         "tréningy", "treningy", "tréning", "trening",
                         "rezervácia admin", "rezervacia admin", "admin", "admin user",
@@ -2186,19 +2187,20 @@ export default function NewBookingsCalendar({
                         ...categories.map((c) => c.id.toLowerCase()),
                       ];
                       const isDefaultSystemName = allKnownNames.includes(rawPlayer.toLowerCase());
+                      const isDefaultSystemTitle = allKnownNames.includes(rawTitle.toLowerCase());
                       const customPlayerName = isDefaultSystemName ? "" : rawPlayer;
+                      const customTitle = isDefaultSystemTitle ? "" : rawTitle;
+                      const visibleText = customTitle || customPlayerName;
 
                       if (matchedCategory) {
-                        labelText = matchedCategory.hasPlayerField
-                          ? (customPlayerName || matchedCategory.name)
-                          : matchedCategory.name;
+                        labelText = visibleText || matchedCategory.name;
                         slotCustomStyle = {
                           backgroundColor: matchedCategory.color,
                           borderColor: matchedCategory.border,
                         };
                         bookingClasses = "text-slate-950 font-bold shadow-xs hover:brightness-95";
                       } else {
-                        labelText = customPlayerName || booking.title || "Rezervácia";
+                        labelText = visibleText || "Rezervácia";
                         slotCustomStyle = {
                           backgroundColor: "#FFF3B0",
                           borderColor: "#EAD77B",
