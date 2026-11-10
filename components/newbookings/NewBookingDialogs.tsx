@@ -249,7 +249,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
 
   const missingEur = Math.max(0, Math.round(totalPriceCents - (userBalanceCents ?? 0)) / 100);
 
-  const formatTimeSlot = (durationMinutes: number) => {
+  const formatEndTime = (durationMinutes: number) => {
     const startH = Math.floor(props.hour);
     const startM = Math.round((props.hour - startH) * 60);
 
@@ -257,8 +257,14 @@ export function CreateBookingDialog(props: CreateDialogProps) {
     const endH = Math.floor(totalEndMinutes / 60);
     const endM = totalEndMinutes % 60;
 
+    return `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+  };
+
+  const formatTimeSlot = (durationMinutes: number) => {
+    const startH = Math.floor(props.hour);
+    const startM = Math.round((props.hour - startH) * 60);
     const startStr = `${String(startH).padStart(2, "0")}:${String(startM).padStart(2, "0")}`;
-    const endStr = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+    const endStr = formatEndTime(durationMinutes);
 
     return `${startStr} - ${endStr}`;
   };
@@ -756,7 +762,7 @@ export function CreateBookingDialog(props: CreateDialogProps) {
             <Info label="Športovisko" value={formatCourtDisplayName(props.court)} />
             <Info label="Dátum" value={new Intl.DateTimeFormat("sk-SK", { day: "numeric", month: "long", year: "numeric" }).format(props.date)} />
             <Info label="Začiatok" value={`${String(props.hour).padStart(2, "0")}:00`} />
-            <Info label="Trvanie" value={`${props.duration} min.`} />
+            <Info label="Koniec" value={formatEndTime(props.duration)} />
             {!props.isNtcTeam && (
               <div className="col-span-2 flex items-baseline gap-2 flex-wrap pt-0.5">
                 <span className="font-semibold text-slate-600">{props.isAdmin ? "Platba / Kredit:" : "Cena rezervácie:"}</span>
