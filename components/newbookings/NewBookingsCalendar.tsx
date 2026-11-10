@@ -419,7 +419,7 @@ export default function NewBookingsCalendar({
     }
   }, [initialCategories]);
 
-  const [adminBlockType, setAdminBlockType] = useState<string>("Údržba kurtov");
+  const [adminBlockType, setAdminBlockType] = useState<string>("Rezervácia Admin");
   const [duration, setDuration] = useState(60);
   const [isRecurring, setIsRecurring] = useState(false);
   const [repeatWeeks, setRepeatWeeks] = useState(4);
@@ -1414,7 +1414,8 @@ export default function NewBookingsCalendar({
     } else {
       const options = getAvailableDurationOptions(courtId, start);
       const defaultDuration = options.length > 0 ? (options.includes(60) ? 60 : options[0]) : 60;
-      setAdminBlockType("Údržba kurtov");
+      const defaultAdminType = categories.find((c) => c.name.toLowerCase() === "rezervácia admin" || c.id === "admin_reservation")?.name || categories[0]?.name || "Rezervácia Admin";
+      setAdminBlockType(defaultAdminType);
       setTitle("");
       setPhone("");
       setDuration(defaultDuration);
