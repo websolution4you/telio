@@ -2176,31 +2176,23 @@ export default function NewBookingsCalendar({
                     let slotCustomStyle: React.CSSProperties = {};
 
                     if (isAdmin || isNtcTeam) {
-                      const rawPlayer = (booking.clientPlayerName?.trim() || booking.customerName?.trim() || "");
-                      const rawTitle = (booking.title || "").trim();
-                      const allKnownNames = [
-                        "tréningy", "treningy", "tréning", "trening",
-                        "rezervácia admin", "rezervacia admin", "admin", "admin user",
-                        "údržba kurtov", "udrzba kurtov", "údržba", "udrzba",
-                        "rezervácia", "rezervacia",
-                        ...categories.map((c) => c.name.toLowerCase()),
-                        ...categories.map((c) => c.id.toLowerCase()),
-                      ];
-                      const isDefaultSystemName = allKnownNames.includes(rawPlayer.toLowerCase());
-                      const isDefaultSystemTitle = allKnownNames.includes(rawTitle.toLowerCase());
-                      const customPlayerName = isDefaultSystemName ? "" : rawPlayer;
-                      const customTitle = isDefaultSystemTitle ? "" : rawTitle;
-                      const visibleText = customTitle || customPlayerName;
-
                       if (matchedCategory) {
-                        labelText = visibleText || matchedCategory.name;
+                        // Admin blokovanie / NTC Tím (má matchedCategory): zobrazíme poznámku ak bola zadaná, inak názov kategórie
+                        const rawTitle = (booking.title || "").trim();
+                        const isCategoryName = categories.some(
+                          (c) => c.name.toLowerCase() === rawTitle.toLowerCase() || c.id.toLowerCase() === rawTitle.toLowerCase()
+                        );
+                        const customNote = isCategoryName ? "" : rawTitle;
+
+                        labelText = customNote || matchedCategory.name;
                         slotCustomStyle = {
                           backgroundColor: matchedCategory.color,
                           borderColor: matchedCategory.border,
                         };
                         bookingClasses = "text-slate-950 font-bold shadow-xs hover:brightness-95";
                       } else {
-                        labelText = visibleText || "Rezervácia";
+                        // Bežný klient (rezervácia z webu): admin VŽDY vidí meno klienta!
+                        labelText = booking.customerName || "Rezervácia";
                         slotCustomStyle = {
                           backgroundColor: "#FFF3B0",
                           borderColor: "#EAD77B",

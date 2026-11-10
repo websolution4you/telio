@@ -959,9 +959,27 @@ export function BookingDetailDialog({
   }, [seriesItems]);
 
   const activeBooking = activeItem.booking;
+  const isMaintenanceOrAdmin =
+    (activeItem.kind === "staff-booking" && (
+      activeItem.booking.source === "admin" ||
+      activeItem.booking.userRole === "admin" ||
+      activeItem.booking.status === "blocked" ||
+      Boolean(activeItem.booking.adminBlockType)
+    )) ||
+    activeBooking.status === "blocked" ||
+    Boolean(activeBooking.customerName && (
+      activeBooking.customerName.toLowerCase().includes("údržba") ||
+      activeBooking.customerName.toLowerCase().includes("rezervácia admin") ||
+      activeBooking.customerName.toLowerCase().includes("rezervacia admin") ||
+      activeBooking.customerName.toLowerCase().includes("ntc tím") ||
+      activeBooking.customerName.toLowerCase().includes("ntc tim")
+    ));
+
   const isStaffDetail = activeItem.kind === "staff-booking";
+  // Rozpis hráčov (subSlots) patrí VÝHRADNE admin blokovaniam a NTC tímu, NIKDY nie bežným rezerváciám klientov
   const canEditSubSlots =
     isStaffDetail &&
+    isMaintenanceOrAdmin &&
     ((accessMode === "staff" && currentRole === "admin") ||
       (currentRole === "ntc_team" &&
         isNtcTeamReservationBlockRow({
@@ -969,23 +987,6 @@ export function BookingDetailDialog({
           customerName: activeItem.booking.customerName,
           title: activeItem.booking.title,
         })));
-
-  const isMaintenanceOrAdmin =
-    (activeItem.kind === "staff-booking" && (
-      activeItem.booking.source === "admin" ||
-      activeItem.booking.userRole === "admin"
-    )) ||
-    activeBooking.status === "blocked" ||
-    Boolean(activeBooking.customerName && (
-      activeBooking.customerName.toLowerCase().includes("údržba") ||
-      activeBooking.customerName.toLowerCase().includes("admin") ||
-      activeBooking.customerName.toLowerCase().includes("tréning")
-    )) ||
-    Boolean(activeBooking.title && (
-      activeBooking.title.toLowerCase().includes("údržba") ||
-      activeBooking.title.toLowerCase().includes("admin") ||
-      activeBooking.title.toLowerCase().includes("tréning")
-    ));
 
   const isMaintenanceBlock =
     (activeItem.kind === "staff-booking" && (
