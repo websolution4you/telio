@@ -36,22 +36,52 @@ import {
 } from "@/lib/server/auditLog";
 import { formatBratislavaDateTime } from "@/lib/bookings/rolePolicy";
 
-// Pomocná funkcia na pridanie lokálneho bratislavského času k ISO dátumom (UTC)
+// Pomocná funkcia na preformátovanie diff objektov pre prehľadné zobrazenie v UI
+// Nahrádza surové UTC 'start'/'end' na čisté 'startTime'/'endTime' s lokálnym časom
 function formatDiffWithLocalTime(data: unknown): unknown {
   if (!data || typeof data !== "object") return data;
   if (Array.isArray(data)) return data.map(formatDiffWithLocalTime);
 
+  const raw = data as Record<string, unknown>;
   const formatted: Record<string, unknown> = {};
-  for (const [key, val] of Object.entries(data as Record<string, unknown>)) {
-    if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
-      const localTime = formatBratislavaDateTime(val);
-      formatted[key] = localTime ? `${val} (${localTime} SK)` : val;
-    } else if (val && typeof val === "object") {
+
+  // Zistíme či objekt obsahuje start / end dátumy
+  const startVal = raw.startTime || raw.startLocal || raw.start || raw.start_at;
+  const endVal = raw.endTime || raw.endLocal || raw.end || raw.end_at;
+
+  for (const [key, val] of Object.entries(raw)) {
+    // Ignorujeme redundantné kľúče, aby sa nezobrazovali viackrát
+    if (["start", "start_at", "startLocal", "end", "end_at", "endLocal"].includes(key)) {
+      continue;
+    }
+
+    if (key === "startTime") {
+      const local = typeof val === "string" ? (formatBratislavaDateTime(val) || val) : val;
+      formatted["startTime"] = local;
+      continue;
+    }
+
+    if (key === "endTime") {
+      const local = typeof val === "string" ? (formatBratislavaDateTime(val) || val) : val;
+      formatted["endTime"] = local;
+      continue;
+    }
+
+    if (val && typeof val === "object") {
       formatted[key] = formatDiffWithLocalTime(val);
     } else {
       formatted[key] = val;
     }
   }
+
+  // Ak pôvodný objekt mal start/end a ešte nie sú vo formatted pod názvom startTime/endTime, pridáme ich na začiatok/naformátované
+  if (!formatted.startTime && startVal) {
+    formatted.startTime = typeof startVal === "string" ? (formatBratislavaDateTime(startVal) || startVal) : startVal;
+  }
+  if (!formatted.endTime && endVal) {
+    formatted.endTime = typeof endVal === "string" ? (formatBratislavaDateTime(endVal) || endVal) : endVal;
+  }
+
   return formatted;
 }
 

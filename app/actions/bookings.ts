@@ -805,10 +805,8 @@ export async function createBookingAction(payload: {
                 before: null,
                 after: {
                     courtId: payload.courtId,
-                    start: payload.start,
-                    end: payload.end,
-                    startLocal: localStartStr,
-                    endLocal: localEndStr,
+                    startTime: localStartStr || payload.start,
+                    endTime: localEndStr || payload.end,
                     customerName: payload.customerName,
                     priceEur: calculatedPrice,
                     source: payload.source,
@@ -1542,10 +1540,8 @@ export async function deleteBookingAction(id: string, deleteEntireSeries = false
             changes: {
                 before: {
                     status: "confirmed",
-                    start_at: booking.start_at,
-                    end_at: booking.end_at,
-                    startLocal: cancelStartLocal,
-                    endLocal: booking.end_at ? formatBratislavaDateTime(booking.end_at) : "",
+                    startTime: cancelStartLocal || booking.start_at,
+                    endTime: booking.end_at ? formatBratislavaDateTime(booking.end_at) : booking.end_at,
                     court_id: booking.court_id
                 },
                 after: { status: "cancelled" }
@@ -1775,17 +1771,13 @@ export async function rescheduleBookingAction(payload: {
             changes: {
                 before: {
                     courtId: booking.court_id,
-                    start_at: booking.start_at,
-                    end_at: booking.end_at,
-                    startLocal: oldStartLocal,
-                    endLocal: booking.end_at ? formatBratislavaDateTime(booking.end_at) : ""
+                    startTime: oldStartLocal || booking.start_at,
+                    endTime: booking.end_at ? formatBratislavaDateTime(booking.end_at) : booking.end_at
                 },
                 after: {
                     courtId: payload.newCourtId,
-                    start_at: payload.newStart,
-                    end_at: payload.newEnd,
-                    startLocal: newStartLocal,
-                    endLocal: newEndLocal
+                    startTime: newStartLocal || payload.newStart,
+                    endTime: newEndLocal || payload.newEnd
                 }
             },
             metadata: {
