@@ -768,14 +768,27 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                     </span>
                   ) : (
                     <>
-                      {pricing.originalPriceEur > pricing.totalPriceEur && (
-                        <span className="text-xs sm:text-sm text-slate-400 line-through mr-1 font-semibold">
-                          {pricing.originalPriceEur.toFixed(2)} €
-                        </span>
+                      {pricing.multisportCardsCount > 0 ? (
+                        <>
+                          <span className="text-base font-black text-slate-950 sm:text-lg">
+                            {pricing.formattedPrice}
+                          </span>
+                          <span className="text-xs sm:text-sm font-semibold text-emerald-700">
+                            (výsledná cena: {pricing.priceAfterMultisportEur.toFixed(2)} €)
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          {pricing.originalPriceEur > pricing.totalPriceEur && (
+                            <span className="text-xs sm:text-sm text-slate-400 line-through mr-1 font-semibold">
+                              {pricing.originalPriceEur.toFixed(2)} €
+                            </span>
+                          )}
+                          <span className="text-base font-black text-slate-950 sm:text-lg">
+                            {pricing.formattedPrice}
+                          </span>
+                        </>
                       )}
-                      <span className="text-base font-black text-slate-950 sm:text-lg">
-                        {pricing.formattedPrice}
-                      </span>
                       {Boolean(pricing.userDiscountEur && pricing.userDiscountEur > 0) && (
                         <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shadow-2xs">
                           {pricing.userDiscountTierName || "Zľava"}: -{(pricing.userDiscountEur || 0).toFixed(2)} €
