@@ -12,7 +12,7 @@ import { isUserHashUnverified } from "@/lib/auth/passwordHash";
 import { walletEnabledForUser } from "@/lib/server/wallet";
 import { calculateNtcBookingPrice } from "@/lib/bookings/pricing";
 import { getActivePricelist } from "@/app/actions/pricelists";
-import { createBratislavaIso, getBratislavaDateKey, getBratislavaDateParts, getCourtOperatingLimitMinutes, isAllowedBookingDuration } from "@/lib/bookings/rolePolicy";
+import { createBratislavaIso, getBratislavaDateKey, getBratislavaDateParts, getCourtOperatingLimitMinutes, isAllowedBookingDuration, formatBratislavaDateTime } from "@/lib/bookings/rolePolicy";
 import { courts as ntcCourts, type SportType, type BookingSubSlot, type Booking, type BookingStatus } from "@/lib/bookings/mockBookings";
 import { logActivity } from "@/lib/server/auditLog";
 import {
@@ -791,12 +791,15 @@ export async function createBookingAction(payload: {
             bookingId = dbBooking.id;
         }
 
+        const localStartStr = formatBratislavaDateTime(payload.start);
+        const localEndStr = formatBratislavaDateTime(payload.end);
+
         await logActivity({
             action: "booking.create",
             category: "bookings",
             entityType: "booking",
             entityId: bookingId,
-            entityName: `${payload.courtId} (${payload.start.slice(0, 16).replace("T", " ")}) - ${payload.customerName}`,
+            entityName: `${payload.courtId} (${localStartStr || payload.start.slice(0, 16).replace("T", " ")}) - ${payload.customerName}`,
             description: `Vytvorená nová rezervácia pre ${payload.customerName} na ${payload.courtId} (${calculatedPrice.toFixed(2)} €)`,
             changes: {
                 before: null,
@@ -804,6 +807,8 @@ export async function createBookingAction(payload: {
                     courtId: payload.courtId,
                     start: payload.start,
                     end: payload.end,
+                    startLocal: localStartStr,
+                    endLocal: localEndStr,
                     customerName: payload.customerName,
                     priceEur: calculatedPrice,
                     source: payload.source,
@@ -1526,15 +1531,23 @@ export async function deleteBookingAction(id: string, deleteEntireSeries = false
             if (cancelError) throw new Error(`Database update error: ${cancelError.message}`);
         }
 
+        const cancelStartLocal = booking.start_at ? formatBratislavaDateTime(booking.start_at) : "";
         await logActivity({
             action: "booking.delete",
             category: "bookings",
             entityType: "booking",
             entityId: booking.id,
-            entityName: `${booking.court_id || "kurt"} (${booking.start_at?.slice(0, 16).replace("T", " ")}) - ${booking.customer_name || "Zákazník"}`,
+            entityName: `${booking.court_id || "kurt"} (${cancelStartLocal || booking.start_at?.slice(0, 16).replace("T", " ")}) - ${booking.customer_name || "Zákazník"}`,
             description: `Zrušená rezervácia pre ${booking.customer_name || "zákazníka"}${wallet?.refunded ? ` (vrátených ${wallet.refundedEur.toFixed(2)} € do peňaženky)` : ""}`,
             changes: {
-                before: { status: "confirmed", start_at: booking.start_at, end_at: booking.end_at, court_id: booking.court_id },
+                before: {
+                    status: "confirmed",
+                    start_at: booking.start_at,
+                    end_at: booking.end_at,
+                    startLocal: cancelStartLocal,
+                    endLocal: booking.end_at ? formatBratislavaDateTime(booking.end_at) : "",
+                    court_id: booking.court_id
+                },
                 after: { status: "cancelled" }
             },
             metadata: {
@@ -1748,16 +1761,32 @@ export async function rescheduleBookingAction(payload: {
             throw new Error(`Database update error: ${updateError.message}`);
         }
 
+        const oldStartLocal = booking.start_at ? formatBratislavaDateTime(booking.start_at) : "";
+        const newStartLocal = formatBratislavaDateTime(payload.newStart);
+        const newEndLocal = formatBratislavaDateTime(payload.newEnd);
+
         await logActivity({
             action: "booking.reschedule",
             category: "bookings",
             entityType: "booking",
             entityId: booking.id,
-            entityName: `${payload.newCourtId} (${payload.newStart.slice(0, 16).replace("T", " ")}) - ${updatedBooking.customer_name}`,
-            description: `Presunutá rezervácia z ${booking.court_id} (${booking.start_at?.slice(0, 16).replace("T", " ")}) na ${payload.newCourtId} (${payload.newStart.slice(0, 16).replace("T", " ")})`,
+            entityName: `${payload.newCourtId} (${newStartLocal || payload.newStart.slice(0, 16).replace("T", " ")}) - ${updatedBooking.customer_name}`,
+            description: `Presunutá rezervácia z ${booking.court_id} (${oldStartLocal || booking.start_at?.slice(0, 16).replace("T", " ")}) na ${payload.newCourtId} (${newStartLocal || payload.newStart.slice(0, 16).replace("T", " ")})`,
             changes: {
-                before: { courtId: booking.court_id, start_at: booking.start_at, end_at: booking.end_at },
-                after: { courtId: payload.newCourtId, start_at: payload.newStart, end_at: payload.newEnd }
+                before: {
+                    courtId: booking.court_id,
+                    start_at: booking.start_at,
+                    end_at: booking.end_at,
+                    startLocal: oldStartLocal,
+                    endLocal: booking.end_at ? formatBratislavaDateTime(booking.end_at) : ""
+                },
+                after: {
+                    courtId: payload.newCourtId,
+                    start_at: payload.newStart,
+                    end_at: payload.newEnd,
+                    startLocal: newStartLocal,
+                    endLocal: newEndLocal
+                }
             },
             metadata: {
                 previousCourtId: booking.court_id,

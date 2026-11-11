@@ -107,3 +107,28 @@ export function formatDuration(minutes: number): string {
   if (!remainder) return `${hours} ${hourWord(hours)}`;
   return `${hours}:${String(remainder).padStart(2, "0")} hod.`;
 }
+
+/**
+ * Formats any ISO date string or Date into Europe/Bratislava local time:
+ * "YYYY-MM-DD HH:mm" (e.g. "2026-11-12 15:00")
+ */
+export function formatBratislavaDateTime(input: string | Date): string {
+  try {
+    const d = typeof input === "string" ? new Date(input) : input;
+    if (isNaN(d.getTime())) return typeof input === "string" ? input : "";
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Bratislava",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(d);
+    const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value || "";
+    return `${value("year")}-${value("month")}-${value("day")} ${value("hour")}:${value("minute")}`;
+  } catch {
+    return typeof input === "string" ? input : "";
+  }
+}
+

@@ -34,6 +34,27 @@ import {
   type AuditCategory,
   type AuditLevel,
 } from "@/lib/server/auditLog";
+import { formatBratislavaDateTime } from "@/lib/bookings/rolePolicy";
+
+// Pomocná funkcia na pridanie lokálneho bratislavského času k ISO dátumom (UTC)
+function formatDiffWithLocalTime(data: unknown): unknown {
+  if (!data || typeof data !== "object") return data;
+  if (Array.isArray(data)) return data.map(formatDiffWithLocalTime);
+
+  const formatted: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(data as Record<string, unknown>)) {
+    if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
+      const localTime = formatBratislavaDateTime(val);
+      formatted[key] = localTime ? `${val} (${localTime} SK)` : val;
+    } else if (val && typeof val === "object") {
+      formatted[key] = formatDiffWithLocalTime(val);
+    } else {
+      formatted[key] = val;
+    }
+  }
+  return formatted;
+}
+
 
 const CATEGORIES: { id: string; label: string; icon: string }[] = [
   { id: "all", label: "Všetky", icon: "🌐" },
@@ -648,7 +669,7 @@ export default function AdminAuditLogs() {
                     </div>
                     <pre className="max-h-60 overflow-auto font-mono text-[11px] text-slate-700 bg-white/80 p-2.5 rounded-lg border border-rose-100">
                       {selectedLog.changes.before
-                        ? JSON.stringify(selectedLog.changes.before, null, 2)
+                        ? JSON.stringify(formatDiffWithLocalTime(selectedLog.changes.before), null, 2)
                         : "Žiadny pôvodný stav (nový záznam)"}
                     </pre>
                   </div>
@@ -660,7 +681,7 @@ export default function AdminAuditLogs() {
                     </div>
                     <pre className="max-h-60 overflow-auto font-mono text-[11px] text-slate-700 bg-white/80 p-2.5 rounded-lg border border-emerald-100">
                       {selectedLog.changes.after
-                        ? JSON.stringify(selectedLog.changes.after, null, 2)
+                        ? JSON.stringify(formatDiffWithLocalTime(selectedLog.changes.after), null, 2)
                         : "Žiadny nový stav (záznam zmazaný)"}
                     </pre>
                   </div>
