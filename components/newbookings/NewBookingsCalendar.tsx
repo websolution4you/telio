@@ -848,6 +848,8 @@ export default function NewBookingsCalendar({
             source: (notesObj.source === "admin" || notesObj.source === "web" ? notesObj.source : "voice-assistant"),
             user_id: typeof raw.user_id === "string" ? raw.user_id : undefined,
             userRole: "user",
+            adminBlockType: typeof notesObj.adminBlockType === "string" ? notesObj.adminBlockType : undefined,
+            clientPlayerName: typeof notesObj.clientPlayerName === "string" ? notesObj.clientPlayerName : undefined,
           };
 
           setItems((current) => {
@@ -1440,7 +1442,8 @@ export default function NewBookingsCalendar({
   const toCurrentAccessBookingItem = useCallback((b: Omit<Booking, "source"> & { source: string }): DetailCalendarItem => {
     if (accessMode === "staff" || (currentUser?.role === "ntc_team" && (b.adminBlockType === "NTC Tím" || b.status === "blocked"))) {
       const normalizedSource: Booking["source"] = b.source === "admin" || b.source === "voice-assistant" || b.source === "google-calendar" ? b.source : "web";
-      return toStaffBookingCalendarItem({ ...b, source: normalizedSource, adminBlockType: "NTC Tím", user_id: currentUser?.id });
+      const resolvedAdminBlockType = currentUser?.role === "ntc_team" ? "NTC Tím" : b.adminBlockType;
+      return toStaffBookingCalendarItem({ ...b, source: normalizedSource, adminBlockType: resolvedAdminBlockType, user_id: currentUser?.id });
     }
     return toOwnBookingCalendarItem(mapCreatedBookingToOwnBookingDto(b));
   }, [accessMode, currentUser?.role, currentUser?.id]);
