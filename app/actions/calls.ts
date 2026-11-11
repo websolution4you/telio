@@ -880,7 +880,7 @@ export async function fetchDashboardCallHistoryAction(limit: number = 30): Promi
                     status: conv.status || "done",
                     callSuccessful: conv.call_successful || "success",
                     summaryTitle,
-                    transcriptSummary: transcriptSummary || undefined,
+                    transcriptSummary: undefined,
                     callerNumber: callerDisplay,
                     hasAudio: true,
                     audioUrl: `/api/calls/audio?conversation_id=${conv.conversation_id}`

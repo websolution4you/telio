@@ -1721,11 +1721,9 @@ export default function NewBookingsCalendar({
     setNotice(
       result.wallet && result.wallet.chargedEur > 0
         ? `Rezervácia bola vytvorená. Odpočítané: ${result.wallet.chargedEur.toFixed(2)} €.`
-        : (multisportCardsCount === 2
-          ? "Rezervácia bola úspešne vytvorená so 100% zľavou (2x MultiSport karta zdarma)."
-          : (currentUser.role === "admin"
-            ? `Kurt bol úspešne zablokovaný (${effectiveBlockType}).`
-            : (isNtcTeam ? "Rezervácia NTC Tím bola úspešne vytvorená." : "Rezervácia bola úspešne vytvorená.")))
+        : (currentUser.role === "admin"
+          ? `Kurt bol úspešne zablokovaný (${effectiveBlockType}).`
+          : (isNtcTeam ? "Rezervácia NTC Tím bola úspešne vytvorená." : "Rezervácia bola úspešne vytvorená."))
     );
   };
 
@@ -2295,6 +2293,11 @@ export default function NewBookingsCalendar({
                                     {part}
                                   </span>
                                 ))}
+                                {Boolean(booking.multisportCardsCount && booking.multisportCardsCount > 0) && (
+                                  <span className="block text-[clamp(7px,0.52vw,9px)] font-medium text-slate-600/75 leading-tight mt-0.5 tracking-tight">
+                                    {booking.multisportCardsCount === 2 ? "multi 2x" : "multi"}
+                                  </span>
+                                )}
                               </div>
                             )
                           ) : (
@@ -2312,6 +2315,11 @@ export default function NewBookingsCalendar({
                                     {part}
                                   </span>
                                 ))}
+                                {own && Boolean(booking.multisportCardsCount && booking.multisportCardsCount > 0) && (
+                                  <span className="block text-[clamp(7px,0.52vw,8.5px)] font-medium text-emerald-800/70 leading-tight mt-0.5 tracking-tight">
+                                    {booking.multisportCardsCount === 2 ? "multi 2x" : "multi"}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           )}
