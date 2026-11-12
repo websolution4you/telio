@@ -787,15 +787,11 @@ export default function AdminPricelistManager() {
                     if (stA === "expired") return b.validTo.localeCompare(a.validTo);
                     return a.validFrom.localeCompare(b.validFrom);
                   })
-                  .map((p) => {
-                    const st = getPricelistSeasonStatus(p);
-                    const tag = st === "current" ? " • Dnes platný" : st === "upcoming" ? " • Budúci" : " • Ukončený";
-                    return (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({formatDateSk(p.validFrom)} – {formatDateSk(p.validTo)}){tag}
-                      </option>
-                    );
-                  })}
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({formatDateSk(p.validFrom)} – {formatDateSk(p.validTo)})
+                    </option>
+                  ))}
               </select>
 
               <button
