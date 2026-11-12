@@ -170,15 +170,14 @@ export default function AdminCallHistory() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-slate-200/90 pb-1">
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-200/90 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
               <tr>
-                <th className="px-5 py-3.5 whitespace-nowrap min-w-[150px]">Čas hovoru</th>
-                <th className="px-5 py-3.5 whitespace-nowrap min-w-[160px]">Telefónne číslo</th>
-                <th className="px-5 py-3.5 min-w-[220px]">Zhrnutie hovoru</th>
-                <th className="px-4 py-3.5 text-center whitespace-nowrap min-w-[75px]">Dĺžka</th>
-                <th className="px-4 py-3.5 text-center whitespace-nowrap min-w-[65px]">Stav</th>
-                <th className="px-5 py-3.5 text-right whitespace-nowrap min-w-[90px]">Detail</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Čas hovoru</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Telefónne číslo</th>
+                <th className="px-3 py-3 sm:px-4 sm:py-3.5 text-center whitespace-nowrap min-w-[70px]">Dĺžka</th>
+                <th className="px-3 py-3 sm:px-4 sm:py-3.5 text-center whitespace-nowrap min-w-[60px]">Stav</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 text-right whitespace-nowrap min-w-[80px]">Detail</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -193,42 +192,24 @@ export default function AdminCallHistory() {
                     }`}
                   >
                     {/* Dátum a čas */}
-                    <td className="px-5 py-3.5 font-medium text-slate-900 whitespace-nowrap">
+                    <td className="px-4 py-3 sm:px-5 sm:py-3.5 font-medium text-slate-900 whitespace-nowrap text-xs sm:text-sm">
                       {formatDate(call.startedAt)}
                     </td>
 
                     {/* Telefónne číslo volajúceho */}
-                    <td className="px-5 py-3.5 whitespace-nowrap">
+                    <td className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">
                       <span className="font-mono text-xs font-semibold text-slate-800">
                         {call.callerNumber}
                       </span>
                     </td>
 
-                    {/* Zhrnutie hovoru */}
-                    <td className="px-5 py-3.5 max-w-[280px]">
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate font-medium text-slate-800" title={call.summaryTitle}>
-                          {call.summaryTitle}
-                        </span>
-                        {call.transcriptSummary && (
-                          <button
-                            onClick={() => setActiveSummaryModal(call)}
-                            className="text-slate-400 hover:text-indigo-600 transition-colors shrink-0 cursor-pointer"
-                            title="Zobraziť detailné zhrnutie"
-                          >
-                            <Info className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-
                     {/* Dĺžka */}
-                    <td className="px-4 py-3.5 text-center text-xs font-semibold text-slate-600 whitespace-nowrap">
+                    <td className="px-3 py-3 sm:px-4 sm:py-3.5 text-center text-xs font-semibold text-slate-600 whitespace-nowrap">
                       {formatSeconds(call.durationSec)}
                     </td>
 
                     {/* Stav */}
-                    <td className="px-4 py-3.5 text-center">
+                    <td className="px-3 py-3 sm:px-4 sm:py-3.5 text-center">
                       <span
                         className={`inline-grid h-7 w-7 place-items-center rounded-full ${
                           call.callSuccessful === "success"
@@ -246,7 +227,7 @@ export default function AdminCallHistory() {
                     </td>
 
                     {/* Detail zhrnutia hovoru */}
-                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                    <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-right whitespace-nowrap">
                       <button
                         type="button"
                         onClick={() => setActiveSummaryModal(call)}
