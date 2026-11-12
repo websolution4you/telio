@@ -67,8 +67,8 @@ export default function AdminPricelistManager() {
   const [showDeletePricelistConfirm, setShowDeletePricelistConfirm] = useState(false);
   const [deleteModalError, setDeleteModalError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [previewTierId, setPreviewTierId] = useState<string>("tier-10");
-  const [customTierDirty, setCustomTierDirty] = useState<Record<string, boolean>>({});
+  const [discountInputPercent, setDiscountInputPercent] = useState<number>(10);
+  const [appliedDiscountPercent, setAppliedDiscountPercent] = useState<number>(10);
 
   const effectiveList = useMemo(() => {
     return pricelists.map((p) => (p.id === current.id ? current : p));
@@ -617,72 +617,6 @@ export default function AdminPricelistManager() {
         message: res.error || "Cenník bol pridaný lokálne, ale nepodarilo sa ho uložiť do databázy.",
       });
     }
-  };
-
-  const handleUpdateTier = (tierId: string, updates: Partial<DiscountTier>) => {
-    setCurrent((prev) => {
-      const tiers = prev.discountTiers || DEFAULT_DISCOUNT_TIERS;
-      return {
-        ...prev,
-        discountTiers: tiers.map((t) => {
-          if (t.id !== tierId) return t;
-          const merged = { ...t, ...updates };
-          if ("discountPercent" in updates && updates.discountPercent !== undefined) {
-            merged.percentageOfBase = Math.max(0, 100 - updates.discountPercent);
-          } else if ("percentageOfBase" in updates && updates.percentageOfBase !== undefined) {
-            merged.discountPercent = Math.max(0, 100 - updates.percentageOfBase);
-          }
-          return merged;
-        }),
-      };
-    });
-  };
-
-  const handleAddTier = () => {
-    const newTier: DiscountTier = {
-      id: `tier-custom-${Date.now()}`,
-      name: "Vlastná zľava",
-      isPercentual: true,
-      percentageOfBase: 85,
-      discountPercent: 15,
-      price60: 0,
-      price120: 0,
-      isDefault: false,
-    };
-    setCurrent((prev) => ({
-      ...prev,
-      discountTiers: [...sanitizeTiers(prev.discountTiers), newTier],
-    }));
-    setPreviewTierId(newTier.id);
-    setCustomTierDirty((prev) => ({ ...prev, [newTier.id]: true }));
-  };
-
-  const handleRemoveTier = (tierId: string) => {
-    setCurrent((prev) => {
-      const tiers = sanitizeTiers(prev.discountTiers);
-      if (tiers.length <= 1) return prev;
-      return {
-        ...prev,
-        discountTiers: tiers.filter((t) => t.id !== tierId),
-      };
-    });
-    setCustomTierDirty((prev) => {
-      const next = { ...prev };
-      delete next[tierId];
-      return next;
-    });
-  };
-
-  const handleResetToDefaultTiers = () => {
-    setCurrent((prev) => ({
-      ...prev,
-      discountTiers: JSON.parse(JSON.stringify(DEFAULT_DISCOUNT_TIERS)),
-    }));
-    setPreviewTierId("tier-10");
-    setFeedback({
-      type: "success",
-      message: "Zľavové hladiny boli obnovené na predvolené.",
-    });
   };
 
   const handleSave = async () => {
@@ -1388,258 +1322,131 @@ export default function AdminPricelistManager() {
         </div>
       </div>
 
-      {/* Discount Tiers Section */}
+      {/* Informative Discount Calculator Section */}
       {(() => {
-        const tiers = sanitizeTiers(current.discountTiers);
-        const selectedTier = tiers.find((t) => t.id === previewTierId) || tiers[1] || tiers[0];
-
         const round1Dec = (val: number): number => Math.round(val * 10) / 10;
+        const pct = Math.max(0, Math.min(99, appliedDiscountPercent));
+        const hasDiscount = pct > 0;
+        const calcDiscount = (basePrice: number) => {
+          const val = round1Dec(basePrice * (1 - pct / 100));
+          return val.toFixed(1).replace(".", ",");
+        };
 
         return (
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
               <div>
                 <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <Percent className="h-4 w-4 text-emerald-600" />
-                  Zľavové hladiny a automatický prepočet
+                  Informatívny prepočet zliav
                 </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Zadajte percentuálnu zľavu a kliknite na Prepočítať pre zobrazenie výsledných cien v tomto cenníku.
+                </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setAppliedDiscountPercent(Math.max(0, Math.min(99, discountInputPercent)));
+                }}
+                className="flex flex-wrap items-center gap-2.5"
+              >
+                <span className="text-xs font-bold text-slate-700">Zľava</span>
+                <PriceStepper
+                  value={discountInputPercent}
+                  min={0}
+                  max={99}
+                  step={1}
+                  unit="%"
+                  onChange={(val) => setDiscountInputPercent(val)}
+                />
                 <button
-                  type="button"
-                  onClick={handleResetToDefaultTiers}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-                  title="Obnoviť predvolené zľavové hladiny"
+                  type="submit"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition cursor-pointer"
                 >
-                  Obnoviť predvolené
+                  Prepočítať
                 </button>
-                <button
-                  type="button"
-                  onClick={handleAddTier}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition cursor-pointer"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Pridať hladinu
-                </button>
-              </div>
+              </form>
             </div>
 
-            {/* Simplified Discount Tiers Table */}
-            <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-100 text-slate-700 font-extrabold uppercase tracking-wider text-[11px] border-b border-slate-200">
-                  <tr>
-                    <th className="py-3 px-4 min-w-[200px]">Hladina / Názov</th>
-                    <th className="py-3 px-4 min-w-[220px]">Zľava</th>
-                    <th className="py-3 px-4 text-right min-w-[120px]">Akcia</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-semibold">
-                  {tiers.map((tier) => {
-                    const isBase = tier.id === "tier-base";
-                    const isDefault = Boolean(tier.isDefault || ["tier-base", "tier-10", "tier-20", "tier-50"].includes(tier.id));
-                    const discountPercent = tier.discountPercent ?? Math.max(0, 100 - (tier.percentageOfBase ?? 100));
-                    const isSelected = previewTierId === tier.id;
-
-                    return (
-                      <tr
-                        key={tier.id}
-                        onClick={() => setPreviewTierId(tier.id)}
-                        className={`transition cursor-pointer border-b border-slate-100 ${
-                          isSelected
-                            ? "bg-emerald-50/70 border-emerald-200 ring-1 ring-inset ring-emerald-300/80"
-                            : "hover:bg-slate-50/80"
-                        }`}
-                        title="Kliknutím na tento riadok zobrazíte živý náhľad cien"
-                      >
-                        {/* Name: editable only for custom tier */}
-                        <td className="py-3 px-4">
-                          {isDefault ? (
-                            <span className="font-bold text-slate-900 text-xs px-2 py-1 block">
-                              {tier.name}
-                            </span>
-                          ) : (
-                            <input
-                              type="text"
-                              value={tier.name}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={(e) => {
-                                handleUpdateTier(tier.id, { name: e.target.value });
-                                setCustomTierDirty((prev) => ({ ...prev, [tier.id]: true }));
-                              }}
-                              className="w-full max-w-xs rounded-xl border border-slate-200 bg-white px-3 py-1.5 font-bold text-slate-900 outline-none focus:border-emerald-500 text-xs shadow-2xs"
-                              placeholder="Názov vlastnej hladiny"
-                            />
-                          )}
-                        </td>
-
-                        {/* Discount badge: editable for custom tier, fixed for default tiers */}
-                        <td className="py-3 px-4">
-                          {isBase ? (
-                            <span className="inline-flex items-center text-xs font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg shadow-2xs">
-                              Bez zľavy (Základná cena)
-                            </span>
-                          ) : isDefault ? (
-                            <span className="inline-flex items-center text-xs font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg shadow-2xs">
-                              –{discountPercent} % zľava
-                            </span>
-                          ) : (
-                            <div className="inline-flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                              <span className="text-emerald-800 font-extrabold text-sm">–</span>
-                              <PriceStepper
-                                value={discountPercent}
-                                min={0}
-                                max={99}
-                                step={1}
-                                unit="%"
-                                onChange={(val) => {
-                                  handleUpdateTier(tier.id, {
-                                    discountPercent: val,
-                                    percentageOfBase: 100 - val,
-                                  });
-                                  setCustomTierDirty((prev) => ({ ...prev, [tier.id]: true }));
-                                }}
-                              />
-                              <span className="text-emerald-800 font-bold text-xs">zľava</span>
-                            </div>
-                          )}
-                        </td>
-
-                        {/* Actions */}
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                            {!isDefault && customTierDirty[tier.id] && (
-                              <button
-                                type="button"
-                                disabled={saving}
-                                onClick={async () => {
-                                  await handleSave();
-                                  setCustomTierDirty((prev) => ({ ...prev, [tier.id]: false }));
-                                }}
-                                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-emerald-700 transition cursor-pointer disabled:opacity-50"
-                                title="Uložiť zmeny tejto vlastnej zľavy"
-                              >
-                                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                                Uložiť
-                              </button>
-                            )}
-
-                            {!isDefault && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveTier(tier.id)}
-                                className="text-slate-400 hover:text-red-600 p-1.5 transition cursor-pointer rounded-lg hover:bg-red-50"
-                                title="Zmazať vlastnú hladinu"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Live Sports Breakdown Preview for Selected Tier */}
-            {selectedTier && (
-              <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
-                <div className="bg-slate-100/80 px-4 py-2.5 flex items-center justify-between text-xs font-bold text-slate-700 border-b border-slate-200">
-                  <div className="flex items-center gap-2">
-                    <Percent className="h-4 w-4 text-emerald-600" />
-                    <span>
-                      Živý náhľad sadzieb pre cenník pri hladine:{" "}
-                      <span className="text-emerald-700 font-extrabold">{selectedTier.name}</span>
-                      {selectedTier.isPercentual !== false ? (
-                        <span className="text-slate-500 font-normal ml-1">
-                          {selectedTier.id === "tier-base" || (selectedTier.discountPercent === 0 && selectedTier.percentageOfBase === 100)
-                            ? "(základná cena bez zľavy)"
-                            : `(zľava –${selectedTier.discountPercent ?? (100 - (selectedTier.percentageOfBase ?? 100))} %)`}
-                        </span>
-                      ) : null}
+            {/* Live Sports Breakdown Preview */}
+            <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+              <div className="bg-slate-50 px-4 py-2.5 flex items-center justify-between text-xs font-bold text-slate-700 border-b border-slate-200">
+                <div className="flex items-center gap-2">
+                  <Percent className="h-4 w-4 text-emerald-600" />
+                  <span>
+                    Prehľad sadzieb pri zľave:{" "}
+                    <span className="text-emerald-700 font-extrabold">
+                      {hasDiscount ? `–${pct} %` : "0 % (základná cena)"}
                     </span>
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200">
-                      <tr>
-                        <th className="py-2.5 px-4 min-w-[200px]">Pásmo</th>
-                        <th className="py-2.5 px-4 text-center min-w-[120px]">Bedminton</th>
-                        <th className="py-2.5 px-4 text-center min-w-[120px]">Tenis (Hala)</th>
-                        <th className="py-2.5 px-4 text-center min-w-[120px]">Tenis (Antuka)</th>
-                        <th className="py-2.5 px-4 text-center min-w-[120px]">Squash</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 font-semibold">
-                      {current.intervals.map((inv) => {
-                        const pct = selectedTier.percentageOfBase ?? (100 - (selectedTier.discountPercent || 0));
-                        const calcDiscount = (basePrice: number) => {
-                          const val = selectedTier.isPercentual !== false
-                            ? round1Dec(basePrice * (pct / 100))
-                            : round1Dec(basePrice * (1 - (selectedTier.discountPercent || 0) / 100));
-                          return val.toFixed(1).replace(".", ",");
-                        };
-
-                        const hasDiscount = (selectedTier.discountPercent || 0) > 0 || pct < 100;
-
-                        return (
-                          <tr key={inv.id} className="hover:bg-slate-50/50">
-                            <td className="py-2.5 px-4 font-bold text-slate-800">
-                              {inv.name} ({inv.startHour}:00 – {inv.endHour}:00)
-                            </td>
-                            <td className="py-2.5 px-3 text-center">
-                              <span className="font-extrabold text-emerald-700">
-                                {calcDiscount(inv.prices.badminton ?? 14)} €
-                              </span>
-                              {hasDiscount && (
-                                <span className="text-[10px] text-slate-400 line-through ml-1.5 font-normal">
-                                  {inv.prices.badminton} €
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 text-center">
-                              <span className="font-extrabold text-emerald-700">
-                                {calcDiscount(inv.prices.tennis ?? 29)} €
-                              </span>
-                              {hasDiscount && (
-                                <span className="text-[10px] text-slate-400 line-through ml-1.5 font-normal">
-                                  {inv.prices.tennis} €
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 text-center">
-                              <span className="font-extrabold text-emerald-700">
-                                {calcDiscount(inv.prices["tennis-clay"] ?? 20)} €
-                              </span>
-                              {hasDiscount && (
-                                <span className="text-[10px] text-slate-400 line-through ml-1.5 font-normal">
-                                  {inv.prices["tennis-clay"]} €
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 text-center">
-                              <span className="font-extrabold text-emerald-700">
-                                {calcDiscount(inv.prices.squash ?? 11)} €
-                              </span>
-                              {hasDiscount && (
-                                <span className="text-[10px] text-slate-400 line-through ml-1.5 font-normal">
-                                  {inv.prices.squash} €
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                  </span>
                 </div>
               </div>
-            )}
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                    <tr>
+                      <th className="py-2.5 px-4 min-w-[200px]">Pásmo</th>
+                      <th className="py-2.5 px-4 text-center min-w-[110px]">Bedminton</th>
+                      <th className="py-2.5 px-4 text-center min-w-[110px]">Tenis (Hala)</th>
+                      <th className="py-2.5 px-4 text-center min-w-[110px]">Tenis (Antuka)</th>
+                      <th className="py-2.5 px-4 text-center min-w-[110px]">Squash</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-semibold">
+                    {current.intervals.map((inv) => (
+                      <tr key={inv.id} className="hover:bg-slate-50/50">
+                        <td className="py-2.5 px-4 font-bold text-slate-800 whitespace-nowrap">
+                          {inv.name} ({inv.startHour}:00 – {inv.endHour}:00)
+                        </td>
+                        <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                          <span className="font-extrabold text-emerald-700">
+                            {calcDiscount(inv.prices.badminton ?? 14)} €
+                          </span>
+                          {hasDiscount && (
+                            <span className="text-[10px] text-slate-400 line-through ml-1.5 font-normal">
+                              {inv.prices.badminton} €
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                          <span className="font-extrabold text-emerald-700">
+                            {calcDiscount(inv.prices.tennis ?? 29)} €
+                          </span>
+                          {hasDiscount && (
+                            <span className="text-[10px] text-slate-400 line-through ml-1.5 font-normal">
+                              {inv.prices.tennis} €
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                          <span className="font-extrabold text-emerald-700">
+                            {calcDiscount(inv.prices["tennis-clay"] ?? 20)} €
+                          </span>
+                          {hasDiscount && (
+                            <span className="text-[10px] text-slate-400 line-through ml-1.5 font-normal">
+                              {inv.prices["tennis-clay"]} €
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                          <span className="font-extrabold text-emerald-700">
+                            {calcDiscount(inv.prices.squash ?? 11)} €
+                          </span>
+                          {hasDiscount && (
+                            <span className="text-[10px] text-slate-400 line-through ml-1.5 font-normal">
+                              {inv.prices.squash} €
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         );
       })()}
