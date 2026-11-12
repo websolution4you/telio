@@ -774,17 +774,27 @@ export default function AdminPricelistManager() {
             <select
               value={selectedId}
               onChange={(e) => handleSelectPricelist(e.target.value)}
-              className="mt-0.5 text-lg font-bold text-slate-900 bg-transparent border-none outline-none cursor-pointer hover:text-emerald-700 transition"
+              className="mt-0.5 max-w-full text-base sm:text-lg font-bold text-slate-900 bg-transparent border-none outline-none cursor-pointer hover:text-emerald-700 transition"
             >
-              {pricelists.map((p) => {
-                const st = getPricelistSeasonStatus(p);
-                const tag = st === "current" ? " • Dnes platný" : st === "upcoming" ? " • Budúci" : " • Ukončený";
-                return (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({formatDateSk(p.validFrom)} – {formatDateSk(p.validTo)}){tag}
-                  </option>
-                );
-              })}
+              {[...pricelists]
+                .sort((a, b) => {
+                  const order: Record<string, number> = { current: 0, upcoming: 1, expired: 2 };
+                  const stA = getPricelistSeasonStatus(a);
+                  const stB = getPricelistSeasonStatus(b);
+                  if (order[stA] !== order[stB]) return order[stA] - order[stB];
+                  if (stA === "upcoming") return a.validFrom.localeCompare(b.validFrom);
+                  if (stA === "expired") return b.validTo.localeCompare(a.validTo);
+                  return a.validFrom.localeCompare(b.validFrom);
+                })
+                .map((p) => {
+                  const st = getPricelistSeasonStatus(p);
+                  const tag = st === "current" ? " • Dnes platný" : st === "upcoming" ? " • Budúci" : " • Ukončený";
+                  return (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({formatDateSk(p.validFrom)} – {formatDateSk(p.validTo)}){tag}
+                    </option>
+                  );
+                })}
             </select>
           </div>
         </div>
