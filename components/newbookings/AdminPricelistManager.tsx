@@ -751,14 +751,14 @@ export default function AdminPricelistManager() {
                 Sezónny cenník
               </span>
               {currentStatus === "current" && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-800">
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
                   <Flame className="h-3 w-3 text-emerald-600" />
                   Aktuálne platný (dnes)
                 </span>
               )}
               {currentStatus === "upcoming" && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2.5 py-0.5 text-[11px] font-extrabold text-sky-800">
-                  <Calendar className="h-3 w-3 text-sky-600" />
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-bold text-slate-700">
+                  <Calendar className="h-3 w-3 text-slate-500" />
                   Budúca sezóna
                 </span>
               )}
@@ -822,7 +822,7 @@ export default function AdminPricelistManager() {
             className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs font-bold transition shadow-2xs ${
               pricelists.length <= 1
                 ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
-                : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800 cursor-pointer"
+                : "border-slate-200 bg-white text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700 cursor-pointer"
             }`}
           >
             <Trash2 className="h-4 w-4" />
@@ -841,17 +841,17 @@ export default function AdminPricelistManager() {
             </h3>
           </div>
           {timelineAnalysis.hasOverlaps ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 text-amber-800 px-3 py-1 text-xs font-bold">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1 text-xs font-bold">
               <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
               Zistené prekrývanie termínov
             </span>
           ) : timelineAnalysis.hasGaps ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 text-sky-800 px-3 py-1 text-xs font-bold">
-              <Info className="h-3.5 w-3.5 text-sky-600" />
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1 text-xs font-bold">
+              <Info className="h-3.5 w-3.5 text-slate-500" />
               Zistená medzera medzi sezónami
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 text-emerald-800 px-3 py-1 text-xs font-bold">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-1 text-xs font-bold">
               <Check className="h-3.5 w-3.5 text-emerald-600" />
               Plynulá nadväznosť sezón
             </span>
@@ -878,8 +878,8 @@ export default function AdminPricelistManager() {
                     st === "current"
                       ? "bg-emerald-500 animate-pulse"
                       : st === "upcoming"
-                      ? "bg-sky-500"
-                      : "bg-slate-400"
+                      ? "bg-slate-400"
+                      : "bg-slate-300"
                   }`}
                 />
                 <span className="font-bold">{p.name}</span>
@@ -1037,16 +1037,9 @@ export default function AdminPricelistManager() {
               <Clock3 className="h-4 w-4 text-emerald-600" />
               Sadzby podľa časových pásiem a športov (za 1 hodinu)
             </h2>
-            <div className="flex flex-wrap items-center gap-2 mt-1">
-              <p className="text-xs text-slate-500">
-                Základné pultové sadzby za jednotlivé športoviská podľa zvolených dní a hodín.
-              </p>
-              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
-                <span>Ceny v bunkách viete posúvať aj šípkami</span>
-                <kbd className="rounded bg-white px-1 py-0.2 shadow-2xs border border-emerald-300 font-mono text-[9px] font-extrabold text-emerald-900">↑</kbd>
-                <kbd className="rounded bg-white px-1 py-0.2 shadow-2xs border border-emerald-300 font-mono text-[9px] font-extrabold text-emerald-900">↓</kbd>
-              </span>
-            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Základné pultové sadzby za jednotlivé športoviská podľa zvolených dní a hodín.
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -1068,7 +1061,7 @@ export default function AdminPricelistManager() {
                     className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${
                       hasHappyHour
                         ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
-                        : "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 cursor-pointer shadow-2xs"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 cursor-pointer shadow-2xs"
                     }`}
                     title={
                       hasHappyHour
@@ -1076,8 +1069,8 @@ export default function AdminPricelistManager() {
                         : "Pridať pásmo Happy Hour (napr. 12:00 – 16:00 pre Po–Pi)"
                     }
                   >
-                    <Sun className={`h-3.5 w-3.5 ${hasHappyHour ? "text-slate-400" : "text-amber-600"}`} />
-                    + Happy Hour (napr. 12–16h)
+                    <Sun className={`h-3.5 w-3.5 ${hasHappyHour ? "text-slate-400" : "text-amber-500"}`} />
+                    + Happy Hour (12–16h)
                   </button>
 
                   <button
@@ -1087,7 +1080,7 @@ export default function AdminPricelistManager() {
                     className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${
                       !canAddGeneralWeekday
                         ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
-                        : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 cursor-pointer shadow-2xs"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 cursor-pointer shadow-2xs"
                     }`}
                     title={
                       !canAddGeneralWeekday
@@ -1095,8 +1088,8 @@ export default function AdminPricelistManager() {
                         : "Pridať pásmo (Po–Pi)"
                     }
                   >
-                    <Plus className={`h-3.5 w-3.5 ${!canAddGeneralWeekday ? "text-slate-400" : "text-emerald-700"}`} />
-                    Pridať pásmo (Po–Pi)
+                    <Plus className={`h-3.5 w-3.5 ${!canAddGeneralWeekday ? "text-slate-400" : "text-emerald-600"}`} />
+                    + Pásmo (Po–Pi)
                   </button>
 
                   <button
@@ -1106,7 +1099,7 @@ export default function AdminPricelistManager() {
                     className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${
                       hasWeekend
                         ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
-                        : "border-blue-200 bg-blue-50 text-blue-800 hover:bg-blue-100 cursor-pointer shadow-2xs"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 cursor-pointer shadow-2xs"
                     }`}
                     title={
                       hasWeekend
@@ -1114,8 +1107,8 @@ export default function AdminPricelistManager() {
                         : "Pridať celodenné víkendové pásmo (7:00 – 21:00)"
                     }
                   >
-                    <Plus className={`h-3.5 w-3.5 ${hasWeekend ? "text-slate-400" : "text-blue-700"}`} />
-                    Pridať pásmo (Víkend)
+                    <Plus className={`h-3.5 w-3.5 ${hasWeekend ? "text-slate-400" : "text-emerald-600"}`} />
+                    + Pásmo (Víkend)
                   </button>
                 </>
               );
@@ -1195,10 +1188,10 @@ export default function AdminPricelistManager() {
                         />
                         {isOverride && (
                           <span
-                            className="shrink-0 rounded-full bg-purple-50 border border-purple-200 px-2 py-0.5 text-[10px] font-bold text-purple-700 shadow-2xs"
+                            className="shrink-0 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700 shadow-2xs"
                             title="Toto pásmo platí prednostne pre vybrané dni a časy. V ostatných hodinách platí všeobecný cenník."
                           >
-                            ✨ Výnimka
+                            Výnimka
                           </span>
                         )}
                       </div>
@@ -1208,7 +1201,7 @@ export default function AdminPricelistManager() {
                         <span
                           className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${
                             isWeekend
-                              ? "bg-blue-50 text-blue-800 border border-blue-200/60"
+                              ? "bg-slate-100 text-slate-700 border border-slate-200"
                               : "bg-emerald-50 text-emerald-800 border border-emerald-200/60"
                           }`}
                         >
