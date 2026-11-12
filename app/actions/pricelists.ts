@@ -310,10 +310,6 @@ export async function deletePricelistAction(id: string): Promise<{
       return { success: true };
     }
 
-    if (toDelete.isActive) {
-      return { success: false, error: "Nemôžete zmazať aktívny cenník. Najprv nastavte iný cenník ako aktívny." };
-    }
-
     if (inMemoryPricelists.length <= 1) {
       return { success: false, error: "Nemôžete zmazať posledný zostávajúci cenník." };
     }

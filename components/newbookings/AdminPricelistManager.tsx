@@ -527,10 +527,6 @@ export default function AdminPricelistManager() {
   };
 
   const handleDeletePricelist = async () => {
-    if (current.isActive) {
-      setDeleteModalError("Nemôžete zmazať aktívny cenník. Najprv nastavte iný cenník ako aktívny.");
-      return;
-    }
     if (pricelists.length <= 1) {
       setDeleteModalError("Nemôžete zmazať jediný zostávajúci cenník.");
       return;
@@ -1654,6 +1650,15 @@ export default function AdminPricelistManager() {
             <p className="text-xs text-slate-600 leading-relaxed">
               Naozaj si prajete natrvalo zmazať cenník <b>„{current.name}“</b>? Všetky jeho nastavené sadzby a časové pásma budú zmazané zo systému.
             </p>
+
+            {currentStatus === "current" && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-xs font-medium text-amber-900 flex items-start gap-2.5">
+                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <span className="leading-snug">
+                  Upozornenie: Tento cenník je aktuálne platný pre dnešný dátum. Po jeho zmazaní sa pri nových rezerváciách použije nasledujúci zodpovedajúci alebo predvolený cenník.
+                </span>
+              </div>
+            )}
 
             {deleteModalError && (
               <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-semibold text-rose-800 flex items-start gap-2.5 animate-in fade-in">
