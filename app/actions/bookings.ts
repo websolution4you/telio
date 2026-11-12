@@ -624,8 +624,8 @@ export async function createBookingAction(payload: {
             }
             const walletDb = getCoreServiceDb();
 
-            if (multisportCount === 2 || calculatedPrice === 0.00) {
-                // 100% zľava (2 MultiSport karty = bezplatná rezervácia): nestrháva žiadny kredit
+            if (calculatedPrice === 0.00) {
+                // Bezplatná rezervácia: nestrháva žiadny kredit
                 const { data: dbBooking, error: dbError } = await walletDb
                     .from("bookings")
                     .insert({
@@ -664,8 +664,7 @@ export async function createBookingAction(payload: {
                         idempotency_key: payload.operationId,
                         metadata: {
                             court_id: payload.courtId,
-                            multisport_cards_count: 2,
-                            discount: "100%",
+                            multisport_cards_count: multisportCount,
                             price_eur: 0.00
                         }
                     });
@@ -677,7 +676,7 @@ export async function createBookingAction(payload: {
                     created: true
                 };
             } else {
-                // Platená rezervácia (0 kariet alebo 1 MultiSport karta): overenie a odčítanie z peňaženky
+                // Platená rezervácia: overenie a odčítanie z peňaženky
                 let { data: userWallet } = await walletDb
                     .from("wallets")
                     .select("id, balance_eur")
@@ -707,10 +706,9 @@ export async function createBookingAction(payload: {
                     }
 
                     if (currentBalCents < requiredPriceCents) {
-                        const discountLabel = multisportCount === 1 ? " po zľave 50 %" : "";
                         return {
                             success: false,
-                            error: `Nedostatočný zostatok v peňaženke. Potrebná suma${discountLabel}: ${calculatedPrice.toFixed(2)} €, aktuálny zostatok: ${(currentBalCents / 100).toFixed(2)} €.`,
+                            error: `Nedostatočný zostatok v peňaženke. Potrebná suma: ${calculatedPrice.toFixed(2)} €, aktuálny zostatok: ${(currentBalCents / 100).toFixed(2)} €.`,
                         };
                     }
                 }
@@ -756,7 +754,6 @@ export async function createBookingAction(payload: {
                         metadata: {
                             court_id: payload.courtId,
                             multisport_cards_count: multisportCount,
-                            discount: multisportCount === 1 ? "50%" : "0%",
                             price_eur: calculatedPrice
                         }
                     });

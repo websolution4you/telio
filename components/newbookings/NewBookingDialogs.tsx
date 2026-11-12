@@ -522,48 +522,53 @@ export function CreateBookingDialog(props: CreateDialogProps) {
 
           {/* MultiSport karty (len pre bežných klientov) */}
           {!props.isAdmin && !props.isNtcTeam && (
-            <div className="grid grid-cols-2 gap-2.5">
-              {/* Karta č. 1 */}
-              <label className={`flex items-center gap-2.5 rounded-2xl border p-3 cursor-pointer transition select-none ${props.multisportCardsCount >= 1
-                ? "border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold shadow-2xs"
-                : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100/70"
-                }`}>
-                <input
-                  type="checkbox"
-                  checked={props.multisportCardsCount >= 1}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      props.onMultisportCardsCount(1);
-                    } else {
-                      props.onMultisportCardsCount(0);
-                    }
-                  }}
-                  className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer shrink-0"
-                />
-                <span className="text-xs font-bold leading-snug">MultiSport karta č. 1</span>
-              </label>
+            <div className="space-y-1.5">
+              <div className="grid grid-cols-2 gap-2.5">
+                {/* Karta č. 1 */}
+                <label className={`flex items-center gap-2.5 rounded-2xl border p-3 cursor-pointer transition select-none ${props.multisportCardsCount >= 1
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold shadow-2xs"
+                    : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100/70"
+                  }`}>
+                  <input
+                    type="checkbox"
+                    checked={props.multisportCardsCount >= 1}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        props.onMultisportCardsCount(1);
+                      } else {
+                        props.onMultisportCardsCount(0);
+                      }
+                    }}
+                    className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer shrink-0"
+                  />
+                  <span className="text-xs font-bold leading-snug">MultiSport karta č. 1</span>
+                </label>
 
-              {/* Karta č. 2 - 100% zľava iba ak sú zaškrtnuté obe karty */}
-              <label className={`flex items-center gap-2.5 rounded-2xl border p-3 cursor-pointer transition select-none ${props.multisportCardsCount === 2
-                ? "border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold shadow-2xs"
-                : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100/70"
-                }`}>
-                <input
-                  type="checkbox"
-                  checked={props.multisportCardsCount === 2}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      // Zaškrtnutie oboch kariet = 100% zľava
-                      props.onMultisportCardsCount(2);
-                    } else {
-                      // Odškrtnutie karty č. 2 ponechá len kartu č. 1 (-50%)
-                      props.onMultisportCardsCount(1);
-                    }
-                  }}
-                  className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer shrink-0"
-                />
-                <span className="text-xs font-bold leading-snug">MultiSport karta č. 2</span>
-              </label>
+                {/* Karta č. 2 */}
+                <label className={`flex items-center gap-2.5 rounded-2xl border p-3 cursor-pointer transition select-none ${props.multisportCardsCount === 2
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold shadow-2xs"
+                    : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100/70"
+                  }`}>
+                  <input
+                    type="checkbox"
+                    checked={props.multisportCardsCount === 2}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        props.onMultisportCardsCount(2);
+                      } else {
+                        props.onMultisportCardsCount(1);
+                      }
+                    }}
+                    className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer shrink-0"
+                  />
+                  <span className="text-xs font-bold leading-snug">MultiSport karta č. 2</span>
+                </label>
+              </div>
+              {props.multisportCardsCount > 0 && (
+                <p className="text-[11px] text-slate-500 font-medium px-1">
+                  Z kreditu sa stiahne plná cena rezervácie. Zľava za MultiSport sa uplatní pri overení karty na recepcii.
+                </p>
+              )}
             </div>
           )}
 
@@ -765,12 +770,11 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                     <>
                       {pricing.multisportCardsCount > 0 ? (
                         <>
-                          {/* Pri MultiSport cenu kurtu nemenme - zobrazujeme základnú cenu a do zátvorky výslednú cenu */}
                           <span className="text-base font-black text-slate-950 sm:text-lg">
-                            {(pricing.priceBeforeMultisportEur ?? pricing.originalPriceEur).toFixed(2)} €
+                            {pricing.formattedPrice}
                           </span>
                           <span className="text-xs sm:text-sm font-semibold text-emerald-700">
-                            (výsledná cena: {pricing.totalPriceEur.toFixed(2)} €)
+                            (výsledná cena: {pricing.priceAfterMultisportEur.toFixed(2)} €)
                           </span>
                         </>
                       ) : (
@@ -801,8 +805,8 @@ export function CreateBookingDialog(props: CreateDialogProps) {
                         </span>
                       )}
                       {pricing.multisportCardsCount === 2 && (
-                        <span className="rounded-md border border-emerald-500 bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-2xs">
-                          MultiSport 2x (Zdarma)
+                        <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shadow-2xs">
+                          MultiSport 2x
                         </span>
                       )}
                     </>
@@ -1219,7 +1223,7 @@ export function BookingDetailDialog({
             <Detail
               icon={CreditCard}
               label="MultiSport karty"
-              value={activeBooking.multisportCardsCount === 2 ? "2x karta (Zľava 100 % zdarma)" : "1x karta (Zľava 50 %)"}
+              value={activeBooking.multisportCardsCount === 2 ? "2x MultiSport karta" : "1x MultiSport karta"}
             />
           ) : null}
           {activeBooking.title && activeBooking.title !== activeBooking.customerName && activeBooking.title !== "Údržba" && activeBooking.title !== "Údržba kurtov" && (
