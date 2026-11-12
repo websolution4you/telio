@@ -741,13 +741,13 @@ export default function AdminPricelistManager() {
 
   return (
     <div className="space-y-6">
-      {/* Top Bar: Selector & Action buttons */}
+      {/* Top Bar: Selector & Create New Pricelist */}
       <div className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 shadow-xs">
             <Coins className="h-5 w-5" />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Sezónny cenník
@@ -771,75 +771,43 @@ export default function AdminPricelistManager() {
                 </span>
               )}
             </div>
-            <select
-              value={selectedId}
-              onChange={(e) => handleSelectPricelist(e.target.value)}
-              className="mt-0.5 max-w-full text-base sm:text-lg font-bold text-slate-900 bg-transparent border-none outline-none cursor-pointer hover:text-emerald-700 transition"
-            >
-              {[...pricelists]
-                .sort((a, b) => {
-                  const order: Record<string, number> = { current: 0, upcoming: 1, expired: 2 };
-                  const stA = getPricelistSeasonStatus(a);
-                  const stB = getPricelistSeasonStatus(b);
-                  if (order[stA] !== order[stB]) return order[stA] - order[stB];
-                  if (stA === "upcoming") return a.validFrom.localeCompare(b.validFrom);
-                  if (stA === "expired") return b.validTo.localeCompare(a.validTo);
-                  return a.validFrom.localeCompare(b.validFrom);
-                })
-                .map((p) => {
-                  const st = getPricelistSeasonStatus(p);
-                  const tag = st === "current" ? " • Dnes platný" : st === "upcoming" ? " • Budúci" : " • Ukončený";
-                  return (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({formatDateSk(p.validFrom)} – {formatDateSk(p.validTo)}){tag}
-                    </option>
-                  );
-                })}
-            </select>
+            <div className="mt-0.5 flex flex-wrap items-center gap-2 sm:gap-3">
+              <select
+                value={selectedId}
+                onChange={(e) => handleSelectPricelist(e.target.value)}
+                className="max-w-full text-base sm:text-lg font-bold text-slate-900 bg-transparent border-none outline-none cursor-pointer hover:text-emerald-700 transition"
+              >
+                {[...pricelists]
+                  .sort((a, b) => {
+                    const order: Record<string, number> = { current: 0, upcoming: 1, expired: 2 };
+                    const stA = getPricelistSeasonStatus(a);
+                    const stB = getPricelistSeasonStatus(b);
+                    if (order[stA] !== order[stB]) return order[stA] - order[stB];
+                    if (stA === "upcoming") return a.validFrom.localeCompare(b.validFrom);
+                    if (stA === "expired") return b.validTo.localeCompare(a.validTo);
+                    return a.validFrom.localeCompare(b.validFrom);
+                  })
+                  .map((p) => {
+                    const st = getPricelistSeasonStatus(p);
+                    const tag = st === "current" ? " • Dnes platný" : st === "upcoming" ? " • Budúci" : " • Ukončený";
+                    return (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({formatDateSk(p.validFrom)} – {formatDateSk(p.validTo)}){tag}
+                      </option>
+                    );
+                  })}
+              </select>
+
+              <button
+                type="button"
+                onClick={handleCreateNewPricelist}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-900 transition cursor-pointer shrink-0"
+              >
+                <Plus className="h-3.5 w-3.5 text-emerald-600" />
+                Vytvoriť nový cenník
+              </button>
+            </div>
           </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={handleCreateNewPricelist}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition cursor-pointer"
-          >
-            <Plus className="h-4 w-4 text-emerald-600" />
-            Vytvoriť nový cenník
-          </button>
-
-          <button
-            type="button"
-            disabled={saving}
-            onClick={handleSave}
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-700/20 hover:bg-emerald-700 transition cursor-pointer disabled:opacity-50"
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            {saving ? "Ukladám..." : "Uložiť cenník"}
-          </button>
-
-          <button
-            type="button"
-            disabled={saving || pricelists.length <= 1}
-            onClick={() => {
-              setDeleteModalError(null);
-              setShowDeletePricelistConfirm(true);
-            }}
-            title={
-              pricelists.length <= 1
-                ? "Nemožno zmazať jediný existujúci cenník"
-                : "Zmazať tento cenník"
-            }
-            className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs font-bold transition shadow-2xs ${
-              pricelists.length <= 1
-                ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
-                : "border-slate-200 bg-white text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700 cursor-pointer"
-            }`}
-          >
-            <Trash2 className="h-4 w-4" />
-            Zmazať cenník
-          </button>
         </div>
       </div>
 
@@ -1386,6 +1354,41 @@ export default function AdminPricelistManager() {
             })}
             </tbody>
           </table>
+        </div>
+
+        {/* Footer Actions: Save & Delete selected pricelist */}
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-slate-100">
+          <button
+            type="button"
+            disabled={saving || pricelists.length <= 1}
+            onClick={() => {
+              setDeleteModalError(null);
+              setShowDeletePricelistConfirm(true);
+            }}
+            title={
+              pricelists.length <= 1
+                ? "Nemožno zmazať jediný existujúci cenník"
+                : "Zmazať tento cenník"
+            }
+            className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs font-bold transition shadow-2xs ${
+              pricelists.length <= 1
+                ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
+                : "border-slate-200 bg-white text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700 cursor-pointer"
+            }`}
+          >
+            <Trash2 className="h-4 w-4" />
+            Zmazať cenník
+          </button>
+
+          <button
+            type="button"
+            disabled={saving}
+            onClick={handleSave}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-700/20 hover:bg-emerald-700 transition cursor-pointer disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {saving ? "Ukladám..." : "Uložiť cenník"}
+          </button>
         </div>
       </div>
 
