@@ -148,9 +148,15 @@ export default function AdminPricelistManager() {
           intervals: sanitizeIntervalDays(p.intervals),
         }));
         setPricelists(sanitizedList);
-        const activeOne = sanitizedList.find((p) => p.isActive) || sanitizedList[0];
-        setSelectedId(activeOne.id);
-        const cloned = JSON.parse(JSON.stringify(activeOne));
+        // Pri načítaní vždy prednostne vyberieme cenník, ktorý práve dnes prebieha podľa dátumu (status === "current"),
+        // až potom najbližší budúci, prípadne prvý v zozname.
+        const currentByDate = sanitizedList.find((p) => getPricelistSeasonStatus(p) === "current");
+        const upcomingByDate = sanitizedList
+          .filter((p) => getPricelistSeasonStatus(p) === "upcoming")
+          .sort((a, b) => a.validFrom.localeCompare(b.validFrom))[0];
+        const initialOne = currentByDate || upcomingByDate || sanitizedList[0];
+        setSelectedId(initialOne.id);
+        const cloned = JSON.parse(JSON.stringify(initialOne));
         cloned.discountTiers = sanitizeTiers(cloned.discountTiers);
         cloned.intervals = realignAllIntervals(cloned.intervals);
         setCurrent(cloned);
@@ -866,11 +872,13 @@ export default function AdminPricelistManager() {
                 className={`flex items-center gap-2 rounded-2xl px-3.5 py-2 text-xs font-semibold transition border cursor-pointer ${
                   isSelected
                     ? "bg-emerald-50 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20 shadow-xs"
-                    : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                    : st === "current"
+                    ? "bg-emerald-50/40 border-emerald-200 text-emerald-900 hover:bg-emerald-50"
+                    : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
                 }`}
               >
                 <div
-                  className={`h-2 w-2 rounded-full ${
+                  className={`h-2 w-2 rounded-full shrink-0 ${
                     st === "current"
                       ? "bg-emerald-500 animate-pulse"
                       : st === "upcoming"
@@ -882,6 +890,21 @@ export default function AdminPricelistManager() {
                 <span className="text-[11px] text-slate-500">
                   ({formatDateSk(p.validFrom)} – {formatDateSk(p.validTo)})
                 </span>
+                {st === "current" && (
+                  <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-2xs">
+                    Aktuálny
+                  </span>
+                )}
+                {st === "upcoming" && (
+                  <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                    Budúci
+                  </span>
+                )}
+                {st === "expired" && (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                    Ukončený
+                  </span>
+                )}
               </button>
             );
           })}
