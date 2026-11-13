@@ -69,6 +69,7 @@ export default function AdminPricelistManager() {
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [discountInputPercent, setDiscountInputPercent] = useState<number>(10);
   const [appliedDiscountPercent, setAppliedDiscountPercent] = useState<number>(10);
+  const [discountFlash, setDiscountFlash] = useState<boolean>(false);
 
   const effectiveList = useMemo(() => {
     return pricelists.map((p) => (p.id === current.id ? current : p));
@@ -1349,6 +1350,11 @@ export default function AdminPricelistManager() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   setAppliedDiscountPercent(Math.max(0, Math.min(99, discountInputPercent)));
+                  setDiscountFlash(false);
+                  requestAnimationFrame(() => {
+                    setDiscountFlash(true);
+                    window.setTimeout(() => setDiscountFlash(false), 750);
+                  });
                 }}
                 className="flex flex-wrap items-center gap-2.5"
               >
@@ -1363,7 +1369,7 @@ export default function AdminPricelistManager() {
                 />
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 active:scale-95 active:bg-emerald-800 transition-all duration-150 cursor-pointer"
                 >
                   Prepočítať
                 </button>
@@ -1371,8 +1377,16 @@ export default function AdminPricelistManager() {
             </div>
 
             {/* Live Sports Breakdown Preview */}
-            <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
-              <div className="bg-slate-50 px-4 py-2.5 flex items-center justify-between text-xs font-bold text-slate-700 border-b border-slate-200">
+            <div
+              className={`rounded-2xl border overflow-hidden shadow-2xs transition-all duration-500 ${
+                discountFlash ? "border-emerald-300 ring-2 ring-emerald-100" : "border-slate-200"
+              }`}
+            >
+              <div
+                className={`px-4 py-2.5 flex items-center justify-between text-xs font-bold text-slate-700 border-b transition-colors duration-500 ${
+                  discountFlash ? "bg-emerald-50/90 border-emerald-200" : "bg-slate-50 border-slate-200"
+                }`}
+              >
                 <div className="flex items-center gap-2">
                   <Percent className="h-4 w-4 text-emerald-600" />
                   <span>
@@ -1395,7 +1409,11 @@ export default function AdminPricelistManager() {
                       <th className="py-2.5 px-4 text-center min-w-[110px]">Squash</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 font-semibold">
+                  <tbody
+                    className={`divide-y divide-slate-100 font-semibold transition-colors duration-500 ${
+                      discountFlash ? "bg-emerald-50/45" : ""
+                    }`}
+                  >
                     {current.intervals.map((inv) => (
                       <tr key={inv.id} className="hover:bg-slate-50/50">
                         <td className="py-2.5 px-4 font-bold text-slate-800 whitespace-nowrap">
