@@ -88,12 +88,35 @@ export async function getActivePricelist(targetDate?: string | Date): Promise<Nt
       };
     }
 
-    // 2. Fallback (Option 1A): If no exact match (gap), get latest or any configured pricelist
+    // 2. Fallback: If no exact match (gap day), use the most recent previous pricelist (valid_to < dateKey)
+    const { data: prevData } = await db
+      .from("ntc_pricelists")
+      .select("id, name, valid_from, valid_to, is_active, non_member_surcharge_eur, intervals, discount_tiers")
+      .or(`tenant_id.eq.${TENANT_ID},tenant_id.eq.default`)
+      .lt("valid_to", dateKey)
+      .order("valid_to", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (prevData) {
+      return {
+        id: prevData.id,
+        name: prevData.name,
+        validFrom: prevData.valid_from,
+        validTo: prevData.valid_to,
+        isActive: true,
+        nonMemberSurchargeEur: Number(prevData.non_member_surcharge_eur) || 2.00,
+        intervals: typeof prevData.intervals === "string" ? JSON.parse(prevData.intervals) : (prevData.intervals || []),
+        discountTiers: typeof prevData.discount_tiers === "string" ? JSON.parse(prevData.discount_tiers) : (prevData.discount_tiers || DEFAULT_DISCOUNT_TIERS),
+      };
+    }
+
+    // 3. Final DB fallback: if targetDate is before all configured pricelists, use earliest configured pricelist
     const { data: anyData } = await db
       .from("ntc_pricelists")
       .select("id, name, valid_from, valid_to, is_active, non_member_surcharge_eur, intervals, discount_tiers")
       .or(`tenant_id.eq.${TENANT_ID},tenant_id.eq.default`)
-      .order("valid_from", { ascending: false })
+      .order("valid_from", { ascending: true })
       .limit(1)
       .maybeSingle();
 
@@ -113,9 +136,13 @@ export async function getActivePricelist(targetDate?: string | Date): Promise<Nt
     console.error("getActivePricelist error, fallback to in-memory:", err);
   }
 
-  // Fallback in-memory by date or first
+  // Fallback in-memory by date, then most recent previous, then first
   const matched = inMemoryPricelists.find((p) => p.validFrom <= dateKey && p.validTo >= dateKey);
-  return matched || inMemoryPricelists[0] || DEFAULT_NTC_WINTER_PRICELIST;
+  if (matched) return matched;
+  const previous = [...inMemoryPricelists]
+    .filter((p) => p.validTo < dateKey)
+    .sort((a, b) => b.validTo.localeCompare(a.validTo))[0];
+  return previous || inMemoryPricelists[0] || DEFAULT_NTC_WINTER_PRICELIST;
 }
 
 export async function savePricelistAction(pricelist: NtcPricelist): Promise<{
