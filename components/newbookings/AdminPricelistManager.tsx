@@ -322,8 +322,8 @@ export default function AdminPricelistManager() {
           gap.days.length === 5 && [1, 2, 3, 4, 5].every((d) => gap.days.includes(d))
             ? "V pracovných dňoch (Po – Pi)"
             : gap.days.length === 2 && [6, 0].every((d) => gap.days.includes(d))
-              ? "Cez víkend (So – Ne)"
-              : gap.days.map((d) => dayNames[d]).join(", ");
+            ? "Cez víkend (So – Ne)"
+            : gap.days.map((d) => dayNames[d]).join(", ");
 
         alerts.push({
           type: "gap",
@@ -778,20 +778,22 @@ export default function AdminPricelistManager() {
                 key={p.id}
                 type="button"
                 onClick={() => handleSelectPricelist(p.id)}
-                className={`flex items-center gap-2 rounded-2xl px-3.5 py-2 text-xs font-semibold transition border cursor-pointer ${isSelected
+                className={`flex items-center gap-2 rounded-2xl px-3.5 py-2 text-xs font-semibold transition border cursor-pointer ${
+                  isSelected
                     ? "bg-emerald-50 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20 shadow-xs"
                     : st === "current"
-                      ? "bg-emerald-50/40 border-emerald-200 text-emerald-900 hover:bg-emerald-50"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
+                    ? "bg-emerald-50/40 border-emerald-200 text-emerald-900 hover:bg-emerald-50"
+                    : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                }`}
               >
                 <div
-                  className={`h-2 w-2 rounded-full shrink-0 ${st === "current"
+                  className={`h-2 w-2 rounded-full shrink-0 ${
+                    st === "current"
                       ? "bg-emerald-500 animate-pulse"
                       : st === "upcoming"
-                        ? "bg-slate-400"
-                        : "bg-slate-300"
-                    }`}
+                      ? "bg-slate-400"
+                      : "bg-slate-300"
+                  }`}
                 />
                 <span className="font-bold">{p.name}</span>
                 <span className="text-[11px] text-slate-500">
@@ -820,10 +822,11 @@ export default function AdminPricelistManager() {
 
       {feedback && (
         <div
-          className={`rounded-2xl p-4 text-xs font-bold shadow-2xs flex items-center justify-between border ${feedback.type === "success"
+          className={`rounded-2xl p-4 text-xs font-bold shadow-2xs flex items-center justify-between border ${
+            feedback.type === "success"
               ? "bg-emerald-50 border-emerald-200 text-emerald-900"
               : "bg-red-50 border-red-200 text-red-900"
-            }`}
+          }`}
         >
           <span>{feedback.message}</span>
           <button
@@ -983,10 +986,11 @@ export default function AdminPricelistManager() {
                     type="button"
                     disabled={hasHappyHour}
                     onClick={() => handleOpenAddIntervalModal("happy")}
-                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${hasHappyHour
+                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${
+                      hasHappyHour
                         ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
                         : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 cursor-pointer shadow-2xs"
-                      }`}
+                    }`}
                     title={
                       hasHappyHour
                         ? "Pásmo Happy Hour už v cenníku existuje"
@@ -1001,10 +1005,11 @@ export default function AdminPricelistManager() {
                     type="button"
                     disabled={!canAddGeneralWeekday}
                     onClick={() => handleOpenAddIntervalModal("weekday")}
-                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${!canAddGeneralWeekday
+                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${
+                      !canAddGeneralWeekday
                         ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
                         : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 cursor-pointer shadow-2xs"
-                      }`}
+                    }`}
                     title={
                       !canAddGeneralWeekday
                         ? "Základné pásma pre pracovné dni (Mimo špičky aj Špička) už máte nastavené. Môžete pridať už len Happy Hour."
@@ -1019,10 +1024,11 @@ export default function AdminPricelistManager() {
                     type="button"
                     disabled={hasWeekend}
                     onClick={() => handleOpenAddIntervalModal("weekend")}
-                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${hasWeekend
+                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${
+                      hasWeekend
                         ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
                         : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 cursor-pointer shadow-2xs"
-                      }`}
+                    }`}
                     title={
                       hasWeekend
                         ? "Víkendové pásmo (7:00 – 21:00) už v cenníku existuje"
@@ -1121,10 +1127,11 @@ export default function AdminPricelistManager() {
                       {/* Non-clickable Days Indicator */}
                       <div className="mt-1 flex items-center gap-1.5">
                         <span
-                          className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${isWeekend
+                          className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                            isWeekend
                               ? "bg-slate-100 text-slate-700 border border-slate-200"
                               : "bg-emerald-50 text-emerald-800 border border-emerald-200/60"
-                            }`}
+                          }`}
                         >
                           {isWeekend ? "So – Ne (Víkend)" : "Po – Pi (Pracovné dni)"}
                         </span>
@@ -1202,80 +1209,80 @@ export default function AdminPricelistManager() {
                       </div>
                     </td>
 
-                    {/* Bedminton */}
-                    <td className="py-3.5 px-3 text-center">
-                      <PriceStepper
-                        value={inv.prices.badminton ?? 14}
-                        onChange={(val) => handleUpdatePrice(inv.id, "badminton", String(val))}
-                      />
-                    </td>
+                  {/* Bedminton */}
+                  <td className="py-3.5 px-3 text-center">
+                    <PriceStepper
+                      value={inv.prices.badminton ?? 14}
+                      onChange={(val) => handleUpdatePrice(inv.id, "badminton", String(val))}
+                    />
+                  </td>
 
-                    {/* Tenis Hala */}
-                    <td className="py-3.5 px-3 text-center">
-                      <PriceStepper
-                        value={inv.prices.tennis ?? 29}
-                        onChange={(val) => handleUpdatePrice(inv.id, "tennis", String(val))}
-                      />
-                    </td>
+                  {/* Tenis Hala */}
+                  <td className="py-3.5 px-3 text-center">
+                    <PriceStepper
+                      value={inv.prices.tennis ?? 29}
+                      onChange={(val) => handleUpdatePrice(inv.id, "tennis", String(val))}
+                    />
+                  </td>
 
-                    {/* Tenis Antuka */}
-                    <td className="py-3.5 px-3 text-center">
-                      <PriceStepper
-                        value={inv.prices["tennis-clay"] ?? 20}
-                        onChange={(val) => handleUpdatePrice(inv.id, "tennis-clay", String(val))}
-                      />
-                    </td>
+                  {/* Tenis Antuka */}
+                  <td className="py-3.5 px-3 text-center">
+                    <PriceStepper
+                      value={inv.prices["tennis-clay"] ?? 20}
+                      onChange={(val) => handleUpdatePrice(inv.id, "tennis-clay", String(val))}
+                    />
+                  </td>
 
-                    {/* Squash */}
-                    <td className="py-3.5 px-3 text-center">
-                      <PriceStepper
-                        value={inv.prices.squash ?? 11}
-                        onChange={(val) => handleUpdatePrice(inv.id, "squash", String(val))}
-                      />
-                    </td>
+                  {/* Squash */}
+                  <td className="py-3.5 px-3 text-center">
+                    <PriceStepper
+                      value={inv.prices.squash ?? 11}
+                      onChange={(val) => handleUpdatePrice(inv.id, "squash", String(val))}
+                    />
+                  </td>
 
-                    {/* Actions */}
-                    <td className="py-3.5 px-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          type="button"
-                          disabled={idx === 0}
-                          onClick={() => handleMoveInterval(inv.id, "up")}
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-20 disabled:hover:bg-transparent disabled:cursor-not-allowed transition cursor-pointer"
-                          title="Posunúť vyššie"
-                        >
-                          <ChevronUp className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          disabled={idx === current.intervals.length - 1}
-                          onClick={() => handleMoveInterval(inv.id, "down")}
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-20 disabled:hover:bg-transparent disabled:cursor-not-allowed transition cursor-pointer"
-                          title="Posunúť nižšie"
-                        >
-                          <ChevronDown className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEditIntervalModal(inv)}
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-700 transition cursor-pointer"
-                          title="Upraviť časové pásmo v okne"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveInterval(inv.id)}
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
-                          title="Zmazať pásmo"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                  {/* Actions */}
+                  <td className="py-3.5 px-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        disabled={idx === 0}
+                        onClick={() => handleMoveInterval(inv.id, "up")}
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-20 disabled:hover:bg-transparent disabled:cursor-not-allowed transition cursor-pointer"
+                        title="Posunúť vyššie"
+                      >
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={idx === current.intervals.length - 1}
+                        onClick={() => handleMoveInterval(inv.id, "down")}
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-20 disabled:hover:bg-transparent disabled:cursor-not-allowed transition cursor-pointer"
+                        title="Posunúť nižšie"
+                      >
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditIntervalModal(inv)}
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-700 transition cursor-pointer"
+                        title="Upraviť časové pásmo v okne"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveInterval(inv.id)}
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
+                        title="Zmazať pásmo"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             </tbody>
           </table>
         </div>
@@ -1294,10 +1301,11 @@ export default function AdminPricelistManager() {
                 ? "Nemožno zmazať jediný existujúci cenník"
                 : "Zmazať tento cenník"
             }
-            className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs font-bold transition shadow-2xs ${pricelists.length <= 1
+            className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs font-bold transition shadow-2xs ${
+              pricelists.length <= 1
                 ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
                 : "border-slate-200 bg-white text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700 cursor-pointer"
-              }`}
+            }`}
           >
             <Trash2 className="h-4 w-4" />
             Zmazať cenník
@@ -1370,12 +1378,14 @@ export default function AdminPricelistManager() {
 
             {/* Live Sports Breakdown Preview */}
             <div
-              className={`rounded-2xl border overflow-hidden shadow-2xs transition-all duration-500 ${discountFlash ? "border-emerald-300 ring-2 ring-emerald-100" : "border-slate-200"
-                }`}
+              className={`rounded-2xl border overflow-hidden shadow-2xs transition-all duration-500 ${
+                discountFlash ? "border-emerald-300 ring-2 ring-emerald-100" : "border-slate-200"
+              }`}
             >
               <div
-                className={`px-4 py-2.5 flex items-center justify-between text-xs font-bold text-slate-700 border-b transition-colors duration-500 ${discountFlash ? "bg-emerald-50/90 border-emerald-200" : "bg-slate-50 border-slate-200"
-                  }`}
+                className={`px-4 py-2.5 flex items-center justify-between text-xs font-bold text-slate-700 border-b transition-colors duration-500 ${
+                  discountFlash ? "bg-emerald-50/90 border-emerald-200" : "bg-slate-50 border-slate-200"
+                }`}
               >
                 <div className="flex items-center gap-2">
                   <Percent className="h-4 w-4 text-emerald-600" />
@@ -1400,8 +1410,9 @@ export default function AdminPricelistManager() {
                     </tr>
                   </thead>
                   <tbody
-                    className={`divide-y divide-slate-100 font-semibold transition-colors duration-500 ${discountFlash ? "bg-emerald-50/45" : ""
-                      }`}
+                    className={`divide-y divide-slate-100 font-semibold transition-colors duration-500 ${
+                      discountFlash ? "bg-emerald-50/45" : ""
+                    }`}
                   >
                     {current.intervals.map((inv) => (
                       <tr key={inv.id} className="hover:bg-slate-50/50">
