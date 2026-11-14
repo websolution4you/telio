@@ -194,17 +194,29 @@ export function analyzePricelistTimeline(
 
 /**
  * Returns the season state of a pricelist relative to today's date.
+ * When `allPricelists` is provided and multiple pricelists cover today,
+ * only the one with the latest `validFrom` (matching `getActivePricelist`) is `"current"`,
+ * while earlier superseded ones are treated as `"expired"`.
  */
 export function getPricelistSeasonStatus(
   pricelist: NtcPricelist,
-  todayDateKey?: string
+  todayDateKey?: string,
+  allPricelists?: NtcPricelist[]
 ): "current" | "upcoming" | "expired" {
   const today = todayDateKey || formatLocalDateKey(new Date());
-  if (pricelist.validFrom <= today && pricelist.validTo >= today) {
-    return "current";
-  }
   if (pricelist.validFrom > today) {
     return "upcoming";
+  }
+  if (pricelist.validFrom <= today && pricelist.validTo >= today) {
+    if (allPricelists && allPricelists.length > 0) {
+      const coveringToday = allPricelists
+        .filter((p) => p.validFrom <= today && p.validTo >= today)
+        .sort((a, b) => b.validFrom.localeCompare(a.validFrom) || b.validTo.localeCompare(a.validTo));
+      if (coveringToday[0] && coveringToday[0].id !== pricelist.id) {
+        return "expired";
+      }
+    }
+    return "current";
   }
   return "expired";
 }
