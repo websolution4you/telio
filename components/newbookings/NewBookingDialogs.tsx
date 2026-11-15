@@ -1215,7 +1215,7 @@ export function BookingDetailDialog({
           <Detail icon={Clock3} label="Termín" value={`${formatDate(activeBooking.start)}, ${formatTime(activeBooking.start)} – ${formatTime(activeBooking.end)}`} />
           <Detail
             icon={User}
-            label={isMaintenanceOrAdmin ? (activeBooking.clientPlayerName || (activeBooking.customerName && !["údržba kurtov", "udrzba kurtov", "údržba", "udrzba", "rezervácia admin", "rezervacia admin", "tréningy", "treningy"].includes(activeBooking.customerName.toLowerCase())) ? "Meno hráča / zverenca" : "Dôvod rezervácie") : "Meno"}
+            label={isMaintenanceOrAdmin ? (activeBooking.clientPlayerName || (activeBooking.customerName && !["údržba kurtov", "udrzba kurtov", "údržba", "udrzba", "rezervácia admin", "rezervacia admin", "tréningy", "treningy", "ntc tím", "ntc tim"].includes(activeBooking.customerName.toLowerCase())) ? "Meno hráča / zverenca" : "Dôvod rezervácie") : "Meno"}
             value={activeBooking.clientPlayerName || activeBooking.customerName || (isMaintenanceOrAdmin ? "Údržba kurtov" : "Neznáme")}
           />
           {activeBooking.phone && !isMaintenanceOrAdmin && <Detail icon={Phone} label="Telefón" value={activeBooking.phone} />}
