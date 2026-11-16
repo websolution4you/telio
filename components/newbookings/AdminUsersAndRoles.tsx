@@ -238,10 +238,10 @@ export default function AdminUsersAndRoles() {
       prev.map((c) =>
         c.id === catId
           ? {
-              ...c,
-              color: hex,
-              border: calculateBorderColor(hex),
-            }
+            ...c,
+            color: hex,
+            border: calculateBorderColor(hex),
+          }
           : c
       )
     );
@@ -537,15 +537,14 @@ export default function AdminUsersAndRoles() {
                         </span>
                       </div>
                       <span
-                        className={`shrink-0 rounded-lg px-2.5 py-0.5 text-[11px] font-bold border ${
-                          activeRole === "admin"
-                            ? "bg-slate-900 text-white border-slate-800"
-                            : activeRole === "ntc_team"
+                        className={`shrink-0 rounded-lg px-2.5 py-0.5 text-[11px] font-bold border ${activeRole === "admin"
+                          ? "bg-slate-900 text-white border-slate-800"
+                          : activeRole === "ntc_team"
                             ? "bg-blue-100 text-blue-950 border-blue-300"
                             : activeRole === "trainer"
-                            ? "bg-[#DCC7F0] text-slate-950 border-[#C0A0E0]"
-                            : "bg-[#FFF3B0] text-slate-950 border-[#EAD77B]"
-                        }`}
+                              ? "bg-[#DCC7F0] text-slate-950 border-[#C0A0E0]"
+                              : "bg-[#FFF3B0] text-slate-950 border-[#EAD77B]"
+                          }`}
                       >
                         {roleLabels[activeRole]}
                       </span>
@@ -721,8 +720,8 @@ export default function AdminUsersAndRoles() {
                                 {minutes < 60
                                   ? `${minutes} minút`
                                   : minutes % 60
-                                  ? `${Math.floor(minutes / 60)} h ${minutes % 60} min`
-                                  : `${minutes / 60} h`}
+                                    ? `${Math.floor(minutes / 60)} h ${minutes % 60} min`
+                                    : `${minutes / 60} h`}
                               </option>
                             ))}
                           </select>
@@ -914,9 +913,8 @@ export default function AdminUsersAndRoles() {
                           key={preset.hex}
                           type="button"
                           onClick={() => setNewCatColor(preset.hex)}
-                          className={`h-8 w-8 rounded-xl border transition shadow-2xs cursor-pointer flex items-center justify-center ${
-                            isSelected ? "ring-2 ring-slate-950 scale-110" : "hover:scale-105"
-                          }`}
+                          className={`h-8 w-8 rounded-xl border transition shadow-2xs cursor-pointer flex items-center justify-center ${isSelected ? "ring-2 ring-slate-950 scale-110" : "hover:scale-105"
+                            }`}
                           style={{
                             backgroundColor: preset.hex,
                             borderColor: calculateBorderColor(preset.hex),
@@ -1056,9 +1054,8 @@ export default function AdminUsersAndRoles() {
                               key={preset.hex}
                               type="button"
                               onClick={() => updateCategoryColor(cat.id, preset.hex)}
-                              className={`h-6 w-6 rounded-md border transition shadow-2xs cursor-pointer flex items-center justify-center ${
-                                isSelected ? "ring-2 ring-slate-950 scale-110" : "hover:scale-105"
-                              }`}
+                              className={`h-6 w-6 rounded-md border transition shadow-2xs cursor-pointer flex items-center justify-center ${isSelected ? "ring-2 ring-slate-950 scale-110" : "hover:scale-105"
+                                }`}
                               style={{
                                 backgroundColor: preset.hex,
                                 borderColor: calculateBorderColor(preset.hex),
