@@ -996,7 +996,7 @@ export function BookingDetailDialog({
     return c.name.toLowerCase() === rawType || c.id.toLowerCase() === rawType;
   });
 
-  const categoryAllowsSubSlots = activeCategory ? Boolean(activeCategory.hasPlayerField) : isNtcTeamBooking;
+  const categoryAllowsSubSlots = isNtcTeamBooking || (activeCategory ? Boolean(activeCategory.hasPlayerField) : false);
 
   const canEditSubSlots =
     isStaffDetail &&
