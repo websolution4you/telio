@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default async function NewBookingsPage() {
-    const session = await getSession();
+  const session = await getSession();
   let currentUser: BookingUser | null = null;
   let rolePolicy: RoleBookingPolicy | null = null;
 

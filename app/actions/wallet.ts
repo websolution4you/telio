@@ -119,7 +119,7 @@ export async function getWalletHistoryAction() {
           try {
             const notes = typeof booking.notes === "string" ? JSON.parse(booking.notes) : booking.notes;
             courtId = notes?.courtId || null;
-          } catch {}
+          } catch { }
         }
         bookingsById.set(booking.id, { startAt: booking.start_at, courtId });
       }
@@ -181,12 +181,12 @@ export async function reconcileWalletCardPayAction(internalPaymentId?: string) {
     return { success: false as const, error: "Dobíjanie kreditu nie je pre tento účet povolené." };
   }
 
-    if (internalPaymentId && !/^[0-9a-f-]{36}$/i.test(internalPaymentId)) {
+  if (internalPaymentId && !/^[0-9a-f-]{36}$/i.test(internalPaymentId)) {
     return { success: false as const, error: "Neplatný identifikátor CardPay platby." };
   }
 
   const db = getCoreServiceDb();
-    let paymentQuery = db
+  let paymentQuery = db
     .from("payments")
     .select("id, provider_payment_id, amount_eur, status, metadata")
     .eq("tenant_id", TENANT_ID)
@@ -351,7 +351,7 @@ export async function createWalletCheckoutAction(amountEur: number, operationId:
     return { success: false as const, error: "Neplatný identifikátor operácie." };
   }
 
-      const db = getCoreServiceDb();
+  const db = getCoreServiceDb();
   const idempotencyKey = `stripe-checkout:${session.userId}:${operationId}`;
   const { data: payment, error: paymentError } = await db
     .from("payments")
@@ -367,7 +367,7 @@ export async function createWalletCheckoutAction(amountEur: number, operationId:
     .select("id")
     .single();
 
-    if (paymentError || !payment) {
+  if (paymentError || !payment) {
     console.error("createWalletCheckoutAction payment insert failed:", paymentError);
     return { success: false as const, error: "Platbu sa nepodarilo pripraviť." };
   }
